@@ -510,3 +510,28 @@
 - Touchpad: 3-up ladder, 3-down Esc, 2-finger paging (accumulated,
   clamped, no loop) ✓
 - Super+digit page-relative in overview: Super+R,R,3 → ws12 ✓
+
+## Float-leak session (2026-08-30) — OPEN, watch armed
+- The leak: post-v0.20, Max still occasionally gets a floating window
+  out of overview drags. Every synchronous path is netted, so v0.21
+  adds DIAGNOSIS: a 3s deferred float watch armed at every gesture end
+  (release settled / REVEAL / cancel), + traces on grab/end/placeAt/
+  floatnet. A leak now prints `FLOAT-LEAK +Nms` with the delay to
+  /tmp/waveview-trace.log — the delay tells us WHO flipped it late.
+- CRASH while loading v0.21 (18:06): nix-build finished 18:06:01, the
+  hot-load's `plugin unload` landed while Max was MID-DRAG (commit into
+  tile 4 at t-157ms). Core dump: Hyprland clears the PREVIOUS frame's
+  render pass at the START of the next (CRenderPass::clear() is
+  beginRender's first call) — our queued CUVTexElement's virtual dtor
+  ran through the unmapped .so → SEGV in the hole where it was mapped
+  (the crash reporter died unwinding the same frame, hence the
+  truncated report; got the story from coredumpctl + NT_FILE instead).
+  18 earlier hot-loads survived only because the overview was closed.
+- `cf07d89` v0.22: PLUGIN_EXIT hard-closes the overview (live drag
+  ended, float restored, waverunner notified) and flushes m_renderPass
+  before returning — unload is now safe at any moment, mid-drag
+  included. Hot-loaded 0.22 (after confirming overview closed ~9min
+  via trace-log mtime; the RUNNING v0.21 still had the unsafe exit).
+- NEXT: Max drags at full speed; when a window goes floating, read the
+  FLOAT-LEAK line (and the gesture traces above it) in
+  /tmp/waveview-trace.log.
