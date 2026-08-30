@@ -439,6 +439,18 @@ overview opens somethimes with no pointer.
       + TRACE LOG /tmp/waveview-trace.log (ms-stamped commit/regrab/
       drop/restore + capture mask/duration): next axis round reads the
       recorded aim-vs-result. Hot-loaded, 0.17 confirmed, log cleared.
+      Round 16 ("i moved around and one window became floating") → THE
+      TRACE PAID OFF IMMEDIATELY: caught `commit tile=7 desk=(-579,-622)`
+      — an off-screen drop point. Root cause: the machinery's own
+      warpCursorTo calls fire synthetic motion events that re-entered
+      updateHoverAt mid-commit and overwrote g_dragCursor. dwindle fed
+      garbage coords can't insert → floating window. Also explains
+      residual bad reordering (warp-poisoned aims committing into the
+      wrong tile/side without going negative). `3e3fde5` v0.18: g_busy
+      re-entrancy guard, aim frozen before regrab/commit, commitAt aborts
+      on stale tile containment, restoreFloatState nets on grab-reject +
+      gesture end. Perf from the trace: masked captures ~10ms vs 130ms
+      full — freeze margin confirmed gone. Hot-loaded, 0.18 confirmed.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
