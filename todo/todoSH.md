@@ -95,7 +95,15 @@
       dt-based, hover follows, desktop never scrolls), opening on a deep
       WS pre-scrolls its row into view, digits jump 1-9, clicks reach all
       18. Note: open now captures 18 workspaces (was 9) — if opening
-      feels slower, next step is half-res captures. **Awaiting reload**:
+      feels slower, next step is half-res captures.
+      Round 3 (4b43763): equality BY CONSTRUCTION — rest-shrink removed
+      (windows at true mapped size; gaps = the desktop's own,
+      miniaturized) and empty/drop frames = the plain full tile, identical
+      to a full workspace's footprint. Wheel now flips PAGES (two 3x3
+      pages, one notch = one flip, digits 1-9 select within the current
+      page, opening lands on the active page). ALL keys swallowed while
+      open (typing was leaking into the focused window). **Awaiting
+      reload**:
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
