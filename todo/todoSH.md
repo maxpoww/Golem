@@ -553,3 +553,4 @@
   0.23. NEXT: Max re-runs cross-view drops onto occupied tiles (the
   ws6→tile2 shape) — the leak should be gone and FLOAT-LEAK lines
   should now only mean the real thing.
+  ✅ verified by Max: "its working, no more leaks for now."
