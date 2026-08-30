@@ -294,6 +294,15 @@ overview opens somethimes with no pointer.
       plugin-side EK_CUSTOM pass elements plant/restore the renderer's
       global UV fields around the draw. Hot-loaded, 0.4 confirmed —
       needs your eyes on the same two drags.
+      Round 3 ("still garbage") — crop-vs-stretch changed nothing Max
+      saw, so the garbage is the SAMPLING: the morph animates a full-res
+      capture through ~3x downscales; single-tap bilinear there = text as
+      crawling aliasing (static minis mask the same flaw). `488715d`
+      v0.5: mip chain rebuilt on every per-window capture; morph draws
+      switch that texture to trilinear and restore bilinear behind them
+      (settled minis untouched). Hot-loaded, 0.5 confirmed. If THIS is
+      still garbage, the next round needs Max's words or a screenshot —
+      what kind of bad: shimmering? blurry? blocky? wrong content?
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
