@@ -143,7 +143,14 @@
       design gap. Solo and multi views share the exact same envelope.
       Lerps with the zoom for the pixel-exact close. Wall mockup fixed
       the same way (outline hugs windows; gap uniform in-view and
-      across views). **Awaiting reload** (carries strip-clip too):
+      across views).
+      Round 5 (7d1f0f3) — THE REAL ROOT CAUSE: windows were mapped against
+      the FULL monitor, but no window can occupy the bar's reserved strip,
+      so every tile carried a ~2.5% dead band at its top (just past the
+      snap threshold — four rounds of seam logic couldn't touch it).
+      Windows now map against the USABLE area (monitor minus reserved):
+      a maximized window IS the full tile, tops flush. **Awaiting reload**
+      (carries strip-clip + round 4 too):
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
