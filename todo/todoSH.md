@@ -62,8 +62,18 @@
       the same workspace → origin window gets focus+keyboard back (seat
       re-routed via a neighbor-detour); travelled to another workspace →
       you STAY there, its last window gets the keyboard; closed by clicking
-      another window → your click is respected (unchanged). Needs restart +
-      your eyes — especially the workspace-travel case.
+      another window → your click is respected (unchanged).
+      Round 2 `7c1f718`: the yank survived round 1 because the settle-force
+      lives in frame.rs (the OLD implementation Max remembered — it always
+      forced the origin). Now that site is workspace-aware. **Reproduced +
+      verified live both ways by Claude** (travel ends on ws7; same-ws
+      restores origin window). Max's eyes still welcome.
+- [ ] **F6 (found in logs):** idle-at-rest violation — something redraws a
+      braille spinner every ~800ms while fully idle (cosmic_text renders
+      '⠂'/'⠐' each tick). Find it (Install "Indexing…"? topbar?) and stop
+      its timer at rest.
+- [ ] **F7 (found in logs):** requested font family 'Noto Sans' isn't
+      installed (falls back to DejaVu) — ties into todo7 font pinning (F4).
 
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
