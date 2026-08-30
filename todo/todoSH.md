@@ -416,6 +416,18 @@ overview opens somethimes with no pointer.
       changeFloatingMode() back only when the state differs from gesture
       start, so genuinely-floating windows keep floating. Hot-loaded,
       0.15 confirmed. Slow-mo spring still active.
+      Round 14 ("the axis reording is not working well. it was good, now
+      its not amazing anymore") → coordinate-frame drift: the user aims
+      on the DISPLAYED tiles (committed preview, squeezed halves) but
+      dwindle classifies the drop against the pulled-out REAL layout
+      (target at full box) — 'below A' on the squeezed half reads as
+      'beside A' on the full box. Pre-live-commits both frames were the
+      same, hence "it was good". `a0ef359` v0.16: dropPointFor()
+      translates the aimed side into a quarter-point inside that side's
+      region of the target's real goal geometry (deterministic for any
+      aspect); used by commits AND the classic-drop release. Hot-loaded,
+      0.16 confirmed. Slow-mo spring still active; "still glitches"
+      acknowledged — parked while axis was priority.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
