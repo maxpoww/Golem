@@ -460,6 +460,14 @@ overview opens somethimes with no pointer.
       (no realloc; cover-crop bridges size drift), refresh resumes on
       separation; first-ever captures render regardless. Hot-loaded,
       0.19 confirmed. Slow-mo spring still active.
+      Round 18 ("its working") → SLOW-MO OFF: spring restored to easy /
+      4.79 via eval (matches the .lua so nothing to clean up on restart),
+      BOOST_MS back to 700ms. `ca322b3` v0.20 hot-loaded. The live-drag
+      overhaul stands: live commits + hole/ghost intention visuals +
+      goal mapping + frame-rate glide + masked captures + pooled FBs +
+      overlap-gated crops + warp re-entrancy guard + float nets.
+      Trace log stays on (/tmp/waveview-trace.log) for future rounds.
+      NEXT: Max daily-drives it at full speed; expect fresh feel notes.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
