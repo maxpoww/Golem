@@ -1,6 +1,10 @@
 # OPTIONS — Modules
 
-<!-- Max's file: add module names as ideas come. One name per line. -->
+<!-- Max's file: add module names as ideas come. One name per line.
+     OPTIONS is a living layer — modules grow, change, multiply. During
+     Arc 1 (the ISO push) ideas are COLLECTED here, not built; building
+     resumes in Arc 2 (S3). Known-incomplete modules (clipboard,
+     dictionary…) get their finish-up notes here too. -->
 
 ## Live (built before the Brain, need re-wiring)
 

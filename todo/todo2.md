@@ -1,4 +1,4 @@
-# todo2 — S2 The Spine (Brain ↔ Body)
+# todo2 — S2 The Spine (Brain ↔ Body) — ARC 2 (after the ISO)
 
 - [ ] Read the engine's `Engine::start()` / `subscribe()` API and the
       daemon's existing tokio seam (zbus notif path) — write a half-page

@@ -54,10 +54,12 @@ Interruptions dressed as help. An update that can break your machine.
 
 ## Direction
 
-From here: wire the Brain to the Body, complete the everyday OS
-(features.md, apps.md), reach the phone (android.md), then hand it to the
-world — an ISO a stranger can install without us in the room
-(roadmap.md, S1→S11, plus the Android workstream W-A).
+Two arcs. **First, reach metal**: perfect what exists and put it on an ISO
+a stranger can install without us in the room. **Then, grow the soul**:
+wire the Brain to the Body, build out the OPTIONS modules, complete the
+everyday OS, reach the phone (roadmap.md — Arc 1: SH→S7→S9; Arc 2: the rest).
+OPTIONS is a living layer — modules will keep changing, growing, multiplying;
+the ISO doesn't wait for them.
 
 **Uprise** is the first climb: from a daily-driven prototype to an OS other
 people wake up to.

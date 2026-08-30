@@ -1,112 +1,86 @@
-# Golem OS — Roadmap (now → finished ISO)
+# Golem OS — Roadmap (now → finished ISO → the soul)
 
-> One project, one order, starting at `todo/todo1.md`. Each section S<N> has
-> a matching task file `todo/todo<N>.md`; the Android workstream has
-> `todo/todo-android.md`. A section is entered only when the previous one's
-> exit line is true (S3 is the exception — continuous once opened). Near
-> sections have detailed todos; far ones are coarse on purpose and get
-> broken down on entry ("just-in-time detail").
+> **Two arcs** (decided 2026-08-29): **Arc 1 — reach metal**: take what
+> exists, make it work *perfectly*, and get it onto an ISO that installs
+> Golem on other PCs. Feature freeze: no new OPTIONS surfaces, no module
+> growth — incompleteness is accepted, brokenness is not. **Arc 2 — grow
+> the soul**: after the ISO, wire the Brain, build out the modules, the
+> phone, the everything. Module ideas keep landing in `optionsmodules.md`
+> during Arc 1; they just don't get built yet.
 >
-> Scope sources: `Golem.md` (vision) · `features.md` (universe of user
-> needs) · `apps.md` (app strategy) · `android.md` (phone strategy) ·
-> `optionsmodules.md` (module queue, Max's file).
+> Section IDs (S1…S11, SH, W-A) are stable names; the ARC ORDER below is the
+> order of work. Each section has `todo/todo<id>.md`. Scope sources:
+> `Golem.md` · `features.md` · `apps.md` · `android.md` · `optionsmodules.md`.
 
-## S1 — Land & clean *(where we are now)*
+## ARC 1 — Reach metal: S1 ✔ → SH → S7 → S9
 
-Close every open loop so we start the climb with empty hands: land the
-clipboard-dictionary branch, retire the stale plan docs, fix doc drift,
-version this directory.
-**Exit:** main is green, nothing uncommitted, docs point at this roadmap.
+### S1 — Land & clean ✅ (2026-08-29)
+Dictionary branch landed on main, docs de-drifted, plan versioned.
 
-## S2 — The Spine (Brain ↔ Body)
+### SH — Harden what exists *(new; the "working perfectly" pass)*
+Everything already built becomes reliable enough to hand to a stranger:
+bug sweep of the live surfaces, cold-start on foreign hardware (no Max
+homedir assumptions), graceful degradation when deps are missing, daily
+driving with notes. Freeze rule: fix, don't grow.
+**Exit:** a week of daily use with zero surprises; every known bug fixed or filed.
 
-Wire `options-engine` into the daemon (tokio→calloop bridge) and drive ONE
-existing affordance from an `OptionSet`, deleting its daemon-side duplicate
-sensing. This turns the philosophy into a running system. Also unblocks W-A
-(the phone collector needs this wiring).
-**Exit:** one surface is engine-driven end to end, on the live session.
+### S7 — The Golem system flake
+ONE flake = a complete Golem PC: custom Hyprland, waverunner,
+options-notify, dictionaries, defaults, theming, users — *and the stopgap
+kit*: curated plain tools for what OPTIONS doesn't cover yet (network,
+audio, bluetooth GUIs) so an installed machine is livable today; each
+stopgap dies when its Arc-2 module ships. `nixos-rebuild build-vm` = the
+test loop.
+**Exit:** one command produces a bootable Golem VM a stranger could use, including getting online.
 
-## S3 — OPTIONS modules *(continuous from here on)*
+### S9 — Installer & ISO
+Live ISO boots into real Golem; guided install (disk, user, wifi, done)
+instantiates the S7 flake. Test on the VM, then real metal, then a machine
+that isn't yours.
+**Exit — THE Arc-1 exit:** ISO on a USB stick → working Golem PC on another computer, no terminal, no Max in the room.
 
-The production line: migrate the live surfaces onto the Brain, then
-implement modules from `optionsmodules.md` (its Planned list is the queue)
-as collector → provider → surface. New ideas enter *that* file; work enters
-*this* section. Never blocks S4+.
-**Exit:** never "done" — the definition-of-done in optionsmodules.md is the gate per module.
+*(S10-lite rides along: golem-os.com gets a download link + honest install
+notes when the ISO exists. The full release push stays in Arc 2.)*
 
-## S4 — System controls
+## ARC 2 — Grow the soul: S2 → S3 → S4 → S5 → S6 → S8 → S10 → S11, + W-A
 
-The things a person expects to just work from the shell: wi-fi, bluetooth,
-audio devices, brightness, power/battery, displays (features.md §4–§5).
-Each built as an OPTIONS module (they're contexts too), so S3's pipeline is
-the factory.
-**Exit:** a Golem session is livable without ever opening a terminal.
+### S2 — The Spine (Brain ↔ Body)
+Wire `options-engine` into the daemon; one affordance engine-driven; delete
+duplicate sensing. Unblocks W-A. *(Deferred from Arc 1: safe because the
+feature freeze means no new hand-built surfaces accumulate meanwhile.)*
 
-## S5 — The app set
+### S3 — OPTIONS modules *(continuous once open)*
+The production line: migrate live surfaces onto the Brain, then build the
+`optionsmodules.md` queue — including finishing the incomplete ones
+(clipboard/dictionary have known gaps, parked on purpose during Arc 1).
 
-Ship the everyday apps per `apps.md`: `golem-apps.nix` for the CURATE
-column, theming pass, default-apps/mime wiring, per-app touch check,
-browser decision, Nautilus handoff. BUILD-column apps flow through S3 as
-modules; the long tail stays webapps.
-**Exit:** a fresh Golem covers every §6 need in `features.md` — nobody stranded.
+### S4 — System controls
+Wi-fi, bluetooth, audio, brightness, power, displays as OPTIONS modules.
+Each one shipped retires its Arc-1 stopgap tool.
 
-## S6 — Configuration UI
+### S5 — The app set
+`apps.md`: golem-apps.nix, theming pass, mime defaults, browser decision,
+Nautilus handoff, touch check.
 
-Settings as a surface: theme, dock behavior, input, OPTIONS toggles — the
-full panel inventory of features.md §3. The UI edits *intent*; underneath
-it writes the declarative config (TOML / generated nix) — same trust model
-as the install pipeline.
-**Exit:** everything a user may want to change is changeable without editing files.
+### S6 — Configuration UI
+Settings as a surface; writes declarative intent (features.md §3 inventory).
 
-## S7 — The Golem system flake
+### S8 — First run & onboarding
+Diegetic tour, skill seeding, "first five minutes" test with a real human.
 
-The distro composition: ONE flake that describes a complete Golem PC —
-custom Hyprland, waverunner, options-notify, golem-apps, defaults, theming,
-users. `nixos-rebuild build-vm` gives us a full test Golem in a window,
-which becomes the daily test loop for everything after.
-**Exit:** one command produces a bootable Golem VM identical to the vision.
+### S10 — Website & release
+Manifesto ✔ → story, motion screencasts, generations/"roll back" headline,
+alpha release of **Golem 26 "Uprise"** proper.
 
-## S8 — First run & onboarding
+### S11 — Everyone-hardening *(cross-cutting, closes last)*
+i18n (Spanish first), keyboard-only, accessibility, non-expert testing.
 
-The "everyone" moment: first boot, user creation, language, and a diegetic
-tour — OPTIONS teaching itself by surfacing at the right moments (game
-onboarding, not a slideshow). Seeds the skill calibration.
-**Exit:** a non-Linux person gets from first boot to browsing + installing an app, unassisted.
-
-## S9 — Installer & ISO
-
-The live ISO boots straight into a real Golem session; installing is one
-guided, friction-free flow (disk, user, done) that instantiates the S7
-flake onto the machine.
-**Exit:** ISO on a USB stick → working Golem PC, no terminal, no docs.
-
-## S10 — Website & release
-
-golem-os.com grows from the manifesto (live since 2026-08-29) into the
-front door: the story, screenshots, the download, honest install
-instructions. First public alpha: **Golem 26 "Uprise"**.
-**Exit:** a stranger can find, download, install, and use Golem.
-
-## S11 — Everyone-hardening *(cross-cutting, finishes last)*
-
-The gap between "everyone" as ethos and as spec: i18n of the shell,
-keyboard-only paths, accessibility (features.md §9), testing with real
-non-expert humans. Runs alongside S8–S10, closes after them.
-**Exit:** the word "everyone" on the website is true.
+### W-A — Golem × Android *(parallel, any time after S2)*
+`android.md`: fork KDE Connect → Golem app; phone collector; P1→P4.
 
 ---
 
-## W-A — Golem × Android *(parallel workstream; see `android.md`, `todo/todo-android.md`)*
-
-Starts any time after S2 (the phone collector needs the Brain↔Body wiring).
-Fork KDE Connect Android → rebrand **Golem** → P1 presence (pair, notifs,
-universal clipboard, phone pill) → P2 communication → P3 magic (mirroring,
-webcam, hotspot, unlock) → P4 fusion. The open answer to Mac+iPhone.
-**Exit (P1):** a non-technical person pairs in under a minute and sees phone notifications on the desktop.
-
----
-
-**Cross-cutting rules (always):** coherence over features · see it before you
-believe it (verify-ui) · dt-based motion · safety at the OS edge (no
-unprompted rebuild/switch) · new ideas → `optionsmodules.md`, never straight
-to code.
+**Cross-cutting rules (always):** Arc-1 freeze — fix, don't grow · coherence
+over features · see it before you believe it (verify-ui) · dt-based motion ·
+safety at the OS edge (no unprompted rebuild/switch) · new ideas →
+`optionsmodules.md`, never straight to code.

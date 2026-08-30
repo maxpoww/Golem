@@ -7,6 +7,8 @@
 - [ ] Compose: waverunner + options-notify + dictionaries + waverunner-apply
 - [ ] Compose: `golem-apps.nix` (from S5)
 - [ ] Golem defaults: theming, fonts, hyprland.lua, session startup
+- [ ] Stopgap kit: curated plain GUIs for network/audio/bluetooth (each
+      dies when its S4 module ships in Arc 2)
 - [ ] User/home layer (home-manager module wired in)
 - [ ] `nixos-rebuild build-vm` target — one command → Golem VM (this becomes
       the daily test loop for S8/S9)
