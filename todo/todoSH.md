@@ -303,6 +303,19 @@ overview opens somethimes with no pointer.
       (settled minis untouched). Hot-loaded, 0.5 confirmed. If THIS is
       still garbage, the next round needs Max's words or a screenshot —
       what kind of bad: shimmering? blurry? blocky? wrong content?
+      Round 4 ("still awful.. i want the life reaction on the workspaces
+      too. both on the tiles and the grabbed") → LIVE COMMITS `362db9f`
+      v0.6: after a 200ms dwell on a target the window is REALLY inserted
+      (actual dwindle split / cross-view move); the tiles show the true
+      re-tile springing (recapture boosted to ~20fps for 700ms); hover
+      away re-grabs and the next dwell re-commits. Release on the
+      committed spot = already done; elsewhere = classic drop; outside
+      views / Esc / close = back to the ORIGINAL workspace+spot. The
+      synthetic morphs and the shapeshifting ghost are retired (ghost
+      keeps its own shape → the bad-render path is never hit). Content
+      rendering of morphs = parked; live commits may make it moot.
+      Hot-loaded, 0.6 confirmed. Your hands: grab, hover a sibling 200ms
+      (watch the REAL split), hover elsewhere, release, and Esc mid-drag.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
