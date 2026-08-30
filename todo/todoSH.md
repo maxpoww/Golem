@@ -428,6 +428,17 @@ overview opens somethimes with no pointer.
       aspect); used by commits AND the classic-drop release. Hot-loaded,
       0.16 confirmed. Slow-mo spring still active; "still glitches"
       acknowledged — parked while axis was priority.
+      Round 15 ("after a fer movements all gets frozen" AGAIN, + axis
+      "little better but not great") → the remaining capture whale: every
+      capture re-rendered ALL 18 workspaces full-res (~360 ws renders/s
+      at boost, iGPU); a commit touches ≤2. `cfd4abc` v0.17: MASKED
+      CAPTURES — dirty tiles accumulated at grab/commit/drop/restore;
+      boost ticks refresh only those; the 150ms cadence does the full
+      pass + clears. Off-mask tiles keep snapshot, their windows keep
+      pooled crops. Backdrop skipped on partial captures.
+      + TRACE LOG /tmp/waveview-trace.log (ms-stamped commit/regrab/
+      drop/restore + capture mask/duration): next axis round reads the
+      recorded aim-vs-result. Hot-loaded, 0.17 confirmed, log cleared.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
