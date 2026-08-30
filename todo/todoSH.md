@@ -574,3 +574,9 @@
   re-reads the zone under the pointer. `1e7bf00` v0.25 hot-loaded.
   NEXT: Max feels out the zones (8px right? seams reachable?) on
   tiled + floating, edges + corners.
+- Round 20c ("works well but only horizontal and vertical, we need
+  diagonal too") → corners existed but were an 8x8px pinprick (needed
+  <8px from BOTH edges at once). Corner zones now reach 22px along
+  both edges (capped rect/3), checked before the thin edge bands, so
+  the diagonal shapes + both-axis resize are actually hittable.
+  Edges stay 8px. v0.26 hot-loaded. NEXT: Max hits all four corners.
