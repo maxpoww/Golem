@@ -46,7 +46,7 @@
 
 - (add here, one line each)
 
-i want to resize windows with supr+arrows
+
 
 - [x] grid pages disappear; messenger moved to a new page came back; apps
       feel missing; fix groups too.

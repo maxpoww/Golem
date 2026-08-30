@@ -21,7 +21,10 @@
 - git
 - deploy
 - selection
-- battery
+- battery — **v1 SHIPPED 2026-08-30, first new module through the Spine**:
+  red badge on the clock ≤10% discharging, auto-suspend ≤5% (latched, 3min
+  wake grace). Senses only via the Brain. Grow later: % readout, charging
+  surface, Mind-ranked "plug in" affordance, power profiles.
 - system-health
 - phone (the W-A collector — see android.md)
 - network (wi-fi)
