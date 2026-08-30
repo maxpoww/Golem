@@ -65,9 +65,9 @@
       another window → your click is respected (unchanged).
       Round 2 `7c1f718`: the yank survived round 1 because the settle-force
       lives in frame.rs (the OLD implementation Max remembered — it always
-      forced the origin). Now that site is workspace-aware. **Reproduced +
-      verified live both ways by Claude** (travel ends on ws7; same-ws
-      restores origin window). Max's eyes still welcome.
+      forced the origin). Now that site is workspace-aware.
+      ✅ **VERIFIED BY MAX 2026-08-29** — all three behaviors good (open
+      animation, focus return, workspace travel).
 - [x] **F6 — not a bug.** The "braille spinner" was Claude Code's own
       terminal spinner inside the focused window's TITLE; the topbar window
       pill re-renders it on its ~1Hz tick (which the clock needs anyway).
