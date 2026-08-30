@@ -80,7 +80,12 @@
       differ); grid top-anchored exactly 3 logical px below the bar; tiles
       back to true full-monitor aspect (the inset had skewed them); the
       empty-hover/drop outlines now get the same shrink as windows so
-      empties can't read bigger. **Awaiting reload** — same command:
+      empties can't read bigger.
+      Round 2 (0b57205): "too much side/top slack" was geometry —
+      aspect-true tiles under a bar force ~57px side margins. Verdict:
+      FULL BLEED — tiles give ~3% aspect, grid fills the usable area
+      exactly (sides/bottom/inter-tile = one gap, top = bar+3px); the
+      window mapper + zoom handle the give invisibly. **Awaiting reload**:
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
