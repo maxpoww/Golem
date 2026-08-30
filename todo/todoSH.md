@@ -375,6 +375,24 @@ overview opens somethimes with no pointer.
       or reload restores). Plugin `c1bda5a` v0.11: capture boost 700ms →
       BOOST_MS 1400ms to cover the longer springs. REMEMBER to undo both
       (eval speed 4.79 back, BOOST_MS back to ~700) when diagnosis ends.
+      Round 10 (slow-mo findings: "jumps on the animations", "traces on
+      the other spaces and windows", "blinks", "its not slowed down") →
+      `beafdde` v0.12, three causes:
+      • not slowed: SPRING curves ignore the speed field (physics only) —
+        now bound to easyHalf (stiffness 17.8, damp 7.9; half frequency,
+        same damping ratio) via eval. UNDO slow-mo with:
+        `hyprctl eval 'hl.animation({ leaf = "windows", enabled = true,
+        speed = 4.79, spring = "easy" })'`
+      • jumps: tile mapping ran on MID-FLIGHT geometry every 50ms capture
+        (minis flipped across snap/seam thresholds between snapshots; slot
+        motion sampled at 20fps beside the 165Hz ghost). Mapping now uses
+        spring GOALS (moves once per commit); drawn boxes glide at frame
+        rate (drawCur); captures refresh CONTENT only.
+      • traces/blinks: cross-view arrival fade rendered the window
+        half-transparent across snapshots → m_alpha.warp() after every
+        moveWindowToWorkspaceSafe (alpha has no client-redraw lag — the
+        round-8 lesson is about geometry, not alpha).
+      Hot-loaded, 0.12 confirmed.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
