@@ -46,6 +46,20 @@
 
 - (add here, one line each)
 
+- [x] the box opening have a cut on the animation when opening, it gets stuck
+      a 1/4 for a few ms. (dock box) → **fixed in b4f28ad, needs restart to
+      take effect + your eyes to confirm**. Cause: every dock summon rescans
+      the app index; an unchanged result still re-uploaded every icon + wiped
+      the text cache = one long frame mid-open (dt motion turns a slow frame
+      into a visible leap). Now skipped via fingerprint. Bonus: background
+      rescans no longer cancel an in-flight drag.
+- [ ] the focus after opening → **need one more line from Max**: focus of
+      what, after opening what? (e.g. "typing after opening the box goes to
+      the app behind" / "after closing the box the old window doesn't get
+      focus back")(dock box) 
+
+the focus after opening 
+
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
 - [ ] Exit review: zero known brokenness → open S7
