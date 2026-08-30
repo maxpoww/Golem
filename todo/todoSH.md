@@ -65,6 +65,17 @@ i want to resize windows with supr+arrows
       • Honest note: tonight's fix prevents future destruction but can't
         reconstruct the layout already eaten — re-arrange once (make your
         messenger page again); from now on it sticks.
+- [x] edge-drag drop needs "move out of the side first" or it lands back on
+      the original page.
+      → FIXED (live): two causes. (1) holding at the edge CYCLED pages with
+      wrap-around — a beat too long walked past the new page back to the
+      start ("something clears after a while" was partly this + the fold
+      bug); drag paging now STOPS at the ghost page/page 0, wheel paging
+      still cycles. (2) the drop resolved its page from the eased scroll,
+      which mid-flip still reads as the OLD page — now it resolves against
+      the page the flip is headed to, so a drop the instant the new page
+      reveals lands THERE. Same rule applied inside open boxes. Try:
+      drag to the edge, page flips, drop immediately — no stepping out.
 
 - [ ] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
