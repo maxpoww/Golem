@@ -60,9 +60,16 @@
       while the overview is open. The old "cancelling freezes the cursor"
       fear is obsolete — verified in the fork's source that the pointer
       moves BEFORE the hook, so cancelling only stops focus-follows-mouse
-      + surface delivery underneath. **Awaiting Max's go for the live
-      plugin reload** (tiny compositor-crash risk) — or it loads itself on
-      the next Hyprland restart.
+      + surface delivery underneath.
+- [ ] deactivate topbar + dock during the overview.
+      → BUILT both sides: waveview fires overview-on/off over the ctl
+      socket (toggle-open/close + jump-close); the daemon conceals topbar
+      + dock, drops the edge-reveal strip, gates intellihide, ignores
+      Show/Toggle/Expand. Daemon side VERIFIED live via ctl (topbar
+      gone/restored on screenshots, mid-overview show ignored).
+      **Both waveview fixes await Max's go for the live plugin reload**
+      (tiny compositor-crash risk) — or next Hyprland restart:
+      `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
       alive in groups.json but had lost its grid-order slot — and slots
