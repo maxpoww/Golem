@@ -81,7 +81,7 @@ i want to resize windows with supr+arrows
       silently no-op'd (the trace showed the drop never even ran). The
       overshoot beside the grid now targets the live page's append slot
       and the drop gate accepts it. Cycle restored per Max (pages → empty
-      → around). LIVE — repeat the Instagram test.
+      → around). ✅ **VERIFIED BY MAX** ("works!"); diagnostics removed.
 
 - [ ] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
