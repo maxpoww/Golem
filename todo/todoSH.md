@@ -46,6 +46,17 @@
 
 - (add here, one line each)
 
+- [ ] floating mode is weird — our custom thing blocks resizing floats;
+      get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
+      → CAUSE FOUND: the "Preserve tiled size when toggling floating" Lua
+      block in /etc/nixos/hyprland.lua re-fires on window.update_rules and
+      snaps every floating window back to its saved tiled size — manual
+      resizes get undone. The daemon side is already just clean toggles.
+      Patch staged (root file): run
+      `! sudo cp /tmp/golem-hypr-patched.lua /etc/nixos/hyprland.lua && hyprctl reload`
+      (backup at /tmp/golem-hypr-backup.lua; rounding + raise-on-focus
+      rules kept). Then try resizing a floating window.
+
 - [x] the box opening have a cut on the animation when opening, it gets stuck
       a 1/4 for a few ms. (dock box)
       → FIXED `b4f28ad` (dock summon rescan re-uploaded all icons + wiped the
