@@ -12,7 +12,11 @@
 > order of work. Each section has `todo/todo<id>.md`. Scope sources:
 > `Golem.md` · `features.md` · `apps.md` · `android.md` · `optionsmodules.md`.
 
-## ARC 1 — Reach metal: S1 ✔ → SH → S7 → S9
+## ARC 1 — Reach metal: S1 ✔ → SH (running) + S2 ✔ → S7 → S9
+
+*(S2 pulled forward from Arc 2 by Max, 2026-08-29 — done that night: the
+Brain streams into the daemon, window pill engine-driven with a degrade
+path. SH bug-catching continues in parallel.)*
 
 ### S1 — Land & clean ✅ (2026-08-29)
 Dictionary branch landed on main, docs de-drifted, plan versioned.
@@ -44,10 +48,10 @@ notes when the ISO exists. The full release push stays in Arc 2.)*
 
 ## ARC 2 — Grow the soul: S2 → S3 → S4 → S5 → S6 → S8 → S10 → S11, + W-A
 
-### S2 — The Spine (Brain ↔ Body)
-Wire `options-engine` into the daemon; one affordance engine-driven; delete
-duplicate sensing. Unblocks W-A. *(Deferred from Arc 1: safe because the
-feature freeze means no new hand-built surfaces accumulate meanwhile.)*
+### S2 — The Spine (Brain ↔ Body) ✅ (2026-08-30, pulled into Arc 1)
+Done: `brain.rs` bridge (tokio thread → calloop channel), window pill
+engine-driven with poll fallback while the compositor layer is dark.
+Unblocks W-A. Remaining surfaces migrate in S3.
 
 ### S3 — OPTIONS modules *(continuous once open)*
 The production line: migrate live surfaces onto the Brain, then build the
