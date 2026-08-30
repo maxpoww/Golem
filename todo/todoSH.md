@@ -74,8 +74,14 @@ i want to resize windows with supr+arrows
       still cycles. (2) the drop resolved its page from the eased scroll,
       which mid-flip still reads as the OLD page — now it resolves against
       the page the flip is headed to, so a drop the instant the new page
-      reveals lands THERE. Same rule applied inside open boxes. Try:
-      drag to the edge, page flips, drop immediately — no stepping out.
+      reveals lands THERE. Same rule applied inside open boxes.
+      Round 2 (Instagram repro + instrumentation): the REAL culprit — the
+      paging band counts positions PAST the grid viewport ("overshoot"),
+      but the drop handler treated that zone as "outside the grid" and
+      silently no-op'd (the trace showed the drop never even ran). The
+      overshoot beside the grid now targets the live page's append slot
+      and the drop gate accepts it. Cycle restored per Max (pages → empty
+      → around). LIVE — repeat the Instagram test.
 
 - [ ] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
