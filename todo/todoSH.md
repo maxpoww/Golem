@@ -535,3 +535,21 @@
 - NEXT: Max drags at full speed; when a window goes floating, read the
   FLOAT-LEAK line (and the gesture traces above it) in
   /tmp/waveview-trace.log.
+- Round 19 ("one floting leack on space3") → THE WATCH DELIVERED, twice
+  over. Its six FLOAT-LEAK lines were all false positives (each fired
+  ms after a fresh grab — a re-grab's own float-out within the 3s
+  window), but the REAL leak was in the traces it forced us to read:
+  `drop tile=2 ws=6 → grab ws=3 float=1 dragTiled=0 → placeAt float=1
+  → release settled float=1` with every net SILENT. Root cause: the
+  release path ran endRealDrag/placeAt with g_busy clear (v0.18 only
+  guarded the dwell-commit path) — their warps re-entered
+  updateHoverAt, whose slop block re-captured g_origFloating while the
+  window was transiently floating (poisoning every net AND the watch's
+  expectation — why no FLOAT-LEAK fired on the real leak) and nested a
+  second controller drag (the no-grab `end DEAD-TARGET(top)` gesture,
+  g_dragReal left true). `d1dbecf` v0.23: nesting SBusyScope inside
+  every machinery function (begin/end/place/commit/regrab/restore),
+  slop block requires !g_dragReal, press disarms the watch. Hot-loaded
+  0.23. NEXT: Max re-runs cross-view drops onto occupied tiles (the
+  ws6→tile2 shape) — the leak should be gone and FLOAT-LEAK lines
+  should now only mean the real thing.
