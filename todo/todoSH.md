@@ -46,6 +46,12 @@
 
 - (add here, one line each)
 
+- [x] i want to resize windows with supr+arrows
+      → DONE: mainMod+arrows resize the focused window ±40px (hold to
+      repeat), tiled or floating. Dispatcher verified live (+40 exact);
+      rebuilt + reloaded — try it now. (Arrows were unbound; WASD
+      focus/move untouched.)
+
 - [ ] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
       → CAUSE FOUND: the "Preserve tiled size when toggling floating" Lua
