@@ -52,10 +52,14 @@
       block in /etc/nixos/hyprland.lua re-fires on window.update_rules and
       snaps every floating window back to its saved tiled size — manual
       resizes get undone. The daemon side is already just clean toggles.
-      Patch staged (root file): run
-      `! sudo cp /tmp/golem-hypr-patched.lua /etc/nixos/hyprland.lua && hyprctl reload`
-      (backup at /tmp/golem-hypr-backup.lua; rounding + raise-on-focus
-      rules kept). Then try resizing a floating window.
+      ✅ FIXED + VERIFIED (Claude, end-to-end): removed the 14-line block
+      from /etc/nixos/hyprland.lua (rounding + raise-on-focus kept),
+      rebuilt + switched + reloaded; test float resized to 500x400 and
+      STAYED through focus/workspace cycles. Backup of old config:
+      /tmp/golem-hypr-backup.lua. Your hands: float something (mainMod+Z)
+      and drag-resize it.
+      (Same session: /etc/nixos made max-writable + NOPASSWD nixos-rebuild
+      — declarative, in configuration.nix; memory + GOLEM.md updated.)
 
 - [x] the box opening have a cut on the animation when opening, it gets stuck
       a 1/4 for a few ms. (dock box)
