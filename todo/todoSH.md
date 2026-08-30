@@ -353,6 +353,20 @@ overview opens somethimes with no pointer.
       honored. Bonus fix: release handler reset g_dragWin BEFORE the drop
       logic, so the un-park and restore-original silently no-opped on
       all release paths. Hot-loaded, 0.9 confirmed.
+      Round 8 ("its all laggy, flashes all over, the content on the
+      windows get all mixed between each other. its a mess") → v0.9's
+      freeze-frame was physically wrong: warp() snaps GEOMETRY instantly
+      but clients hadn't redrawn, so the frozen capture baked old-size
+      buffers stretched into new boxes (the mixing); per-commit sync
+      captures + warp storms = the lag/flashes. `9c8af01` v0.10: warpWS
+      deleted, back to the v0.8 live-commit engine (captures live while
+      springs run, clients re-render truthfully), KEEPING the intention
+      visual: dragged window hidden from tiles all gesture (committed
+      slot = live HOLE amid really-squeezed siblings), ghost never leaves
+      the cursor. Release on the hole reveals in place. Hot-loaded, 0.10
+      confirmed.
+      LESSON (do not retry): never capture immediately after warping
+      window geometry — client buffers lag the layout by 1+ frames.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
