@@ -53,12 +53,11 @@
       the text cache = one long frame mid-open (dt motion turns a slow frame
       into a visible leap). Now skipped via fingerprint. Bonus: background
       rescans no longer cancel an in-flight drag.
-- [ ] the focus after opening → **need one more line from Max**: focus of
-      what, after opening what? (e.g. "typing after opening the box goes to
-      the app behind" / "after closing the box the old window doesn't get
-      focus back")(dock box) 
-
-the focus after opening 
+- [ ] the focus after opening (dock box) → tested: a ctl-driven
+      open→close cycle DOES restore focus to the old window. So tell me the
+      exact gesture that breaks: (a) typing right after scroll-opening goes
+      nowhere / to the app behind? (b) Escape-close loses focus? (c)
+      pointer-leave auto-close loses focus? (d) something else — one line.
 
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
