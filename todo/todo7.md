@@ -12,7 +12,11 @@
 - [ ] Ship chromium (webapp engine fallback — SH F2 resolves it at runtime,
       the flake must make it exist)
 - [ ] Pin fonts: the UI font + the Nerd Font the glyphs need (SH F4 —
-      renderer loads system fonts only; without them, tofu pills)
+      renderer loads system fonts only; without them, tofu pills). Also set
+      the fontconfig default sans to the chosen font (SH F7: the daemon
+      requests generic sans-serif; today that aliases to a missing Noto
+      Sans → silent DejaVu fallback, i.e. the UI font is currently
+      accidental)
 - [ ] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
       on Wayland — no occlusion tracking) with the webapp profile via
       `--load-extension`; it lives ONLY in Max's homedir today — get it

@@ -68,12 +68,15 @@
       forced the origin). Now that site is workspace-aware. **Reproduced +
       verified live both ways by Claude** (travel ends on ws7; same-ws
       restores origin window). Max's eyes still welcome.
-- [ ] **F6 (found in logs):** idle-at-rest violation — something redraws a
-      braille spinner every ~800ms while fully idle (cosmic_text renders
-      '⠂'/'⠐' each tick). Find it (Install "Indexing…"? topbar?) and stop
-      its timer at rest.
-- [ ] **F7 (found in logs):** requested font family 'Noto Sans' isn't
-      installed (falls back to DejaVu) — ties into todo7 font pinning (F4).
+- [x] **F6 — not a bug.** The "braille spinner" was Claude Code's own
+      terminal spinner inside the focused window's TITLE; the topbar window
+      pill re-renders it on its ~1Hz tick (which the clock needs anyway).
+      Event/tick-driven, not a stuck animation; frame loop still idles.
+- [x] **F7 — explained, folded into todo7.** No code requests 'Noto Sans';
+      the daemon asks for generic sans-serif and this system's fontconfig
+      aliases that to Noto Sans (absent) → DejaVu fallback. The S7 flake
+      must ship the chosen UI font AND set it as the default sans
+      (fontconfig), plus the Nerd Font (F4). todo7 note updated.
 
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
