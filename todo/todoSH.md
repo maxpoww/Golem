@@ -470,10 +470,17 @@ overview opens somethimes with no pointer.
       NEXT: Max daily-drives it at full speed; expect fresh feel notes.
       ✅ **VERIFIED BY MAX 2026-08-30, full speed** — "its perfect it my
       side." Live-drag session closed after 18 rounds (v0.2 → v0.20):
-      one compositor crash root-caused (upstream dragEnd null deref,
-      still worth filing), one interaction model discovered (live commits
-      with hole/ghost intention), and seven capture-pipeline root causes
-      fixed. Trace log left armed for future rounds.
+      one compositor crash root-caused (upstream dragEnd null deref),
+      one interaction model discovered (live commits with hole/ghost
+      intention), and seven capture-pipeline root causes fixed. Trace
+      log left armed for future rounds.
+      Upstream filing (requested, then correctly aborted): the null
+      deref is ALREADY FIXED on Hyprland main (`if (!draggingTarget)
+      return false;`, post-Aug-11 refactors) but latest release v0.56.2
+      (Aug 5) still crashes. Hyprland takes reports via Discussions and
+      triages release-only crashes as "reproduce on -git" → would be
+      closed as fixed. Nothing filed. Plugin guards stay until a
+      post-0.56.2 release lands in nixpkgs (harmless after).
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
