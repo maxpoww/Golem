@@ -468,6 +468,12 @@ overview opens somethimes with no pointer.
       overlap-gated crops + warp re-entrancy guard + float nets.
       Trace log stays on (/tmp/waveview-trace.log) for future rounds.
       NEXT: Max daily-drives it at full speed; expect fresh feel notes.
+      ✅ **VERIFIED BY MAX 2026-08-30, full speed** — "its perfect it my
+      side." Live-drag session closed after 18 rounds (v0.2 → v0.20):
+      one compositor crash root-caused (upstream dragEnd null deref,
+      still worth filing), one interaction model discovered (live commits
+      with hole/ghost intention), and seven capture-pipeline root causes
+      fixed. Trace log left armed for future rounds.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
