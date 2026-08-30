@@ -247,3 +247,19 @@
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
 - [ ] Exit review: zero known brokenness → open S7
+
+## Overview session (2026-08-30) — CLOSED, all verified by Max live
+- Design settled by live iteration (mockups retired for this surface):
+  gap 20 / outer 35 / top 12 / frame r28 / window r20 / seam 2.8%.
+- Round 5 root cause: bar strip was baked into window mapping (usable-area
+  fix) → "the gaps are all the same!" ✓
+- Piecewise seam redistribution (uniform seams, aligned columns; twins
+  faithful to their true desktop sizes) ✓
+- Eased page flip (0.42s in-out cubic) + capture gating (no recapture
+  mid-animation) → smooth ✓
+- Super+R ladder: open → tour inhabited far page → close ✓ (with the
+  key-swallow letting Super-combos through; Esc = direct close, never
+  tours) ✓
+- Touchpad: 3-up ladder, 3-down Esc, 2-finger paging (accumulated,
+  clamped, no loop) ✓
+- Super+digit page-relative in overview: Super+R,R,3 → ws12 ✓
