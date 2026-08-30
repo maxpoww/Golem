@@ -41,6 +41,9 @@
 ## Ideas
 
 - (add here)
+- search-reveals-location: a search hit that lives inside a box should say
+  so / open its box — "rankable but unbrowsable" apps feel disappeared
+  (the LocalSend case, 2026-08-30)
 
 ---
 

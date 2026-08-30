@@ -46,6 +46,20 @@
 
 - (add here, one line each)
 
+- [x] "disappeared app": LocalSend invisible in the grid but found by search.
+      → SOLVED, not the fold bug: LocalSend is a MEMBER of the 14-app box
+      box-1785375449254-0 (fzf, bluez, brightnessctl, nvidia-settings, lf,
+      lsp-plugins, kdeconnect bits, scrcpy-console… — a junk-drawer sweep).
+      Grouped apps hide from the loose grid by design and live inside the
+      box tile — labeled "fzf +13", so nothing hints LocalSend is there.
+      Search ranks grouped apps (also by design) = exactly the mismatch.
+      • Fix options: drag it out of the box (yours), or I edit groups.json.
+      • Arc-2 UX idea filed: search results should reveal WHERE an app
+        lives (open/highlight its box) — "found but invisible" is a trap.
+      • Side-find: pins.json holds two pins for boxes that no longer exist
+        (group:box-1785368710183-0, group:box-1784838501386-0) — stale,
+        harmless, cleanable.
+
 - [x] clipboard: clicking a row's can sometimes copies instead of deleting;
       add a dismiss-all can like the notif box.
       → FIXED + ADDED (fb8e9df, live): the can was DRAWN top-aligned at one
@@ -123,14 +137,6 @@
       full-bleed; melts with the zoom). Design constants in one DSN_*
       block. **Awaiting reload** (carries the strip-clip fix too):
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
-      → PARADIGM SHIFT (Max's 2-year-old paper sketch): the overview is a
-      WALL, not a grid of mini-monitors — windows are quantized bricks
-      (fixed unit sizes), workspaces are colored OUTLINES grouping them,
-      ONE gap everywhere, sizes vary by content (empties = small stones).
-      New mockup: ~/overview-mockup/wall.html (knobs: unit size, gap,
-      radius, outline, palette incl. his sketch colors, wall columns).
-      Design there → export → then the wall layout engine goes into the
-      Rust brain (bin-packing with tests — proper brain work).
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
