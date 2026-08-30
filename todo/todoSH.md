@@ -580,3 +580,19 @@
   both edges (capped rect/3), checked before the thin edge bands, so
   the diagonal shapes + both-axis resize are actually hittable.
   Edges stay 8px. v0.26 hot-loaded. NEXT: Max hits all four corners.
+- Round 20d (CRASH: "overview crashed during resizing... corner that
+  was not resizable") → compositor SIGSEGV'd 18:46 mid-drag, ws6
+  bottom-right corner grab. Coredump: fork bug — the fork's
+  LayoutManager::resizeTarget derefs target->space() UNCHECKED
+  (LayoutManager.cpp:61); a window whose layout target has no space
+  (group transitions leave these; the fork's own DragController
+  refuses them with "no workspace", and changeFloatingMode guards the
+  same null) walks straight into a null CSpace. Our border resize
+  calls resizeTarget directly, skipping the core's guard. v0.27:
+  resizableWin() (target + space non-null) gates hover (no lying
+  resize cursor), grab, and every motion step (drops the gesture with
+  a "resize DROP" trace if the space vanishes mid-drag); grab trace
+  now logs the window class to identify the culprit if it recurs.
+  Built + hot-loaded (compositor had restarted bare after the crash —
+  plugin reloaded). NEXT: Max resizes again, incl. that same ws6
+  window/corner; if a DROP trace fires, the class names the window.
