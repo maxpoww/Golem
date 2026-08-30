@@ -316,6 +316,21 @@ overview opens somethimes with no pointer.
       rendering of morphs = parked; live commits may make it moot.
       Hot-loaded, 0.6 confirmed. Your hands: grab, hover a sibling 200ms
       (watch the REAL split), hover elsewhere, release, and Esc mid-drag.
+      Round 5 (Max: "i love it" + three feels: laggy / "doubts, confirms
+      twice" / committed = feels dropped, wants to keep trying positions)
+      → `f6f5956` v0.7, all four causes found:
+      • double bounce = regrab snapshotted the pulled-out intermediate —
+        re-commits now capture only the final insert (single bounce);
+      • "laggy arrival" = the landing spring started at the -20000 parking
+        spot, exposed by live captures — endRealDrag now un-parks to the
+        drop point first (short spring, reads as a drop);
+      • "feels dropped" = no feedback while committed — the held window
+        keeps its halo in-slot; plus own-view empty space no longer
+        re-commits (was churning into dwindle's stale-focus slot);
+      • dwell 200→120ms; mipmap gen removed from captures (its morph
+        consumers are gone) so the 20fps boost captures got cheaper.
+      Hot-loaded, 0.7 confirmed. Tune points: DWELL (120ms), boost
+      cadence (50ms) — say faster/slower.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
