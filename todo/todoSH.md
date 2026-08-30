@@ -408,6 +408,14 @@ overview opens somethimes with no pointer.
       pooled across captures (Carry.fb), realloc only on size change,
       vanished windows' FBs released explicitly. Hot-loaded, 0.14
       confirmed. Slow-mo spring still active.
+      Round 13 ("a few times i grabed a window and it became floating")
+      → the crash guards' cost: grab floats the window out; a dead drag
+      target skips endDragTarget() (correct — that deref was the SEGV)
+      but nobody undid the float. `8a0841a` v0.15: restoreFloatState()
+      after every end attempt (endRealDrag + placeAt) — toggles
+      changeFloatingMode() back only when the state differs from gesture
+      start, so genuinely-floating windows keep floating. Hot-loaded,
+      0.15 confirmed. Slow-mo spring still active.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
