@@ -451,6 +451,15 @@ overview opens somethimes with no pointer.
       on stale tile containment, restoreFloatState nets on grab-reject +
       gesture end. Perf from the trace: masked captures ~10ms vs 130ms
       full — freeze margin confirmed gone. Hot-loaded, 0.18 confirmed.
+      Round 17 ("the content of the grabed window and the reacting ones
+      get mixed during the animations") → crops are cut from the
+      workspace snapshot by each window's CURRENT rect, and mid-spring
+      windows genuinely overlap in that snapshot → crops carry neighbour
+      slivers. `9bc17b8` v0.19: OVERLAP-GATED CROPS — while a window
+      overlaps any same-workspace sibling, its last clean crop is held
+      (no realloc; cover-crop bridges size drift), refresh resumes on
+      separation; first-ever captures render regardless. Hot-loaded,
+      0.19 confirmed. Slow-mo spring still active.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
