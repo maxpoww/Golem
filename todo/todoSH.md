@@ -47,17 +47,23 @@
 - (add here, one line each)
 
 - [x] the box opening have a cut on the animation when opening, it gets stuck
-      a 1/4 for a few ms. (dock box) → **fixed in b4f28ad, needs restart to
-      take effect + your eyes to confirm**. Cause: every dock summon rescans
-      the app index; an unchanged result still re-uploaded every icon + wiped
-      the text cache = one long frame mid-open (dt motion turns a slow frame
-      into a visible leap). Now skipped via fingerprint. Bonus: background
-      rescans no longer cancel an in-flight drag.
-- [ ] the focus after opening (dock box) → tested: a ctl-driven
-      open→close cycle DOES restore focus to the old window. So tell me the
-      exact gesture that breaks: (a) typing right after scroll-opening goes
-      nowhere / to the app behind? (b) Escape-close loses focus? (c)
-      pointer-leave auto-close loses focus? (d) something else — one line.
+      a 1/4 for a few ms. (dock box)
+      → FIXED `b4f28ad` (dock summon rescan re-uploaded all icons + wiped the
+      text cache on a no-change result = one long frame mid-open). Needs
+      restart + your eyes.
+- [x] the focus return after closing the openbox is bad; sometimes can't even
+      refocus manually; closing on another workspace yanks back to origin;
+      want rofi behavior.
+      → FIXED `1d1827d`, and you were right that "there is a focus
+      implementation there — is no good": the return half literally never ran
+      (armed but never fired). That also caused the can't-refocus-manually
+      case: the keyboard seat stayed stranded on the dead layer, and
+      re-clicking the SAME window is a no-op to the compositor. Now: close on
+      the same workspace → origin window gets focus+keyboard back (seat
+      re-routed via a neighbor-detour); travelled to another workspace →
+      you STAY there, its last window gets the keyboard; closed by clicking
+      another window → your click is respected (unchanged). Needs restart +
+      your eyes — especially the workspace-travel case.
 
 - [ ] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
