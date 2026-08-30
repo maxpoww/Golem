@@ -331,6 +331,15 @@ overview opens somethimes with no pointer.
         consumers are gone) so the 20fps boost captures got cheaper.
       Hot-loaded, 0.7 confirmed. Tune points: DWELL (120ms), boost
       cadence (50ms) — say faster/slower.
+      Round 6 ("still gets stuck, not that much but it does") →
+      `c949b8d` v0.8: dwell-clock starvation. Every signature change
+      restarted the 120ms clock, and the quadrant SIDE wobbles constantly
+      (cursor slope + hitboxes drifting ~700ms post-commit while springs
+      settle) — the clock could reset forever. Now only a target change
+      (tile/under-window) restarts it; side flips commit at once when the
+      dwell already elapsed (diagonal crossing = deliberate), guarded by
+      a 150ms commit cooldown for on-the-diagonal jitter. Hot-loaded,
+      0.8 confirmed.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
