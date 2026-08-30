@@ -564,3 +564,13 @@
   resize. Boosted captures track it; move/resize gestures mutually
   exclusive; RMB swallowed while open. `2f74a3c` v0.24 hot-loaded.
   NEXT: Max tries corners on tiled + floating windows, both pages.
+- Round 20b (Max: "no, i want resize on border... see the pionter
+  changing to resize, click and resize") → BORDER RESIZE, RMB gesture
+  dropped. 8px-inside zones per thumbnail edge (capped at rect/4 so
+  small thumbnails keep a movable interior); hover flips the pointer
+  (ew/ns/nwse/nesw-resize via setCursorFromName), LEFT press on a zone
+  resizes — edges one axis (masked), corners both — interior press
+  still moves. Pointer resets on zone-leave/close/unload; release
+  re-reads the zone under the pointer. `1e7bf00` v0.25 hot-loaded.
+  NEXT: Max feels out the zones (8px right? seams reachable?) on
+  tiled + floating, edges + corners.
