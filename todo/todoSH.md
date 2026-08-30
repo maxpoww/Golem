@@ -596,3 +596,25 @@
   Built + hot-loaded (compositor had restarted bare after the crash —
   plugin reloaded). NEXT: Max resizes again, incl. that same ws6
   window/corner; if a DROP trace fires, the class names the window.
+- Round 21 (Max: "6 passes deep debug on the whole overview... clone
+  code, inconsistences, zombie code... as light as posible") → FULL
+  AUDIT, v0.28. Crash-safety: the fork's setTargetGeom ALSO derefs
+  target->space() unchecked (same family as 20d's resizeTarget SEGV);
+  both our call sites (drag park at -20000, un-park at drop) now
+  guarded by inLayoutSpace() (renamed from resizableWin). Zombie:
+  split-preview glide machinery was provably dead (holdPreview never
+  set true, previewBox never written — ~60 lines + 4 CapWin fields
+  out); g_hoverTile tracked but drew nothing; g_dragGrab global → 
+  local; tiles2 leftover. Clones: landAt() is now THE placement path
+  (live commit and classic release-drop were drifting hand-rolled
+  copies — trace lines now say "land" instead of "commit"/"drop");
+  markDirty()/boostCaptures() replace 6 inline copies; toggle-close
+  calls closeOverview() (was skipping endRealResize/resetEdgeCursor —
+  Super+R mid-resize could leave the desktop a resize pointer);
+  usableArea returns a struct (the (void)ux casts die). LIGHTWEIGHT:
+  empty workspaces are never rendered NOR allocated (each snapshot FB
+  is 25.6MB at 3200x2000!), and freeCaptures() releases every capture
+  buffer at full-close — before, ~487MB of VRAM stayed resident
+  forever after the first open; now closed = zero. Net -133 lines,
+  rust tests 7/7, -Wall clean. Verified live: open/capture/close
+  exercised, then Max: "tested it, all works". waveview `4d1326e`.
