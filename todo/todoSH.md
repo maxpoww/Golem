@@ -340,6 +340,19 @@ overview opens somethimes with no pointer.
       dwell already elapsed (diagonal crossing = deliberate), guarded by
       a 150ms commit cooldown for on-the-diagonal jitter. Hot-loaded,
       0.8 confirmed.
+      Round 7 (Max: "the window lands on each change... before, the
+      windows and the ghost reacted to the INTENTION of landing. now the
+      grabbed win lands and i loose it") → `5aa559a` v0.9 FREEZE-FRAME
+      INTENTIONS: the dwell still lands the window for real, but the
+      cycle is land → warp springs → capture ONE settled frame → pull it
+      straight back into the hand (uncaptured). Tiles hold the frozen
+      landed frame: really-squeezed siblings + a HOLE where it would sit;
+      the ghost never leaves the cursor. Periodic captures pause during
+      the gesture (they'd reveal the pulled-out reality). Release = real
+      drop from the hand; over the hole, the promised split target is
+      honored. Bonus fix: release handler reset g_dragWin BEFORE the drop
+      logic, so the un-park and restore-original silently no-opped on
+      all release paths. Hot-loaded, 0.9 confirmed.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
