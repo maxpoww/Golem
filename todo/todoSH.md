@@ -554,3 +554,13 @@
   ws6→tile2 shape) — the leak should be gone and FLOAT-LEAK lines
   should now only mean the real thing.
   ✅ verified by Max: "its working, no more leaks for now."
+- Round 20 (feature: "add resizin windows on overview") → RIGHT-DRAG
+  RESIZE. RMB grab on a thumbnail resizes the real window live: the
+  grab quadrant picks the corner (top-left grab pushes the top-left,
+  like the desktop), cursor deltas scale tile→desktop and feed
+  resizeTarget() directly — no drag-controller session, no warps, so
+  the whole warp-feedback class can't touch it. Tiled windows push
+  dwindle ratios (siblings react live in the tile), floats just
+  resize. Boosted captures track it; move/resize gestures mutually
+  exclusive; RMB swallowed while open. `2f74a3c` v0.24 hot-loaded.
+  NEXT: Max tries corners on tiled + floating windows, both pages.
