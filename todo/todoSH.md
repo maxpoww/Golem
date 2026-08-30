@@ -72,9 +72,15 @@
         shared computeTiles for draw/capture/hit/drop); thumbnails are
         structurally bar-free (captures render workspaces, not layers);
         zoom close still lands exactly full-screen
-      **Three waveview changes await the live plugin reload** (motion
-      swallow + overview notify + bar inset) — Max's go, or next Hyprland
-      restart:
+      ✅ first three verified by Max after his reload.
+- [ ] overview layout: gaps inconsistent; empty workspaces read bigger than
+      full ones; top gap vs OPTIONS should be 3px like window gaps.
+      → FIXED (waveview 4a5e0e4, built, brain tests pass): ONE uniform gap
+      everywhere (inter-tile = outer margins; the old centering made them
+      differ); grid top-anchored exactly 3 logical px below the bar; tiles
+      back to true full-monitor aspect (the inset had skewed them); the
+      empty-hover/drop outlines now get the same shrink as windows so
+      empties can't read bigger. **Awaiting reload** — same command:
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
