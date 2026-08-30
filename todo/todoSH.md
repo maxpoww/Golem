@@ -123,6 +123,14 @@
       full-bleed; melts with the zoom). Design constants in one DSN_*
       block. **Awaiting reload** (carries the strip-clip fix too):
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
+      → PARADIGM SHIFT (Max's 2-year-old paper sketch): the overview is a
+      WALL, not a grid of mini-monitors — windows are quantized bricks
+      (fixed unit sizes), workspaces are colored OUTLINES grouping them,
+      ONE gap everywhere, sizes vary by content (empties = small stones).
+      New mockup: ~/overview-mockup/wall.html (knobs: unit size, gap,
+      radius, outline, palette incl. his sketch colors, wall columns).
+      Design there → export → then the wall layout engine goes into the
+      Rust brain (bin-packing with tests — proper brain work).
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
