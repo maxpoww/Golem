@@ -85,7 +85,17 @@
       aspect-true tiles under a bar force ~57px side margins. Verdict:
       FULL BLEED — tiles give ~3% aspect, grid fills the usable area
       exactly (sides/bottom/inter-tile = one gap, top = bar+3px); the
-      window mapper + zoom handle the give invisibly. **Awaiting reload**:
+      window mapper + zoom handle the give invisibly. ✅ verified by Max.
+- [ ] empty frames still bigger (windows sit inset by desktop gaps); equal
+      all gaps; make the overview scrollable to 18 workspaces (3x6).
+      → BUILT (waveview 6f6b517): empty/drop frames now mirror the
+      desktop's gaps_out inside the tile (top 3, sides/bottom 10 logical,
+      from hyprland.lua) + the window shrink — empties read exactly like
+      full workspaces. Grid = 3x6 (18 WSs), wheel scrolls (eased,
+      dt-based, hover follows, desktop never scrolls), opening on a deep
+      WS pre-scrolls its row into view, digits jump 1-9, clicks reach all
+      18. Note: open now captures 18 workspaces (was 9) — if opening
+      feels slower, next step is half-res captures. **Awaiting reload**:
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
