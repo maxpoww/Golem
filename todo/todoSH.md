@@ -54,6 +54,15 @@
       to the row (= copy). One shared rect now defines both, with click
       slack. Footer is now pencil · book · CAN (clear-all, wipes history +
       side files, closes the box) — verified on screen.
+- [ ] overview (waveview): moving the mouse in the overview still sends
+      input to the workspace underneath.
+      → FIXED in code (waveview b095aa7, built): motion is now swallowed
+      while the overview is open. The old "cancelling freezes the cursor"
+      fear is obsolete — verified in the fork's source that the pointer
+      moves BEFORE the hook, so cancelling only stops focus-follows-mouse
+      + surface delivery underneath. **Awaiting Max's go for the live
+      plugin reload** (tiny compositor-crash risk) — or it loads itself on
+      the next Hyprland restart.
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
       alive in groups.json but had lost its grid-order slot — and slots
