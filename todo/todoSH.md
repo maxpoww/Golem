@@ -367,6 +367,14 @@ overview opens somethimes with no pointer.
       confirmed.
       LESSON (do not retry): never capture immediately after warping
       window geometry — client buffers lag the layout by 1+ frames.
+      Round 9 (Max: "looks good but needs some more work" → wants
+      animations half speed to diagnose): SLOW-MOTION DEBUG MODE ON —
+      'windows' spring halved SESSION-ONLY via
+      `hyprctl eval 'hl.animation({ leaf = "windows", enabled = true,
+      speed = 2.4, spring = "easy" })'` (config value stays 4.79; restart
+      or reload restores). Plugin `c1bda5a` v0.11: capture boost 700ms →
+      BOOST_MS 1400ms to cover the longer springs. REMEMBER to undo both
+      (eval speed 4.79 back, BOOST_MS back to ~700) when diagnosis ends.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
