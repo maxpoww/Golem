@@ -46,6 +46,20 @@
 
 - (add here, one line each)
 
+the border on the overview are all diferent sizes, the smaller the window the smaller (thinner) the border, make them all look like my workspace window borders, same color, same tickness, etc. 
+
+overview opens somethimes with no pointer.  
+
+- [x] **Compositor crash during overview drag (2026-08-30 14:41):** SEGV
+      inside Hyprland's `CDragStateController::dragEnd()` — it dereferences
+      the drag target with no null check (upstream bug, v0.55.4; worth
+      reporting). Our release handler called `endDragTarget()` while the
+      controller held no live target (window died mid-drag, or the grab was
+      silently rejected at begin). Fixed plugin-side: every begin/end drag
+      path now checks `dragController()->target()` first, and a
+      window-died-mid-drag release folds the grab cleanly. Built; needs a
+      plugin reload to take effect (session restarted with the old .so).
+
 - [x] "disappeared app": LocalSend invisible in the grid but found by search.
       → SOLVED, not the fold bug: LocalSend is a MEMBER of the 14-app box
       box-1785375449254-0 (fzf, bluez, brightnessctl, nvidia-settings, lf,
