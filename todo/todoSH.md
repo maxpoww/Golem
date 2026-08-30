@@ -61,14 +61,20 @@
       fear is obsolete — verified in the fork's source that the pointer
       moves BEFORE the hook, so cancelling only stops focus-follows-mouse
       + surface delivery underneath.
-- [ ] deactivate topbar + dock during the overview.
-      → BUILT both sides: waveview fires overview-on/off over the ctl
-      socket (toggle-open/close + jump-close); the daemon conceals topbar
-      + dock, drops the edge-reveal strip, gates intellihide, ignores
-      Show/Toggle/Expand. Daemon side VERIFIED live via ctl (topbar
-      gone/restored on screenshots, mid-overview show ignored).
-      **Both waveview fixes await Max's go for the live plugin reload**
-      (tiny compositor-crash risk) — or next Hyprland restart:
+- [ ] overview integration (evolved per Max): dock hidden during overview;
+      OPTIONS topbar STAYS with its own place, aware of the overview.
+      → BUILT both sides, daemon side VERIFIED live:
+      • dock hides, edge-reveal strip drops, intellihide gated,
+        show/toggle/expand ignored while open (screenshots)
+      • topbar stays visible (even over fullscreen), window pill reads
+        "Overview" while open, real title returns on close (screenshots)
+      • waveview: tiles inset below the bar's 28px reserved strip (one
+        shared computeTiles for draw/capture/hit/drop); thumbnails are
+        structurally bar-free (captures render workspaces, not layers);
+        zoom close still lands exactly full-screen
+      **Three waveview changes await the live plugin reload** (motion
+      swallow + overview notify + bar inset) — Max's go, or next Hyprland
+      restart:
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
