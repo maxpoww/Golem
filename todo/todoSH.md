@@ -284,6 +284,16 @@ overview opens somethimes with no pointer.
       drag a window over a sibling and over an empty view.
       (Same .so also carries the dragEnd TOCTOU re-checks from the crash
       round — first time that code is actually loaded.)
+      Round 2 ("works, but the window content is really badly rendered
+      during the resizing"): the naive stretch mangled pixels mid-morph.
+      `880145c` v0.4: COVER-CROP — on any box/capture aspect mismatch the
+      source is cropped centrally in UV space (object-fit: cover), so the
+      window's pixels keep their aspect and the moving edges cut into
+      them, like a real resize. Applies to the ghost AND the gliding
+      sibling halves. Plumbing: CTexPassElement can't source-crop, so two
+      plugin-side EK_CUSTOM pass elements plant/restore the renderer's
+      global UV fields around the draw. Hot-loaded, 0.4 confirmed —
+      needs your eyes on the same two drags.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
