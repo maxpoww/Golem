@@ -273,6 +273,18 @@ overview opens somethimes with no pointer.
       a filed line here
 - [ ] Exit review: zero known brokenness → open S7
 
+- [x] "i dont like those colored shapes we are using for resizing, it
+      should be the actual window changing shape." → the drag ghost's
+      frosted plate (built 5c9fc85 same day: plate morphed, window image
+      letterboxed inside) — Max overrides that design. Now `6dc84f8`: no
+      plate; the window texture itself fills the morphing box, same
+      stretch treatment as the sibling halves. Halo border kept. Version
+      bumped 0.2→0.3 (identical version strings muddied the morning's
+      crash triage). Hot-reloaded live, 0.3 confirmed. Needs your hands:
+      drag a window over a sibling and over an empty view.
+      (Same .so also carries the dragEnd TOCTOU re-checks from the crash
+      round — first time that code is actually loaded.)
+
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
   gap 20 / outer 35 / top 12 / frame r28 / window r20 / seam 2.8%.
