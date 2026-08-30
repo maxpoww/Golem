@@ -401,6 +401,13 @@ overview opens somethimes with no pointer.
       border fade, alpha, shadow, glow on ALL windows at grab/regrab,
       commit, and drop (compositor-side cosmetics, no client-redraw lag).
       Hot-loaded, 0.13 confirmed. Slow-mo spring still active.
+      Round 12 ("after a few movements all gets slowed down, kind of
+      stuck") → GL framebuffer churn: captureWindows created a brand-new
+      FB per window per capture (hundreds of full-res allocs/sec at the
+      20fps boost) — driver degrades progressively. `08b7a35` v0.14: FBs
+      pooled across captures (Carry.fb), realloc only on size change,
+      vanished windows' FBs released explicitly. Hot-loaded, 0.14
+      confirmed. Slow-mo spring still active.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
