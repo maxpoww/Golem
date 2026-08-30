@@ -393,6 +393,14 @@ overview opens somethimes with no pointer.
         moveWindowToWorkspaceSafe (alpha has no client-redraw lag — the
         round-8 lesson is about geometry, not alpha).
       Hot-loaded, 0.12 confirmed.
+      Round 11 ("works way better, still some lightnings on other
+      workspaces when im moving windows on another") → focus churn: every
+      commit focuses the split target (dwindle needs it), and the
+      dim_inactive/border-fade/alpha transitions animate across captures
+      → bystander tiles glow. `16a9d1b` v0.13: warpFocusFx() snaps dim,
+      border fade, alpha, shadow, glow on ALL windows at grab/regrab,
+      commit, and drop (compositor-side cosmetics, no client-redraw lag).
+      Hot-loaded, 0.13 confirmed. Slow-mo spring still active.
 
 ## Overview session (2026-08-30) — CLOSED, all verified by Max live
 - Design settled by live iteration (mockups retired for this surface):
