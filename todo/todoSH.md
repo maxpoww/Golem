@@ -59,6 +59,17 @@ overview opens somethimes with no pointer.
       path now checks `dragController()->target()` first, and a
       window-died-mid-drag release folds the grab cleanly. Built; needs a
       plugin reload to take effect (session restarted with the old .so).
+      Round 2 (crash 2026-08-30 14:52): same dragEnd SEGV — but timeline
+      shows that session started 14:41 with the OLD .so (guards built
+      14:49, never loaded there), so this was the known bug's last stand,
+      not a guard failure. Two follow-ups anyway: (a) closed a real TOCTOU
+      gap — `endRealDrag`/`placeAt` checked target() but then ran
+      focus + moveMouse before endDragTarget(); the drop-point motion can
+      drop the target after the check, so both now re-check right before
+      ending. (b) post-crash restart came up with NO plugin (the config's
+      startup `hyprctl plugin load` didn't take) — rebuilt and hot-loaded
+      the fixed .so into the live session at 14:57. Watch for a repeat of
+      the silent no-plugin start.
 
 - [x] "disappeared app": LocalSend invisible in the grid but found by search.
       → SOLVED, not the fold bug: LocalSend is a MEMBER of the 14-app box
