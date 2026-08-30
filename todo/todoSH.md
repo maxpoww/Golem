@@ -54,10 +54,13 @@
       to the row (= copy). One shared rect now defines both, with click
       slack. Footer is now pencil · book · CAN (clear-all, wipes history +
       side files, closes the box) — verified on screen.
-- [ ] **from Max's clipboard, needs confirming:** "my whole recycle bin is
-      gone." (copied 22:45, never filed?) — if the recycle-bin tile vanished
-      from the grid, likely related to the groups prune / page work. Max:
-      confirm and I'll dig.
+- [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
+      never filed) → CONFIRMED REAL + FIXED (live): the trash group was
+      alive in groups.json but had lost its grid-order slot — and slots
+      are only ever created at fold time, so it was invisible forever.
+      on_apps_loaded now re-adopts any live box missing a slot; verified:
+      "order: re-adopted boxless group:trash". The bin is back at the
+      grid's end — drag it where you want it, it sticks now.
 
 
 
