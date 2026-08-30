@@ -9,6 +9,10 @@
 - [ ] Golem defaults: theming, fonts, hyprland.lua, session startup
 - [ ] Stopgap kit: curated plain GUIs for network/audio/bluetooth (each
       dies when its S4 module ships in Arc 2)
+- [ ] Ship chromium (webapp engine fallback — SH F2 resolves it at runtime,
+      the flake must make it exist)
+- [ ] Pin fonts: the UI font + the Nerd Font the glyphs need (SH F4 —
+      renderer loads system fonts only; without them, tofu pills)
 - [ ] User/home layer (home-manager module wired in)
 - [ ] `nixos-rebuild build-vm` target — one command → Golem VM (this becomes
       the daily test loop for S8/S9)

@@ -22,28 +22,21 @@
 
 ## Findings → fixes (Claude's queue)
 
-- [ ] **F1 — Ship the daemon's own tools.** flake `runtimeTools` only has
-      ffmpegthumbnailer + poppler-utils, but the daemon shells out to
-      **wl-paste/wl-copy** (clipboard core!), **grim**, **curl**. On a
-      foreign machine the clipboard OPTION is silently dead (watch loop
-      quietly retries every 3s forever). Fix: add wl-clipboard, grim,
-      curl to runtimeTools. Small, high value.
-- [ ] **F2 — Webapps hard-require `google-chrome-stable`** (unfree, never
-      declared). Fresh machine: clicking any webapp does nothing, silently.
-      Fix: resolve browser at runtime (google-chrome-stable → chromium,
-      flags are compatible) and ship chromium in the S7 flake; log when
-      neither exists.
-- [ ] **F3 — Launches fail silently by design** (detached double-fork).
-      Missing binary = nothing happens, no feedback. Arc-1 minimum: trace
-      it; nicer: surface a notification on spawn failure.
-- [ ] **F4 — Glyph font is a foreign-machine risk.** Pill/footer glyphs are
-      Nerd-Font private-use codepoints; without the exact font installed
-      they render as tofu. Verify which font glyphon resolves and pin it in
-      the S7 flake defaults (note for todo7).
-- [ ] **F5 — Dictionary both-files-missing state.** Each language degrades
-      gracefully (NotFound → language absent), but verify the panel shows
-      a friendly message when NO data loads (only reachable if the package
-      is misbuilt — low priority, one verify-ui check).
+- [x] **F1 — Ship the daemon's own tools.** ✅ fixed (commit 4519663):
+      wl-clipboard/grim/curl added to flake runtimeTools; first clipboard
+      watch failure now warns instead of debug-logging.
+- [x] **F2 — Webapp browser fallback.** ✅ fixed (4519663): browser resolved
+      at runtime google-chrome-stable → chromium → chromium-browser, warns
+      when none. S7 still must SHIP chromium (noted in todo7).
+- [x] **F3 — Silent launch failures.** ✅ fixed (4519663): a launch whose
+      first token isn't on PATH warns before the double-fork swallows the
+      127. (Notification-on-failure = Arc-2 polish, parked.)
+- [x] **F4 — Glyph font risk verified real:** renderer uses
+      `FontSystem::new()` = system fonts only; a machine without the Nerd
+      Font shows tofu pills. Fix belongs in the S7 flake (font pinning) —
+      task added to todo7.
+- [x] **F5 — Dictionary no-data state exists in code** ("Dictionary data
+      not installed." + loading state). Resolved by inspection.
 
 ## Max's list (visual / feel)
 
