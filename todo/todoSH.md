@@ -46,11 +46,25 @@
 
 - (add here, one line each)
 
-- [x] i want to resize windows with supr+arrows
-      → DONE: mainMod+arrows resize the focused window ±40px (hold to
-      repeat), tiled or floating. Dispatcher verified live (+40 exact);
-      rebuilt + reloaded — try it now. (Arrows were unbound; WASD
-      focus/move untouched.)
+i want to resize windows with supr+arrows
+
+- [x] grid pages disappear; messenger moved to a new page came back; apps
+      feel missing; fix groups too.
+      → ROOT CAUSE FOUND + FIXED (live now): `normalize()` folded any page
+      whose members weren't visible *at that instant* — and visibility
+      flickers (webapps hop grid↔Install while managed-state settles). Every
+      flicker permanently merged your pages; your whole 164-app order had
+      collapsed into ONE storage page (that's the "back on original page" +
+      "feels like apps are missing" — nothing is actually gone, it all
+      reflowed into first-seen order). Now hidden pages are PRESERVED (the
+      display already skips them; they reappear intact when members return);
+      only truly-empty pages drop.
+      • Groups were never affected — same page model, their fold can't
+        trigger. If group-internal reorder still FEELS different after this,
+        file the specific difference.
+      • Honest note: tonight's fix prevents future destruction but can't
+        reconstruct the layout already eaten — re-arrange once (make your
+        messenger page again); from now on it sticks.
 
 - [ ] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
