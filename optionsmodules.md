@@ -21,10 +21,14 @@
 - git
 - deploy
 - selection
-- battery — **v1 SHIPPED 2026-08-30, first new module through the Spine**:
-  red badge on the clock ≤10% discharging, auto-suspend ≤5% (latched, 3min
-  wake grace). Senses only via the Brain. Grow later: % readout, charging
-  surface, Mind-ranked "plug in" affordance, power profiles.
+- battery — **v2 SHIPPED 2026-08-30, first new module through the Spine**
+  (Max's ladder spec): ≤10% discharging → one notification + the bell's
+  accent goes RED (replacing unread amber); ≤7% → the red bell beats
+  (~2s breath); ≤5% → suspend; woken still ≤5% unplugged → warning-triangle
+  awareness symbol for 5s then HIBERNATE, repeating every wake until
+  plugged in. Senses only via the Brain; notification via busctl →
+  options-notify (verified). Grow later: % readout, charging surface,
+  Mind-ranked "plug in" affordance, power profiles.
 - system-health
 - phone (the W-A collector — see android.md)
 - network (wi-fi)
