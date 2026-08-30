@@ -46,6 +46,19 @@
 
 - (add here, one line each)
 
+- [x] clipboard: clicking a row's can sometimes copies instead of deleting;
+      add a dismiss-all can like the notif box.
+      → FIXED + ADDED (fb8e9df, live): the can was DRAWN top-aligned at one
+      inset but HIT-TESTED centred at another — on tall rows the visible
+      can and its click zone barely overlapped, so the click fell through
+      to the row (= copy). One shared rect now defines both, with click
+      slack. Footer is now pencil · book · CAN (clear-all, wipes history +
+      side files, closes the box) — verified on screen.
+- [ ] **from Max's clipboard, needs confirming:** "my whole recycle bin is
+      gone." (copied 22:45, never filed?) — if the recycle-bin tile vanished
+      from the grid, likely related to the groups prune / page work. Max:
+      confirm and I'll dig.
+
 
 
 - [x] grid pages disappear; messenger moved to a new page came back; apps
