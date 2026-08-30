@@ -14,9 +14,13 @@
       but see findings F1/F2: "graceful" sometimes means "silently dead"
 - [x] Error-path audit — launch/watch/unfurl/dict all fail soft; install
       worker failure UX (5s "Failed" flash) was verified back in P4.6
-- [ ] Cold-start test on a truly fresh user → defer to the S7 build-vm
-      (the VM *is* the clean machine; persist.rs auto-creates its dirs,
-      so expectations are good)
+- [x] Cold-start test (scratch HOME/XDG, empty everything, live compositor):
+      **clean** — default config, first-run recycle-bin created, apps
+      indexed + icon caches built from nothing, real GPU adapter, ran 25s
+      no crash; Hyprland-IPC fallback engaged exactly as designed. Full
+      fresh-machine truth still comes from the S7 build-vm. (Known edge
+      found, no fix needed: socket path has no SUN_LEN guard — only
+      matters for absurdly long XDG_RUNTIME_DIRs, real ones are short.)
 - [ ] Multi-resolution/scale check (1080p scale 1, HiDPI scale 2) — needs
       eyes + hardware; pairs with Max's visual pass
 
