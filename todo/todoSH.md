@@ -46,9 +46,22 @@
 
 - (add here, one line each)
 
-the border on the overview are all diferent sizes, the smaller the window the smaller (thinner) the border, make them all look like my workspace window borders, same color, same tickness, etc. 
+- [x] the border on the overview are all diferent sizes, the smaller the
+      window the smaller (thinner) the border, make them all look like my
+      workspace window borders, same color, same tickness, etc.
+      → FIXED same day (waveview 8d7f876, in v0.20 live): halos/frames were
+      proportional (1.6% of the window, blue) — now constant 3-logical-px
+      amber #ffbe98, the desktop's exact border. Note predated the fix; the
+      18 verified live-drag rounds all ran with it. Design note: at REST
+      minis draw bare (border appears on hover/drag only) — if you want
+      every mini to wear a border like desktop windows, that's a new item.
 
-overview opens somethimes with no pointer.  
+- [ ] overview opens somethimes with no pointer.
+      → FIXED in code same day (waveview 92913d3, in v0.20 live): open now
+      unhides the cursor and pins the default arrow for the overview's
+      lifetime (apps that hide the pointer — terminals while typing, video
+      fullscreen — were leaving the overview cursorless). "Sometimes" bug:
+      stays open until a week of daily driving shows zero recurrences.
 
 - [x] **Compositor crash during overview drag (2026-08-30 14:41):** SEGV
       inside Hyprland's `CDragStateController::dragEnd()` — it dereferences
