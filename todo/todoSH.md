@@ -135,8 +135,15 @@
       wallpaper, outer 35 / gap 12 / top-gap 12 (logical), frames r28,
       windows r20, in-tile window gap 1.7% (multi-window only; solo
       full-bleed; melts with the zoom). Design constants in one DSN_*
-      block. **Awaiting reload** (carries the strip-clip fix too):
-      `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
+      block.
+      Round 4 (53fb002, from Max's screenshot review — "seam gap ≠ view
+      gap; 1-window view reads bigger than 2-window view"): EDGE-AWARE
+      SNAP — any window edge near its view bound snaps FLUSH (no
+      per-window outer gaps, ever); only seams between windows carry the
+      design gap. Solo and multi views share the exact same envelope.
+      Lerps with the zoom for the pixel-exact close. Wall mockup fixed
+      the same way (outline hugs windows; gap uniform in-view and
+      across views). **Awaiting reload** (carries strip-clip too):
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
