@@ -13,6 +13,10 @@
       the flake must make it exist)
 - [ ] Pin fonts: the UI font + the Nerd Font the glyphs need (SH F4 —
       renderer loads system fonts only; without them, tofu pills)
+- [ ] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
+      on Wayland — no occlusion tracking) with the webapp profile via
+      `--load-extension`; it lives ONLY in Max's homedir today — get it
+      into a repo first
 - [ ] User/home layer (home-manager module wired in)
 - [ ] `nixos-rebuild build-vm` target — one command → Golem VM (this becomes
       the daily test loop for S8/S9)
