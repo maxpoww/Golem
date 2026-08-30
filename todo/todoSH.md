@@ -102,8 +102,21 @@
       to a full workspace's footprint. Wheel now flips PAGES (two 3x3
       pages, one notch = one flip, digits 1-9 select within the current
       page, opening lands on the active page). ALL keys swallowed while
-      open (typing was leaking into the focused window). **Awaiting
-      reload**:
+      open (typing was leaking into the focused window). ✅ #2 verified;
+      #3 page-flip leftover FIXED (windows clip below the bar strip,
+      relaxing with the zoom) — awaits reload.
+- [x] clicking an empty workspace jumps but the dock doesn't greet you.
+      → FIXED + LIVE (daemon): the workspace-switch event races
+      overview-off, so the zone-free reveal was gated and never re-fired;
+      overview-off now shows the dock itself when the zone is free.
+- [ ] overview DESIGN: too compact, empty frames still read bigger — Max's
+      call: design on mockup first, then implement (the project's own law).
+      → MOCKUP BUILT: ~/overview-mockup/index.html — live knobs for gap,
+      margins, grid fill, radii, backdrop dim, tile backing (frosted
+      glass / dim / bare), workspace numbers (empty-only / all / off),
+      page dots, wallpaper picker. "copy settings for Claude" exports the
+      chosen numbers. Open: chromium --app=file:///home/max/overview-mockup/index.html
+      then F11. Design there → I implement the winner.
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
