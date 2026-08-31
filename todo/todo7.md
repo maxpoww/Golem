@@ -186,6 +186,28 @@
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
   first time Golem exists independently of Max's laptop.
+- Round 6 (2026-08-30, Max: "i tryed to install brave and alacrity,
+  both failed" → hours of VM archaeology): THE INSTALL LOOP NOW WORKS
+  END-TO-END on an installed-shape machine — brave + gimp declaratively
+  installed inside the VM via packages.list → apply → in-VM flake
+  rebuild → clean switch, verified landed (.desktop files + bins), and
+  Max: "they healed, and work now" after a daemon restart forced a
+  rescan. The road there found SIX distribution bugs, each now fixed in
+  the flake: no apply unit without a checkout (VM got the seeded
+  installed-machine checkout, golem.flakeAttr for self-rebuild), git +
+  nix/libgit2 ownership guards (declarative /etc/gitconfig
+  safe.directory), grub assertion (grub re-defaults on when
+  systemd-boot is forced off), live-switch topology mismatch (plain
+  toplevel stopped nix-store.mount under the running system — POWERED
+  OFF THE VM; qemu-vm now imported directly so in-VM switches are
+  like-for-like), tmpfs writable store (installs evaporated on reboot,
+  ghost paths; now disk-backed), 1G default disk (now 20G sparse).
+  Plus three launcher bugs filed (F9 stale "installed" resolution — the
+  reason a daemon restart was needed; F10 queued-install false
+  failures; F11 startup list clobber + no-op first-boot rebuild).
+  NEXT round: the F9/F10/F11 applier rework in the launcher — one
+  coherent fix: the on-disk list + apply-status.json are the truth, the
+  daemon adopts and watches them, and rescans when a run lands.
 - Round 5 (2026-08-30, Max: "lets do the prebuilt index"): the OOM fix,
   see the ticked item above for the design. Notable in the doing: the
   daemon's TSV cache format (v5, header-versioned) made the prebuilt
