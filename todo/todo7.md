@@ -89,14 +89,14 @@
 - [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
       so Golem binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
-- [ ] **F9 — "already in package list; treating as installed" is a lie
+- [x] **F9 — "already in package list; treating as installed" is a lie
       while the rebuild runs.** The applier equates list-presence with
       installed; if the entry is mid-apply (status phase "building"),
       the pending install completes instantly, no GUI app exists yet,
       and the resolver falls through to the CLI-tile fallback — brave
       and gimp presented as terminals printing "is ready". Must consult
       apply-status.json (building = still pending). Launcher-repo.
-- [ ] **F11 — the daemon clobbers packages.list at startup** ("seeding
+- [x] **F11 — the daemon clobbers packages.list at startup** ("seeding
       declarative package list with 0 attrs"): on start it REWRITES the
       list from its own managed state — on a fresh machine that's empty,
       so (a) any external/manual entries are silently destroyed (the
@@ -107,7 +107,7 @@
       system, with every real install queueing behind it into F10's
       false failures. The list on disk must be the source of truth the
       daemon ADOPTS, not a mirror it overwrites. Launcher-repo.
-- [ ] **F10 — a queued install is not a failed install.** The applier
+- [x] **F10 — a queued install is not a failed install.** The applier
       waits 120s for the apply UNIT to start; a long build keeps the
       oneshot busy, the queued path-trigger can't start it, and the
       daemon reports failure + reverts + retries in a loop while the
@@ -195,6 +195,24 @@
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
   first time Golem exists independently of Max's laptop.
+- Round 7 (2026-08-30/31, Max: "lets do the F9/F10/F11 fixes"): APPLIER
+  REWORK SHIPPED + ALL THREE VERIFIED LIVE (launcher `985417b`, one
+  rule: the status file is the truth). F11: empty first-boot seed
+  writes nothing — fresh-disk boot fired ZERO apply runs (no list, no
+  status, verified). F9: declared ≠ applied — fast-true only when a
+  successful run postdates the list write, else join/re-trigger and
+  block; daemon log: "pending install brave resolved as app
+  brave-browser (gui=true)" — no CLI-terminal tile, no restart needed.
+  F10: busy helper = queued — Max clicked chromium mid-brave-build; it
+  waited its turn silently and landed on its own run 2s after brave's
+  finished ("resolved as chromium-browser (gui=true)"); the waiter also
+  re-trips the watch when a foreign run swallowed its trigger (systemd
+  drops path triggers that fire while the oneshot is active — max 3
+  nudges, 120s escape only when truly idle). Bonus finding F12 (filed
+  above): the install animation on llvmpipe ate 450% CPU, froze foot
+  for 90s AND throttled its own download to 200KB/s; SIGSTOP on the
+  daemon during the build restored ~7MB/s (chromium run: 112s). 135/135
+  tests; VM verified with brave + chromium installed by Max's hands.
 - Round 6 (2026-08-30, Max: "i tryed to install brave and alacrity,
   both failed" → hours of VM archaeology): THE INSTALL LOOP NOW WORKS
   END-TO-END on an installed-shape machine — brave + gimp declaratively
