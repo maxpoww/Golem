@@ -38,6 +38,23 @@
             commit -qm "seeded from the VM image"
         )
         chown -R max:users /home/max/Golem
+      elif ! ${pkgs.diffutils}/bin/cmp -s ${golemSrc}/flake.lock /home/max/Golem/flake.lock; then
+        # Keep the checkout in lockstep with the image (preserving the
+        # VM's own package list): a stale lock made an in-VM install
+        # rebuild SWAP the running daemon to the old pinned build —
+        # shell restarted mid-install, pending-install UI lost.
+        keep=$(${pkgs.coreutils}/bin/mktemp)
+        cp /home/max/Golem/system/home/waverunner-packages.nix "$keep" || true
+        cp -r --no-preserve=mode,ownership ${golemSrc}/. /home/max/Golem/
+        cp "$keep" /home/max/Golem/system/home/waverunner-packages.nix || true
+        rm -f "$keep"
+        (
+          cd /home/max/Golem
+          ${pkgs.git}/bin/git add -A
+          ${pkgs.git}/bin/git -c user.name=golem -c user.email=golem@golem \
+            commit -qm "sync from image" || true
+        )
+        chown -R max:users /home/max/Golem
       fi
     '';
   };
