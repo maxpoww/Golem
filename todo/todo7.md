@@ -212,6 +212,26 @@
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
   first time Golem exists independently of Max's laptop.
+- Round 9 (2026-08-31, Max: "droping the icons on page 1... land on
+  page 2... when i drop it at the end of the grid"): THE END-OF-GRID
+  DROP SAGA — three wrong theories, then evidence. (1) First fix
+  (same-page reorder clamp) was real but not his path. (2) Host log
+  instrumentation showed NO drop handler firing → his gesture was a
+  PACKAGE drag from Install, and `installing discord (anchor None)`
+  told the story: an anchorless (page-tail) drop was simply never
+  placed — resolve only handled `Some(anchor)`, so the app fell to the
+  order's default, the LAST page. (3) After fixing the landing
+  (PendingInstall.grid_page + move_to_page_end), Max: "nop" — the
+  PENDING TILE was the visible half, pushed to the grid's last cell for
+  the whole build. Tile now inserts at its target display page's end
+  (ghost page = one past last). ✅ Max: "works". Same round, the
+  LIBREOFFICE mystery: it resolved as a CLI terminal tile because its
+  desktop files (startcenter/writer/calc) share no substring with the
+  attr and the prebuilt index shipped NO hints (round 5's cut corner) —
+  the launcher flake now takes nix-index-database as an input and
+  package-index bakes desktop stems + icon paths offline in the
+  sandbox (libreoffice → base;calc;draw;impress verified in the TSV).
+  launcher `ba3ca8d`+`5239e52`.
 - Round 8 (2026-08-31, Max: "lets do the F12 fix"): SOFTWARE-RENDERER
   THROTTLE SHIPPED + VERIFIED (launcher `7066585` + `d26d38d`). draw()
   spaces frames to 100ms via a calloop timer when the wgpu adapter is
