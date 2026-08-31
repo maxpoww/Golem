@@ -30,10 +30,14 @@
     # (~3GB eval) — at 4G the OOM killer crash-looped the daemon (2026-08-30).
     # Real fix filed in todo7: ship a prebuilt index with the flake.
     memorySize = 8192;
-    cores = 4;
+    cores = 8;
     forwardPorts = [
       { from = "host"; host.address = "127.0.0.1"; host.port = 2222; guest.port = 22; }
     ];
+    # Venus (Vulkan passthrough) TRIED AND REVERTED 2026-08-30: with
+    # venus=true wgpu cannot create a surface at all → daemon dead → no
+    # shell. Without it wgpu falls back to llvmpipe (CPU) — dock renders
+    # softly, video can stutter. VM-only cosmetics; real hw is unaffected.
     qemu.options = [
       "-device virtio-vga-gl"
       "-display gtk,gl=on"

@@ -78,6 +78,19 @@
 - [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
       so Golem binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
+- [ ] **F8 — renderer init failure = shell silently dead forever.** Seen in
+      the Venus experiment: wgpu couldn't create a surface, the daemon
+      errored out, systemd's restart limit exhausted in seconds → no dock,
+      no bar, no OPTIONS, and nothing tells the user why. The daemon (or
+      its unit) needs a real degrade path: retry with backoff, fall back
+      to a software adapter, or at minimum leave a visible breadcrumb.
+      Launcher-repo work.
+- [ ] VM-only: waverunner renders on llvmpipe (virgl gives GL, wgpu wants
+      Vulkan) → dock is CPU-drawn, video can stutter with it. Venus
+      (vulkan passthrough) tried 2026-08-30 and REVERTED — wgpu got no
+      surface at all (F8 is its own finding). Acceptable for the test
+      loop; revisit if the VM ever becomes a daily driver. Real hardware
+      unaffected.
 
 ## Log
 
@@ -109,3 +122,15 @@
   VM bumped 4G→8G to unblock the loop — the honest minimum-spec question
   is now open. NEXT: Max re-runs YouTube in the 8G VM; watch the index
   build complete (first success takes minutes — nixpkgs eval from cold).
+- Round 3 (2026-08-30, Max: "yt works now, video plays fine but there is
+  freezing, and also the keyboard looses focus"): 8G verdict — ZERO OOMs,
+  index built clean (23779 pkgs, one daemon start). Freeze root-caused:
+  waverunner's wgpu picked llvmpipe (device_type: Cpu) — virgl exposes
+  GL, wgpu wants Vulkan — so the dock CPU-renders while Chrome
+  soft-decodes video on 4 cores. Venus (Vulkan passthrough,
+  virtio-vga-gl,venus=on) tried: WORSE — wgpu got no surface, daemon hit
+  its restart limit, shell gone ("no bar, no dock, nothing") → REVERTED
+  to virgl + cores 4→8; that death mode filed as F8. Keyboard-focus loss
+  on the YT search bar still OPEN — no journal culprit; next repro gets a
+  live `hyprctl activewindow` over ssh to split guest-focus-bug vs
+  QEMU/host grab boundary.
