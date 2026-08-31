@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#ffffff"/>
+  <g fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round">
+    <path stroke="#E53238" d="M9 35h9a5 5 0 1 0-2 5"/>
+    <path stroke="#0064D2" d="M24 23v19 M24 23h4.5a4 4 0 0 1 0 8H24 M24 31.5h5.5a5 5 0 0 1 0 10.5H24"/>
+    <path stroke="#F5AF02" d="M44 33v9 M44 37a4.5 4.5 0 1 0 0 1"/>
+    <path stroke="#86B817" d="M48 33l4 7 4-7 M52 40l-3 6"/>
+  </g>
+</svg>

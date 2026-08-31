@@ -1,0 +1,109 @@
+{
+  "nodes": {
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787377438,
+        "narHash": "sha256-Sxu1NLTD/Ern6hFGLlZmtKCSct3YQXZI/lls8RE1XeM=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "65258d5c65a250189fde2e35f490d15e064c4c62",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-26.05",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "home-manager_2": {
+      "inputs": {
+        "nixpkgs": [
+          "waverunner",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784351324,
+        "narHash": "sha256-By+kuRJZRqs2TuXgtR8vJ8cTKWXw33YG/Yollu5cO1U=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "460108009ca1ff69ca2ff19079ca2c838d6e3080",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1785386831,
+        "narHash": "sha256-sPS3CaXH8RAT3FZRuy4VcV47iuYIWMMfa0GbyJKC3o4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "21ea275a7c46aef9d4d6ddc962e6d562e9d94183",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "21ea275a7c46aef9d4d6ddc962e6d562e9d94183",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs",
+        "waverunner": "waverunner",
+        "waveview-src": "waveview-src"
+      }
+    },
+    "waverunner": {
+      "inputs": {
+        "home-manager": "home-manager_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788093061,
+        "narHash": "sha256-1IoSfQjmv5pSc028sa2KTQVaNl/Ar7k5tncWn7k3sao=",
+        "ref": "refs/heads/main",
+        "rev": "84efa5a4ee19ba4dcc9006234c9223660adeaf6c",
+        "revCount": 287,
+        "type": "git",
+        "url": "file:///home/max/launcher"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:///home/max/launcher"
+      }
+    },
+    "waveview-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788133495,
+        "narHash": "sha256-piMGwmV5lsR3E7xhPik1D/sS6l7huO2s26Q30/BRQhg=",
+        "ref": "refs/heads/master",
+        "rev": "4d1326eab0dc78023315715f82a1531d704f0bcb",
+        "revCount": 72,
+        "type": "git",
+        "url": "file:///home/max/waveview"
+      },
+      "original": {
+        "type": "git",
+        "url": "file:///home/max/waveview"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -1,0 +1,88 @@
+# webapps.list — curated webapp catalog. Name | URL | icon
+# icon = a freedesktop icon name (Papirus theme, or a bundled webapp-<slug> in hicolor).
+# Searchable in the launcher's Install section; drag one to the grid to install.
+# A leading * on the Name = a storefront recommendation (shown on an empty
+# query, blended with programs); the rest only appear when you search for them.
+
+# --- most popular ---
+*YouTube       | https://www.youtube.com       | youtube
+*Gemini        | https://gemini.google.com/app | webapp-gemini
+*GitHub        | https://github.com            | github
+YouTube Music  | https://music.youtube.com     | youtube-music
+Claude         | https://claude.ai             | webapp-claude
+WhatsApp       | https://web.whatsapp.com      | whatsapp
+Google         | https://www.google.com        | google
+Spotify        | https://open.spotify.com      | spotify
+Gmail          | https://mail.google.com       | gmail
+Netflix        | https://www.netflix.com       | netflix
+Instagram      | https://www.instagram.com     | instagram
+Facebook       | https://www.facebook.com      | facebook
+TikTok         | https://www.tiktok.com        | tiktok
+X              | https://x.com                 | x
+Reddit         | https://www.reddit.com        | reddit
+Discord        | https://discord.com/app       | discord
+Telegram       | https://web.telegram.org      | telegram
+Amazon         | https://www.amazon.com        | amazon
+Wikipedia      | https://www.wikipedia.org     | wikipedia
+Twitch         | https://www.twitch.tv         | webapp-twitch
+Zoom           | https://app.zoom.us           | webapp-zoom
+Snapchat       | https://web.snapchat.com      | webapp-snapchat
+Pinterest      | https://www.pinterest.com     | webapp-pinterest
+eBay           | https://www.ebay.com          | webapp-ebay
+ChatGPT        | https://chatgpt.com           | webapp-chatgpt
+Apple Music    | https://music.apple.com       | apple-music
+Hulu           | https://www.hulu.com          | hulu
+Binance        | https://www.binance.com       | binance
+
+# --- google suite ---
+Google Drive   | https://drive.google.com      | google-drive
+Google Maps    | https://maps.google.com       | google-maps
+Google Photos  | https://photos.google.com     | google-photos
+Google Meet    | https://meet.google.com       | google-meet
+Google Docs    | https://docs.google.com       | google-docs
+Google Slides  | https://slides.google.com     | google-slides
+Google Keep    | https://keep.google.com       | google-keep
+Google Translate | https://translate.google.com | google-translate
+Google Calendar | https://calendar.google.com  | calendar
+
+# --- productivity & work ---
+Notion         | https://www.notion.so         | notion
+Figma          | https://www.figma.com         | figma
+Slack          | https://app.slack.com/client  | slack
+Trello         | https://trello.com            | trello
+Miro           | https://miro.com              | miro
+Todoist        | https://todoist.com           | todoist
+Evernote       | https://www.evernote.com      | evernote
+Microsoft Teams | https://teams.microsoft.com  | teams
+Skype          | https://web.skype.com         | skype
+WordPress      | https://wordpress.com         | wordpress
+GitLab         | https://gitlab.com            | gitlab
+Bitwarden      | https://vault.bitwarden.com   | bitwarden
+
+# --- media & streaming ---
+SoundCloud     | https://soundcloud.com        | soundcloud
+Deezer         | https://www.deezer.com        | deezer
+Tidal          | https://listen.tidal.com      | tidal
+Bandcamp       | https://bandcamp.com          | bandcamp
+Vimeo          | https://vimeo.com             | vimeo
+Plex           | https://app.plex.tv           | plex
+Crunchyroll    | https://www.crunchyroll.com   | crunchyroll
+
+# --- mail, shopping, learning ---
+Proton Mail    | https://mail.proton.me        | proton-mail
+Dropbox        | https://www.dropbox.com       | dropbox
+Steam          | https://store.steampowered.com | steam
+Duolingo       | https://www.duolingo.com      | duolingo
+
+# --- dev, finance, more ---
+Messenger      | https://www.messenger.com     | webapp-messenger
+Airbnb         | https://www.airbnb.com        | webapp-airbnb
+Coinbase       | https://www.coinbase.com      | webapp-coinbase
+Stack Overflow | https://stackoverflow.com     | webapp-stackoverflow
+Vercel         | https://vercel.com            | webapp-vercel
+Cloudflare     | https://dash.cloudflare.com   | webapp-cloudflare
+Asana          | https://app.asana.com         | webapp-asana
+1Password      | https://my.1password.com      | 1password
+MEGA           | https://mega.nz               | mega
+Element        | https://app.element.io        | element
+Clockify       | https://app.clockify.me       | clockify
