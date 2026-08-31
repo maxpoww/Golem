@@ -118,6 +118,15 @@
       KB/s — a first brave+gimp closure takes 10-20 min. Fine for
       correctness tests; consider virtio-net or a host-side cache if it
       gets old.
+- [ ] **F12 — perpetual animations burn the whole machine on a CPU
+      renderer.** During an install, the "installing" tile animates every
+      frame; on llvmpipe (the VM — but also any GPU-less machine Golem
+      ever lands on) that's the daemon at 450% CPU for the length of a
+      rebuild, starving every app (foot took 10s to open, 90s+ frozen).
+      The daemon KNOWS its adapter (logs device_type: Cpu) — cap
+      animation frame rate (or go static) when the renderer is software.
+      Launcher-repo. (Live mitigation that proved it: renice 19 on the
+      daemon freed the session instantly.)
 - [ ] **F8 — renderer init failure = shell silently dead forever.** Seen in
       the Venus experiment: wgpu couldn't create a surface, the daemon
       errored out, systemd's restart limit exhausted in seconds → no dock,
