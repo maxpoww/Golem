@@ -134,3 +134,6 @@
   on the YT search bar still OPEN — no journal culprit; next repro gets a
   live `hyprctl activewindow` over ssh to split guest-focus-bug vs
   QEMU/host grab boundary.
+  ✅ verified by Max post-revert: Firefox + Chrome, several sites at
+  once — "all worked well no freezing". Focus loss not yet re-seen;
+  watch stays armed.
