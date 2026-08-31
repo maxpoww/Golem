@@ -195,6 +195,13 @@
   test, which briefly made the correct trace look haunted. launcher
   `0836325` (140 tests, 3 new). Frecency is in-memory only for now —
   habits reset with the daemon; persist later if it matters.
+  → Max: "its perfect!" — one polish: the focus dispatch warps the
+  cursor into the window (warpCursor is unconditional in the fork);
+  the cycle now flips cursor.no_warps around its dispatch in one
+  atomic `hyprctl eval` Lua chunk (keyword is legacy-parser-only in
+  this fork; eval is the dynamic-config door — noted for future use).
+  Cursor verified pinned to the pixel through a hop. launcher
+  `583b17f`.
 - Round 13 (2026-08-31, Max: "see the size of the window live on the
   current task option when im resizing"): LIVE RESIZE READOUT SHIPPED
   + VERIFIED. While the focused window resizes, the window pill swaps
