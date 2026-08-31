@@ -181,12 +181,19 @@
   [name] [X], all reveal-on-hover); Max: "i dont love it" → final
   design: at REST only [current task] [X] — the close is a permanent
   resting pill, always visible and clickable, right of the name;
-  hovering either reveals the toggles — landed (third pass, Max's
-  call) as [name] [X] → [fullscreen] [pseudo] [float] emerging
-  RIGHTWARD from behind the X, fullscreen first, each from behind its
-  neighbor. Ctrl anim slots 4→3; hit-span includes close explicitly.
-  Rest state verified by screenshot; the reveal needs Max's hover.
-  launcher `eda62a2`. The daemon
+  hovering either reveals the toggles — landed (fourth pass, Max's
+  calls) as [name] [X] → [pseudo] [fullscreen] emerging rightward from
+  behind the X. FLOAT IS CUT from the cluster (Max doesn't use it, no
+  Golem story for it: no titlebars to drag, pseudo covers "own size in
+  place", video PiP floats itself; hypr::float_active removed). The
+  reveal was rebuilt as a symmetric metamorphosis like the bar's other
+  elements (copy-link pill / bell peek): one eased progress per button
+  (MORPH_RATE 13) drives slide + opacity, so the HIDE tucks each
+  button back behind its parent while fading (was: fade-in-place);
+  chain emerges inner-first, retracts outermost-first, 60ms stagger,
+  and a mid-flight hover flip reverses smoothly. Reveal seen live in a
+  screenshot (Max's pointer was parked on the cluster — new order
+  confirmed on screen). launcher `eda62a2`+`7ffb7db`. The daemon
   restart for the UX change turned into F13's first LIVE verification —
   and found a real pre-existing hole: apply-status.json on the host was
   a stale "building" CORPSE (a shutdown killed last night's 00:05
