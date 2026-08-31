@@ -257,6 +257,19 @@
   was the last place pure values hid. Test pins it (never pure, always
   warm, still far enough apart for contrast). launcher `4ab890c`,
   145 tests.
+  → Max: "the notification content and the clipboard have poor
+  contrast" — the resting DIMS were the last thing still tuned for the
+  old near-black slabs, where light ink at 0.55 alpha read fine. A box
+  now sits at its backdrop's (often mid-tone) luminance, so those
+  alphas left dark ink hovering just above the fill; worst was the
+  notification BODY, which compounds its own 0.6 factor onto the list
+  dim (~0.49 alpha ≈ 1.7:1 on a mid-blue box). LIST_DIM 0.55→0.85,
+  LIST_DIM_LIGHT 0.82→0.95 (both boxes), body factor 0.6→0.85. The
+  hover spotlight still goes to full alpha — a smaller step now, the
+  right trade when the RESTING state has to be readable. Note the
+  standing trade-off: with the fill deliberately near the backdrop,
+  contrast is bounded by that choice; alpha is the only lever left.
+  launcher `76d084b`.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the

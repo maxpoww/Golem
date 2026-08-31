@@ -80,6 +80,12 @@
 - [x] Version control (git init + first commit — done by Max)
 - [x] applicationId is now `com.golem_os.golem` (was `com.example.golem`, unpublishable).
       Done on branch `rename-package`; required re-pairing and a new deviceId.
+- [x] F-Droid readiness audit: dependencies verified 100% FOSS (no Play Services,
+      Firebase, blobs or telemetry); README + fastlane metadata written; version set
+      to an honest 0.1.0
+- [ ] **DECISION NEEDED: choose a license.** No LICENSE file exists and F-Droid
+      requires one. Written from scratch, so NOT bound by kdeconnect's GPL-3 —
+      GPL-3 matches the ecosystem/ethos, Apache-2.0 or MPL-2.0 allow wider reuse.
 - [ ] Signing config + reproducible release build for F-Droid
 - [x] Runtime permission flow verified by QA pass (revoke everything → tap through
       in-app): both permission gates appear, work, and disappear once granted.
