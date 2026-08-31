@@ -191,6 +191,15 @@
   along. launcher `6114dfb`. Caveat, by design: any same-window size
   change (e.g. a split opening) flashes the readout briefly — honest,
   possibly even nice; revisit if it annoys.
+  → v2 same day (Max: "show size as soon as the mouse pointer
+  changes"): the readout now appears on BORDER HOVER, before any
+  change — the daemon computes the same grab band the compositor uses
+  for the resize cursor (border 3 + grab area 10 + 1 slack, from
+  activewindow box + cursorpos, rest poll 250ms) and shows the
+  CURRENT size the moment the pointer enters it; fullscreen exempt.
+  Verified without input-sim by resizing the border TO the idle
+  pointer: readout held on band alone 2s past settle, reverted when
+  the edge moved away. launcher `68682c1`.
 - Round 12 (2026-08-31, Max: "rounded corners and borders when window
   is on pseudo... set this window size as default... it have to keep
   aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
