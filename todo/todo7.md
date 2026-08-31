@@ -204,6 +204,28 @@
   samples land on the same darkness, black falls back to the slab).
   Verified live over an olive wallpaper — the box carries the hue.
   Knob for later taste: BOX_LUM. launcher `6e6a765`, 144 tests.
+  → Max: "make BOX_LUM darker, and the text color engine — with the bg
+  i set up the contrast is garbage. maybe its time to wire it with the
+  mind, idk". Root cause found: the bar had NO live signal to adapt to
+  — the frosted backdrop was only sampled WHILE A DRAWER WAS OPEN (an
+  optimisation from when the boxes were its only consumer), so an
+  unmatched bar fell back to a STATIC theme ink and painted white text
+  on a cream wallpaper. Fix: the transparent bar samples its own
+  backdrop continuously (same 700ms cadence the matched path already
+  pays), and ONE rule serves every surface — `ink_on(bg)` measures the
+  background in question: the bar's pills ask about the bar's backdrop,
+  an open box asks about its own opaque fill. They may differ, and
+  should: a transparent strip on a light wallpaper and a dark panel
+  want opposite inks. Washes/shadows share the detector, so pills
+  darken over light wallpapers too. BOX_LUM 0.15 → 0.07 (deeper, and
+  the extra darkness makes the box's light ink provably stable — it
+  can no longer flip with the wallpaper). NOT wired to the mind, on
+  purpose: the mind decides WHICH options appear from system context;
+  ink is a rendering property of each surface's own backdrop, already
+  sensed by screencopy — routing it through the Brain would add
+  latency and indirection for no gain. Verified live over a cream
+  wallpaper: dark ink on the bar, light ink on a warm-brown box.
+  launcher `97c9e22`, 146 tests (5 colour).
 - Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
   button on overview, i dont want the clipboard on overview too. but
   also i dont want to start patching OPTIONS — what should we do?"):
