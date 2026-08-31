@@ -20,9 +20,9 @@ Boots straight into Hyprland as user `max` (password `golem` if you ever need
 it) with the full Golem stack: waverunner dock/launcher, OPTIONS surfaces,
 options-notify, the waveview workspace overview.
 
-> Honest caveat: two flake inputs (`waverunner`, `waveview-src`) still point
-> at local checkouts, so today only Max's machine can build this. Repinning
-> them to GitHub is the next S7 step; the ISO (S9) is the Arc-1 exit.
+> Every input is pinned to GitHub — any machine with nix (flakes enabled)
+> can build this. The ISO (S9) is the Arc-1 exit; until then the VM is the
+> distribution's proving ground.
 
 ## Layout
 
