@@ -201,7 +201,25 @@
   atomic `hyprctl eval` Lua chunk (keyword is legacy-parser-only in
   this fork; eval is the dynamic-config door — noted for future use).
   Cursor verified pinned to the pixel through a hop. launcher
-  `583b17f`.
+  `583b17f`. Super+Tab / Super+Shift+Tab bound to the same verbs, and
+  Super+P rerouted through golemPseudoToggle (it was still calling the
+  raw toggle, bypassing the Golem pseudo policy) — both hyprland.lua
+  copies, Golem `d792544`.
+  → v2, INTERACTION-AWARE (Max: cycling through 3 and 4 made them
+  count as "used" and broke the 1-2 pair): the model is now HIS —
+  interaction commits the cycle, not a timer. Toggle from a settled
+  window → the one you last actually WORKED in; toggle again without
+  interacting → continue down the frozen list (wrap home); interact →
+  commits, next toggle starts fresh. Windows passed through earn
+  nothing and never become the partner. waveview v0.30 sends one
+  `interacted` per window visit (first key/click/scroll aimed at the
+  focused window; Super-chords excluded so Super+Tab can't commit
+  itself; pointer events require the cursor inside the window's box so
+  pill clicks don't count). Ranking: freshest interaction first, then
+  frecency, then compositor history, home last. VERIFIED LIVE on a
+  4-window ws (Max's exact scenario): interact → bounce both ways; no
+  interaction → four distinct hops and wrap. launcher `fbb2ed8`,
+  waveview `3613989`, 141 tests.
 - Round 13 (2026-08-31, Max: "see the size of the window live on the
   current task option when im resizing"): LIVE RESIZE READOUT SHIPPED
   + VERIFIED. While the focused window resizes, the window pill swaps
