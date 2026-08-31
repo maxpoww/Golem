@@ -176,12 +176,15 @@
 ## Log
 
 - Round 11 (2026-08-31, Max: "change the X to the right and the other
-  three buttons to the left"): WINDOW-CLUSTER MIRROR + A CORPSE
-  UNMASKED. The current-task pill's controls are now
-  [full][float][pseudo] [name] [X]; slide origins mirrored (close
-  emerges rightward, toggles leftward, each from behind its neighbor);
-  stagger, z-order, and the hit-span carried over untouched (all
-  relative). Needs Max's hover to eyeball the reveal. The daemon
+  three buttons to the left"): WINDOW-CLUSTER REWORK + A CORPSE
+  UNMASKED. First pass mirrored the old design ([full][float][pseudo]
+  [name] [X], all reveal-on-hover); Max: "i dont love it" → final
+  design: at REST only [current task] [X] — the close is a permanent
+  resting pill, always visible and clickable, right of the name;
+  hovering either reveals [fullscreen] [pseudo] [float] to the left,
+  each sliding out from behind its neighbor (float first from the
+  name). Ctrl anim slots 4→3; hit-span includes close explicitly.
+  Rest state verified by screenshot; the reveal needs Max's hover. The daemon
   restart for the UX change turned into F13's first LIVE verification —
   and found a real pre-existing hole: apply-status.json on the host was
   a stale "building" CORPSE (a shutdown killed last night's 00:05
