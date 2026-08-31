@@ -192,6 +192,18 @@
   duplicated verbatim in clipboard.rs and notif.rs — the same drift
   that caused it — so it now lives once as `options_box_surface()`.
   Verified live on both boxes. launcher `a3450cc`.
+  → Max: "the boxes (zebras) need more saturation, its too gray" —
+  correct, and the cause was my fix: mixing the frost toward the
+  neutral slab pulls every channel toward the same value, which IS
+  desaturation. Now the sample is SCALED to a target linear luminance
+  (0.15) instead: a uniform scale in linear light preserves
+  chromaticity exactly, so the box keeps the wallpaper's real hue at
+  the same legible darkness (blue:red spread 2.1x → 4.3x on the live
+  sample). Extracted as the pure `frosted_box_fill` with tests locking
+  the property (luminance normalised, ratios preserved, bright AND dim
+  samples land on the same darkness, black falls back to the slab).
+  Verified live over an olive wallpaper — the box carries the hue.
+  Knob for later taste: BOX_LUM. launcher `6e6a765`, 144 tests.
 - Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
   button on overview, i dont want the clipboard on overview too. but
   also i dont want to start patching OPTIONS — what should we do?"):
