@@ -226,6 +226,16 @@
   latency and indirection for no gain. Verified live over a cream
   wallpaper: dark ink on the bar, light ink on a warm-brown box.
   launcher `97c9e22`, 146 tests (5 colour).
+  → Max: "this is not good, i asked you to improve the contrast only
+  on the text, not the pills" — fair, and a scope lesson worth
+  keeping: `options_bar_is_bright` is not a colour query, it is the
+  BAR'S LOOK (it drives the pills' resting + hover washes AND their
+  neumorph shadows). Teaching it the frost restyled every pill on a
+  light wallpaper. Reverted to matched-only with a comment saying why,
+  so a future session doesn't "fix" it again; the frost sample now
+  feeds `options_text_color` alone — the actual ask. Pills verified
+  back to their subtle wash, text still dark and legible on cream.
+  launcher `541e826`.
 - Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
   button on overview, i dont want the clipboard on overview too. but
   also i dont want to start patching OPTIONS — what should we do?"):
