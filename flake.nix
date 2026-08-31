@@ -1,4 +1,16 @@
 {
+  # SPDX-License-Identifier: GPL-3.0-or-later
+  #
+  # Golem OS — a Linux distribution built around OPTIONS.
+  # Copyright (C) 2026 Max Power
+  #
+  # This program is free software: you can redistribute it and/or modify
+  # it under the terms of the GNU General Public License as published by
+  # the Free Software Foundation, either version 3 of the License, or
+  # (at your option) any later version. See LICENSE for the full text.
+  #
+  # ── ── ──
+  #
   # Golem OS — ONE flake = a complete Golem PC (roadmap S7).
   #
   #   nixosConfigurations.golem     Max's machine (Slim Pro 9i, nvidia prime)

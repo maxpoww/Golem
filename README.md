@@ -30,3 +30,23 @@ options-notify, the waveview workspace overview.
 - `system/` — the Golem profile: core NixOS modules + `home/` (home-manager)
 - `hosts/` — per-machine: `golem/` (nvidia prime laptop), `vm.nix`
 - `todo/`, `*.md` — the living plan (section logs, roadmap, feature maps)
+
+## License
+
+**GPL-3.0-or-later.** Copyright © 2026 Max Power. See [LICENSE](LICENSE).
+
+Golem is free software: you may use, study, share and modify it. If you
+distribute a modified version, you must pass those same freedoms on — nobody
+gets to take Golem, add telemetry or ads, and ship it closed. That is the
+manifesto written in a form that holds up in court.
+
+GPL-3 also chosen because the planned Android companion forks
+[kdeconnect-android](https://invent.kde.org/network/kdeconnect-android), which
+is GPL-3.0, so the phone side is copyleft regardless — one license across the
+project is simpler than two. The anti-tivoization clause matters too: nobody can
+ship Golem on hardware where the user can't replace it.
+
+Golem builds on and ships other people's software under their own licenses —
+the Linux kernel (GPL-2.0), NixOS (MIT), Hyprland (BSD-3-Clause), the GNOME
+applications (GPL) and others. Those are aggregated, not absorbed; each keeps
+its own terms.
