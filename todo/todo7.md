@@ -224,7 +224,7 @@
   (PendingInstall.grid_page + move_to_page_end), Max: "nop" — the
   PENDING TILE was the visible half, pushed to the grid's last cell for
   the whole build. Tile now inserts at its target display page's end
-  (ghost page = one past last). ✅ Max: "works". Same round, the
+  (ghost page = one past last). ✅ Max: "works" — on the host AND the VM. Same round, the
   LIBREOFFICE mystery: it resolved as a CLI terminal tile because its
   desktop files (startcenter/writer/calc) share no substring with the
   attr and the prebuilt index shipped NO hints (round 5's cut corner) —
