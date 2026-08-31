@@ -236,6 +236,25 @@
   feeds `options_text_color` alone — the actual ask. Pills verified
   back to their subtle wash, text still dark and legible on cream.
   launcher `541e826`.
+  → Max: "the notis and the clipboard are too dark now, and the text
+  is white. we want a similar color to the bg color" — the darkening
+  (BOX_LUM) was solving a problem that no longer existed. It was only
+  ever there to keep the box's ink stable back when the BAR's ink was
+  static; now that both surfaces MEASURE, a box can simply be its
+  backdrop again (matched colour or sampled wallpaper) plus the pill's
+  weak wash — the pill grown, one formula for both regimes — and a
+  light box just takes dark text exactly as the bar does. BOX_LUM and
+  the scaling helper deleted; the bar↔box agreement is now a TEST
+  (same backdrop → same ink), with another asserting the fill stays
+  near its backdrop and keeps its chroma. Verified live over the cream
+  wallpaper: both boxes cream with dark text, matching the bar.
+  launcher `e0678f8`, 144 tests.
+  ARC of this colour work, worth remembering: each fix was right for
+  the state at the time, and each next request revealed the previous
+  one was compensating for a missing signal. The keeper is the
+  principle — every surface measures the background it actually sits
+  on — and the compensations (static theme ink, grey mixing, forced
+  darkness) all fell away once the signal existed.
 - Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
   button on overview, i dont want the clipboard on overview too. but
   also i dont want to start patching OPTIONS — what should we do?"):
