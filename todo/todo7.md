@@ -63,6 +63,22 @@
       build this flake until both repos are pushed to GitHub and repinned.
       That's the next S7 step.
 
+- [ ] **Ship a prebuilt package index with the flake** (from Round 2's VM
+      crash-loop): waverunner's cold start builds its package index with
+      `nix search nixpkgs ^ --json` (~3GB eval) + a `nix shell
+      nixpkgs#nix-index` icon sweep — on a 4G machine the OOM killer took
+      the whole service cgroup down and systemd respawned it: an INFINITE
+      cold-start crash-loop on small hardware (5 daemon starts in 7 min,
+      Chrome died as collateral). Invisible on the 32G host; the VM's first
+      catch. The distribution should build the index as a derivation (the
+      flake pins nixpkgs — the index is pure) and the daemon should read a
+      prebuilt index path before ever dumping; also: back off/give up after
+      a failed dump instead of re-dumping on every service restart.
+      Launcher-repo work — needs its own round.
+- [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
+      so Golem binds can't be exercised in the VM from the host desktop.
+      Idea: a host "VM mode" (submap that releases all binds + escape key).
+
 ## Log
 
 - Round 1 (2026-08-30, "lets keep going with the plan" — SH had nothing
@@ -80,3 +96,16 @@
   docs before the public push: clean. NEXT: Max runs
   ./result/bin/run-Golem-vm and eyeballs the first foreign-hardware boot;
   then push launcher + waveview to GitHub and repin the two local inputs.
+- Round 2 (2026-08-30, first VM boot): ✅ Max: dock, OPTIONS, overview —
+  "its all there". Then: installed the YouTube webapp, played a video →
+  "it crash, the whole thing restart somehow". Diagnosis (sshd + loopback
+  :2222 added to the VM, journal read from the crashed boot's persistent
+  disk): FOUR OOM-killer events in 6 min, every victim a ~3GB `nix`
+  process inside waverunner.service — the cold-start `nix search
+  nixpkgs ^` index dump (see the new prebuilt-index item above). Hyprland
+  + greetd survived every kill (same pids across all four OOM tables):
+  the "session restart" Max saw was the daemon crash-looping + Chrome
+  dying (SIGTRAP, core dumped) under memory pressure, not the compositor.
+  VM bumped 4G→8G to unblock the loop — the honest minimum-spec question
+  is now open. NEXT: Max re-runs YouTube in the 8G VM; watch the index
+  build complete (first success takes minutes — nixpkgs eval from cold).
