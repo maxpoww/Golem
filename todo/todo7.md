@@ -57,11 +57,13 @@
       hosts/vm.nix: no nvidia, virtio-vga-gl, 4G/4 cores, greetd autologs
       max into Hyprland, initialPassword golem. BUILDS clean (2026-08-30);
       first graphical boot still needs eyes.
-- [ ] Pin + document every input; the flake IS the distribution
-      → nixpkgs pinned to the live channel rev; but waverunner + waveview
-      inputs are still git+file:///home/max/... — ONLY Max's machine can
-      build this flake until both repos are pushed to GitHub and repinned.
-      That's the next S7 step.
+- [x] Pin + document every input; the flake IS the distribution
+      → DONE 2026-08-30 (Max: public): maxpoww/launcher flipped
+      public + pushed to head, maxpoww/waveview created public. Both
+      inputs repinned github:maxpoww/* (same revs, same narHash — zero
+      rebuild); nixpkgs + home-manager were already GitHub pins. The
+      flake is now buildable by ANY machine. Dev loop against local
+      checkouts: `--override-input waverunner ~/launcher`.
 
 - [ ] **Ship a prebuilt package index with the flake** (from Round 2's VM
       crash-loop): waverunner's cold start builds its package index with
@@ -137,3 +139,12 @@
   ✅ verified by Max post-revert: Firefox + Chrome, several sites at
   once — "all worked well no freezing". Focus loss not yet re-seen;
   watch stays armed.
+- Round 4 (2026-08-30): INPUTS FREED FROM THE LAPTOP. launcher made
+  public (was private + 10 days stale — first push attempt lied
+  "Everything up-to-date" while the remote sat at a46cfd1; explicit
+  main:main pushed 84efa5a), waveview created public (master pushed as
+  main). Flake inputs repinned git+file → github:maxpoww/{launcher,
+  waveview}; identical revs/narHashes so the repin cost zero rebuilds;
+  VM target verified building from the GitHub-only closure.
+  `github:maxpoww/Golem` is now buildable by any machine with nix —
+  first time Golem exists independently of Max's laptop.

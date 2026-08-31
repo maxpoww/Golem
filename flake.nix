@@ -24,17 +24,17 @@
     };
 
     # waverunner: dock + launcher + OPTIONS surfaces + options-notify +
-    # offline dictionaries. TODO(S7): repin to github:maxpoww/launcher once
-    # that repo is pushed — a local path input can't serve a stranger.
+    # offline dictionaries. Dev loop: point at the local checkout with
+    #   nix build --override-input waverunner ~/launcher …
     waverunner = {
-      url = "git+file:///home/max/launcher";
+      url = "github:maxpoww/launcher";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     # waveview: the 3x3 workspace-overview Hyprland plugin (plain
-    # default.nix, packaged below). TODO(S7): repin to github once pushed.
+    # default.nix, packaged below). Same --override-input trick for dev.
     waveview-src = {
-      url = "git+file:///home/max/waveview";
+      url = "github:maxpoww/waveview";
       flake = false;
     };
   };
