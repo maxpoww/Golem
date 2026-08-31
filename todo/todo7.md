@@ -65,18 +65,27 @@
       flake is now buildable by ANY machine. Dev loop against local
       checkouts: `--override-input waverunner ~/launcher`.
 
-- [ ] **Ship a prebuilt package index with the flake** (from Round 2's VM
+- [x] **Ship a prebuilt package index with the flake** (from Round 2's VM
       crash-loop): waverunner's cold start builds its package index with
       `nix search nixpkgs ^ --json` (~3GB eval) + a `nix shell
       nixpkgs#nix-index` icon sweep — on a 4G machine the OOM killer took
       the whole service cgroup down and systemd respawned it: an INFINITE
       cold-start crash-loop on small hardware (5 daemon starts in 7 min,
       Chrome died as collateral). Invisible on the 32G host; the VM's first
-      catch. The distribution should build the index as a derivation (the
-      flake pins nixpkgs — the index is pure) and the daemon should read a
-      prebuilt index path before ever dumping; also: back off/give up after
-      a failed dump instead of re-dumping on every service restart.
-      Launcher-repo work — needs its own round.
+      catch.
+      → DONE (launcher `0fdafa7`, Round 5 below): the launcher flake
+      builds the index as a derivation from its own pinned nixpkgs
+      (nix-env eval → jq → new `waverunner build-index` CLI mode reusing
+      the exact parse/filter/save path — 23.9k packages, v5 TSV). HM
+      module wires WAVERUNNER_PKG_INDEX; when set it is AUTHORITATIVE
+      (no runtime dump ever — a fresh dump could only diverge from the
+      pinned system). nix-locate now runs from PATH (nix-index in
+      runtimeTools), killing the second 3GB eval; env unset = old dev
+      behavior. Icon hints are runtime-lazy (flathub/store fetchers);
+      build-time hints via a nix-index-database input = possible later.
+      VERIFIED: fresh-disk cold boot loads 23661 packages (prebuilt) in
+      ~2s, 0 OOM; the afternoon's 4G repro config re-run — 0 OOM, ONE
+      daemon start, desktop in ~1GB. 4G machines run Golem now.
 - [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
       so Golem binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
@@ -148,3 +157,16 @@
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
   first time Golem exists independently of Max's laptop.
+- Round 5 (2026-08-30, Max: "lets do the prebuilt index"): the OOM fix,
+  see the ticked item above for the design. Notable in the doing: the
+  daemon's TSV cache format (v5, header-versioned) made the prebuilt
+  path clean — `load_cache` already validates the header, so a future
+  format bump silently invalidates stale prebuilts and falls back;
+  `nix-env -f <pinned> -qa --json --meta` inside the build sandbox is
+  the eval (no flakes/store needed there), jq reshapes it to nix-search
+  JSON, and the daemon's own binary converts (`build-index` mode) so
+  filter/dedupe can never drift from the runtime path. 135/135 daemon
+  tests pass. Golem input bumped; VM disk wiped for a TRUE first boot.
+  Both proofs: 8G fresh-disk (prebuilt in ~2s, 0 OOM) and the 4G repro
+  (0 OOM, 1 daemon start). The VM currently runs at 4G via QEMU_OPTS —
+  vm.nix stays 8G for comfort.
