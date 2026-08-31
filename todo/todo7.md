@@ -196,6 +196,19 @@
   never drift. Verified both directions. launcher `41cfb01`.
   NOTE: the pill works now; Super+P needs ONE more rebuild (its bind
   still points at the removed Lua function).
+  → Max: "the whole options click does not work on overview" — of
+  course: the overview swallows EVERY pointer event (info.cancelled)
+  so the desktop under it stays inert, which also killed the topbar it
+  deliberately keeps alive above the grid (visible but dead — round
+  15's X could never have worked). waveview v0.32 passes motion,
+  buttons, and scroll over the monitor's reserved top strip (28 logical
+  px here) through uncancelled, so the layer surface gets them
+  normally; mid-gesture events stay the overview's, so a window drag or
+  thumbnail resize that wanders under the bar isn't interrupted, and
+  entering the strip clears the grid hover. waveview `fa4152e`.
+  Geometry verified (reserved top = 28, bar input region = 28); the
+  click itself is Max's to try — no pointer simulation on this
+  compositor.
 - Round 15 (2026-08-31, Max: "X button by the current task to exit
   overview... current task to show the title of the hovered task and
   also the (size) when im resizing on overview"): THE TOPBAR SERVES

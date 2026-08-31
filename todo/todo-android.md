@@ -46,7 +46,9 @@
 - [ ] Photo sync, shared OPTIONS surfaces, cross-device DND, app streaming polish
 
 ## Near-term polish
-- [ ] mDNS discovery (currently UDP broadcast only — works, but mDNS is the modern half)
+- [x] mDNS discovery (advertise + browse + resolve, unicast-identity nudge on find).
+      NOTE: the Golem PC runs **no mDNS responder** (avahi/systemd-resolved both
+      inactive), so this path is phone-side-only until avahi is enabled on the host.
 - [ ] Album art payloads for media controls
 - [x] Golem design language pass (amber-on-stone, matches the icon; dynamic color off)
 - [x] systemvolume — desktop volume/mute/default-sink from the phone (verified;
@@ -57,5 +59,8 @@
       1.3.12 doesn't implement it (only Screenshot/ScreenCast/GlobalShortcuts).
       → `golem-connectd` should inject input via uinput/evdev instead; that also
       removes a dependency kdeconnectd can't satisfy on this WM.
-- [ ] Strip the exported SelfTestReceiver dev harness from release builds
+- [x] Strip the exported SelfTestReceiver dev harness from release builds
+      (moved to `app/src/debug/`; verified absent from the release APK manifest)
+- [ ] **No version control yet** — the whole app is untracked; `git init` + first commit
+- [ ] applicationId is still `com.example.golem`; needs a real id before F-Droid
 - [ ] Runtime permission flow polish (SMS/contacts currently granted via adb)
