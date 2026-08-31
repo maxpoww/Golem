@@ -16,7 +16,16 @@
     description = ''
       Local checkout of the Golem flake on this machine. Enables the
       waverunner declarative-install apply service and points rebuild-golem
-      at it. null (the VM, a machine without a checkout) disables both.
+      at it. null (a machine without a checkout) disables both.
+    '';
+  };
+
+  options.golem.flakeAttr = lib.mkOption {
+    type = lib.types.str;
+    default = "golem";
+    description = ''
+      Which nixosConfigurations attr this machine rebuilds itself as
+      (the VM is golem-vm; apply/rebuild must rebuild what actually runs).
     '';
   };
 
@@ -163,7 +172,7 @@
     ] ++ lib.optional (config.golem.flakeDir != null)
       (pkgs.writeShellScriptBin "rebuild-golem" ''
         set -euo pipefail
-        sudo nixos-rebuild switch --flake "${config.golem.flakeDir}#golem" "$@"
+        sudo nixos-rebuild switch --flake "${config.golem.flakeDir}#${config.golem.flakeAttr}" "$@"
 
         current=$(readlink -f /run/current-system)
         latest=$(readlink -f /nix/var/nix/profiles/system)
@@ -180,6 +189,10 @@
           echo "OK: activated == booted (already fully live)"
         fi
       '');
+
+    # Compressed swap in RAM: a nixos-rebuild eval wants 2-3GB — on a 4G
+    # machine that's the difference between installing apps and thrashing.
+    zramSwap.enable = true;
 
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nix.settings.auto-optimise-store = true;

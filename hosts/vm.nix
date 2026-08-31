@@ -1,10 +1,43 @@
 # Hardware-free Golem for the S7 test loop:
 #   nixos-rebuild build-vm --flake .#golem-vm && ./result/bin/run-Golem-vm
 # No nvidia, virtio graphics; greetd autologs max straight into Hyprland.
-{ lib, ... }:
+{ lib, pkgs, golemSrc, ... }:
 
 {
   nixpkgs.hostPlatform = "x86_64-linux";
+
+  # The installed-machine shape (what the S9 installer will seed on real
+  # hardware): a writable flake checkout, so OPTIONS installs
+  # (waverunner-apply) and rebuild-golem work inside the VM. The VM
+  # rebuilds itself as golem-vm — switching to #golem's nvidia config
+  # in here would be nonsense.
+  golem.flakeDir = "/home/max/Golem";
+  golem.flakeAttr = "golem-vm";
+
+  # Seed the checkout once from the image's own source. After "users" so
+  # chown works on first boot.
+  system.activationScripts.seedGolemFlake = {
+    deps = [ "users" ];
+    text = ''
+      if [ ! -e /home/max/Golem ]; then
+        mkdir -p /home/max
+        cp -r ${golemSrc} /home/max/Golem
+        chmod -R u+w /home/max/Golem
+        (
+          cd /home/max/Golem
+          ${pkgs.git}/bin/git init -q -b main
+          ${pkgs.git}/bin/git add -A
+          ${pkgs.git}/bin/git -c user.name=golem -c user.email=golem@golem \
+            commit -qm "seeded from the VM image"
+        )
+        chown -R max:users /home/max/Golem
+      fi
+    '';
+  };
+
+  # The VM direct-boots (qemu -kernel); a switch inside it must never try
+  # to install a bootloader.
+  boot.loader.systemd-boot.enable = lib.mkForce false;
 
   # Dummy root so the config evaluates standalone; the vm builder overrides
   # every filesystem with its own image (mkVMOverride).

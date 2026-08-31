@@ -79,6 +79,10 @@
 
       nixosConfigurations.golem-vm = nixpkgs.lib.nixosSystem {
         inherit system;
+        # The VM seeds its own flake checkout from the image (hosts/vm.nix)
+        # so the installed-machine loop — waverunner-apply, rebuild-golem —
+        # works there like it will on an ISO-installed Golem.
+        specialArgs = { golemSrc = self; };
         modules = golemModules ++ [ ./hosts/vm.nix ];
       };
     };

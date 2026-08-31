@@ -27,6 +27,7 @@
 
 let
   flakeDir = config.golem.flakeDir;
+  flakeAttr = config.golem.flakeAttr;
   user = "max";
   userHome = "/home/${user}";
   listFile = "${userHome}/.config/waverunner/packages.list";
@@ -98,11 +99,17 @@ let
         echo "}"
       } > "$gen.new"
       mv "$gen.new" "$gen"
+      # This runs as root inside the user's checkout; git's dubious-
+      # ownership guard only honors safe.directory from system/global
+      # config (never -c), so give it a script-scoped global.
+      gitcfg=$(mktemp)
+      printf '[safe]\n\tdirectory = %s\n' "$flakedir" > "$gitcfg"
+      export GIT_CONFIG_GLOBAL="$gitcfg"
       git -C "$flakedir" add system/home/waverunner-packages.nix || true
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
-      if err=$(nixos-rebuild switch --flake "$flakedir#golem" 2>&1); then
+      if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         cp -f "$gen" "$lastgood"
         write_status "done" true null
       else
