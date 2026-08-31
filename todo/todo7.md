@@ -175,6 +175,23 @@
 
 ## Log
 
+- Round 18 (2026-08-31, Max: "the text on options is white, but the
+  text inside notifications and clipboard is black"): INK REGIME BUG,
+  fixed with numbers rather than guesses. Instrumented the live daemon
+  instead of theorising: `matched=None frost=Some([0.13,0.35,0.56])
+  ink=[1,1,1]` — with the bar TRANSPARENT it paints the theme's white,
+  while both boxes derived ink from the sampled wallpaper frost whose
+  luminance (0.32) sits above the 0.179 flip point → they chose BLACK.
+  Each was locally "correct"; together they were incoherent. Fix: the
+  boxes are the pill grown, so they follow the BAR'S REGIME — matched
+  bar → matched colour + the bar's adaptive ink (agree by
+  construction); transparent bar → the theme slab TINTED 25% by the
+  frost instead of becoming the wallpaper (low because the values are
+  LINEAR and the list's resting text sits at LIST_DIM). Keeps the
+  wallpaper character, guarantees the theme ink reads. The logic was
+  duplicated verbatim in clipboard.rs and notif.rs — the same drift
+  that caused it — so it now lives once as `options_box_surface()`.
+  Verified live on both boxes. launcher `a3450cc`.
 - Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
   button on overview, i dont want the clipboard on overview too. but
   also i dont want to start patching OPTIONS — what should we do?"):

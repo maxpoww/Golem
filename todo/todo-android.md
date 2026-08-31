@@ -63,6 +63,10 @@
       albumart cache). URL is keyed to the track — a per-player URL would be cached
       by the desktop and never refresh.
 - [x] Golem design language pass (amber-on-stone, matches the icon; dynamic color off)
+- [x] Light theme verified by visual sweep (never viewed before): layout sound, but the
+      brand amber failed contrast on pale surfaces (~3.4:1) — light mode now uses a
+      darker amber (~5.4:1), and the touchpad gained an outline so it reads as a
+      touch target in both themes
 - [x] systemvolume — desktop volume/mute/default-sink from the phone (verified;
       useful when the PC mutes itself and you're not at the keyboard)
 - [x] remote input (phone as touchpad + keyboard) — phone side DONE and sending
@@ -77,7 +81,10 @@
 - [x] applicationId is now `com.golem_os.golem` (was `com.example.golem`, unpublishable).
       Done on branch `rename-package`; required re-pairing and a new deviceId.
 - [ ] Signing config + reproducible release build for F-Droid
-- [ ] Runtime permission flow polish (SMS/contacts currently granted via adb)
+- [x] Runtime permission flow verified by QA pass (revoke everything → tap through
+      in-app): both permission gates appear, work, and disappear once granted.
+      Fixed a layout bug found in the pass — the third action button was being
+      crushed into a vertical letter column; device cards now use FlowRow.
 
 ## Definition of done — status
 - [x] **survives sleep/reconnect** — verified empirically under forced deep doze:
