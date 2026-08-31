@@ -96,6 +96,17 @@
       and the resolver falls through to the CLI-tile fallback — brave
       and gimp presented as terminals printing "is ready". Must consult
       apply-status.json (building = still pending). Launcher-repo.
+- [ ] **F11 — the daemon clobbers packages.list at startup** ("seeding
+      declarative package list with 0 attrs"): on start it REWRITES the
+      list from its own managed state — on a fresh machine that's empty,
+      so (a) any external/manual entries are silently destroyed (the
+      apply security model explicitly calls the list "the ONLY
+      user-writable surface" — the daemon treats it as a private cache),
+      and (b) the rewrite itself triggers a pointless first-boot apply
+      run: 8 minutes of input downloads + eval to rebuild an unchanged
+      system, with every real install queueing behind it into F10's
+      false failures. The list on disk must be the source of truth the
+      daemon ADOPTS, not a mirror it overwrites. Launcher-repo.
 - [ ] **F10 — a queued install is not a failed install.** The applier
       waits 120s for the apply UNIT to start; a long build keeps the
       oneshot busy, the queued path-trigger can't start it, and the
