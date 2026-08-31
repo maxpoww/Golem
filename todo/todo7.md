@@ -175,6 +175,29 @@
 
 ## Log
 
+- Round 12 (2026-08-31, Max: "rounded corners and borders when window
+  is on pseudo... set this window size as default... it have to keep
+  aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
+  a framed window at a proportional default. Max picked the
+  frame-inset look live (three sizes demoed on foot + browsing test on
+  chrome): 89% x 84% OF THE TILE, defined as fractions so any screen
+  (and any split) reads the same. Design: the pill dispatches
+  golemPseudoToggle() (hyprland.lua) → tags "golem-pseudo" + pseudo
+  on/off + proportional resize; a tag-matched rule AFTER the no-gaps
+  rules (same priority, last set wins — verified in fork source)
+  restores rounding 12 + border 3, so smart gaps survive untouched for
+  plain tiles. The TAG is the pseudo state — the fork exposes pseudo
+  NOWHERE (not clients json, not HL.Window), which cost the round an
+  hour of toggle-parity ghosts ("it did not happen"): blind toggles
+  canceled in pairs, and clients-json size turned out to report
+  mid-ANIMATION values. All learned mechanics (pseudo action on/off,
+  resize absolute/relative + pseudo-size semantics, tag dispatch +
+  rule matching, dynamic-vs-static rule props on tag flips) written
+  into docs/hypr-api.md. hyprland.lua edited in BOTH copies
+  (/etc/nixos + flake, verified in sync); launcher `21dd849`; VM
+  builds. PENDING: Max runs `sudo nixos-rebuild switch` + `hyprctl
+  reload` on the host, then clicks the pseudo pill to verify frame +
+  size land together.
 - Round 11 (2026-08-31, Max: "change the X to the right and the other
   three buttons to the left"): WINDOW-CLUSTER REWORK + A CORPSE
   UNMASKED. First pass mirrored the old design ([full][float][pseudo]
