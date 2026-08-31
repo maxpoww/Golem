@@ -175,6 +175,26 @@
 
 ## Log
 
+- Round 14 (2026-08-31, Max: "clicking on the current task option to
+  circle between the windows... aware of the more used apps... same
+  algorithm for supr+tab"): USAGE-AWARE FOCUS CYCLE SHIPPED. Design
+  settled through live brainstorm: click = cycle current workspace's
+  windows MOST-USED-FIRST; right-click = cycle the OTHER workspaces'
+  (cross-workspace bounce). The brain is FRECENCY (focus events earn
+  decaying points, half-life 10min — the pair Max bounces between
+  stays one click apart even after digressions; new windows fall back
+  to compositor focusHistoryID). Two structural insights baked in:
+  (1) consecutive clicks walk a FROZEN snapshot — a live re-rank
+  would bounce the top two forever and never reach the rest; (2)
+  walk-driven hops are suppressed in the stats, only the landing
+  earns the point — the mechanism can't pollute its own signal.
+  Reusable: ctl verbs focus-next/focus-other, ready for a Super+Tab
+  bind in hyprland.lua (one exec_cmd line, deferred until the pending
+  config rebuild). Verified live end-to-end (ranked others → home →
+  wrap on a 3-window ws) — with Max live-switching workspaces mid-
+  test, which briefly made the correct trace look haunted. launcher
+  `0836325` (140 tests, 3 new). Frecency is in-memory only for now —
+  habits reset with the daemon; persist later if it matters.
 - Round 13 (2026-08-31, Max: "see the size of the window live on the
   current task option when im resizing"): LIVE RESIZE READOUT SHIPPED
   + VERIFIED. While the focused window resizes, the window pill swaps
