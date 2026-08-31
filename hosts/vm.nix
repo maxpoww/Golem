@@ -1,9 +1,16 @@
 # Hardware-free Golem for the S7 test loop:
 #   nixos-rebuild build-vm --flake .#golem-vm && ./result/bin/run-Golem-vm
 # No nvidia, virtio graphics; greetd autologs max straight into Hyprland.
-{ lib, pkgs, golemSrc, ... }:
+{ lib, pkgs, golemSrc, modulesPath, ... }:
 
 {
+  # qemu-vm imported DIRECTLY (not via vmVariant): the toplevel this config
+  # evaluates to IS the running VM system — so an in-VM `nixos-rebuild
+  # switch --flake ...#golem-vm` (waverunner-apply) activates a
+  # like-for-like config. Switching to the plain toplevel tried to stop
+  # nix-store.mount out from under the running system (exit 4).
+  imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
+
   nixpkgs.hostPlatform = "x86_64-linux";
 
   # The installed-machine shape (what the S9 installer will seed on real
@@ -36,15 +43,10 @@
   };
 
   # The VM direct-boots (qemu -kernel); a switch inside it must never try
-  # to install a bootloader.
+  # to install a bootloader (grub off too — it re-defaults to enabled the
+  # moment systemd-boot is disabled, then asserts on missing devices).
   boot.loader.systemd-boot.enable = lib.mkForce false;
-
-  # Dummy root so the config evaluates standalone; the vm builder overrides
-  # every filesystem with its own image (mkVMOverride).
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
-    fsType = "ext4";
-  };
+  boot.loader.grub.enable = lib.mkForce false;
   boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
 
   # A stranger's first login (greetd autologin makes this rarely needed).
@@ -58,10 +60,20 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
   ];
 
-  virtualisation.vmVariant.virtualisation = {
-    # 8G: waverunner's cold-start package index runs `nix search nixpkgs ^`
-    # (~3GB eval) — at 4G the OOM killer crash-looped the daemon (2026-08-30).
-    # Real fix filed in todo7: ship a prebuilt index with the flake.
+  virtualisation = {
+    # The writable-store overlay defaults to tmpfs: everything installed
+    # inside the VM evaporates on reboot while the nix db (persistent
+    # root) keeps listing it — ghost paths, broken evals. An installed
+    # machine's store persists; so does this one's.
+    writableStoreUseTmpfs = false;
+
+    # …and a persistent store needs a real disk: the default image is
+    # 1GB, which one brave+gimp install fills ("No space left on
+    # device"). Sparse qcow2 — 20G costs nothing until used.
+    diskSize = 20480;
+
+    # 8G: a nixos-rebuild eval inside the VM wants 2-3GB on top of the
+    # desktop (zram helps, but don't make the test loop suffer).
     memorySize = 8192;
     cores = 8;
     forwardPorts = [

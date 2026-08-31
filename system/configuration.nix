@@ -132,6 +132,15 @@
       syntaxHighlighting.enable = true;
     };
 
+    # waverunner-apply and rebuild-golem evaluate the user-owned checkout
+    # AS ROOT; git's ownership guard (CVE-2022-24765) and nix's libgit2
+    # copy of it must both be told that's safe. Both read /etc/gitconfig —
+    # the only level libgit2 honors (never -c, never env).
+    programs.git = lib.mkIf (config.golem.flakeDir != null) {
+      enable = true;
+      config.safe.directory = config.golem.flakeDir;
+    };
+
     programs.hyprland = {
       enable = true;
       withUWSM = true;

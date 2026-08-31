@@ -89,6 +89,24 @@
 - [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
       so Golem binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
+- [ ] **F9 — "already in package list; treating as installed" is a lie
+      while the rebuild runs.** The applier equates list-presence with
+      installed; if the entry is mid-apply (status phase "building"),
+      the pending install completes instantly, no GUI app exists yet,
+      and the resolver falls through to the CLI-tile fallback — brave
+      and gimp presented as terminals printing "is ready". Must consult
+      apply-status.json (building = still pending). Launcher-repo.
+- [ ] **F10 — a queued install is not a failed install.** The applier
+      waits 120s for the apply UNIT to start; a long build keeps the
+      oneshot busy, the queued path-trigger can't start it, and the
+      daemon reports failure + reverts + retries in a loop while the
+      first run is still legitimately building (signal-desktop,
+      2026-08-30). Watch the status file (phase/mtime), not unit-start.
+      Launcher-repo.
+- [ ] VM loop niceness: qemu user-net (slirp) downloads at ~hundreds of
+      KB/s — a first brave+gimp closure takes 10-20 min. Fine for
+      correctness tests; consider virtio-net or a host-side cache if it
+      gets old.
 - [ ] **F8 — renderer init failure = shell silently dead forever.** Seen in
       the Venus experiment: wgpu couldn't create a surface, the daemon
       errored out, systemd's restart limit exhausted in seconds → no dock,

@@ -99,12 +99,8 @@ let
         echo "}"
       } > "$gen.new"
       mv "$gen.new" "$gen"
-      # This runs as root inside the user's checkout; git's dubious-
-      # ownership guard only honors safe.directory from system/global
-      # config (never -c), so give it a script-scoped global.
-      gitcfg=$(mktemp)
-      printf '[safe]\n\tdirectory = %s\n' "$flakedir" > "$gitcfg"
-      export GIT_CONFIG_GLOBAL="$gitcfg"
+      # Root inside the user's checkout: /etc/gitconfig carries the
+      # safe.directory entry (configuration.nix) for git AND nix's libgit2.
       git -C "$flakedir" add system/home/waverunner-packages.nix || true
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
