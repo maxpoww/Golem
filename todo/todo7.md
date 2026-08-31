@@ -270,6 +270,20 @@
   standing trade-off: with the fill deliberately near the backdrop,
   contrast is bounded by that choice; alpha is the only lever left.
   launcher `76d084b`.
+  → Max: "the notifications content is still weak, and i have no hover
+  hint now" — both true, and linked. (a) I had only fixed the TOP
+  card's body; the regular cards (the whole list past the newest) drew
+  their wrapped body with `dim` = 0.6 of the already-dimmed list ink
+  (~0.57 alpha). The body IS the message, so it now draws at PRIMARY
+  weight; `dim` stays for the timestamp, which really is secondary.
+  (b) Raising the resting alphas killed the spotlight, because the
+  hover hint was an INK change — invisible once rest sits at 0.85-0.95.
+  Hover is now a row/card BACKGROUND that moves OPPOSITE the zebra (a
+  light box's hovered row lightens, a dark box's darkens), so it
+  deepens contrast with the ink instead of muddying it and can't read
+  as another stripe. Both boxes. launcher `c49027a`. Lesson: when the
+  resting state is pushed toward full for legibility, any hint built
+  on "pop to full" has to move to a different channel.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the
