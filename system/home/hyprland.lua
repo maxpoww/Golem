@@ -260,9 +260,18 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
+-- Usage-aware focus cycle — the same frecency brain as the current-task
+-- pill's clicks (waverunner ranks by decayed focus frequency).
+hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
+hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
 hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end) -- waveview 3x3 overview (digits 1-9 jump, Esc closes)
 hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
+-- Pseudo through the Golem policy (tag + proportional size + frame rule),
+-- same as the topbar pill — never the raw toggle.
+hl.bind(mainMod .. " + P", function()
+    local d = golemPseudoToggle()
+    if d then hl.dispatch(d) end
+end)
 hl.bind(mainMod .. " + J", hl.dsp.layout("movetoroot"))   
 
 -- Move focus with mainMod + WASD
