@@ -209,12 +209,21 @@
   moving the pointer, so scripted verification raced his hand — the
   border-to-pointer trick needed an atomic read-resize-capture.
   launcher `9a4cd27`.
-  → v4, the keeper (Max: "same pill"): inline — the size appends to
-  the title, "current task (1766x966)", same trigger, no extra pill,
-  no anim state. Verified on screen. launcher `b5376d5`. Note: a solo
-  window's edges hug the screen, so a pointer resting at a screen
-  edge shows the readout — honest but frequent; revisit if it reads
-  as noise.
+  → v4 (Max: "same pill"): inline — the size appends to the title,
+  "current task (1766x966)", no extra pill. launcher `b5376d5`.
+  → v5, the keeper (Max: "involuntary triggers, mostly when im around
+  options... i want click on the border"): the hover band was exactly
+  the predicted noise (window top borders live under the bar), so the
+  trigger is now the real thing — waveview watches the compositor's
+  PUBLIC drag-controller state (target + MBIND_RESIZE*, checked on
+  mouse events + a 30ms one-shot after button presses) and writes new
+  proto verbs resize-drag-on/off to the daemon socket; the daemon
+  shows the readout from the CLICK (before any movement) and runs its
+  fast sampler only for the drag's duration. ALL rest-state polling
+  deleted — back to idle-at-rest. Daemon path verified on screen via
+  ctl verbs (suffix on/off); the compositor click needs Max's hand.
+  waveview v0.29 hot-reloaded live (unload safe: 0.28 ≥ 0.22, overview
+  idle 28min). launcher `338c130`, waveview `999ab71`.
 - Round 12 (2026-08-31, Max: "rounded corners and borders when window
   is on pseudo... set this window size as default... it have to keep
   aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
