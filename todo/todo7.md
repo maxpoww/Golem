@@ -114,7 +114,7 @@
       first run is still legitimately building (signal-desktop,
       2026-08-30). Watch the status file (phase/mtime), not unit-start.
       Launcher-repo.
-- [ ] **F13 — startup reconcile sweep.** The daemon's managed state, the
+- [x] **F13 — startup reconcile sweep.** The daemon's managed state, the
       package list, and the actual profile can drift (boot-revert,
       crashes mid-install, the pre-F11 chaos left a zombie telegram tile
       for a package that wasn't there). On startup: adopt the list,
@@ -122,15 +122,30 @@
       app AND no successful run postdates the list — nudge one apply.
       Would have self-healed both the signal limbo and the telegram
       zombie. Launcher-repo.
+      → BUILT (launcher `5704c3a`, Round 10): two sweeps, at most ONE
+      reconcile apply per daemon lifetime (a broken package can never
+      loop rebuilds). Startup timestamp check: list newer than the last
+      successful run → one blocking ensure-apply + rescan. First-scan
+      drift sweep: a confirmed GUI attr with no live app under a
+      truthful "done ok" status (boot-revert) → one FORCED re-apply
+      (list rewrite bumps the mtime past the stale status).
+      Verification pending.
 - [ ] VM: boot the LATEST generation, not the image's (virtualisation.
       useBootLoader) — direct kernel boot reverts every in-VM switch on
       reboot; a real installed machine keeps what it installed. Needs a
       careful round (bootloader-in-image, likely fresh disk).
-- [ ] Shell updates restart the daemon mid-session (HM restarts changed
+- [x] Shell updates restart the daemon mid-session (HM restarts changed
       user units on switch): pending installs must survive a daemon
       restart — persist pending-install state, or hand off gracefully.
       Bit us via the stale-checkout swap; will bite for real on every
       Golem UPDATE that bumps waverunner. Launcher-repo.
+      → BUILT (launcher `5704c3a`, Round 10): pending tiles (placement,
+      ring clock, icon) + tile-less managed installs persist to
+      `pending-installs.json`; on startup they restore in place and
+      re-arm through the normal mutation path, whose F9/F10 status-file
+      rules make the re-arm exact — a rebuild that landed while the
+      daemon was dead fast-completes (full flourish replays), a running
+      one is joined, a failed one retries once. Verification pending.
 - [ ] VM loop niceness: qemu user-net (slirp) downloads at ~hundreds of
       KB/s — a first brave+gimp closure takes 10-20 min. Fine for
       correctness tests; consider virtio-net or a host-side cache if it
@@ -160,6 +175,31 @@
 
 ## Log
 
+- Round 10 (2026-08-31, Max: "lets do F13 and the restart survival
+  together"): THE STATE-DRIFT FAMILY CLOSED IN ONE ROUND — they really
+  were one theme: the daemon making itself consistent with reality on
+  startup instead of trusting the memory it lost. (a) Restart survival:
+  in-flight installs persist (`pending-installs.json` + per-attr icon
+  sidecars) and re-arm on startup THROUGH the existing F9/F10 machinery
+  — no new wait logic; the status file's truth makes the re-arm exact
+  (dead-daemon-finished → fast-complete + flourish replay; still
+  building → join; failed → one retry). One real bug found en route:
+  `adopt_list` would DROP a restored stage whose re-armed list write
+  hadn't landed yet (startup adopt racing the mutation thread) — staged
+  unconfirmed entries now survive adopt. (b) F13: startup timestamp
+  check (list newer than last success → ensure-apply) + first-scan
+  drift sweep (confirmed GUI attr, no live app, truthful status →
+  forced re-apply), gated to at most one reconcile apply per daemon
+  lifetime, skipped entirely when a restored install already armed one
+  (its apply proves the whole list on its own), and armed NEVER on an
+  empty/missing list (F11 stands: zero first-boot rebuilds). Bonus
+  coverage for free: an uninstall whose rebuild failed while the daemon
+  was dead now self-heals via the timestamp check. launcher `5704c3a`,
+  clippy clean, 137 daemon tests (2 new). TO VERIFY (VM): install
+  something slow, restart the daemon mid-build (`systemctl --user
+  restart waverunner`), watch the tile survive and the app land at its
+  drop slot; and the old zombie repro — a managed GUI attr with its
+  package gone — should heal on one startup apply.
 - Round 1 (2026-08-30, "lets keep going with the plan" — SH had nothing
   actionable left for Claude, all remaining boxes are Max's hands or the
   daily-driving clock): S7 OPENED. Max decided the flake pushes to the
