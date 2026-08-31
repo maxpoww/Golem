@@ -249,6 +249,14 @@
   near its backdrop and keeps its chroma. Verified live over the cream
   wallpaper: both boxes cream with dark text, matching the bar.
   launcher `e0678f8`, 144 tests.
+  → Max: "make the text little more gray (slightly), and little more
+  warm" — INK_LIGHT is now a warm off-white (~#E8E5DE), INK_DARK a
+  warm near-black (~#262220), both r > g > b; linear values with the
+  sRGB intent in the comments. The boxes' hovered row/card pops by
+  going to FULL ALPHA instead of switching to pure black/white, which
+  was the last place pure values hid. Test pins it (never pure, always
+  warm, still far enough apart for contrast). launcher `4ab890c`,
+  145 tests.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the
