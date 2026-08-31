@@ -175,6 +175,29 @@
 
 ## Log
 
+- Round 15 (2026-08-31, Max: "X button by the current task to exit
+  overview... current task to show the title of the hovered task and
+  also the (size) when im resizing on overview"): THE TOPBAR SERVES
+  THE OVERVIEW. All three: (a) the X closes the OVERVIEW while it owns
+  the screen (dispatches waveview's Lua toggle via `hyprctl eval` —
+  the bar is now its on-screen exit, next to Esc/Super+R); (b) the
+  current-task pill follows the POINTER, showing the hovered
+  thumbnail's title; (c) resizing a thumbnail streams the live size
+  into the same (WxH) suffix round 13 built. waveview v0.31 sends
+  overview-hover/overview-resize (throttled 50ms — it rides pointer
+  motion); both overrides drop on overview-off, reset centrally in
+  notifyWaverunner. Proto gained its first PAYLOAD verbs, so Command
+  lost Copy (FromStr parses payload prefixes before the exact-match
+  table, keeping titles verbatim). One real bug caught in review, not
+  by a crash: sendWaverunner captured a `const char*` in a detached
+  thread — fine for the literals it used to carry, a dangling pointer
+  the moment a payload temporary was passed; it takes std::string by
+  value now. Verified on screen: "Firefox — Golem docs (1240x1000)" →
+  size clears → real title back. launcher `8b0b4b1`, waveview
+  `9020453`. Testing note: the live desktop kept interleaving (the
+  real overview closed mid-test, and a stale daemon binary rejected
+  the new verbs — clippy/test don't rebuild the binary, only `cargo
+  build` does).
 - Round 14 (2026-08-31, Max: "clicking on the current task option to
   circle between the windows... aware of the more used apps... same
   algorithm for supr+tab"): USAGE-AWARE FOCUS CYCLE SHIPPED. Design
