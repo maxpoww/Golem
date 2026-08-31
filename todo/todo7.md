@@ -114,11 +114,28 @@
       first run is still legitimately building (signal-desktop,
       2026-08-30). Watch the status file (phase/mtime), not unit-start.
       Launcher-repo.
+- [ ] **F13 — startup reconcile sweep.** The daemon's managed state, the
+      package list, and the actual profile can drift (boot-revert,
+      crashes mid-install, the pre-F11 chaos left a zombie telegram tile
+      for a package that wasn't there). On startup: adopt the list,
+      compare against the profile, and if a declared attr has no live
+      app AND no successful run postdates the list — nudge one apply.
+      Would have self-healed both the signal limbo and the telegram
+      zombie. Launcher-repo.
+- [ ] VM: boot the LATEST generation, not the image's (virtualisation.
+      useBootLoader) — direct kernel boot reverts every in-VM switch on
+      reboot; a real installed machine keeps what it installed. Needs a
+      careful round (bootloader-in-image, likely fresh disk).
+- [ ] Shell updates restart the daemon mid-session (HM restarts changed
+      user units on switch): pending installs must survive a daemon
+      restart — persist pending-install state, or hand off gracefully.
+      Bit us via the stale-checkout swap; will bite for real on every
+      Golem UPDATE that bumps waverunner. Launcher-repo.
 - [ ] VM loop niceness: qemu user-net (slirp) downloads at ~hundreds of
       KB/s — a first brave+gimp closure takes 10-20 min. Fine for
       correctness tests; consider virtio-net or a host-side cache if it
       gets old.
-- [ ] **F12 — perpetual animations burn the whole machine on a CPU
+- [x] **F12 — perpetual animations burn the whole machine on a CPU
       renderer.** During an install, the "installing" tile animates every
       frame; on llvmpipe (the VM — but also any GPU-less machine Golem
       ever lands on) that's the daemon at 450% CPU for the length of a
@@ -195,6 +212,27 @@
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
   first time Golem exists independently of Max's laptop.
+- Round 8 (2026-08-31, Max: "lets do the F12 fix"): SOFTWARE-RENDERER
+  THROTTLE SHIPPED + VERIFIED (launcher `7066585` + `d26d38d`). draw()
+  spaces frames to 100ms via a calloop timer when the wgpu adapter is
+  device_type Cpu — and after Max's "scrolling feels laggy, no
+  smoothness", refined to INPUT-AWARE: the throttle stands down for 2s
+  after any pointer/keyboard event, so interactive scrolls/drags run
+  full-rate and only ambient streams (the install ring) drop to 10fps.
+  Numbers from Max's darktable install: 481% CPU at the click
+  (input window, by design) → 39%/87% ambient vs 450% SUSTAINED before;
+  system load 2.2 vs 8-9; run landed in 76s with NO daemon freeze
+  workaround. En route, TWO more real finds: (a) obsidian's install
+  restarted the shell mid-run and ate the completion flourish — the
+  VM's seeded checkout pinned a STALE waverunner, so the in-VM switch
+  swapped the running daemon; vm.nix now re-syncs the checkout from
+  the image on boot (preserving waverunner-packages.nix). (b) Max's
+  zombie telegram tile (managed state without a live package, residue
+  of the pre-F11 chaos) self-healed when the next install's rebuild
+  materialized the whole list — the declarative model repairing its own
+  history. Eight installs today, eight gui=true resolutions. Still
+  open, filed: F13 startup reconcile sweep (managed vs list vs
+  profile), useBootLoader so VM reboots keep the latest generation.
 - Round 7 (2026-08-30/31, Max: "lets do the F9/F10/F11 fixes"): APPLIER
   REWORK SHIPPED + ALL THREE VERIFIED LIVE (launcher `985417b`, one
   rule: the status file is the truth). F11: empty first-boot seed
