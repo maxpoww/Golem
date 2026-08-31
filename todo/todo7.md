@@ -209,6 +209,12 @@
   moving the pointer, so scripted verification raced his hand — the
   border-to-pointer trick needed an atomic read-resize-capture.
   launcher `9a4cd27`.
+  → v4, the keeper (Max: "same pill"): inline — the size appends to
+  the title, "current task (1766x966)", same trigger, no extra pill,
+  no anim state. Verified on screen. launcher `b5376d5`. Note: a solo
+  window's edges hug the screen, so a pointer resting at a screen
+  edge shows the readout — honest but frequent; revisit if it reads
+  as noise.
 - Round 12 (2026-08-31, Max: "rounded corners and borders when window
   is on pseudo... set this window size as default... it have to keep
   aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
