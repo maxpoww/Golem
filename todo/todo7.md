@@ -175,6 +175,25 @@
 
 ## Log
 
+- Round 11 (2026-08-31, Max: "change the X to the right and the other
+  three buttons to the left"): WINDOW-CLUSTER MIRROR + A CORPSE
+  UNMASKED. The current-task pill's controls are now
+  [full][float][pseudo] [name] [X]; slide origins mirrored (close
+  emerges rightward, toggles leftward, each from behind its neighbor);
+  stagger, z-order, and the hit-span carried over untouched (all
+  relative). Needs Max's hover to eyeball the reveal. The daemon
+  restart for the UX change turned into F13's first LIVE verification —
+  and found a real pre-existing hole: apply-status.json on the host was
+  a stale "building" CORPSE (a shutdown killed last night's 00:05
+  rebuild before any terminal status), and F10's rules honored it as a
+  live foreign run — the reconcile (and any install!) would have
+  blocked the mutation thread for the full 60-min BUILD_TIMEOUT. Fix:
+  wait_for_apply probes `systemctl is-active waverunner-apply.service`
+  (throttled, errs on "alive" without systemd) before believing a
+  foreign "building"; a corpse counts as idle so the nudge re-trips the
+  watch. Verified end-to-end on the host: restart → reconcile armed →
+  corpse detected → nudge → real run → 48s no-op switch → status
+  truthful, done ok. launcher `c0e6fc9`+`b6a873a`.
 - Round 10 (2026-08-31, Max: "lets do F13 and the restart survival
   together"): THE STATE-DRIFT FAMILY CLOSED IN ONE ROUND — they really
   were one theme: the daemon making itself consistent with reality on
