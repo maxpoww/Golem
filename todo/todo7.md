@@ -200,6 +200,15 @@
   Verified without input-sim by resizing the border TO the idle
   pointer: readout held on band alone 2s past settle, reverted when
   the edge moved away. launcher `68682c1`.
+  → v3 (Max: "a individual pill that slides to the left from behind
+  the current task one"): the readout is now its OWN display-only
+  pill emerging leftward from behind the title pill (same t-driven
+  metamorphosis as the toggles; title stays readable; inert to the
+  pointer; digits skip the glyph cache). Verified on screen:
+  [966 × 1203] [title] [X]. Fun constraint: Max was at the machine
+  moving the pointer, so scripted verification raced his hand — the
+  border-to-pointer trick needed an atomic read-resize-capture.
+  launcher `9a4cd27`.
 - Round 12 (2026-08-31, Max: "rounded corners and borders when window
   is on pseudo... set this window size as default... it have to keep
   aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
