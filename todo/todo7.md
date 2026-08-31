@@ -175,6 +175,27 @@
 
 ## Log
 
+- Round 16 (2026-08-31, Max: "lets do the rebuild now"): THE CUTOVER
+  ROUND — and the pseudo policy's real bug. The switch had already
+  landed (Super+Tab live in the compositor, store config carrying
+  everything), so verification could finally run: Golem pseudo
+  VERIFIED LIVE on Max's Android Studio window — tag applied, size
+  2000x1222 → 1780x1026 (exactly 89%x84%), centered, and the corner
+  crop shows rounded corners + the peach active border on a window
+  ALONE on its workspace, where smart gaps strip both. Exactly the
+  ask.
+  Then the bug: toggling twice never turned it OFF. Root cause —
+  this fork's Lua `window.tags` reads as an EMPTY TABLE even for a
+  tagged window (clients JSON shows the tag fine), and pseudo state
+  is exposed nowhere, so the config-side toggle could never tell "on"
+  from "off" and re-applied "on" forever. Fix: the policy MOVED TO
+  THE DAEMON (hypr::toggle_golem_pseudo) which reads the tag from
+  JSON and emits one atomic eval chunk; hyprland.lua keeps only the
+  tag-matched frame rule (the half Lua does correctly), and Super+P
+  now calls the new `pseudo-toggle` verb so keyboard and pill can
+  never drift. Verified both directions. launcher `41cfb01`.
+  NOTE: the pill works now; Super+P needs ONE more rebuild (its bind
+  still points at the removed Lua function).
 - Round 15 (2026-08-31, Max: "X button by the current task to exit
   overview... current task to show the title of the hovered task and
   also the (size) when im resizing on overview"): THE TOPBAR SERVES

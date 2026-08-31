@@ -267,11 +267,8 @@ hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/
 hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end) -- waveview 3x3 overview (digits 1-9 jump, Esc closes)
 hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
 -- Pseudo through the Golem policy (tag + proportional size + frame rule),
--- same as the topbar pill — never the raw toggle.
-hl.bind(mainMod .. " + P", function()
-    local d = golemPseudoToggle()
-    if d then hl.dispatch(d) end
-end)
+-- the same daemon path as the topbar pill — never the raw toggle.
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl pseudo-toggle"))
 hl.bind(mainMod .. " + J", hl.dsp.layout("movetoroot"))   
 
 -- Move focus with mainMod + WASD
@@ -360,54 +357,25 @@ hl.window_rule({
 })
 
 ---- Golem pseudo: a framed window at a proportional default size ----
--- The pseudo pill (waverunner) calls golemPseudoToggle(): it tags the
--- window "golem-pseudo", toggles pseudotile, and sizes it to a fixed
--- fraction of its tile — so the inset reads the same on every screen
--- (Max picked the frame-inset look, 2026-08-31). The tag IS the state:
--- readable from w.tags, it survives daemon restarts and dies with the
--- window. This rule must come AFTER the no-gaps rules — same priority,
--- last set wins — so a solo pseudo window keeps its rounding + border
--- while smart gaps stay untouched for plain tiled windows.
+-- waverunner tags the window "golem-pseudo", pseudotiles it, and sizes it
+-- to a fixed fraction of its tile (see hypr.rs::toggle_golem_pseudo) — so
+-- the inset reads the same on every screen (Max picked the frame-inset
+-- look, 2026-08-31). This rule is the other half: it gives a tagged window
+-- its rounding + border back. It must come AFTER the no-gaps rules — same
+-- priority, last set wins — so a solo pseudo window keeps its frame while
+-- smart gaps stay untouched for plain tiled windows.
+--
+-- The toggle lives in the DAEMON, not here, because the state is only
+-- readable from that side: this Lua binding's `window.tags` reads as an
+-- empty table even for a tagged window (verified 2026-08-31), and pseudo
+-- state is exposed nowhere — so a config-side toggle can never tell "on"
+-- from "off". Both the topbar pill and Super+P route through the daemon.
 hl.window_rule({
     name  = "golem-pseudo-frame",
     match = { tag = "golem-pseudo" },
     border_size = 3,
     rounding    = 12,
 })
-
-local PSEUDO_W, PSEUDO_H = 0.89, 0.84 -- fraction of the tile
-
-local function hasGolemPseudoTag(w)
-    local tags = w.tags
-    if type(tags) == "table" then
-        for _, t in pairs(tags) do
-            if t == "golem-pseudo" then return true end
-        end
-        return false
-    end
-    return tags == "golem-pseudo"
-end
-
-function golemPseudoToggle()
-    local w = hl.get_active_window()
-    if not w then return nil end
-    if hasGolemPseudoTag(w) then
-        hl.dispatch(hl.dsp.window.tag({ tag = "-golem-pseudo", window = w }))
-        return hl.dsp.window.pseudo({ action = "off", window = w })
-    end
-    -- Read the tile size BEFORE pseudo shrinks the window into it.
-    local size = w.size
-    local sw = type(size) == "table" and (size.x or size[1]) or nil
-    local sh = type(size) == "table" and (size.y or size[2]) or nil
-    hl.dispatch(hl.dsp.window.tag({ tag = "+golem-pseudo", window = w }))
-    hl.dispatch(hl.dsp.window.pseudo({ action = "on", window = w }))
-    if not sw or not sh then return nil end
-    return hl.dsp.window.resize({
-        x = math.floor(sw * PSEUDO_W),
-        y = math.floor(sh * PSEUDO_H),
-        window = w,
-    })
-end
 
 local suppressMaximizeRule = hl.window_rule({
     name  = "suppress-maximize-events",
