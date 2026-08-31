@@ -181,10 +181,12 @@
   [name] [X], all reveal-on-hover); Max: "i dont love it" → final
   design: at REST only [current task] [X] — the close is a permanent
   resting pill, always visible and clickable, right of the name;
-  hovering either reveals [fullscreen] [pseudo] [float] to the left,
-  each sliding out from behind its neighbor (float first from the
-  name). Ctrl anim slots 4→3; hit-span includes close explicitly.
-  Rest state verified by screenshot; the reveal needs Max's hover. The daemon
+  hovering either reveals the toggles — landed (third pass, Max's
+  call) as [name] [X] → [fullscreen] [pseudo] [float] emerging
+  RIGHTWARD from behind the X, fullscreen first, each from behind its
+  neighbor. Ctrl anim slots 4→3; hit-span includes close explicitly.
+  Rest state verified by screenshot; the reveal needs Max's hover.
+  launcher `eda62a2`. The daemon
   restart for the UX change turned into F13's first LIVE verification —
   and found a real pre-existing hole: apply-status.json on the host was
   a stale "building" CORPSE (a shutdown killed last night's 00:05
