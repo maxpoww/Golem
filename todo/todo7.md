@@ -175,6 +175,22 @@
 
 ## Log
 
+- Round 13 (2026-08-31, Max: "see the size of the window live on the
+  current task option when im resizing"): LIVE RESIZE READOUT SHIPPED
+  + VERIFIED. While the focused window resizes, the window pill swaps
+  the title for a live "700 × 800" that tracks the drag, reverting
+  0.7s after the size settles; the X stays put beside it. The
+  compositor emits NO drag/resize events (checked DragController.cpp —
+  nothing), so detection is a size-change poll keyed by window address
+  (a focus switch changes address, never false-triggers): 500ms at
+  rest → 40ms while moving — same precedent as the intellihide zone
+  poll. Verified with scripted pseudo resizes + screenshots (pill
+  showed the count, then reverted). Debugging note for the ages: two
+  "failed" probes were the BLIND PSEUDO TOGGLE again (round 12's
+  lesson, promptly re-learned) — the watcher had been working all
+  along. launcher `6114dfb`. Caveat, by design: any same-window size
+  change (e.g. a split opening) flashes the readout briefly — honest,
+  possibly even nice; revisit if it annoys.
 - Round 12 (2026-08-31, Max: "rounded corners and borders when window
   is on pseudo... set this window size as default... it have to keep
   aspect ratio and proportion on all kind of screens"): GOLEM PSEUDO —
