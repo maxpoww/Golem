@@ -175,6 +175,37 @@
 
 ## Log
 
+- Round 17 (2026-08-31, Max: "i dont want the pseudo and fullscreen
+  button on overview, i dont want the clipboard on overview too. but
+  also i dont want to start patching OPTIONS — what should we do?"):
+  THE PRESENCE CONTRACT — the first structural answer to "which
+  OPTIONS show when". Context first: a survey of the decision machinery
+  found the Brain (options-engine, ~4k lines: 8 collectors →
+  ContextState+Health → infer_activity → decide_with = providers,
+  freshness gate, activity fit, skill calibration with friction,
+  suppression + cap) is BUILT and live-verified but NOT consumed — no
+  surface reads OptionSet; the daemon only reads ContextState (window
+  pill, battery). Meanwhile the live surfaces each decide their own
+  visibility ad hoc: ELEVEN `overview_active` conditionals already, and
+  Max's three asks would have added four more. Two competing decision
+  systems, only the ad-hoc one running.
+  The move (agreed): every element declares WHERE it belongs
+  (`Presence { desktop, overview }` + a `presence(id)` table) and
+  `options_pills` filters ONCE. That list is already the single input
+  to draw / hit-test / hover / click, so an absent element can't be
+  seen or touched and nothing downstream needs a situation check —
+  toggles + clipboard stand down in the overview; title, X, bell,
+  clock stay; an open clip drawer collapses on overview open instead
+  of lingering invisible with its input region claimed. Deliberately
+  the SEAM, not a patch: presence is static today, and the same call
+  site later asks the mind for relevance without moving. Verified on
+  screen in both situations. launcher `81fb062`, 141 tests.
+  Design notes for Arc 2 (S3) recorded in the discussion: the missing
+  pieces are a slot/budget allocator (placement + capacity instead of
+  a global top-3), hysteresis + minimum lifetime (or affordances will
+  flicker at the threshold), and an engagement feedback loop (the
+  focus cycle's frecency math is the right shape) so `skill` stops
+  being a constant.
 - Round 16 (2026-08-31, Max: "lets do the rebuild now"): THE CUTOVER
   ROUND — and the pseudo policy's real bug. The switch had already
   landed (Super+Tab live in the compositor, store config carrying
