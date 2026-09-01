@@ -267,6 +267,27 @@
 
 ## Log
 
+- Round 22 (2026-09-01, agent sweep of todo7): ALL FOUR UNCHECKED ITEMS
+  CLOSED, each with a real build behind it. (1) golem-apps.nix owed only
+  its build check — build-vm exits 0, and none of the predicted-missing
+  GNOME attrs were missing. (2) brightnessctl into the stopgap block —
+  one line, build-checked. (3) The `kdeconeectd` typo: the "libexec"
+  guess was wrong for this pin — `programs.kdeconnect.enable` (which
+  both the flake and /etc/nixos set via enableKdeConnect) puts
+  `kdeconnectd` on PATH, verified on the live machine, so the bare name
+  is correct and the fix is the typo alone; both hyprland.lua copies,
+  in sync. (4) notification-fix shipped — with the round's real
+  finding: BRANDED CHROME REMOVED --load-extension IN 137, probed
+  empirically on the shipped Chrome 152 (chromium injects the test
+  content script, Chrome doesn't, the disable-features hatch is dead
+  too). Wired correctly for both anyway: extension vendored into the
+  repo, daemon reads WAVERUNNER_WEBAPP_EXTENSION (launcher `47b9793`,
+  246 tests), HM option added, Golem sets the env via a systemd drop-in
+  that evals against the PINNED input; on Chrome the one-time manual
+  "Load unpacked" of the store path remains, which weighs on the open
+  browser decision (todo5 item 1). Every remaining [?] is either Max's
+  call (stopgap wifi curation) or a VM-eyes round. todo7 has no
+  unchecked items left.
 - Round 21 (2026-09-01, agent sweep of todo7): NOTHING TICKED — every
   remaining item parks, and the reason is one wall: this session's
   harness has no `nix` (`nix --version` is refused), no /nix/store, no
