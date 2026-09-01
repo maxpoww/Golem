@@ -90,7 +90,7 @@
   # and cannot keep anything.
   services.gnome.evolution-data-server.enable = true;
 
-  # libadwaita apps read their settings (and the theme preference S5's
-  # theming pass will set) from dconf.
+  # libadwaita apps read their settings — including the dark/accent
+  # preference home.nix's theming pass writes — from dconf.
   programs.dconf.enable = true;
 }
