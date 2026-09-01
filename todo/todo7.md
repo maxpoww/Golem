@@ -390,6 +390,21 @@
   hint alone; with weight doing that job it was piling on. Net: one
   line changes weight, the same line firms up slightly, nothing else
   moves. launcher `30d5996`.
+  → Max: "get rid of the bold. also the clipboard big pill became
+  transparent, i only want the boxes blured, and one of the zebra
+  colors is blured but not the other" — three fixes, two of them my
+  blur's fallout. (a) Bold removed; hover is back to firming the ink
+  only. The FONT_BOLD sentinel + renderer weight resolution stay —
+  they cost nothing and the LATENT CACHE BUG they exposed (shaped
+  labels keyed on text+size only, so families shared buffers) is worth
+  keeping fixed. (b) I had put BOX_ALPHA on the SHARED box fill, which
+  is also the clip detail card, the dictionary panel and the notif
+  icon discs — so those went glassy too. Translucency now applies only
+  to the box PANEL; the pill it grows from and everything drawn later
+  stay opaque. (c) The zebra kept alpha 1.0 over a translucent panel,
+  so it BLOCKED the blur on every other row — one band frosted, the
+  next flat. Stripes carry BOX_ALPHA now, both boxes. launcher
+  `3b2420a`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
