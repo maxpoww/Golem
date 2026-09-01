@@ -6,9 +6,10 @@
 - [x] Survey the D-Bus/system landscape: NetworkManager, BlueZ, PipeWire/
       wpctl, logind/UPower, wlr-output — what each collector listens to
       → `system-landscape.md` (2026-09-01)
-- [ ] wi-fi module (list/join networks)
-- [ ] bluetooth module (pair/connect)
-- [ ] audio module (output/input picker, volume)
-- [ ] brightness + power/battery module
-- [ ] displays module (arrangement, scale)
-- [ ] Decide surface pattern: topbar pills vs a "system" box (keep coherent)
+- [?] wi-fi module (list/join networks)
+- [?] bluetooth module (pair/connect)
+- [?] audio module (output/input picker, volume)
+- [?] brightness + power/battery module
+- [?] displays module (arrangement, scale)
+- [?] Decide surface pattern: topbar pills vs a "system" box (keep coherent)
+      — `system-landscape.md` §7 lays out the constraints for the call
