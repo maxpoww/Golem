@@ -61,6 +61,7 @@ The production line: migrate live surfaces onto the Brain, then build the
 ### S4 — System controls
 Wi-fi, bluetooth, audio, brightness, power, displays as OPTIONS modules.
 Each one shipped retires its Arc-1 stopgap tool.
+Landscape survey (what each collector listens to): `system-landscape.md`.
 
 ### S5 — The app set
 `apps.md`: golem-apps.nix, theming pass, mime defaults, browser decision,
