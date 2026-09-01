@@ -46,6 +46,31 @@ includes the person who has never installed anything in their life.
   the open answer to the Mac+iPhone ecosystem, on the seat Google and Apple
   left empty.
 
+**What Golem does not build itself.** The Brain senses and decides; it does
+not reimplement what a mature daemon already does. Power, thermals, network,
+bluetooth, audio are each decades of hardware-specific edge cases, and a
+desktop shell has no business relitigating them. Golem runs the proven daemon
+underneath — TLP, UPower, thermald, NetworkManager, BlueZ, PipeWire — and
+connects it to the Brain. The intelligence lives in the *offer*: the right
+control, at the right moment, in Golem's own surface. Never in the plumbing.
+
+Three things this law is not:
+
+- Not a licence to add dependencies by reflex. Every backend is a real system
+  dependency with a cost, chosen per module and written into the flake.
+  `system-landscape.md` makes exactly this call for UPower: the shipped
+  battery module senses via sysfs, and adopting UPower to get `TimeToEmpty`
+  is *adding a dependency*, not collecting a free upgrade.
+- Not a licence to ship someone else's UI. The daemon is a backend. The
+  surface is always Golem's. A module is not done because a GUI for it exists
+  — that is what the stopgap kit is, and every stopgap is scheduled to die.
+- Not a licence to bind to a vendor. Prefer the **interface** over the
+  implementation: talk to `org.freedesktop.UPower.PowerProfiles` on D-Bus,
+  which either power-profiles-daemon or TLP's `services.tlp.pd` shim can
+  provide — they conflict precisely because they answer the same interface
+  (nixpkgs asserts on it). Bind to the contract and the backend stays
+  swappable; bind to `tlp-stat` and it does not.
+
 ## What Golem refuses
 
 Configuration as a hobby. Terminals as a requirement. Ads, telemetry,

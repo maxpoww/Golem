@@ -66,9 +66,29 @@ next_todo() {
 }
 
 read -r -d '' PROMPT_TEMPLATE <<'EOF'
-Read roadmap.md for overall context, then open %s.
+Read Golem.md and roadmap.md for overall context, then open %s.
 
 Work ONLY on items in that file. Take the first unchecked item.
+
+## The law you are most likely to break
+
+Golem.md, "What Golem does not build itself": the Brain senses and decides,
+it does NOT reimplement what a mature daemon already does. Power, thermals,
+network, bluetooth, audio — run the proven backend (TLP, UPower, thermald,
+NetworkManager, BlueZ, PipeWire) and connect it to the Brain. The
+intelligence is in the offer, never in the plumbing.
+
+This is easy to violate by accident, because writing a small sysfs poller is
+usually the shortest path to a working demo and it looks like progress. If
+you catch yourself parsing `/sys` or shelling out to a CLI to re-derive
+something a daemon already publishes on D-Bus, stop and use the daemon.
+
+Its three qualifiers matter as much as the rule:
+- adding a backend is a real dependency with a cost, decided per module and
+  written into the flake — not a reflex;
+- the backend is a backend, never a shipped UI. The surface is Golem's;
+- bind to the D-Bus interface, not the vendor. Read Golem.md for the worked
+  example (PowerProfiles, and why TLP and power-profiles-daemon collide).
 
 ## The trees
 

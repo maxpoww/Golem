@@ -37,6 +37,16 @@ grep -qE 'cachix\s+push|nix\s+copy\s+.*--to|nix-copy-closure' <<<"$CMD" && block
 grep -qE 'curl\s+.*(-X\s*(POST|PUT|DELETE|PATCH)|--upload-file|-T\s)' <<<"$CMD" && block "HTTP write request"
 grep -qE '(indexnow|deploy|publish)[a-z-]*\.(sh|py|js)'  <<<"$CMD" && block "deploy/publish script"
 
+# --- do not touch the RUNNING system ---------------------------------------
+# `nixos-rebuild` is NOPASSWD for max (sudoers), so an unsupervised loop can
+# activate a new generation on Max's live machine without asking. Building is
+# how you verify; switching is how you break someone's desktop mid-session.
+# build / build-vm / dry-build / dry-activate stay allowed.
+grep -qE 'nixos-rebuild(\s+\S+)*\s+(switch|boot|test)(\s|$)' <<<"$CMD" \
+  && block "nixos-rebuild switch/boot/test activates a generation on Max's RUNNING machine. Use 'nixos-rebuild build-vm --flake .#golem-vm' or 'nix build' to verify instead."
+grep -qE 'systemctl(\s+--?\S+)*\s+(start|restart|stop|kill)\s+.*(waverunner|waveview|display-manager|greetd|hyprland)' <<<"$CMD" \
+  && block "restarting the running shell/session would kill Max's desktop mid-run"
+
 # --- protect the rollback path this run depends on -------------------------
 grep -qE 'git\s+(.*\s)?tag\s+(-d|--delete)'   <<<"$CMD" && block "deleting a git tag (the pre-loop tags are the rollback path)"
 grep -qE 'git\s+(.*\s)?reflog\s+expire'       <<<"$CMD" && block "expiring the reflog"
