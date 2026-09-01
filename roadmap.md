@@ -72,6 +72,7 @@ Settings as a surface; writes declarative intent (features.md §3 inventory).
 
 ### S8 — First run & onboarding
 Diegetic tour, skill seeding, "first five minutes" test with a real human.
+Design doc (what the tour must be, where it attaches): `onboarding-design.md`.
 
 ### S10 — Website & release
 Manifesto ✔ → story, motion screencasts, generations/"roll back" headline,

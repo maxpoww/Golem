@@ -170,6 +170,53 @@
   but writing it without seeing the extension's manifest and layout would be
   inventing a path.
 
+- todo8 (all five items): parked as a file. Two walls stand behind every one
+  of them. First, S8 has not opened — roadmap ARC 1 is SH → S7 → S9 under
+  "no new OPTIONS surfaces, no module growth", and an onboarding tour is a
+  new surface plus a new collector plus a new Mind provider. Second, the
+  same wall as todo3-todo6: all of that is waverunner code
+  (`github:maxpoww/launcher`, checkout at ~/launcher), a pinned flake input
+  here, and this session is sandboxed to ~/Golem and cannot list it. What
+  this session could do it did: `onboarding-design.md`, the design doc item 2
+  asks for by name, written the way `system-landscape.md` was written for S4
+  — every claim about current behaviour cited to a file:line in this repo,
+  nothing invented about waverunner's internals. Per item, beyond that:
+  * "First-boot detection + flow" — a first-run detection already exists on
+    both sides and neither teaches: the kernel/greetd path lands on a
+    finished desktop with no words (`configuration.nix:60`,`:151`,
+    `hyprland.lua:218`) and the daemon's own cold start builds caches and a
+    recycle bin (`todoSH.md:17`). So the item is really the *flow*, and its
+    "language, user" clause collides head-on with roadmap S9's installer
+    ("disk, user, wifi, done") — they cannot both own that choice, and which
+    one does is Max's. Concrete finding underneath it either way: the user is
+    hardcoded in four places, and one of them has teeth —
+    `system/waverunner-apply.nix:31` is `user = "max"`, so the apply service
+    watches `/home/max/.config/waverunner/packages.list` and on an account
+    not named `max` **installing an app does not work at all**. Left unfixed
+    here on purpose: it is S9's to arrange together with the flake checkout
+    at `golem.flakeDir` (`waverunner-apply.nix:125`, `flake.nix:88`), and
+    nothing written in this session can be built.
+  * "Diegetic tour" — doc landed, tour blocked. The doc's own §6 is the
+    reason it can go no further: the biggest fork (teach the foreign reflex,
+    or just bind it — `Alt+Tab`, `Super` alone, `Alt+F4`, `Ctrl+Alt+arrow`
+    are all bound to nothing in `hyprland.lua`, verified) decides how large
+    S8 even is, and it is a values call about what Golem is.
+  * "Seed skill calibration (Tuning.skill)" — doubly downstream: it needs
+    the onboarding choices of item 1 (which do not exist) and Tuning.skill
+    itself, a Brain-side artifact in the unreadable tree. The doc's §5 makes
+    the one claim worth carrying forward: this is not separate work, it is
+    the *second reader* of the skill store the tour needs, and building the
+    two independently would produce two disagreeing models of the person.
+  * "First five minutes script" — cannot be scripted yet, and the doc's §7
+    says why in three checkable points: "browse" has no answer while the
+    default browser is an open owner decision (todo5 above), "install" is a
+    minutes-long `nixos-rebuild` with an F10 history of reporting a queued
+    install as failed (`todo7.md:110`), and "install" is inert entirely
+    without a flake checkout at `golem.flakeDir`. Also needs a bootable
+    Golem, which is S9.
+  * "Test with one real non-Linux human" — blocked on a human and on a
+    machine to sit them at; an agent can neither be the human nor watch one.
+
 - todo7 (the four VM-loop items — Super passthrough / "VM mode", useBootLoader
   so reboots keep the latest generation, slirp download speed, llvmpipe
   rendering): blocked as a family — each one's only test is building the VM and
