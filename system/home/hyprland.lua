@@ -37,7 +37,7 @@ hl.exec_cmd("easyeffects --gapplication-service")
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("blueman-applet")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
-hl.exec_cmd("kdeconeectd")
+hl.exec_cmd("kdeconnectd")
 end)
 
 

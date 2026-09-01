@@ -61,13 +61,22 @@
       build-vm exits 0. Left in waverunner-packages.nix too — that file is
       Max's launcher-managed state, not ours to edit.
 
-- [ ] `hyprland.lua:40` execs `kdeconeectd` — a typo, and the real binary is
+- [x] `hyprland.lua:40` execs `kdeconeectd` — a typo, and the real binary is
       under libexec rather than on PATH
       *(split out of the item above 2026-09-01. NOTES is explicit that the
       correct line is NOT a one-character guess: find where the kdeconnect
       daemon actually lives in this nixpkgs and exec that path, or drop the
       line if kdeconnect is not meant to autostart. Verify by eval/build,
       and be careful — this file boots Max's desktop.)*
+      → DONE 2026-09-01 (Round 22): the libexec guess was WRONG for this
+      pin — checked, not assumed: `programs.kdeconnect.enable` (set by both
+      the flake's `services.options-notify.enableKdeConnect = true` and
+      /etc/nixos's) lands `kdeconnectd` at /run/current-system/sw/bin/ in
+      this nixpkgs, verified on the live machine. So the bare name IS the
+      correct exec (a store path would rot on repin) and the fix is the
+      typo alone. Fixed in BOTH copies (flake + /etc/nixos, drift caveat);
+      build-vm exits 0. Live daemon was already running via D-Bus
+      activation, which is why the typo never visibly hurt.
 - [x] Ship chromium (webapp engine fallback — SH F2 resolves it at runtime,
       the flake must make it exist)
       → google-chrome ships via home.nix programs.chromium (unfree on), so
