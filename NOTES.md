@@ -483,3 +483,64 @@
   re-cut to match — that list was conflating "unverified" with "checkbox still
   open", which made SH's remaining risk look about three times larger than it
   is.
+
+- todo-android, all 18 unchecked items: parked as a file, and unlike todo3/4
+  the wall here is doubled. W-A's code lives in two trees, and this session can
+  reach neither: the desktop half is options-engine in the waverunner checkout
+  (`github:maxpoww/launcher`, a pinned flake input here — `~/Golem` holds no
+  `.rs` file at all, confirmed by `find`), and the phone half is the Kotlin app
+  at `~/AndroidStudioProjects/Golem`, which `ls` refuses outright. Nothing in
+  this repo is W-A implementation; `android.md` is scope, not code. Per item:
+  * **`collectors/phone.rs`** (P1) and its two restatements — "phone pill in
+    the topbar itself" and the DoD line "every feature reaches the desktop
+    THROUGH the Brain" — are one job wearing three hats: the collector, the
+    surface it feeds, and the promise that lands when both exist. All three are
+    Rust in the waverunner tree. They need a session rooted there, same as
+    todo3/todo4. Worth carrying into that session: the phone data feed is
+    already complete and verified on the wire (battery), so the collector is
+    writing a client for a protocol that is answering today, not designing one.
+  * **One piece of that job does live in this repo** and is the reason to read
+    this note before starting: the mDNS line above records that the Golem PC
+    runs no responder (avahi and systemd-resolved both inactive), so discovery
+    is phone-side-only until `system/configuration.nix` enables one. That is a
+    ~3-line host change here — but it is not an item in this file, and Arc-1 is
+    under the fix-don't-grow freeze, so it is flagged, not taken. It should
+    ship in the same breath as the collector, since discovery is the collector's
+    first move.
+  * **Pairing UX test** (P1) and **"paired in <1 min by a non-technical
+    person"** (DoD) are the same test written twice, and the instrument is a
+    person who has never seen Golem. An agent cannot be that person, and an
+    agent that has read the pairing code cannot even simulate one. Max supplies
+    a stranger and a stopwatch; both close together.
+  * **Distribute: F-Droid first, Play Store second** — an external service, an
+    account, and $25. The readiness half is already done and ticked (FOSS audit,
+    README, fastlane metadata, honest 0.1.0); what remains is submission under
+    Max's identity.
+  * **Choose a license** — the item says DECISION NEEDED and it is right. It is
+    a values call between GPL-3 (ecosystem/ethos), Apache-2.0 and MPL-2.0
+    (wider reuse), and the app being written from scratch is precisely what
+    makes it free — and therefore Max's. One datum for it: Golem OS itself is
+    GPL-3.0-or-later (`LICENSE`, and the SPDX header on `flake.nix`), so GPL-3
+    is the choice that keeps one licence across the whole project. Everything
+    downstream of this — signing, the F-Droid submission — waits on it.
+  * **Signing config + reproducible release build** — gradle work in the app
+    tree, and it wants a keystore, which is a secret this session has no
+    business holding even if it could reach the files.
+  * **Call audio relay, MMS/RCS + attachments** (P2), **all five P3 Magic
+    items**, **P4 photo sync / shared surfaces / cross-device DND / app
+    streaming** — feature work in the app tree, and every one of them needs a
+    desktop counterpart in waverunner too, so they are blocked twice and are
+    Arc-2 besides. One note for whoever picks up continuity camera: the host
+    prep is already standing — `system/configuration.nix:58` loads
+    v4l2loopback with `card_label="Android WebCam"` on video10.
+  * **Remaining untested surface is I/O-bound** (Quality) — the item names its
+    own requirement, instrumented tests on a device. App tree plus hardware.
+  * **Phone battery cost negligible** (DoD) — attempted honestly and recorded
+    as inconclusive, which is the right answer to have written down. Closing it
+    needs a multi-hour run on the phone and Battery Historian; the 11-minute
+    window already tried is the wrong instrument, not a wrong result.
+  Nothing was changed in the two trees and nothing is claimed about them. The
+  one thing this session could contribute is above: the avahi gap is named as
+  part of the collector's job rather than left as a footnote under a ticked
+  line, so the waverunner session starts knowing discovery has a host-side
+  half.

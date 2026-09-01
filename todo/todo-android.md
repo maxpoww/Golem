@@ -9,18 +9,18 @@
 - [x] Read the kdeconnect protocol docs + mine implementations for details
 - [x] ~~Fork kdeconnect-android~~ → implemented the protocol from scratch instead
 - [x] Rebrand: name **Golem**, icon (stone head, amber eyes), adaptive + monochrome
-- [ ] Desktop: `collectors/phone.rs` in options-engine (discovery + pairing + TLS;
+- [?] Desktop: `collectors/phone.rs` in options-engine (discovery + pairing + TLS;
       through the Brain, no side channel) — NOT STARTED, kdeconnectd stands in for now
 - [x] Phone pill **data feed** complete: battery (verified) + cellular signal
       (`connectivity_report`; plugin negotiates, but values unverified — the test phone
       is in airplane mode, so it correctly reports Unknown/0)
-- [ ] Phone pill in the topbar itself — desktop-side work, data is ready
+- [?] Phone pill in the topbar itself — desktop-side work, data is ready
 - [x] Notifications → mirrored, with actions + inline reply (RemoteInput)
 - [x] Universal clipboard both ways (phone→PC on focus; Android 10+ blocks background)
 - [x] File send both ways (checksum-verified) + transfer progress; find-my-phone (ring)
 - [x] Pairing with verification code, byte-identical to kdeconnectd
-- [ ] Pairing UX test: non-technical person pairs in under a minute
-- [ ] Distribute: F-Droid first, Play Store second ($25 dev account)
+- [?] Pairing UX test: non-technical person pairs in under a minute
+- [?] Distribute: F-Droid first, Play Store second ($25 dev account)
 
 ## P2 — Communication
 - [x] SMS: conversation list, per-thread history, new-message push
@@ -32,27 +32,27 @@
 - [x] Call notify (ringing / talking / missedCall + contact name resolution)
       — IMPLEMENTED BUT UNVERIFIED: PHONE_STATE is a protected broadcast, so it can
       only be tested with a real incoming call
-- [ ] Call audio relay
-- [ ] MMS/RCS, attachments (sms.attachment_file / request_attachment)
+- [?] Call audio relay
+- [?] MMS/RCS, attachments (sms.attachment_file / request_attachment)
 
 ## P3 — Magic (Continuity tier)
-- [ ] Phone mirroring via scrcpy wrapped in our UX
-- [ ] Continuity camera (phone as webcam)
-- [ ] Instant hotspot
-- [ ] Proximity unlock
-- [ ] Handoff v1
+- [?] Phone mirroring via scrcpy wrapped in our UX
+- [?] Continuity camera (phone as webcam)
+- [?] Instant hotspot
+- [?] Proximity unlock
+- [?] Handoff v1
 
 ## P4 — Fusion
 - [x] **Run desktop commands from the phone** (runcommand plugin) — the first
       "phone as a surface of the Brain" primitive; verified end-to-end
-- [ ] Photo sync, shared OPTIONS surfaces, cross-device DND, app streaming polish
+- [?] Photo sync, shared OPTIONS surfaces, cross-device DND, app streaming polish
 
 ## Quality
 - [x] Unit tests: 52 covering framing, pairing crypto, id/name rules, capability
       sanity, MPRIS incremental merge, SMS limit, clipboard echo suppression and
       share URL classification — every suite mutation-checked by reintroducing the
       original bug, not just left green
-- [ ] Remaining untested surface is I/O-bound (TLS handshake roles, payload sockets,
+- [?] Remaining untested surface is I/O-bound (TLS handshake roles, payload sockets,
       MediaStore writes) — would need instrumented tests on a device
 
 ## Near-term polish
@@ -83,10 +83,10 @@
 - [x] F-Droid readiness audit: dependencies verified 100% FOSS (no Play Services,
       Firebase, blobs or telemetry); README + fastlane metadata written; version set
       to an honest 0.1.0
-- [ ] **DECISION NEEDED: choose a license.** No LICENSE file exists and F-Droid
+- [?] **DECISION NEEDED: choose a license.** No LICENSE file exists and F-Droid
       requires one. Written from scratch, so NOT bound by kdeconnect's GPL-3 —
       GPL-3 matches the ecosystem/ethos, Apache-2.0 or MPL-2.0 allow wider reuse.
-- [ ] Signing config + reproducible release build for F-Droid
+- [?] Signing config + reproducible release build for F-Droid
 - [x] Runtime permission flow verified by QA pass (revoke everything → tap through
       in-app): both permission gates appear, work, and disappear once granted.
       Fixed a layout bug found in the pass — the third action button was being
@@ -97,10 +97,10 @@
       pings still delivered, and the link self-recovers from a Wi-Fi drop while
       dozing. No battery-optimization exemption needed (deliberately NOT requested).
 - [x] works on LAN with zero config
-- [ ] paired in <1 min by a non-technical person (never tested with a real person)
-- [ ] every feature reaches the desktop THROUGH the Brain — still kdeconnectd, not
+- [?] paired in <1 min by a non-technical person (never tested with a real person)
+- [?] every feature reaches the desktop THROUGH the Brain — still kdeconnectd, not
       options-engine; `collectors/phone.rs` is unstarted
-- [ ] phone battery cost negligible — ATTEMPTED, inconclusive. Over an 11-minute
+- [?] phone battery cost negligible — ATTEMPTED, inconclusive. Over an 11-minute
       simulated-battery window Golem never appeared in `dumpsys batterystats`
       estimated-power rankings at all (whole-system app CPU was 3.59 mAh), which is
       suggestive but not proof. Android 14's batterystats gives no clean per-app
