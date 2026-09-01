@@ -173,6 +173,11 @@
     programs.nix-ld.enable = true;
     services.envfs.enable = true;
 
+    # Remote filesystems in the file manager. Without this Thunar cannot open
+    # dav:// or sftp:// at all — it is what lets the Golem phone appear as a
+    # browsable location rather than needing a FUSE mount.
+    services.gvfs.enable = true;
+
     environment.systemPackages = with pkgs; [
       git
       # Stopgap kit (die when their Arc-2 OPTIONS modules ship):

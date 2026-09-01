@@ -284,6 +284,16 @@
   as another stripe. Both boxes. launcher `c49027a`. Lesson: when the
   resting state is pushed toward full for legibility, any hint built
   on "pop to full" has to move to a different channel.
+  → Max: "awful hover efect, lets do the text darker and the hover
+  make the text lighter" — background tinting removed entirely; the
+  hint is back in the INK but as a one-direction step instead of an
+  alpha pop. The list rests at its darkest/strongest
+  (LIST_DIM_LIGHT 1.0) and the hovered line's text goes LIGHTER: on a
+  light box that flips the dark ink to the warm off-white, on a dark
+  box the light ink brightens further. `hover_ink_for` sits with the
+  other ink rules in options.rs and both boxes call it, so they can't
+  drift; the HOVER_ROW constants and all the hover_opaque plumbing are
+  deleted. launcher `ac3f16e`.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the

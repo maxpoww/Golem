@@ -28,7 +28,7 @@
   inputs = {
     # Pinned to the exact rev the live machine's nixos-26.05 channel is on,
     # so the first builds come from the local store, not a world rebuild.
-    nixpkgs.url = "github:NixOS/nixpkgs/21ea275a7c46aef9d4d6ddc962e6d562e9d94183";
+    nixpkgs.url = "github:NixOS/nixpkgs/c5c4a43b0e8056328ec4529f735cabdb8f1942bb";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
