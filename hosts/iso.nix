@@ -82,6 +82,16 @@
   # prefetches them into the image or installs a prebuilt toplevel.
   environment.etc."golem/src".source = golemSrc;
 
+  # ── Lean ──────────────────────────────────────────────────────────────
+
+  # Only what the system needs to work (Max, 2026-09-01: "as debloated as
+  # possible"). The full image was 6.33 GiB because the home layer carried
+  # the owner's launcher-installed list (android-studio 3.3 GiB, obs' cef
+  # 2.0 GiB, three browsers) and a dev toolchain. golem.lean drops those and
+  # the non-core CURATE apps; what remains is the shell, foot, the webapp
+  # engine, Nautilus/text-editor/Loupe/Papers, the stopgap kit and firmware.
+  golem.lean = true;
+
   # ── The image ─────────────────────────────────────────────────────────
 
   # Name the artifact after the distro, not after nixos. `image.baseName` is

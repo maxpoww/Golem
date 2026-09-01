@@ -16,17 +16,23 @@
 #   • foot, the terminal — session-critical, ships with the compositor
 #   • anything in the BUILD column — those are ours, they arrive as OPTIONS
 #     surfaces, not packages
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
+  # Two tiers (golem.lean, 2026-09-01). "Core" is what the system needs to
+  # WORK — open a folder, a text file, an image, a PDF, a zip. Everything
+  # else is the full CURATE experience an installed machine gets.
   environment.systemPackages = with pkgs; [
     # Files. Nautilus is the real file manager (trash, archives, shares);
     # the launcher's own Files listing hands off to it (todo5 item 7).
     nautilus
     file-roller # archive manager, integrates into Nautilus' context menu
 
-    # Everyday desktop
     gnome-text-editor
+    loupe # image viewer — fast, touch gestures
+    papers # PDF viewer + fill & sign
+  ] ++ lib.optionals (!config.golem.lean) [
+    # Everyday desktop
     gnome-calculator
     gnome-calendar
     gnome-clocks
@@ -35,7 +41,6 @@
     gnome-maps # nice-to-have tier
 
     # Media
-    loupe # image viewer — fast, touch gestures
     showtime # video player (fall back to celluloid/mpv if codecs fight)
     snapshot # webcam photo/video
     gnome-sound-recorder
@@ -46,8 +51,6 @@
     decibels
     amberol
 
-    # Documents & scanning
-    papers # PDF viewer + fill & sign
     simple-scan
 
     # Disks / removable media
@@ -68,7 +71,7 @@
   # text-input-v3 and the candidate popup is a layer surface, instead of
   # every app needing GTK_IM_MODULE set. To back the whole thing out,
   # delete this block — nothing else depends on it.
-  i18n.inputMethod = {
+  i18n.inputMethod = lib.mkIf (!config.golem.lean) {
     enable = true;
     type = "fcitx5";
     fcitx5 = {
@@ -83,12 +86,12 @@
   services.udisks2.enable = true;
 
   # Simple Scan finds no scanner at all without the SANE backends.
-  hardware.sane.enable = true;
+  hardware.sane.enable = !config.golem.lean;
 
   # Shared calendar/contacts backend. GNOME Calendar and Contacts store
   # everything through evolution-data-server; without it both start empty
   # and cannot keep anything.
-  services.gnome.evolution-data-server.enable = true;
+  services.gnome.evolution-data-server.enable = !config.golem.lean;
 
   # libadwaita apps read their settings — including the dark/accent
   # preference home.nix's theming pass writes — from dconf.

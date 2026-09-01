@@ -30,7 +30,27 @@
     '';
   };
 
+  options.golem.lean = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = ''
+      Ship only what the system needs to work. Drops the owner's
+      launcher-installed list (waverunner-packages.nix — that file is one
+      machine's state, not the distro), the dev toolchain in the home layer,
+      and the non-essential half of the CURATE set. The ISO turns this on
+      (2026-09-01 audit: the full home layer made the image 6.33 GiB, led by
+      android-studio at 3.3 GiB and three browsers); an installed machine
+      leaves it off and grows its own list through waverunner-apply.
+    '';
+  };
+
   config = {
+    # The owner's launcher-installed app list rides the home layer only on
+    # non-lean systems (see options.golem.lean above; home/home.nix says why
+    # the import lives here and not there).
+    home-manager.users.max.imports =
+      lib.optional (!config.golem.lean) ./home/waverunner-packages.nix;
+
     boot.loader = {
       timeout = 3;
       efi.canTouchEfiVariables = true;

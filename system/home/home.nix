@@ -4,14 +4,19 @@
 #     (systemd user service), not /home/max/launcher/waverunner-dev
 #   • hyprland.lua's plugin-load / waverunner-ctl lines are rewritten to
 #     store paths / PATH bins at build time (see the replaceStrings below)
-{ config, pkgs, lib, waverunner, waveview, ... }:
+{ config, osConfig, pkgs, lib, waverunner, waveview, ... }:
 
 {
   imports = [
     ./zsh.nix
-    ./waverunner-packages.nix
     waverunner.homeManagerModules.default
   ];
+  # ./waverunner-packages.nix (the owner's launcher-installed list) is NOT
+  # imported here any more — configuration.nix imports it for non-lean
+  # systems only. It is one machine's state, not the distro: a lean image
+  # (the ISO) must not inherit android-studio because Max once dragged it
+  # into the Install section. Imports can't be conditional inside a module,
+  # so the switch lives at the NixOS level.
 
   home.username = "max";
   home.homeDirectory = "/home/max";
@@ -37,6 +42,7 @@
     Environment=WAVERUNNER_WEBAPP_EXTENSION=${./notification-fix}
   '';
 
+  # Desktop plumbing every Golem needs, lean or not.
   home.packages = with pkgs; [
     papirus-icon-theme
     phinger-cursors
@@ -48,6 +54,16 @@
     poppler           # PDF previews
     fd                # Fast file searching
     ripgrep
+
+    awww
+    waypaper
+
+    grim
+    slurp
+
+    playerctl
+  ] ++ lib.optionals (!osConfig.golem.lean) [
+    # Max's dev toolchain — not part of the system working (golem.lean).
     gcc
 
     android-tools
@@ -58,21 +74,17 @@
     github-cli
     git
 
-    awww
-    waypaper
-
-    grim
-    slurp
-
-    playerctl
     easyeffects
     lsp-plugins
   ];
 
   home.sessionVariables = {
+    _JAVA_AWT_WM_NONREPARENTING = "1";
+  } // lib.optionalAttrs (!osConfig.golem.lean) {
+    # JAVA_HOME interpolates the jdk store path, so on a lean system it
+    # would drag the whole JDK into the image by reference alone.
     JAVA_HOME = "${pkgs.jdk21}";
     ANDROID_HOME = "${config.home.homeDirectory}/Android/Sdk";
-    _JAVA_AWT_WM_NONREPARENTING = "1";
   };
 
   # ── Theming pass (roadmap S5) ─────────────────────────────────────────
