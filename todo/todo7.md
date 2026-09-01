@@ -351,6 +351,20 @@
   shared in options.rs. launcher `e2be283`. Needs Max's pointer to
   judge — no input simulation on this compositor (ydotool needs a root
   daemon + uinput; not worth touching his session for).
+  → Max: "i dont want that hint line, get rid of it. and can we do
+  bold on hover + what we already have?" — bar removed; hovered
+  row/card now strengthens its ink AND switches to a BOLD face.
+  Weight is the emphasis channel still free once lightness has spent
+  its contrast, which is exactly the wall dark text hit. Mechanism:
+  weight rides `Label::family` via a sentinel (`content::FONT_BOLD`)
+  the renderer resolves to SansSerif + Weight::BOLD — Label is built
+  at ~45 sites and threading a bold flag through all of them for two
+  hover states would be noise. DejaVuSans-Bold verified present
+  (fc-match) so the face is real, not synthesised. LATENT BUG found
+  and fixed en route: the shaped-label cache keyed on text + size
+  ONLY, so one string shaped in different families shared a buffer —
+  bold vs regular would have collided, and Nerd vs sans already could;
+  the key includes the family now. launcher `4cef2a2`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
