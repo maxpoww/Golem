@@ -18,7 +18,7 @@
       repo + git add — flakes can't see untracked files — and rebuilds with
       --flake; gated on golem.flakeDir, off in the VM; autoUpgrade dropped:
       flake upgrade = input bump, story TBD).
-- [ ] Compose: `golem-apps.nix` (from S5)
+- [x] Compose: `golem-apps.nix` (from S5)
       *(UNPARKED 2026-09-01: this was never blocked on the composing — the
       file is written, imported by `system/configuration.nix:10` and tracked
       by git. It was blocked on the one thing a tick would assert: the eval.
@@ -28,6 +28,10 @@
       `nixos-rebuild build-vm --flake .#golem-vm` and fix what falls out.
       Likeliest failure is a missing attr among the newer GNOME apps
       (showtime, decibels, papers, snapshot); deleting the line is the fix.)*
+      → DONE 2026-09-01 (Round 22): `nixos-rebuild build-vm --flake
+      .#golem-vm` exits 0, run-Golem-vm produced. Nothing fell out — every
+      predicted-risky attr (showtime, decibels, papers, snapshot) exists in
+      the pinned nixpkgs. No code change needed; the tick asserts the build.
 - [x] Golem defaults: theming, fonts, hyprland.lua, session startup
       → home.nix/zsh/foot/nvim/yazi/webapp icons ported verbatim;
       hyprland.lua's three /home/max assumptions rewritten at build time
