@@ -185,7 +185,7 @@
     both sides and neither teaches: the kernel/greetd path lands on a
     finished desktop with no words (`configuration.nix:60`,`:151`,
     `hyprland.lua:218`) and the daemon's own cold start builds caches and a
-    recycle bin (`todoSH.md:17`). So the item is really the *flow*, and its
+    recycle bin (`todoSH.md:21`). So the item is really the *flow*, and its
     "language, user" clause collides head-on with roadmap S9's installer
     ("disk, user, wifi, done") — they cannot both own that choice, and which
     one does is Max's. Concrete finding underneath it either way: the user is
@@ -435,3 +435,51 @@
   point. That is acceptable for an alpha (S11 closes last by design) and
   unacceptable to imply otherwise on a page, which is the same refusal
   `Golem.md:52` already makes.
+
+- todoSH, the six parked items — one shared wall and one shared shape. SH is
+  the "working perfectly" pass, and what makes something work perfectly is a
+  person looking at it; six items ask for exactly that and nothing else. The
+  wall underneath is the sandbox (`~/Golem` only — no `~/waveview`, no `nix`,
+  no display; re-confirmed this session by `ls /home/max/waveview` being
+  refused outright), so even the code half of these is out of reach: every
+  overview fix cited in this file lives in the waveview plugin tree, a pinned
+  flake input here. Per item:
+  * "Max's bug inventory (visual/feel eye)" — the instrument IS Max's eye.
+    Everything under "Max's list" is in his words from live use; an agent can
+    only add what it can see, and it sees no screen. It is also not really a
+    task but a collection point, and it should stay open through the
+    daily-driving week that feeds it.
+  * "Multi-resolution/scale check (1080p scale 1, HiDPI scale 2)" — parked by
+    its own text ("needs eyes + hardware"). Two outputs or a scaled VM, plus
+    someone looking; no display and no `nix` here. Worth knowing before it
+    runs: the code half is already grounded — the foreign-hardware audit found
+    no hardcoded monitors/resolutions/scales, and the overview's design
+    constants are logical px throughout — so this is a look for surprises, not
+    a hunt for known suspects.
+  * "overview opens sometimes with no pointer" — fixed in code (waveview
+    `92913d3`), and the item's own closing condition is "a week of daily
+    driving shows zero recurrences". An intermittent bug closes on absence
+    over time; only the week below can supply it.
+  * "overview motion leaking to the workspace underneath" — the one overview
+    item with a built fix (`b095aa7`) and NO recorded verdict from Max; it is
+    the reason `release-checklist.md` §2.3 exists. Indirect evidence is real
+    (the twenty drag/resize rounds after it all ran with motion swallowed and
+    the leak was never re-reported), but indirect is not verified. One
+    deliberate check closes it: open the overview, sweep the pointer over the
+    windows underneath, confirm no focus-follows-mouse and no hover reaction.
+    Cheapest item in the file for Max to retire.
+  * "One week daily driving with a notes file" — the roadmap's own SH exit
+    (`roadmap.md:29`, "a week of daily use with zero surprises"). An agent
+    cannot daily-drive a desktop it cannot see. The notes file is the section
+    itself: surprises land under "Max's list", one line each.
+  * "Exit review: zero known brokenness → open S7" — downstream of all five
+    above and last in the file by design. It cannot honestly clear while §2.3
+    still lists anything, and asserting it early would be exactly the kind of
+    lie SH exists to prevent.
+  What this session could do it did: five items that were fixed AND verified
+  but left unticked are now closed (overview integration, overview layout,
+  empty frames/scrolling, overview design, floating mode), each with the
+  verification it rests on written under it, and `release-checklist.md` §2.3
+  re-cut to match — that list was conflating "unverified" with "checkbox still
+  open", which made SH's remaining risk look about three times larger than it
+  is.

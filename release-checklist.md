@@ -139,30 +139,45 @@ them, not by component.
 
 ### 2.3 Fixed in code, never verified by eye
 
-This is the largest and least comfortable group: `todo/todoSH.md` leaves
-seven items open where the fix is written and built but no human has looked
-at the result. For an alpha they are *unknown*, not *fixed*:
+*(Re-cut 2026-09-01. The first pass counted seven, but it was reading
+checkboxes, not verdicts: four of the seven carried Max's own ✅ in
+`todoSH.md` and were merely still unticked, and a fifth was verified
+end-to-end in the session that fixed it. Those five are now closed there,
+each with the verification it rests on written under it. What is left is the
+genuine article, and it is three.)*
 
-- overview opens with no pointer (`todoSH.md:59`, fix in waveview `92913d3`)
-- overview motion leaking to the workspace underneath (`:109`, `b095aa7`)
-- dock hidden / topbar aware during overview (`:116`)
-- overview gap inconsistency (`:128`, `4a5e0e4`)
-- empty frames reading bigger than full ones (`:141`, `6f6b517`)
-- floating mode (`:238`) — cause found and removed, marked verified
-  end-to-end, item still open
-- **the float leak** (`:514-556`) — round 19 closed with Max's *"no more
+Fixes written and built where no human has confirmed the result. For an
+alpha these are *unknown*, not *fixed*:
+
+- overview motion leaking to the workspace underneath (`todoSH.md:122`, fix
+  in waveview `b095aa7`) — the only overview item with no verdict at all.
+  Indirect evidence is good (every drag/resize round after it ran with
+  motion swallowed and the leak was never re-reported), but one deliberate
+  sweep of the pointer over the windows underneath settles it in a minute.
+- overview opens with no pointer (`:69`, `92913d3`) — different shape: the
+  fix is understood and the cause named, but the bug is *intermittent*, so
+  it closes on a week without recurrence, not on one look.
+- **the float leak** (`:573-615`) — round 19 closed with Max's *"no more
   leaks for now"*. "For now" is not a clean bill; the diagnostic watch is
-  still armed.
+  still armed and a leak still prints `FLOAT-LEAK +Nms` to
+  `/tmp/waveview-trace.log`.
+
+Note what the three have in common: all of them are answered by the same
+week of daily driving, not by separate work.
 
 SH's own exit gates are both open: **one week of daily driving with a notes
-file** (`:285`) and **the exit review, "zero known brokenness"** (`:287`).
+file** (`:333`) and **the exit review, "zero known brokenness"** (`:340`).
 The roadmap makes SH's exit a week of daily use with zero surprises
 (`roadmap.md:29`). No alpha should go out ahead of it.
 
 ### 2.4 Open design calls (not bugs — unfinished decisions)
 
-- **Overview design** (`todoSH.md:164`): too compact, empty frames read
-  bigger. Mockup built, numbers not chosen. Max's call.
+- ~~**Overview design**~~ — *settled 2026-08-30, no longer open.* The call
+  was made by live iteration rather than on the mockup (which is retired for
+  this surface): gap 20 / outer 35 / top 12 / frame r28 / window r20 / seam
+  2.8%, and the "empty frames read bigger" complaint turned out to be a bug,
+  not a taste question — windows were mapped against the full monitor
+  including the bar's reserved strip (`todoSH.md:201`, waveview round 5).
 - **The Golem UI font** (`system/configuration.nix:168-177`): DejaVu Sans is
   a deliberate default standing in for a real choice (todo7).
 
@@ -172,7 +187,7 @@ Two null-dereference SEGVs in the compositor that took the session down
 during development, both worked around in the plugin, neither fixed in the
 pinned nixpkgs: the Hyprland `dragEnd` null-target crash, and the fork's
 `resizeTarget`/`setTargetGeom` unchecked `target->space()`
-(`todoSH.md:583-598`, `:599-606`; upstream state at `:490-496`). The guards
+(`todoSH.md:642-657`, `:658-665`; upstream state at `:549-555`). The guards
 hold. A tester on a different Hyprland will not have them.
 
 ### 2.6 Silent seams worth one look before shipping
@@ -255,7 +270,8 @@ Two constraints the choice has to satisfy, both from this tree:
 In order. Nothing below starts until everything above it is true.
 
 - [ ] SH closes: a week of daily driving, then the exit review at zero known
-      brokenness (`todoSH.md:285-287`) — including eyes on all seven of §2.3.
+      brokenness (`todoSH.md:333`, `:340`) — including eyes on all three of
+      §2.3, all of which the same week answers.
 - [ ] `nix flake check`, and `nix build .#iso` produces an image (§2.6).
 - [ ] The ISO boots on real metal (`todo/todo9.md:39`).
 - [ ] An installer exists and a stranger reaches a working desktop through it

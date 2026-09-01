@@ -52,7 +52,7 @@ topbar, and not one word of text. That is the right aesthetic and the whole
 problem — there is currently no moment between power-on and "you're on your
 own".
 
-**Daemon first run.** The SH cold-start test (`todo/todoSH.md:17`) records
+**Daemon first run.** The SH cold-start test (`todo/todoSH.md:21`) records
 what waverunner does with an empty HOME: creates the recycle bin, indexes
 apps, builds icon caches. All mechanical bookkeeping. The daemon already
 knows it has never run before; it just has nothing to say about it.
@@ -193,7 +193,7 @@ Two consequences worth deciding early:
 - **It is behaviour data.** `Golem.md:51` refuses telemetry inside the OS.
   Local-only, user-readable, user-deletable, never leaves the machine —
   and stated as such where a person can find it. waverunner's existing
-  user-visible state files (`groups.json`, `pins.json`, `todoSH.md:97`) are
+  user-visible state files (`groups.json`, `pins.json`, `todoSH.md:110`) are
   the precedent for where it lives and what shape it takes.
 
 Beyond that: a Mind provider to rank lessons, and a set of predicates. No

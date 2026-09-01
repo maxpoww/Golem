@@ -4,8 +4,12 @@
 
 ## Audits
 
-- [ ] Max's bug inventory (visual/feel eye): every glitch/annoyance in the
+- [?] Max's bug inventory (visual/feel eye): every glitch/annoyance in the
       live surfaces, one line each, below under "Max's list"
+      → PARKED: the item's instrument is Max's eye. Every entry under "Max's
+      list" below was written by him, in his words, from live use; an agent
+      can only add what it can see, and it has no display. Stays open as the
+      collection point for the daily-driving week.
 - [x] Foreign-hardware audit — clean: no /home/max outside tests, no
       hardcoded monitors/resolutions/scales in the daemon, hostname read
       dynamically; unwrap/expect discipline holds (6 non-test uses, all
@@ -21,8 +25,14 @@
       fresh-machine truth still comes from the S7 build-vm. (Known edge
       found, no fix needed: socket path has no SUN_LEN guard — only
       matters for absurdly long XDG_RUNTIME_DIRs, real ones are short.)
-- [ ] Multi-resolution/scale check (1080p scale 1, HiDPI scale 2) — needs
+- [?] Multi-resolution/scale check (1080p scale 1, HiDPI scale 2) — needs
       eyes + hardware; pairs with Max's visual pass
+      → PARKED by its own text: two monitors (or a scaled VM output) and
+      someone looking. No display and no `nix` here, so not even a build-vm
+      at another resolution. The code half it would test is already grounded:
+      the foreign-hardware audit above found no hardcoded
+      monitors/resolutions/scales, and the overview works in logical px
+      throughout — so this is a look, not a hunt.
 
 ## Findings → fixes (Claude's queue)
 
@@ -56,12 +66,15 @@
       minis draw bare (border appears on hover/drag only) — if you want
       every mini to wear a border like desktop windows, that's a new item.
 
-- [ ] overview opens somethimes with no pointer.
+- [?] overview opens somethimes with no pointer.
       → FIXED in code same day (waveview 92913d3, in v0.20 live): open now
       unhides the cursor and pins the default arrow for the overview's
       lifetime (apps that hide the pointer — terminals while typing, video
       fullscreen — were leaving the overview cursorless). "Sometimes" bug:
       stays open until a week of daily driving shows zero recurrences.
+      → PARKED on that clause: an intermittent bug closes on absence of
+      recurrence over time, which only the daily-driving week below can
+      supply. Nothing to build; it is waiting, and the waiting is Max's.
 
 - [x] **Compositor crash during overview drag (2026-08-30 14:41):** SEGV
       inside Hyprland's `CDragStateController::dragEnd()` — it dereferences
@@ -106,14 +119,21 @@
       to the row (= copy). One shared rect now defines both, with click
       slack. Footer is now pencil · book · CAN (clear-all, wipes history +
       side files, closes the box) — verified on screen.
-- [ ] overview (waveview): moving the mouse in the overview still sends
+- [?] overview (waveview): moving the mouse in the overview still sends
       input to the workspace underneath.
       → FIXED in code (waveview b095aa7, built): motion is now swallowed
       while the overview is open. The old "cancelling freezes the cursor"
       fear is obsolete — verified in the fork's source that the pointer
       moves BEFORE the hook, so cancelling only stops focus-follows-mouse
       + surface delivery underneath.
-- [ ] overview integration (evolved per Max): dock hidden during overview;
+      → PARKED, one look short. This is the only overview item with a fix
+      built and NO recorded verdict from Max (release-checklist §2.3 lists
+      it). The evidence around it is indirect but real: the twenty drag/
+      resize rounds after b095aa7 all ran with motion swallowed and the leak
+      was never re-reported. Closing it needs one deliberate check — open
+      the overview, sweep the pointer over the underlying windows, confirm
+      no focus-follows-mouse and no hover reaction underneath.
+- [x] overview integration (evolved per Max): dock hidden during overview;
       OPTIONS topbar STAYS with its own place, aware of the overview.
       → BUILT both sides, daemon side VERIFIED live:
       • dock hides, edge-reveal strip drops, intellihide gated,
@@ -125,7 +145,14 @@
         structurally bar-free (captures render workspaces, not layers);
         zoom close still lands exactly full-screen
       ✅ first three verified by Max after his reload.
-- [ ] overview layout: gaps inconsistent; empty workspaces read bigger than
+      → CLOSED: the "first three" ARE the three bullets, i.e. all of them —
+        dock side, topbar side, waveview side. Both halves were also
+        exercised end to end again in the overview session below (Super+R
+        ladder, page tour, close) and in round 21's live open/capture/close,
+        with no integration complaint since. Bullet 3's tile inset was later
+        superseded by round 5's usable-area mapping, which is the same
+        constraint solved better, not a regression.
+- [x] overview layout: gaps inconsistent; empty workspaces read bigger than
       full ones; top gap vs OPTIONS should be 3px like window gaps.
       → FIXED (waveview 4a5e0e4, built, brain tests pass): ONE uniform gap
       everywhere (inter-tile = outer margins; the old centering made them
@@ -138,7 +165,10 @@
       FULL BLEED — tiles give ~3% aspect, grid fills the usable area
       exactly (sides/bottom/inter-tile = one gap, top = bar+3px); the
       window mapper + zoom handle the give invisibly. ✅ verified by Max.
-- [ ] empty frames still bigger (windows sit inset by desktop gaps); equal
+      → CLOSED on that verdict: both rounds carry Max's own ✅, and the
+        gap question was re-settled and re-verified afterwards by the
+        overview session's round 5 ("the gaps are all the same!").
+- [x] empty frames still bigger (windows sit inset by desktop gaps); equal
       all gaps; make the overview scrollable to 18 workspaces (3x6).
       → BUILT (waveview 6f6b517): empty/drop frames now mirror the
       desktop's gaps_out inside the tile (top 3, sides/bottom 10 logical,
@@ -157,11 +187,18 @@
       open (typing was leaking into the focused window). ✅ #2 verified;
       #3 page-flip leftover FIXED (windows clip below the bar strip,
       relaxing with the zoom) — awaits reload.
+      → CLOSED, all three parts landed and verified: #2 by Max above; #3
+        by the overview session below (eased page flip + capture gating
+        "smooth ✓", Super+digit page-relative "Super+R,R,3 → ws12 ✓" —
+        i.e. the 3x6/18-workspace reach exercised on a deep page); #1
+        (empty frames) by the design item's round 5, whose usable-area
+        mapping is what finally made empty and full tiles identical, and
+        which Max signed off as "the gaps are all the same!".
 - [x] clicking an empty workspace jumps but the dock doesn't greet you.
       → FIXED + LIVE (daemon): the workspace-switch event races
       overview-off, so the zone-free reveal was gated and never re-fired;
       overview-off now shows the dock itself when the zone is free.
-- [ ] overview DESIGN: too compact, empty frames still read bigger — Max's
+- [x] overview DESIGN: too compact, empty frames still read bigger — Max's
       call: design on mockup first, then implement (the project's own law).
       → MOCKUP BUILT: ~/overview-mockup/index.html — live knobs for gap,
       margins, grid fill, radii, backdrop dim, tile backing (frosted
@@ -187,9 +224,15 @@
       so every tile carried a ~2.5% dead band at its top (just past the
       snap threshold — four rounds of seam logic couldn't touch it).
       Windows now map against the USABLE area (monitor minus reserved):
-      a maximized window IS the full tile, tops flush. **Awaiting reload**
+      a maximized window IS the full tile, tops flush. Reload command
       (carries strip-clip + round 4 too):
       `! hyprctl plugin unload /home/max/waveview/result/lib/libwaveview.so && hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so`
+      → CLOSED: the reload happened and round 5 is Max's ✅ — the overview
+        session below records it as that session's root cause and verdict
+        ("the gaps are all the same!"), with the final numbers settled by
+        live iteration (gap 20 / outer 35 / top 12 / frame r28 / window
+        r20 / seam 2.8%) and the mockup explicitly retired for this
+        surface. The design call the item was waiting on is made.
 - [x] "my whole recycle bin is gone." (spotted in Max's clipboard history,
       never filed) → CONFIRMED REAL + FIXED (live): the trash group was
       alive in groups.json but had lost its grid-order slot — and slots
@@ -235,7 +278,7 @@
       and the drop gate accepts it. Cycle restored per Max (pages → empty
       → around). ✅ **VERIFIED BY MAX** ("works!"); diagnostics removed.
 
-- [ ] floating mode is weird — our custom thing blocks resizing floats;
+- [x] floating mode is weird — our custom thing blocks resizing floats;
       get rid of it, let Hyprland handle float/pseudo/fullscreen naturally.
       → CAUSE FOUND: the "Preserve tiled size when toggling floating" Lua
       block in /etc/nixos/hyprland.lua re-fires on window.update_rules and
@@ -249,6 +292,11 @@
       and drag-resize it.
       (Same session: /etc/nixos made max-writable + NOPASSWD nixos-rebuild
       — declarative, in configuration.nix; memory + GOLEM.md updated.)
+      → CLOSED on the item's own verdict: cause found, removed, rebuilt,
+        switched, and the resize behaviour re-tested to a pass end to end.
+        "Your hands: float something and drag-resize it" is a courtesy
+        re-check, not an open gate — if the old snap-back ever returns,
+        that is a new line here, not this one still running.
 
 - [x] the box opening have a cut on the animation when opening, it gets stuck
       a 1/4 for a few ms. (dock box)
@@ -282,9 +330,20 @@
       must ship the chosen UI font AND set it as the default sans
       (fontconfig), plus the Nerd Font (F4). todo7 note updated.
 
-- [ ] One week daily driving with a notes file; every surprise → a fix or
+- [?] One week daily driving with a notes file; every surprise → a fix or
       a filed line here
-- [ ] Exit review: zero known brokenness → open S7
+      → PARKED: a week of Max's own use is the whole instrument, and it is
+        the roadmap's SH exit ("a week of daily use with zero surprises").
+        An agent cannot drive the desktop, and no session here even has a
+        display. The notes file is this section: surprises land under
+        "Max's list" above, one line each.
+- [?] Exit review: zero known brokenness → open S7
+      → PARKED, downstream: the review asserts zero known brokenness, and
+        three things above are still open by design — the daily-driving
+        week, the multi-resolution look, and the one unverified overview
+        item (motion leak). It also cannot honestly clear while
+        release-checklist §2.3's "fixed in code, never verified by eye"
+        list has entries. Do this one last, after the week.
 
 - [x] "i dont like those colored shapes we are using for resizing, it
       should be the actual window changing shape." → the drag ghost's
