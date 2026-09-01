@@ -204,6 +204,23 @@
   cursor hundreds of times a second. LESSON: a "did it change?" cache
   over shared global state is only valid if you own every writer.
   waveview `17fe89f` (v0.34).
+  → Max: "i like your model better (open hand over views, closed on
+  grab, index on empty), and the plain arrow issue is still there."
+  Model restored — and the arrow was NOT the stale cache after all.
+  Instrumented instead of guessing: added a trace on the dragging
+  branch, Max dragged, and the trace NEVER FIRED while the drag
+  clearly ran (grab/land/end in the log). Cause: `updateHoverAt`
+  RETURNS EARLY for a window drag (moves the ghost, commits, returns),
+  so the whole cursor block sat below code a drag never reaches — my
+  earlier re-assert was unreachable. And why PLAIN specifically: the
+  compositor's dragBegin sets a "grabbing" override, but waveview's
+  commit machinery ends and re-begins that drag as the window crosses
+  tiles (regrab/end), and each dragEnd UNSETS the override with
+  nothing restoring it. Fix: assert the closed hand inside the drag
+  branch, after the commit, every motion. waveview `e49da53` (v0.36).
+  LESSON: when a fix "doesn't take", check it EXECUTES before
+  theorising about why it doesn't work — one trace beat three
+  hypotheses.
 - Round 18 (2026-08-31, Max: "the text on options is white, but the
   text inside notifications and clipboard is black"): INK REGIME BUG,
   fixed with numbers rather than guesses. Instrumented the live daemon
