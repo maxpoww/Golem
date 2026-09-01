@@ -314,9 +314,19 @@
   dark ink deepens toward black, light ink brightens toward white.
   One rule, right in both regimes, no row tinting. Measured, not
   guessed (rest sRGB 0.26 → hover 0.14). launcher `40f7b61`.
+  → Max: "lots better but still weak" — because full alpha stops at
+  the RESTING ink's colour, and that colour is deliberately softened
+  (warm near-black / warm off-white), leaving a whole stretch of range
+  unused. Hover now pushes PAST it toward the extreme: 70% toward
+  black for dark ink, 60% toward white for light ink, at full alpha.
+  Light box, measured: rest sRGB 0.26 → alpha-only 0.14 → this 0.06,
+  four times the step. Toward black the push is a uniform scale so the
+  warm cast survives; toward white it washes out, as a highlight
+  should. launcher `3cf65ae`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
-  emphasis mechanism needs the resting state to leave it room.
+  emphasis mechanism needs the resting state to leave it room, in
+  ALPHA *and* in colour range.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the
