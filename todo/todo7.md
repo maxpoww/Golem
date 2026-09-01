@@ -433,6 +433,15 @@
   occupies the OUTERMOST pixel of the same rect the zebra band uses;
   the frame traces the card instead of floating inside it. launcher
   `3b394ca`. Frame settings now: 1px, radius 7, alpha 0.55, no inset.
+  → Max: "i want instant hover... when im scrolling on the boxes i
+  want every box that pass under the poiter to get hovered" — the
+  hit-test only ran on POINTER MOTION, so a list moving under a still
+  pointer kept the stale row and a box opening under it started
+  unhovered. Both boxes now re-run it from their animation tick
+  whenever the CONTENT moved: eased list scroll, drawer
+  growing/collapsing, and (notif) the box height settling. Those ticks
+  already draw, so the hover lands on the same frame the content does.
+  launcher `4e6d49d`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
