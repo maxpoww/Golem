@@ -85,3 +85,33 @@
   here), and this session is sandboxed to ~/Golem. The ~/Golem half is done:
   Nautilus ships and owns `inode/directory`, so the handoff has something to
   hand off TO — what remains is Rust, in the other tree.
+
+- todo6 (all six items — knob inventory, surface design, declarative write
+  path, live-apply, theme picker, OPTIONS toggles): blocked, two walls.
+  First, the same one as todo3/todo4/todo5: S6 IS a waverunner surface plus
+  its `core::config` schema, and that source lives in `github:maxpoww/launcher`
+  (checkout at ~/launcher), a pinned flake input here — this session is
+  sandboxed to ~/Golem and cannot even list it. Item 1 in particular asks to
+  inventory "every existing knob (core::config TOML schema)"; its authoritative
+  source is the unreadable file, so any list written from here would be a
+  guess dressed as an inventory.
+  Second, and this one holds even from a waverunner-rooted session: S6 has not
+  opened. The roadmap's ARC 1 is S1 → SH + S2 → S7 → S9 under "no new OPTIONS
+  surfaces, no module growth" — and a settings surface is precisely a new
+  OPTIONS surface. Building it now would break the freeze, not serve it.
+  What ~/Golem does hold, so the future S6 session starts ahead:
+  * The only knobs this repo seeds are `theme.icon_theme` and
+    `options.link_unfurl`, in `system/home/home.nix`
+    (`xdg.configFile."waverunner/config.toml"`). That is the write target
+    item 6 needs, and it is currently home-manager-owned — generated read-only
+    into the store — so a settings surface writing it means either taking the
+    file out of home-manager's hands or splitting seeded-default from
+    user-override. That fork is real and unresolved.
+  * Item 3's "same model as packages.list" is `system/waverunner-apply.nix`:
+    user writes a DATA file, a systemd.path fires a root oneshot that
+    validates every token, generates root-owned nix INSIDE the flake checkout,
+    `git add`s it (flakes can't read untracked files), rebuilds, and restores
+    last-good on failure with the result in apply-status.json. Any settings
+    knob that lowers to nix has to ride that same path, and the validation
+    step is per-knob work — a package name is one regex, a theme colour or a
+    display arrangement is not.
