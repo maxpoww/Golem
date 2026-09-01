@@ -444,7 +444,9 @@
   close is entirely in the surfaces. One in-repo finding for whoever runs
   it: `input.follow_mouse = 2` (`hyprland.lua:250`) means focus can be moved
   by the pointer, which is worth checking doesn't fight keyboard-only
-  navigation.
+  navigation. RESOLVED 2026-09-01: both trees came into reach and the
+  surfaces half is done → `keyboard-audit.md`. The follow_mouse worry was
+  backwards — `2` moves cursor focus only, keyboard focus moves on click.
 
 - todo11 item 4 (reduce-motion / reduce-transparency): blocked, but only on
   ordering. Three of the four things that have to move live in this repo and

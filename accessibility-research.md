@@ -211,7 +211,10 @@ work"* (`release-checklist.md:137`):
   (`SUPER+TAB`) and the overview (`SUPER+R`, digits jump, Esc closes)
   without a pointer. The keyboard-only gap is in the surfaces, not the
   window manager — which is the useful half of the answer todo11's
-  keyboard-audit item was going to look for.
+  keyboard-audit item was going to look for. The other half is now done:
+  `keyboard-audit.md` audits every waverunner/waveview gesture row by row
+  (2026-09-01, both trees in reach). Its verdict: navigation is covered,
+  curation is not.
 
 ## 6. Cheapest true first steps, in order
 
@@ -259,6 +262,9 @@ false":
 5. Whether GTK apps honour `text-scaling-factor` while the shell does not —
    i.e. how bad the mixed-size desktop looks before it is fixed.
 6. Newton's real status, with network.
+7. `follow_mouse = 2` semantics under our fork: hover must move only
+   cursor focus, never keyboard focus (`keyboard-audit.md` §1 relies on
+   the documented behaviour, not a measurement).
 
 ## 8. The honest answer to "is 'everyone' true?"
 

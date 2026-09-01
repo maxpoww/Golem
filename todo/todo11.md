@@ -21,7 +21,18 @@
       keyed off TRASH_ID so persisted state stays English. To ship Spanish
       later: drop `es.json` in the data dir — no code change. clippy clean,
       249 tests green (4 new).)*
-- [ ] Keyboard-only audit: every gesture reachable without a pointer
+- [x] Keyboard-only audit: every gesture reachable without a pointer
+      *(DONE 2026-09-01 → `keyboard-audit.md`. Read from the input code of
+      both trees (launcher 7ae5112, waveview e49da53), every row cited.
+      Verdict: navigation is covered — popup search/arrows/Enter/Escape is
+      a real keyboard model, waveview has digits/Esc/tour — but curation
+      is not: every model-editing drag (pin, reorder, box, install,
+      uninstall, trash) has no keyboard path, both topbar boxes are
+      pointer-only end to end (notifications = the sharpest edge), and
+      fullscreen has no bind at all. `follow_mouse = 2` is NOT a fight:
+      hover moves cursor focus only, keyboard focus moves on click — the
+      §5 worry is retired, one live check added to research §7. Audit
+      only, per the freeze: no code changed, nothing invented.)*
       *(UNPARKED 2026-09-01: the compositor half is already collected in
       `accessibility-research.md` §5 — every window/workspace/launcher/
       overview action has a bind in `system/home/hyprland.lua:263-329`. The
