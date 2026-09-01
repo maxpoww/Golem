@@ -230,3 +230,18 @@
   disk. The slirp and llvmpipe items are both written as "revisit if it gets
   old / if the VM ever becomes a daily driver", so neither is actionable until
   the loop actually hurts.
+
+- todo9 item 1 (ISO module): LANDED BUT UNBUILT — same harness limit as the
+  todo5 nix items (Read/Edit/git only; no `nix`, no /nix/store, no network),
+  so `nix build .#iso` has never run and nothing has booted from it. The nix
+  itself is small and mechanical, but two things in it are genuinely unproven
+  and both are called out in `hosts/iso.nix`'s closing comment: (a) Golem core
+  boots a systemd initrd (`system/configuration.nix:54`) while nixpkgs' own
+  installer ISOs still use the scripted one, so iso-image.nix's overlay-store
+  mounts are the least-travelled path in the whole config — if stage 1 hangs,
+  `boot.initrd.systemd.enable = lib.mkForce false` is the one-line proof;
+  (b) quiet boot (loglevel=0, printk zeroed, `fbcon=map:1`) means a failed
+  session looks exactly like a dead machine — tty2 keeps a getty from the
+  installation-device profile, so Ctrl+Alt+F2 is the way in. Expect the image
+  to be large: the live session carries golem-apps.nix, google-chrome and the
+  full home layer, because "live session boots into REAL Golem" is the item.

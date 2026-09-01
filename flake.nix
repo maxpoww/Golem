@@ -13,9 +13,11 @@
   #
   # Golem OS — ONE flake = a complete Golem PC (roadmap S7).
   #
-  #   nixosConfigurations.golem     Max's machine (Slim Pro 9i, nvidia prime)
-  #   nixosConfigurations.golem-vm  hardware-free test system:
-  #                                 nixos-rebuild build-vm --flake .#golem-vm
+  #   nixosConfigurations.golem      Max's machine (Slim Pro 9i, nvidia prime)
+  #   nixosConfigurations.golem-vm   hardware-free test system:
+  #                                  nixos-rebuild build-vm --flake .#golem-vm
+  #   nixosConfigurations.golem-iso  the live medium (S9):
+  #                                  nix build .#iso → result/iso/golem-*.iso
   #
   # The flake IS the distribution: everything a Golem machine needs — the
   # compositor, waverunner (dock/launcher/OPTIONS), options-notify,
@@ -78,6 +80,9 @@
     {
       packages.${system} = {
         inherit waveview;
+
+        # The Arc-1 deliverable: one command, one bootable Golem.
+        iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;
       };
 
       nixosConfigurations.golem = nixpkgs.lib.nixosSystem {
@@ -96,6 +101,15 @@
         # works there like it will on an ISO-installed Golem.
         specialArgs = { golemSrc = self; };
         modules = golemModules ++ [ ./hosts/vm.nix ];
+      };
+
+      nixosConfigurations.golem-iso = nixpkgs.lib.nixosSystem {
+        inherit system;
+        # Same source-on-the-medium trick as the VM: the ISO carries the
+        # flake it was built from, so the installer (todo9 items 2-3) can
+        # instantiate Golem from the stick rather than from the network.
+        specialArgs = { golemSrc = self; };
+        modules = golemModules ++ [ ./hosts/iso.nix ];
       };
     };
 }

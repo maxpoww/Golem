@@ -2,8 +2,19 @@
 
 <!-- Coarse on purpose — break down on entry. -->
 
-- [ ] NixOS ISO module wrapping the S7 flake — live session boots into real
+- [x] NixOS ISO module wrapping the S7 flake — live session boots into real
       Golem (dock, OPTIONS, everything)
+      → `hosts/iso.nix` + `nixosConfigurations.golem-iso` + `packages.iso`:
+      `nix build .#iso`. The live session is the same configuration.nix and
+      home layer the installed machine gets; the module is only the seam
+      with nixpkgs' installation-cd profile (wpa_supplicant vs
+      NetworkManager, no bootloader install, no gc on a read-only store,
+      passwordless live `max`, ISO naming), plus /etc/golem/src so the
+      installer can instantiate Golem from the stick.
+      UNBUILT AND UNBOOTED HERE — this loop's harness has no `nix` (see
+      NOTES). First boot is the test; the file's last comment block names
+      the two things to suspect if it doesn't (systemd initrd on an overlay
+      store; the quiet-boot black screen).
 - [ ] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
 - [ ] Disk flow: guided partitioning, encryption option, one "install" action
