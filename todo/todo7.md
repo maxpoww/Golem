@@ -338,6 +338,19 @@
   github:owner/repo/<full-rev>`, which moves `locked` while leaving
   `original` branch-tracking. Worth remembering; a silent no-op bump
   would ship stale code.)
+  → Max: "still too weak when dark text" — and this one is a ceiling,
+  not a tuning miss: past roughly 4:1 the eye barely registers further
+  darkening, so on a light box "even darker text" reads as no change
+  (rest sRGB 0.26 → hover 0.06 measured, still looked static). Every
+  lightness-based option was exhausted. So the hint gained a channel
+  lightness can't reach: a slim ACCENT BAR (Golem's peach — the same
+  colour as the compositor's active border and the notif unread cue)
+  at the hovered row's left edge, with the ink strengthening kept on
+  top. Explicitly NOT the rejected row wash: nothing behind the text
+  changes, the row keeps its zebra and fill. Both boxes, constants
+  shared in options.rs. launcher `e2be283`. Needs Max's pointer to
+  judge — no input simulation on this compositor (ydotool needs a root
+  daemon + uinput; not worth touching his session for).
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
