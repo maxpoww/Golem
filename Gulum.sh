@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
-# 2hs.sh — work the todo backlog autonomously for 2h, streaming output.
+# Gulum.sh — work the todo backlog autonomously, streaming output.
+# (né 2hs.sh; renamed by Max 2026-09-01)
 #
-# Rewritten 2026-09-01 after the 2026-08-31 run. That run did 99 items and
-# parked 75, and the parks were mostly not the model's judgement — they were
-# the harness. It ran with:
+# Three runs of history, each teaching one thing:
 #
-#     TOOLS="Read,Edit,Bash(npm test *),Bash(git *)"
+#   run 1 (2026-08-31, opus): caged by its own harness — no nix, no other
+#     trees, git commits denied by a prefix-match allowlist. Parked 75 items,
+#     ~28 of them for reachability that was never actually missing.
+#   run 2a (2026-09-01 morning): given the machine + loop-guard.sh. Worked.
+#   run 2b (2026-09-01 midday, fable): closed 7/9 items in ~45 min, then hit
+#     the ACCOUNT SESSION LIMIT. Every iteration after died on turn 1 at $0,
+#     and the stuck-detector misread three instant deaths as "no progress on
+#     todo11" and force-parked two items that were never attempted.
 #
-# on a session rooted at ~/Golem only. So it could not `ls`, could not `grep`,
-# could not run `nix` (this repo is a NixOS flake), could not reach the four
-# other trees the work actually lives in — and `Bash(git *)` did not even match
-# `git add x && git commit -F - <<EOF`, so several of its own commits were
-# denied. It wrote 546 lines of NOTES.md explaining, correctly and in detail,
-# that it had been asked to build things it was forbidden to see.
+# This version is quota-aware, which means three concrete behaviours:
+#   1. it probes before starting; if the limit is already hit it WAITS
+#      (re-probing every 5 min) instead of burning the time budget on
+#      guaranteed failures — the clock starts when work can actually happen;
+#   2. an iteration that dies of quota mid-run stops the loop cleanly with
+#      the reset time, instead of feeding the stuck-detector;
+#   3. the stuck-detector only counts iterations that actually worked
+#      (turns > 2), so a harness failure can never park an item again.
 #
-# This version gives it the machine. Constraints are now about blast radius
-# (loop-guard.sh: nothing leaves this box) and about the roadmap freeze
-# (in the prompt), not about which tools exist.
+# It works as long as it has tokens, and not a second of pretending longer.
 #
 # Recovery: every tree was tagged pre-loop-<stamp> before the run, and
 # ~/Golem-web's uncommitted worktree was tarred into the scratchpad.
@@ -29,9 +35,29 @@ BUDGET=$(( 120 * 60 ))          # 2h total
 SLICE_MAX=$(( 30 * 60 ))        # max per iteration (nix builds are slow)
 SETTINGS="$GOLEM/loop-settings.json"
 
-# Model. Override per run:  MODEL=opus ./2hs.sh
-# The 2026-08-31 run was opus and cost $22.67 for 31 iterations.
+# Model. Override per run:  MODEL=opus ./Gulum.sh
+# run 1 (opus): $22.67 / 31 iterations. run 2b (fable): ~$25 / 45 min —
+# fable was NOT cheaper per iteration; the savings came from lean context.
 MODEL="${MODEL:-fable}"
+
+# Quota probe: cheapest possible call that still answers "do we have tokens?"
+# Returns 0 = yes, 1 = limited (prints the reset message), 2 = other error.
+probe_quota() {
+  local out
+  out=$(claude -p "reply with the single word ok" --model haiku \
+        --output-format json 2>/dev/null | jq -r '
+          if .is_error == true then "LIMIT: \(.result // "unknown")"
+          else "OK" end' 2>/dev/null)
+  case "$out" in
+    OK)      return 0 ;;
+    LIMIT:*) echo "${out#LIMIT: }"; return 1 ;;
+    *)       return 2 ;;
+  esac
+}
+
+# The limit signature in a result record. Matched loosely on purpose: the
+# harness phrases it "You've hit your session limit · resets 4pm (...)".
+is_limit_msg() { grep -qiE 'session limit|usage limit|rate limit|out of.*(tokens|quota)' <<<"$1"; }
 
 # The five other trees the backlog refers to. The last run could reach none of
 # them and parked ~28 items saying so.
@@ -56,6 +82,22 @@ cd "$GOLEM" || exit 1
 DIR_ARGS=()
 for d in "${ADD_DIRS[@]}"; do
   [ -d "$d" ] && DIR_ARGS+=(--add-dir "$d") || echo "warning: $d not found, skipping"
+done
+
+# Wait for tokens before starting the clock. The budget measures work, not
+# waiting: a run launched 40 minutes before the quota resets should still get
+# its full 2h of actual work.
+printf '\033[1mprobing quota...\033[0m '
+while :; do
+  MSG=$(probe_quota) && { echo "tokens available"; break; }
+  RC=$?
+  if [ "$RC" -eq 1 ]; then
+    printf '\n\033[33mlimited: %s — waiting 5m and re-probing\033[0m\n' "${MSG:-no detail}"
+    sleep 300
+  else
+    printf '\n\033[31mprobe failed for a non-quota reason (network? auth?) — retrying in 60s\033[0m\n'
+    sleep 60
+  fi
 done
 
 END=$(( $(date +%s) + BUDGET ))
@@ -218,6 +260,8 @@ while :; do
     PROMPT="$(printf "$PROMPT_TEMPLATE" "$TODO")"
   fi
 
+  JSONL_BEFORE=$(wc -l < raw.jsonl 2>/dev/null || echo 0)
+
   timeout "$SLICE" claude -p "$PROMPT" \
     "${CONT[@]}" \
     --model "$MODEL" \
@@ -229,6 +273,31 @@ while :; do
     | tee -a raw.jsonl \
     | jq -rj --unbuffered "$STREAM_FILTER" \
     || echo "iteration ended early on $TODO (timeout or error), continuing"
+
+  # Read THIS iteration's result record (only lines appended since we
+  # started), and act on how the iteration actually ended.
+  ITER_RESULT=$(tail -n +"$(( JSONL_BEFORE + 1 ))" raw.jsonl \
+    | jq -rs '[.[] | select(.type=="result")] | last // empty
+              | "\(.is_error) \(.num_turns // 0) \(.result // "" | .[0:200])"' 2>/dev/null)
+  ITER_ERR=${ITER_RESULT%% *}; REST=${ITER_RESULT#* }
+  ITER_TURNS=${REST%% *};      ITER_MSG=${REST#* }
+
+  # Quota death: stop the whole run cleanly. Do NOT let it feed the
+  # stuck-detector — that is exactly how run 2b force-parked two items it
+  # never attempted.
+  if [ "$ITER_ERR" = "true" ] && is_limit_msg "$ITER_MSG"; then
+    printf '\n\033[33mout of tokens: %s\033[0m\n' "$ITER_MSG"
+    echo "stopping cleanly — nothing was parked, the open items stay open."
+    echo "relaunch ./Gulum.sh after the reset; it will wait if it has to."
+    break
+  fi
+
+  # A dead-on-arrival iteration (error, no real turns) is a harness problem,
+  # not evidence about the item. It must not count toward parking.
+  if [ "$ITER_ERR" = "true" ] && [ "${ITER_TURNS:-0}" -le 2 ]; then
+    echo "iteration died before doing any work (${ITER_MSG:-no detail}) — not counting it against $TODO"
+    STUCK=$(( STUCK > 0 ? STUCK - 1 : 0 ))
+  fi
 done
 
 echo
