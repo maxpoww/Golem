@@ -159,13 +159,32 @@
       animation frame rate (or go static) when the renderer is software.
       Launcher-repo. (Live mitigation that proved it: renice 19 on the
       daemon freed the session instantly.)
-- [ ] **F8 — renderer init failure = shell silently dead forever.** Seen in
+- [x] **F8 — renderer init failure = shell silently dead forever.** Seen in
       the Venus experiment: wgpu couldn't create a surface, the daemon
       errored out, systemd's restart limit exhausted in seconds → no dock,
       no bar, no OPTIONS, and nothing tells the user why. The daemon (or
       its unit) needs a real degrade path: retry with backoff, fall back
       to a software adapter, or at minimum leave a visible breadcrumb.
       Launcher-repo work.
+      → DONE (launcher `63af71b`, Round 20): all three, because it
+      failed three ways at once. (1) The daemon no longer EXITS on a
+      renderer error — it stays up and retries on a backoff (2s, 4s,
+      8s, capped); the cause is usually transient (driver settling at
+      boot, GPU busy across a VT switch). (2) Adapter acquisition is a
+      LADDER: real GPU → forced software adapter (slow but a desktop —
+      F12's throttle exists for exactly that) → GL-only for stacks
+      whose Vulkan surface path is broken while GL presents fine.
+      Venus handed us a surface with NO adapter and that single
+      failure was fatal. (3) The breadcrumb goes through the
+      COMPOSITOR's notify OSD, never ours — waverunner DRAWS our
+      notifications, so a renderer-less daemon announcing itself
+      through its own surface says nothing, which is the exact silence
+      this bug is. Plus the unit drops its start limit (systemd's
+      default 5-starts-in-10s with RestartSec=1s = permanently failed
+      in ~5 seconds) and slows RestartSec to 2s.
+      VERIFIED end-to-end with a temporary forced-failure hook
+      (removed before commit): daemon stayed alive, retried at 2s and
+      8s, recovered on the real GPU after 4 failures.
 - [ ] VM-only: waverunner renders on llvmpipe (virgl gives GL, wgpu wants
       Vulkan) → dock is CPU-drawn, video can stutter with it. Venus
       (vulkan passthrough) tried 2026-08-30 and REVERTED — wgpu got no
@@ -175,6 +194,19 @@
 
 ## Log
 
+- Round 20 (2026-09-01, Max: "lets do F8"): THE LAST FILED LAUNCHER
+  BUG IS CLOSED — and it was three failures stacked. See the ticked
+  F8 item above for the full shape. The one worth repeating: the
+  BREADCRUMB had to leave through the compositor's own OSD, because
+  waverunner is what draws our notifications — a renderer-less daemon
+  telling the user through its own surface says nothing at all, which
+  is precisely why the original failure was silent. Verified by
+  forcing the failure (temporary hook, removed): alive through it,
+  retried, recovered, told the user both times. Also of note: the
+  UNIT was half the bug — `Restart=on-failure` + `RestartSec=1s`
+  against systemd's default 5-in-10s limit means an environmental
+  failure permanently disables the shell inside five seconds. A shell
+  that keeps trying beats one that gives up. launcher `63af71b`.
 - Round 19 (2026-09-01, Max: "add pointers to the overview (finger,
   grabing hand, etc)"): THE OVERVIEW CURSOR NOW STATES THE GESTURE.
   Only resize zones changed the pointer before; everywhere else wore
