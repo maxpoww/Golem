@@ -323,10 +323,27 @@
   four times the step. Toward black the push is a uniform scale so the
   warm cast survives; toward white it washes out, as a highlight
   should. launcher `3cf65ae`.
+  → Max: "still weak on white text" — because it rested at 0.82 alpha,
+  already near the ceiling with nothing above it. Measured, the two
+  regimes have very different CONTRAST CEILINGS: light ink on a dark
+  box reaches ~7:1 easily; dark ink on a backdrop-coloured light box
+  tops out near 5.5:1. So the dark-box rest drops to 0.67 (still 6:1 —
+  more contrast than the light box ever gets) with hover pushing 85%
+  toward white: step sRGB 0.83 → 0.98. Light box unchanged; it has no
+  room to give. LIST_DIM (0.67) and LIST_DIM_LIGHT (0.88) now sit far
+  apart for a documented, measured reason instead of by feel.
+  launcher `4bedd82`. (Flake bump note: GitHub's API rate-limited the
+  HEAD lookup and `nix flake update` SILENTLY kept the cached rev —
+  pinned with `nix flake lock --override-input <input>
+  github:owner/repo/<full-rev>`, which moves `locked` while leaving
+  `original` branch-tracking. Worth remembering; a silent no-op bump
+  would ship stale code.)
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
-  ALPHA *and* in colour range.
+  ALPHA *and* in colour range. The room available is not a matter of
+  taste: it is set by each regime's contrast ceiling, which is why the
+  two dims differ so widely.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the

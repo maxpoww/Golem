@@ -177,6 +177,10 @@
     # dav:// or sftp:// at all — it is what lets the Golem phone appear as a
     # browsable location rather than needing a FUSE mount.
     services.gvfs.enable = true;
+    # Enabling the daemon is not enough: GTK apps only speak to it if gvfs's
+    # GIO module is on GIO_EXTRA_MODULES. Without this Thunar silently shows
+    # no network locations at all.
+    environment.sessionVariables.GIO_EXTRA_MODULES = [ "${pkgs.gvfs}/lib/gio/modules" ];
 
     environment.systemPackages = with pkgs; [
       git
