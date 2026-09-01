@@ -428,6 +428,11 @@
   `glass` float, which already carries two — worth it: `border` is now
   available to every surface. Seen live on Max's own hover in a
   verification screenshot. launcher `2a9add7`.
+  → Max: "sligthly more subtle and make sure the border is on the
+  actual edge of each card" — alpha 0.55, inset dropped so the stroke
+  occupies the OUTERMOST pixel of the same rect the zebra band uses;
+  the frame traces the card instead of floating inside it. launcher
+  `3b394ca`. Frame settings now: 1px, radius 7, alpha 0.55, no inset.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
