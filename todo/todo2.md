@@ -16,7 +16,7 @@
 - [x] Health/degrade: compositor layer dark → pill falls back to direct
       poll; verified live (the ~2s collector warm-up runs on fallback,
       then logs "compositor layer alive — window pill is engine-driven")
-- [ ] Max's eyes + a day of daily use: the pill should behave *identically*
+- [?] Max's eyes + a day of daily use: the pill should behave *identically*
       (this was a re-plumbing) — watch for stale titles or fullscreen
       hide/reveal misbehavior
 - [ ] Then: mark window-pills "sensed+shown via Brain" in optionsmodules.md

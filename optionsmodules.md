@@ -8,7 +8,13 @@
 
 ## Live (built before the Brain, need re-wiring)
 
-- window-pills
+- window-pills — **sensed+shown via Brain (2026-08-30, S2)**: the collector
+  in the engine perceives the active window and the topbar pill is driven
+  from `ContextState.window` (title/address/class/fullscreen) over the
+  `brain.rs` bridge; the old hyprctl poll survives only as the degrade path
+  when the compositor layer is dark. Still open for the full DoD: **Decided**
+  (no Mind provider yet) and **Wired to the Brain** via `OptionSet` rather
+  than the raw context snapshot — both are S3's Mind/OptionSet work.
 - clipboard
 - notifications
 - dictionary
