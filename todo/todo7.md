@@ -405,6 +405,16 @@
   so it BLOCKED the blur on every other row — one band frosted, the
   next flat. Stripes carry BOX_ALPHA now, both boxes. launcher
   `3b2420a`.
+  → Max: "lets try by using a border on the card im hovering. but
+  subtle." — a hairline frame in the box's own ink at 0.32 alpha, on
+  top of the ink firming. It marks the row WITHOUT changing anything
+  behind the text, so the frosted blur reads through the hovered row
+  like everywhere else — the thing the row wash couldn't do, and why
+  that attempt read heavy. Drawn as four thin rects: the rect pipeline
+  has no stroke mode, and an outer+inner rounded pair would need an
+  opaque inner fill, punching a hole in the blur. Shared helper
+  (`push_hover_frame`) so both boxes frame identically. launcher
+  `bd7271d`. Needs Max's pointer to judge.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
