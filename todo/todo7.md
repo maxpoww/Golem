@@ -190,6 +190,20 @@
   verified present in the ACTIVE theme (phinger-cursors-light, not
   just breeze) before shipping — a missing name would have silently
   done nothing. waveview `23be959` (v0.33), hot-reloaded; pin bumped.
+  → Max: "i rather have index over the views… 10ms of open hand then
+  closed… and now dragging becomes plain arrow". (a) Thumbnails take
+  the FINGER like empty tiles — both are "click jumps there", the open
+  hand claimed a different affordance. (b) Press shows the hand OPEN
+  for a beat then closes it (HAND_CLOSE_MS = 90, not 10: a frame is
+  ~16ms at 60Hz, so a 10ms open hand is replaced before it is ever
+  scanned out). (c) THE BUG: the compositor's own drag machinery sets
+  the cursor too, so our cached shape name went stale — it still said
+  "grabbing" while the pointer had reverted, and the change-check then
+  suppressed every re-apply. The closed hand is re-asserted through
+  the drag, throttled to 60ms so a fast mouse doesn't re-render the
+  cursor hundreds of times a second. LESSON: a "did it change?" cache
+  over shared global state is only valid if you own every writer.
+  waveview `17fe89f` (v0.34).
 - Round 18 (2026-08-31, Max: "the text on options is white, but the
   text inside notifications and clipboard is black"): INK REGIME BUG,
   fixed with numbers rather than guesses. Instrumented the live daemon
