@@ -15,7 +15,14 @@
       Hyprland already rounds to 12, which is what Adwaita draws.
       Same BUILD CHECK OWED as above — and the aesthetic verdict is Max's
       eyes, this only wires the levers to values the desktop already uses.
-- [ ] Default apps / mime wiring: every file type opens in the right pick
+- [x] Default apps / mime wiring: every file type opens in the right pick
+      → `xdg.mimeApps` in `system/home/home.nix`: directories→Nautilus,
+      text/code→Text Editor, images→Loupe, video→Showtime, audio→Decibels,
+      pdf/epub→Papers, archives→File Roller, plus ISO/calendar/vcard/geo.
+      text/html + http(s) left OUT on purpose — those ARE item 1, and
+      wiring them would settle the browser by the back door.
+      Same BUILD CHECK OWED. Also: a machine with a hand-written
+      ~/.config/mimeapps.list will need it moved aside on first rebuild.
 - [ ] Per-app touch check (features.md §5 touchscreen)
 - [ ] Music pick: try Decibels vs Amberol, keep one
 - [ ] Replace launcher's Files section with Nautilus handoff

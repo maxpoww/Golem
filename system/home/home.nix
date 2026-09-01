@@ -361,4 +361,92 @@
     templates = "$HOME/Templates";
     publicShare = "$HOME/Public";
   };
+
+  # ── Default apps (roadmap S5) ─────────────────────────────────────────
+  # Every file type opens in the CURATE pick from golem-apps.nix. Without
+  # this, "open with" is whatever alphabetical accident the desktop-file
+  # scan lands on — the difference between Golem feeling assembled and
+  # feeling like a pile of packages.
+  #
+  # Not wired here: text/html and the http/https schemes. Those ARE the
+  # browser decision (todo5 item 1) — wiring them now would settle it by
+  # the back door. They land in the same commit that answers it.
+  #
+  # First rebuild on a machine that already has a hand-written
+  # ~/.config/mimeapps.list will stop and say the file is in the way:
+  # move it aside, it is being replaced by this.
+  xdg.mimeApps =
+    let
+      files = [ "org.gnome.Nautilus.desktop" ];
+      editor = [ "org.gnome.TextEditor.desktop" ];
+      images = [ "org.gnome.Loupe.desktop" ];
+      video = [ "org.gnome.Showtime.desktop" ];
+      # Decibels is the play-this-one-file player, which is exactly what a
+      # double-click is. If todo5 item 6 keeps Amberol instead, this flips.
+      audio = [ "org.gnome.Decibels.desktop" ];
+      docs = [ "org.gnome.Papers.desktop" ];
+      archives = [ "org.gnome.FileRoller.desktop" ];
+    in
+    {
+      enable = true;
+      defaultApplications = {
+        "inode/directory" = files;
+
+        "text/plain" = editor;
+        "text/markdown" = editor;
+        "text/csv" = editor;
+        "text/x-log" = editor;
+        "application/json" = editor;
+        "application/xml" = editor;
+        "application/x-shellscript" = editor;
+        "application/toml" = editor;
+        "text/x-python" = editor;
+        "text/x-csrc" = editor;
+        "text/x-chdr" = editor;
+        "text/rust" = editor;
+        "text/x-nix" = editor;
+
+        "image/png" = images;
+        "image/jpeg" = images;
+        "image/gif" = images;
+        "image/webp" = images;
+        "image/tiff" = images;
+        "image/bmp" = images;
+        "image/svg+xml" = images;
+        "image/heif" = images;
+        "image/avif" = images;
+
+        "video/mp4" = video;
+        "video/x-matroska" = video;
+        "video/webm" = video;
+        "video/quicktime" = video;
+        "video/x-msvideo" = video;
+        "video/mpeg" = video;
+
+        "audio/mpeg" = audio;
+        "audio/flac" = audio;
+        "audio/ogg" = audio;
+        "audio/x-vorbis+ogg" = audio;
+        "audio/x-wav" = audio;
+        "audio/mp4" = audio;
+        "audio/x-opus+ogg" = audio;
+
+        "application/pdf" = docs;
+        "application/epub+zip" = docs;
+
+        "application/zip" = archives;
+        "application/x-tar" = archives;
+        "application/gzip" = archives;
+        "application/x-xz" = archives;
+        "application/zstd" = archives;
+        "application/x-7z-compressed" = archives;
+        "application/vnd.rar" = archives;
+        "application/x-bzip2" = archives;
+
+        "application/x-cd-image" = [ "org.gnome.DiskUtility.desktop" ];
+        "text/calendar" = [ "org.gnome.Calendar.desktop" ];
+        "text/vcard" = [ "org.gnome.Contacts.desktop" ];
+        "x-scheme-handler/geo" = [ "org.gnome.Maps.desktop" ];
+      };
+    };
 }
