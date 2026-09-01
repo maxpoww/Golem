@@ -19,7 +19,7 @@
 - [?] Max's eyes + a day of daily use: the pill should behave *identically*
       (this was a re-plumbing) — watch for stale titles or fullscreen
       hide/reveal misbehavior
-- [ ] Then: mark window-pills "sensed+shown via Brain" in optionsmodules.md
+- [x] Then: mark window-pills "sensed+shown via Brain" in optionsmodules.md
       (full module DoD needs the Mind/OptionSet layer — that's S3's work)
 
 **S2 exit:** one surface engine-driven end to end on the live session —
