@@ -302,6 +302,21 @@
   wouldn't register. Test pins "lighter than rest, still far nearer
   the resting ink than the opposite one". launcher `e2d9b58`,
   146 tests.
+  → Max: "no, this is not great, in black text there is no hover. on
+  white text is pritty weak" — and the numbers explain why the whole
+  lighter-on-hover idea was doomed: on a LIGHT box, lightening dark
+  text moves it TOWARD the background (5.5:1 → 2.5:1), so a hovered
+  row reads as faded, not picked; and with rest already at full
+  strength there was no headroom in the direction that does read.
+  Final rule: hover always moves the text AWAY from its background.
+  The resting list sits a little under full (LIST_DIM 0.82 dark box /
+  0.88 light box — still 3.6:1) and hover spends that headroom:
+  dark ink deepens toward black, light ink brightens toward white.
+  One rule, right in both regimes, no row tinting. Measured, not
+  guessed (rest sRGB 0.26 → hover 0.14). launcher `40f7b61`.
+  THE LESSON of the hover sub-thread: "emphasis" is not a direction in
+  colour space, it is DISTANCE FROM THE BACKGROUND — and any
+  emphasis mechanism needs the resting state to leave it room.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the
