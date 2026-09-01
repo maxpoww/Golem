@@ -442,6 +442,20 @@
   growing/collapsing, and (notif) the box height settling. Those ticks
   already draw, so the hover lands on the same frame the content does.
   launcher `4e6d49d`.
+  → Max: "check why the clipboard pill (big one) is transparent" —
+  NOT a regression: the fill line is byte-identical to before the
+  day's work (checked against 81fb062/4cef2a2). The pill has always
+  ramped its fill with the EXPAND only, so a peeking clip's text and
+  thumbnail sat on the bare resting wash (~0.11 alpha) — straight on
+  the desktop. Two things made it newly obvious: the box it grows into
+  finally became a real frosted surface, and an unmatched bar always
+  washes LIGHTER (options_bar_is_bright is matched-only by Max's own
+  earlier call), which vanishes over a light wallpaper. Fix: the fill
+  AND ink now ramp with the PEEK too, leading the content slightly so
+  the surface arrives before the text. The pill frosts like the box —
+  which is what the code always claimed ("the box is the pill grown").
+  launcher `aaf1bf2`. Notif's bubble preview has the same shape and
+  was left alone (scope).
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
