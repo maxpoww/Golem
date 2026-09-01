@@ -26,13 +26,14 @@
 - [?] Per-app touch check (features.md §5 touchscreen)
 - [?] Music pick: try Decibels vs Amberol, keep one
       (both ship as of the golem-apps.nix commit, so the trying is set up)
-- [ ] Replace launcher's Files section with Nautilus handoff
-      *(UNPARKED 2026-09-01: the only wall was reach — the Files section is
-      a waverunner surface and the last loop was sandboxed to ~/Golem. The
-      checkout at ~/launcher is now in scope and `nix develop -c cargo test`
-      runs green there. The ~/Golem half is already done: Nautilus ships and
-      owns `inode/directory`, so the handoff has something to hand off to.
-      This replaces a surface rather than adding one, so the freeze allows it.)*
+- [x] Replace launcher's Files section with Nautilus handoff
+      → ~/launcher feecc69: activating a folder now falls through to the
+      launch path (xdg-open → Nautilus, which owns `inode/directory`).
+      The home strip and file search results stay; in-launcher directory
+      browsing is gone — files_dir, try_navigate, the ".." lead tile and
+      its layout/hit-test/render machinery, the "Files — ~/path" title.
+      `nix develop -c cargo test --workspace` green (244; the one lost
+      test asserted the deleted ".." lead-cell geometry).
 - [x] Emoji/characters as system-wide input, not just an app
       → fcitx5 (apps.md's own pick) in `system/golem-apps.nix`, wayland
       frontend + GTK addon; its Unicode addon (Ctrl+Alt+Shift+U) types the

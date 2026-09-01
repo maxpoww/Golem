@@ -116,12 +116,15 @@
   Decibels with a comment saying it flips if Amberol wins. Whichever loses
   gets deleted from golem-apps.nix, not left installed.
 
-- todo5 "Replace launcher's Files section with Nautilus handoff": blocked —
-  same wall as todo3/todo4. The Files section is a waverunner surface
-  (`github:maxpoww/launcher`, checkout at ~/launcher, a pinned flake input
-  here), and this session is sandboxed to ~/Golem. The ~/Golem half is done:
-  Nautilus ships and owns `inode/directory`, so the handoff has something to
-  hand off TO — what remains is Rust, in the other tree.
+- todo5 "Replace launcher's Files section with Nautilus handoff": DONE
+  2026-09-01 (~/launcher feecc69) — the reach wall above expired when the
+  sandbox opened. Folder activation now falls through to the launch path
+  (xdg-open → Nautilus); in-launcher browsing (files_dir/try_navigate/the
+  ".." lead-cell machinery) is deleted, the home strip and file search
+  results remain. cargo test --workspace green at 244 (one deleted test
+  asserted the ".." lead geometry). NOTE for Max: the flake pins waverunner
+  by rev, so the ISO/VM won't see this until the input is bumped — and the
+  handoff deserves one live click (verify-ui) before that bump.
 
 - todo6 (all six items — knob inventory, surface design, declarative write
   path, live-apply, theme picker, OPTIONS toggles): blocked, two walls.
