@@ -374,3 +374,64 @@
   artifact to link (the ISO has still never been built or booted). Now also
   gated by its own file: `release-checklist.md` §5 is the ordered gate, and
   every line above "publish" is open.
+
+- todo11 item 1 (i18n pass: shell strings extractable, Spanish first):
+  blocked the same way todo3 and todo4 are — "the shell" is waverunner's
+  Rust, and the item's two halves (pick an extraction mechanism, then wrap
+  every user-visible string in it) are both edits in a tree this session
+  cannot list, let alone build. The dictionary that "leads the way" is a
+  waverunner module too. What is reachable from here is a different, smaller
+  i18n fact worth not confusing with the item: `system/configuration.nix:98-110`
+  pins `America/La_Paz` and nine `es_BO` `LC_*` settings onto every Golem
+  machine including the ISO — already on the known-issues list
+  (`release-checklist.md:130-134`). That is the installer's to ask, not S11's
+  to translate, and changing it changes Max's daily driver, so it stays his.
+
+- todo11 item 2 (keyboard-only audit: every gesture reachable without a
+  pointer): blocked on seeing half the subject. The audit's rows are the
+  OPTIONS surfaces — dock, pills, boxes, the drag-to-install gesture, the
+  overview's drags — and whether each has a keyboard path is a property of
+  waverunner's and waveview's input handling, which is out of reach and
+  cannot be run either (no display, no `nix`). Writing "unknown" in two
+  thirds of an audit is not an audit. The half that IS knowable was done and
+  is recorded in `accessibility-research.md` §5: the compositor's own
+  keyboard coverage is complete — focus, move, resize, workspaces, close,
+  launcher, window cycling and the overview all have binds
+  (`system/home/hyprland.lua:263-329`) — so the gap this item exists to
+  close is entirely in the surfaces. One in-repo finding for whoever runs
+  it: `input.follow_mouse = 2` (`hyprland.lua:250`) means focus can be moved
+  by the pointer, which is worth checking doesn't fight keyboard-only
+  navigation.
+
+- todo11 item 4 (reduce-motion / reduce-transparency): blocked, but only on
+  ordering. Three of the four things that have to move live in this repo and
+  are one-liners (`hyprland.lua:172` kills compositor animation wholesale,
+  `:139-156` is the blur/opacity block, `home.nix:102-107` is where the apps'
+  `enable-animations` would go). The fourth is the shell's own motion and
+  glass, which needs waverunner to read a flag from
+  `xdg.configFile."waverunner/config.toml"` (`home.nix:316-326`) — and until
+  it does, flipping the other three produces the worst possible result: a
+  desktop where the windows are still and the dock still flies. So the
+  engine goes first, in the waverunner tree. Design is settled in
+  `accessibility-research.md` §4: one intent, four consumers, never a
+  per-layer toggle.
+
+- todo11 item 5 (non-expert testing rounds): blocked on people. The item's
+  verb is "watch" — real humans, unprompted, on a running machine — and an
+  agent can supply neither the humans nor the machine (no display here, and
+  the ISO has never been booted). It is also downstream of S8's tour and of
+  the seven SH surfaces that are fixed in code but never looked at
+  (`release-checklist.md` §2.3): testing a stranger against unverified
+  surfaces measures the bugs, not the design.
+
+- todo11 item 6 (the final check: is the word "everyone" on the website
+  true?): blocked twice. The website is a separate repo this sandbox cannot
+  reach (same wall as todo10 items 1/2/5), and the check is by design the
+  last thing in the file — its answer is the sum of items 1-5, all open. The
+  answer as of today was still worth writing down rather than leaving to the
+  moment someone writes copy: `accessibility-research.md` §8 states it with
+  citations — a blind person cannot use Golem at all, and a pointer-less
+  person can move windows but cannot reach the shell that is Golem's whole
+  point. That is acceptable for an alpha (S11 closes last by design) and
+  unacceptable to imply otherwise on a page, which is the same refusal
+  `Golem.md:52` already makes.
