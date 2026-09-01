@@ -459,7 +459,11 @@
   desktop where the windows are still and the dock still flies. So the
   engine goes first, in the waverunner tree. Design is settled in
   `accessibility-research.md` §4: one intent, four consumers, never a
-  per-layer toggle.
+  per-layer toggle. RESOLVED 2026-09-01: the engine landed (launcher
+  d47951c, `[accessibility]` in config.toml, both flags default off, 252
+  tests green). The three repo one-liners are no longer order-blocked —
+  they now wait on the single intent that writes all four consumers, which
+  is S6 settings-surface work, frozen until Arc 2.
 
 - todo11 item 5 (non-expert testing rounds): blocked on people. The item's
   verb is "watch" — real humans, unprompted, on a running machine — and an

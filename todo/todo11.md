@@ -63,7 +63,21 @@
       forks the compositor, so that route is ours to build and no plan
       works without it. §6 orders the cheap true steps, §7 is the checklist
       for a session with a machine, §8 answers the last item in this file.
-- [ ] Reduce-motion / reduce-transparency modes (our glass needs an off switch)
+- [x] Reduce-motion / reduce-transparency modes (our glass needs an off switch)
+      *(DONE 2026-09-01, launcher d47951c — the engine step the unpark
+      scoped. New `[accessibility]` config.toml section: `reduce_motion`
+      snaps every animation primitive (ease_toward / Follower / Spring /
+      Timed, plus the three steppers outside them: box open/close, launch
+      bounce, click ripple+box wave) — install rings and the battery alarm
+      still animate, information not ornament. `reduce_transparency`
+      rewrites the theme background opaque at startup, lifts the OPTIONS
+      boxes' panel/zebra to alpha 1.0, and draws the bar as the boxes'
+      opaque slab. Both default off — resting look byte-identical. 252
+      tests green (3 new), clippy -D warnings clean; not seen live (no
+      display this run). Ordering now unblocked: the three repo-side
+      consumers (`hyprland.lua:172`, `:139-156`, dconf enable-animations)
+      wait only on the ONE intent that writes all four — that writer is
+      S6's settings surface, frozen until Arc 2.)*
       *(UNPARKED 2026-09-01: NOTES recorded this as blocked "only on
       ordering" — the engine must read the flag before the other three
       consumers are flipped, and the engine was out of reach. ~/launcher is
