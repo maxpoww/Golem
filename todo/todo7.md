@@ -294,6 +294,14 @@
   other ink rules in options.rs and both boxes call it, so they can't
   drift; the HOVER_ROW constants and all the hover_opaque plumbing are
   deleted. launcher `ac3f16e`.
+  → Max: "too much, make the flip subtle" — it now EASES part of the
+  way instead of swapping: dark ink 10% toward the warm off-white,
+  light ink 30% toward white. Two factors because the values are
+  linear and sRGB compresses the dark end — that 10% is already a
+  clear lift (sRGB 0.15 → ~0.35) while the same step off near-white
+  wouldn't register. Test pins "lighter than rest, still far nearer
+  the resting ink than the opposite one". launcher `e2d9b58`,
+  146 tests.
   ARC of this colour work, worth remembering: each fix was right for
   the state at the time, and each next request revealed the previous
   one was compensating for a missing signal. The keeper is the
