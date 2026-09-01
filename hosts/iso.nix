@@ -43,6 +43,10 @@
   boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.loader.grub.enable = lib.mkForce false;
   boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
+  #    The live medium sets its own menu timeout (iso-image.nix wants 10);
+  #    configuration.nix's 3 is for an installed machine and would collide at
+  #    the same priority, so it yields here like the three above.
+  boot.loader.timeout = lib.mkForce 10;
 
   # 3. Garbage collection. Golem core runs a daily gc; the live store is a
   #    read-only squashfs under a tmpfs overlay, where deleting a path from
