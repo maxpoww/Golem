@@ -2,7 +2,7 @@
 
 <!-- Runs alongside S8–S10, closes last. -->
 
-- [ ] i18n pass: shell strings extractable, Spanish first (dictionary
+- [x] i18n pass: shell strings extractable, Spanish first (dictionary
       already leads the way)
       *(UNPARKED 2026-09-01: "the shell" is waverunner's Rust and ~/launcher
       is now in scope. Do the FIRST half only — pick an extraction mechanism
@@ -11,6 +11,16 @@
       onto every machine at `system/configuration.nix:98-110` and changing
       that is the installer's question and Max's daily driver, so it stays
       his. Keep `nix develop -c cargo test --workspace` green.)*
+      *(DONE 2026-09-01, launcher 7ae5112: new `crates/daemon/src/i18n.rs`
+      — gettext-style `tr()`, English literal = key + fallback, table is a
+      flat JSON map at `<data-dir>/i18n/<tag>.json` (or `$WAVERUNNER_I18N`),
+      tag from `LC_ALL`→`LC_MESSAGES`→`LANG`, `es_BO` tried before `es`.
+      Zero new deps (serde_json, same shape as dict.rs). 36 strings + 12
+      month keys wrapped across 8 files; extraction is
+      `grep -rhoE 'i18n::tr\("[^"]+"\)'`. Recycle Bin translates at display
+      keyed off TRASH_ID so persisted state stays English. To ship Spanish
+      later: drop `es.json` in the data dir — no code change. clippy clean,
+      249 tests green (4 new).)*
 - [ ] Keyboard-only audit: every gesture reachable without a pointer
       *(UNPARKED 2026-09-01: the compositor half is already collected in
       `accessibility-research.md` §5 — every window/workspace/launcher/
