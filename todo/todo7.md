@@ -365,6 +365,21 @@
   ONLY, so one string shaped in different families shared a buffer —
   bold vs regular would have collided, and Nerd vs sans already could;
   the key includes the family now. launcher `4cef2a2`.
+  → Max: "make notification and clipboard blured" — done, and the key
+  fact is WHERE the blur can come from: a Wayland client cannot sample
+  what is behind its own layer surface, so waverunner's existing
+  frosted-box renderer path (built for the launcher's app box, which
+  blurs the daemon's OWN scene) could never serve this. The compositor
+  must do it. The dock namespace already had a blur layer rule;
+  `waverunner-options` never got one. Added it (both hyprland.lua
+  copies) + the boxes now draw at BOX_ALPHA 0.80 instead of opaque so
+  the blur reads through. Alpha kept high on purpose: the ink is
+  chosen from the fill's tint while what shows through is whatever
+  window sits under the box — much below 0.7 and a dark window under a
+  light wallpaper drags the effective background out from under the
+  text. Verified live (rule registered at runtime via `hyprctl eval`
+  first — layer rules CAN be added without a rebuild, handy).
+  launcher `a10d353`. Config half needs the next rebuild to persist.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
