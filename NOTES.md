@@ -37,3 +37,17 @@
   block on the user and need something box-shaped, volume/brightness/battery
   are glanceable scalars that want to rest visible, and a connected headset
   surfaces in two modules at once.
+
+- todo5 "Decide default browser": blocked — the default browser is a values
+  call (privacy story vs one-engine simplicity) and it's the OS's most
+  visible third-party choice, so it's Max's. What an agent can add is the
+  fact the item's framing misses: the webapp engine that actually ships is
+  **google-chrome** (unfree, `programs.chromium.package = pkgs.google-chrome`
+  in `system/home/home.nix`), not chromium — while apps.md says "Chromium
+  (webapp engine already)" and todoSH F2 records that S7 "must SHIP
+  chromium". So the real fork is three-way: (a) Firefox default + keep
+  google-chrome as the engine (privacy headline undercut by an unfree Google
+  browser in the image), (b) Firefox default + swap the engine to chromium
+  (F2's runtime fallback chain google-chrome-stable → chromium already
+  handles it, costs a second big build), (c) chromium as both. Whichever Max
+  picks, apps.md line 48 and home.nix have to end up saying the same thing.
