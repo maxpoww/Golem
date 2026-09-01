@@ -29,6 +29,10 @@ BUDGET=$(( 120 * 60 ))          # 2h total
 SLICE_MAX=$(( 30 * 60 ))        # max per iteration (nix builds are slow)
 SETTINGS="$GOLEM/loop-settings.json"
 
+# Model. Override per run:  MODEL=opus ./2hs.sh
+# The 2026-08-31 run was opus and cost $22.67 for 31 iterations.
+MODEL="${MODEL:-fable}"
+
 # The five other trees the backlog refers to. The last run could reach none of
 # them and parked ~28 items saying so.
 ADD_DIRS=(
@@ -164,8 +168,8 @@ STREAM_FILTER='
     "\n[33m— iteration done (\(.num_turns // 0) turns, $\(.total_cost_usd // 0))[0m\n"
   else empty end'
 
-printf '\033[1mstarting: %s budget, %d trees in scope, guard active\033[0m\n' \
-  "$(( BUDGET / 60 ))m" "$(( ${#DIR_ARGS[@]} / 2 + 1 ))"
+printf '\033[1mstarting: %s budget, model %s, %d trees in scope, guard active\033[0m\n' \
+  "$(( BUDGET / 60 ))m" "$MODEL" "$(( ${#DIR_ARGS[@]} / 2 + 1 ))"
 
 while :; do
   REMAIN=$(( END - $(date +%s) ))
@@ -189,6 +193,7 @@ while :; do
     "$(date +%H:%M)" "$(basename "$TODO")" "$(( REMAIN / 60 ))"
 
   timeout "$SLICE" claude -p "$(printf "$PROMPT_TEMPLATE" "$TODO")" \
+    --model "$MODEL" \
     --permission-mode bypassPermissions \
     --settings "$SETTINGS" \
     "${DIR_ARGS[@]}" \
