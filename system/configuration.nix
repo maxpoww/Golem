@@ -142,6 +142,13 @@
       config.safe.directory = config.golem.flakeDir;
     };
 
+    # Graphics drivers, in full (todo9 item 4): the open stack needs nothing
+    # named here — the kernel carries the KMS driver, the firmware above
+    # feeds it, and hardware.graphics comes on with this module, which is why
+    # the VM renders without any host ever mentioning a driver. nvidia is the
+    # single exception and it is a HOST choice (hosts/golem/nvidia.nix), so a
+    # stranger's nvidia machine installs onto nouveau today — the generic
+    # host that fixes that belongs to the install flow (item 3, parked).
     programs.hyprland = {
       enable = true;
       withUWSM = true;
@@ -169,6 +176,22 @@
     ];
     fonts.fontconfig.defaultFonts.sansSerif = [ "DejaVu Sans" ];
 
+    # Foreign hardware (S9). The live ISO gets firmware from nixpkgs'
+    # all-hardware profile, so wifi works while you install — and would die
+    # on the first reboot if the installed system didn't carry the same
+    # blobs. Nothing here ever set them: enableRedistributableFirmware was
+    # only ever READ (hosts/golem/hardware-configuration.nix:32, for
+    # microcode). enableAllFirmware is the wider set — the broadcom/b43-era
+    # laptops a stranger might hand us live in the gap between the two — and
+    # it implies the redistributable one. It needs allowUnfree, which Golem
+    # sets below regardless.
+    hardware.enableAllFirmware = true;
+
+    # Golem ships unfree and does not ask. The webapp engine is google-chrome
+    # (home/home.nix), the firmware above is partly unfree, and nvidia's
+    # driver is unfree (hosts/golem/nvidia.nix): an install-time "unfree?"
+    # question (todo9 item 4) would be a question whose "no" breaks the app
+    # set, so the answer is baked in here instead of asked.
     nixpkgs.config.allowUnfree = true;
 
     programs.nix-ld.enable = true;

@@ -18,7 +18,19 @@
 - [?] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
 - [?] Disk flow: guided partitioning, encryption option, one "install" action
-- [ ] Hardware: graphics drivers, wifi firmware, unfree toggle
+- [x] Hardware: graphics drivers, wifi firmware, unfree toggle
+      → wifi firmware was the real hole: NOTHING in this tree enabled
+      firmware (`enableRedistributableFirmware` was only ever read, for
+      microcode), so wifi would have worked in the live session — the ISO
+      profile ships firmware — and died on the first reboot after install.
+      `hardware.enableAllFirmware = true` in system/configuration.nix.
+      Graphics: nothing to name for the open stack (kernel KMS + the
+      firmware above + hardware.graphics from the compositor module);
+      nvidia is a HOST choice, so a stranger's nvidia machine lands on
+      nouveau — deferred to the generic host in item 3, stated in the
+      config. Unfree: already always-on, and the shipped set (google-chrome
+      engine, firmware, nvidia) means a "no" would break Golem — so it is a
+      baked-in stance, not a toggle. Comments say all three in place.
 - [ ] Wifi in the install flow (an ISO that can't get online on another
       PC fails the Arc-1 exit)
 - [ ] Verify the stopgap kit (S7) covers post-install life: network,
