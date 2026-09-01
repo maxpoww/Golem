@@ -7,6 +7,7 @@
   imports = [
     ./audio.nix
     ./bluetooth.nix
+    ./golem-apps.nix
     ./waverunner-apply.nix
   ];
 

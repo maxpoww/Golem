@@ -51,3 +51,13 @@
   (F2's runtime fallback chain google-chrome-stable → chromium already
   handles it, costs a second big build), (c) chromium as both. Whichever Max
   picks, apps.md line 48 and home.nix have to end up saying the same thing.
+
+- todo5 (nix items generally): this loop's harness allows `Read,Edit,git`
+  only — no `nix`, no /nix/store, no network — so nothing written here can be
+  evaluated or built in-session. `system/golem-apps.nix` is therefore landed
+  but unbuilt: package attrs are the top-level GNOME names (the `gnome.`
+  namespace is gone in 26.05) and the option names are common ones, but the
+  first `nixos-rebuild build-vm --flake .#golem-vm` is what makes it true.
+  Most likely failure mode is a missing attr for one of the newer apps
+  (showtime, decibels, papers, snapshot) — deleting the offending line is the
+  whole fix.
