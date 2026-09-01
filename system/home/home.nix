@@ -22,6 +22,13 @@
   home.homeDirectory = "/home/max";
   home.stateVersion = "26.05";
 
+  # Tell systemd-oomd (enabled at the system level for the low-RAM freeze
+  # guard) to never pick the dock daemon as its victim under memory pressure —
+  # it should reap the runaway app instead. This lives here, not in
+  # configuration.nix, because waverunner is a home-manager user unit and a
+  # NixOS-level systemd.user override is shadowed by the ~/.config copy.
+  systemd.user.services.waverunner.Service.ManagedOOMPreference = "avoid";
+
   programs.waverunner.enable = true;
 
   # notification-fix (vendored in ./notification-fix): the Chrome extension

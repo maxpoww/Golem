@@ -278,6 +278,28 @@
     # machine that's the difference between installing apps and thrashing.
     zramSwap.enable = true;
 
+    # Survive memory pressure instead of freezing under it. On an 8 GB DDR3
+    # machine (the i5-6th-gen / HD 530 class Golem must serve) a spike — a
+    # heavy webapp next to a nixos-rebuild eval, which wants 2-3 GB — pushes
+    # the kernel into swap-thrash and the whole desktop locks, mouse and all.
+    # systemd-oomd watches PSI pressure per cgroup and kills the GREEDIEST
+    # slice before that happens, turning a full freeze into "one app closed".
+    # For a distro whose promise is "works for everyone", a survivable failure
+    # beats a dead machine. Acts on the user and system slices (kill at 80%
+    # sustained pressure); needs the zram swap above to have room to act in.
+    systemd.oomd = {
+      enable = true;
+      enableUserSlices = true;
+      enableSystemSlice = true;
+    };
+    # Make oomd spare the shell: under pressure it should reap the runaway
+    # app, never the daemon that draws the desktop — losing that is
+    # indistinguishable from the freeze we are preventing. greetd is a system
+    # service; the waverunner daemon is a home-manager USER service, so its
+    # avoid-preference has to be set in the home layer (a NixOS-level
+    # systemd.user unit is shadowed by ~/.config), see home/home.nix.
+    systemd.services.greetd.serviceConfig.ManagedOOMPreference = "avoid";
+
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nix.settings.auto-optimise-store = true;
     nix.gc = {
