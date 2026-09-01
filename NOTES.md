@@ -115,3 +115,71 @@
     knob that lowers to nix has to ride that same path, and the validation
     step is per-knob work — a package name is one regex, a theme colour or a
     display arrangement is not.
+
+- todo7 "Compose golem-apps.nix (from S5)": blocked on the build check, not on
+  the composing. The composing is already in the tree and readable:
+  `system/golem-apps.nix` is imported by `system/configuration.nix:10`, which
+  is in `golemModules`, so BOTH nixosConfigurations pick it up, and the file is
+  git-tracked (flakes can't see untracked files). What is missing is the only
+  thing a tick would be asserting: the eval. This session's harness has no
+  `nix` at all (`nix --version` is refused) and no network, so todo5's "BUILD
+  CHECK OWED" is still owed — `nixos-rebuild build-vm --flake .#golem-vm`
+  closes it. Likeliest failure remains one missing attr among the newer GNOME
+  apps (showtime, decibels, papers, snapshot); deleting that line is the fix.
+
+- todo7 "Stopgap kit (network/audio/bluetooth GUIs)": blocked on a curation
+  call that is Max's and on hardware the VM does not have. The audit the item
+  asks for "before ticking", done from this repo:
+  * Bluetooth — covered. `services.blueman.enable` (`system/bluetooth.nix:4`)
+    ships blueman-manager as a real .desktop app, and `hyprland.lua:38`
+    autostarts blueman-applet. Keep that exec even though Golem has NO tray
+    (nothing in this repo implements a StatusNotifier host, so the icon is
+    invisible): the applet is also NM-of-bluetooth's pairing AGENT, and its
+    PIN/confirm dialogs arrive as ordinary windows.
+  * Audio — covered. pavucontrol (`configuration.nix:189`) for devices and
+    per-app volume, plus the wpctl key binds (`hyprland.lua:318-321`).
+  * Network — NOT covered, and this is precisely the S7 exit clause
+    ("including getting online"). `networkmanagerapplet` gives
+    nm-connection-editor, which cannot SCAN: joining means typing the SSID and
+    security by hand. nm-applet does scan, but it is a tray client and is not
+    autostarted — and there is no tray to start it into. So a stranger on
+    wifi-only hardware has no scan-and-join GUI. The fix is to ship a NM GUI
+    that lists networks; the pick that matches the CURATE column's libadwaita
+    set is gnome-control-center's Wi-Fi panel, at the price of shipping a whole
+    Settings app whose other panels are half-broken under Hyprland and which
+    collides head-on with S6's own Settings surface. That trade is a curation
+    decision of the same kind as the browser one, i.e. Max's — and it cannot be
+    tested in the VM regardless: qemu slirp gives a wired virtio NIC, there is
+    no wifi device to scan with, so this one needs real hardware.
+  * Finding that is not about GUIs, same stranger, same item: `brightnessctl`,
+    which `hyprland.lua:322-323` binds the brightness keys to, is NOT in the
+    system stopgap kit — it arrives from `system/home/waverunner-packages.nix`,
+    i.e. Max's own launcher-installed list. A fresh Golem starts that list
+    EMPTY (F11), so on a stranger's machine the brightness keys do nothing.
+    Moving it into configuration.nix's stopgap block is a one-line fix, left
+    undone here only because nothing written in this session can be built.
+    Adjacent, same class: `hyprland.lua:40` execs `kdeconeectd` — a typo, and
+    the real binary lives under libexec rather than on PATH, so the correct
+    line is not a one-character guess.
+
+- todo7 "Ship ~/notification-fix with the webapp profile": blocked — the
+  extension exists only in `~/notification-fix`, outside this session's
+  sandbox (~/Golem only), and the item's own first step ("get it into a repo
+  first") is a push to Max's GitHub account. The flake half is one
+  `--load-extension` on the webapp profile in `home.nix`'s `programs.chromium`,
+  but writing it without seeing the extension's manifest and layout would be
+  inventing a path.
+
+- todo7 (the four VM-loop items — Super passthrough / "VM mode", useBootLoader
+  so reboots keep the latest generation, slirp download speed, llvmpipe
+  rendering): blocked as a family — each one's only test is building the VM and
+  looking at it, and this session has no `nix`, no /nix/store, no QEMU and no
+  display. Per item, beyond that: the Super fix would be a submap in
+  `system/home/hyprland.lua`, but the fork's Lua API reference lives in the
+  launcher tree (unreadable from here), that file uses no submap today, and it
+  is the file that boots Max's desktop — an untested binding there costs him a
+  session, and which key escapes VM mode is his muscle memory anyway.
+  useBootLoader says in its own text that it needs a careful round on a fresh
+  disk. The slirp and llvmpipe items are both written as "revisit if it gets
+  old / if the VM ever becomes a daily driver", so neither is actionable until
+  the loop actually hurts.

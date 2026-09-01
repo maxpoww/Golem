@@ -18,14 +18,14 @@
       repo + git add — flakes can't see untracked files — and rebuilds with
       --flake; gated on golem.flakeDir, off in the VM; autoUpgrade dropped:
       flake upgrade = input bump, story TBD).
-- [ ] Compose: `golem-apps.nix` (from S5)
+- [?] Compose: `golem-apps.nix` (from S5)
 - [x] Golem defaults: theming, fonts, hyprland.lua, session startup
       → home.nix/zsh/foot/nvim/yazi/webapp icons ported verbatim;
       hyprland.lua's three /home/max assumptions rewritten at build time
       (waveview .so from store path, waverunner via systemd, ctl from PATH).
       CAVEAT until cutover: hyprland.lua now exists in BOTH /etc/nixos and
       the flake — edits must land in both or they drift.
-- [ ] Stopgap kit: curated plain GUIs for network/audio/bluetooth (each
+- [?] Stopgap kit: curated plain GUIs for network/audio/bluetooth (each
       dies when its S4 module ships in Arc 2)
       → started: pavucontrol + networkmanagerapplet in systemPackages,
       blueman already shipped; audit what else a stranger needs (wifi
@@ -44,7 +44,7 @@
       fontconfig default sans to "DejaVu Sans" — today's accidental look
       made deliberate, zero visual change. Choosing Golem's REAL UI font
       stays open as a design call (Max + mockup, per project law).
-- [ ] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
+- [?] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
       on Wayland — no occlusion tracking) with the webapp profile via
       `--load-extension`; it lives ONLY in Max's homedir today — get it
       into a repo first
@@ -86,7 +86,7 @@
       VERIFIED: fresh-disk cold boot loads 23661 packages (prebuilt) in
       ~2s, 0 OOM; the afternoon's 4G repro config re-run — 0 OOM, ONE
       daemon start, desktop in ~1GB. 4G machines run Golem now.
-- [ ] VM loop friction: host Hyprland swallows Super before QEMU sees it,
+- [?] VM loop friction: host Hyprland swallows Super before QEMU sees it,
       so Golem binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
 - [x] **F9 — "already in package list; treating as installed" is a lie
@@ -130,7 +130,7 @@
       truthful "done ok" status (boot-revert) → one FORCED re-apply
       (list rewrite bumps the mtime past the stale status).
       Verification pending.
-- [ ] VM: boot the LATEST generation, not the image's (virtualisation.
+- [?] VM: boot the LATEST generation, not the image's (virtualisation.
       useBootLoader) — direct kernel boot reverts every in-VM switch on
       reboot; a real installed machine keeps what it installed. Needs a
       careful round (bootloader-in-image, likely fresh disk).
@@ -146,7 +146,7 @@
       rules make the re-arm exact — a rebuild that landed while the
       daemon was dead fast-completes (full flourish replays), a running
       one is joined, a failed one retries once. Verification pending.
-- [ ] VM loop niceness: qemu user-net (slirp) downloads at ~hundreds of
+- [?] VM loop niceness: qemu user-net (slirp) downloads at ~hundreds of
       KB/s — a first brave+gimp closure takes 10-20 min. Fine for
       correctness tests; consider virtio-net or a host-side cache if it
       gets old.
@@ -185,7 +185,7 @@
       VERIFIED end-to-end with a temporary forced-failure hook
       (removed before commit): daemon stayed alive, retried at 2s and
       8s, recovered on the real GPU after 4 failures.
-- [ ] VM-only: waverunner renders on llvmpipe (virgl gives GL, wgpu wants
+- [?] VM-only: waverunner renders on llvmpipe (virgl gives GL, wgpu wants
       Vulkan) → dock is CPU-drawn, video can stutter with it. Venus
       (vulkan passthrough) tried 2026-08-30 and REVERTED — wgpu got no
       surface at all (F8 is its own finding). Acceptable for the test
@@ -194,6 +194,33 @@
 
 ## Log
 
+- Round 21 (2026-09-01, agent sweep of todo7): NOTHING TICKED — every
+  remaining item parks, and the reason is one wall: this session's
+  harness has no `nix` (`nix --version` is refused), no /nix/store, no
+  network, no QEMU, no display. Four of the seven are VM-loop items
+  whose only test is booting the VM; one lives in `~/notification-fix`,
+  outside the sandbox. The two that looked closable resolve like this:
+  golem-apps.nix is ALREADY composed (imported at
+  `system/configuration.nix:10`, so both nixosConfigurations get it,
+  and it is git-tracked as flakes require) — what is owed is the eval,
+  the same BUILD CHECK todo5 recorded, one `nixos-rebuild build-vm
+  --flake .#golem-vm` away. The stopgap kit got the audit its own note
+  asked for, and it has a verdict: bluetooth and audio ARE covered
+  (blueman-manager + the applet as pairing agent; pavucontrol + the
+  wpctl keys), network is NOT — nm-connection-editor cannot scan, and
+  nm-applet is a tray client on a desktop with no tray, so a stranger
+  on wifi-only hardware has no scan-and-join GUI at all. That is the
+  S7 exit clause ("including getting online") sitting on a curation
+  decision (gnome-control-center's Wi-Fi panel is the libadwaita-
+  consistent pick, but it drags in a Settings app that collides with
+  S6's) which is Max's, and which the VM cannot test either way —
+  slirp gives a wired virtio NIC, there is no wifi device. Two smaller
+  finds worth the round: `brightnessctl`, which the brightness keys
+  bind to, is not in the stopgap kit at all — it rides Max's personal
+  `waverunner-packages.nix`, which a fresh machine starts EMPTY (F11),
+  so a stranger's brightness keys are dead; and `hyprland.lua:40`
+  execs `kdeconeectd`, a typo whose real binary is under libexec, not
+  PATH. Full reasoning per item in NOTES.md.
 - Round 20 (2026-09-01, Max: "lets do F8"): THE LAST FILED LAUNCHER
   BUG IS CLOSED — and it was three failures stacked. See the ticked
   F8 item above for the full shape. The one worth repeating: the
