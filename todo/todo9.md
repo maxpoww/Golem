@@ -21,7 +21,7 @@
       The tick above stays, since the module is written; what it was
       silently asserting is split out as its own item below.
 
-- [ ] BUILD the ISO: `nix build .#iso` green, and fix whatever falls out
+- [x] BUILD the ISO: `nix build .#iso` green, and fix whatever falls out
       *(new 2026-09-01 — this is what todo9 item 1's tick was asserting
       without evidence. BUILT GREEN before this run, so the store is warm:
       `/nix/store/kdfj9gvqz0n4i5rc6mjvl910jh21fxd3-golem.iso`. Verified
@@ -41,6 +41,22 @@
          apps to shrink it — what ships in the live session is a curation
          call and Max's. This is a finding for S10, whose download link this
          blocks, not a licence to trim.)*
+      CLOSED 2026-09-01: (1) only `isoBaseName` was ever renamed —
+      `image.baseName` since 25.05; `isoImage.volumeID` is still the current
+      option in this pin and never warned. Renamed in hosts/iso.nix, rebuilt
+      green, no deprecation warning, and the ISO9660 PVD still reads
+      GOLEM_ISO (checked at byte offset 32808 of the image). File stays
+      plain `golem.iso` (the new upstream default bakes edition+label+arch
+      into baseName, so forcing the whole basename drops them — same
+      behaviour the alias already had). (2) The number: golem.iso is
+      6.33 GiB (6 796 468 224 bytes) from an 18.7 GiB uncompressed closure.
+      What drives it, top of `nix path-info -rs` ranked, every one entering
+      via the home layer's package set (home-manager-path): android-studio
+      3.3 GiB, cef-binary 2.0 GiB (dragged by obs-studio), linux-firmware
+      0.78 GiB (enableAllFirmware, expected), chromium-unwrapped 0.70 GiB
+      (a SECOND Chrome next to google-chrome 0.43 GiB), openjdk 0.57 GiB,
+      llvm-lib 0.54 GiB, firefox 0.38 GiB (a THIRD browser), spotify
+      0.37 GiB, gcc 0.26 GiB. Curation calls for S10 — recorded, not cut.
 - [?] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
 - [?] Disk flow: guided partitioning, encryption option, one "install" action

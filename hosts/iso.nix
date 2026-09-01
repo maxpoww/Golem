@@ -1,6 +1,6 @@
 # Golem live ISO — the S7 flake on a USB stick (roadmap S9, todo9 item 1).
 #
-#   nix build .#iso   →   result/iso/golem-<label>-x86_64-linux.iso
+#   nix build .#iso   →   result/iso/golem.iso
 #
 # The live session IS Golem, not a themed installer shell: same
 # system/configuration.nix, same home layer, same compositor, dock and
@@ -84,9 +84,12 @@
 
   # ── The image ─────────────────────────────────────────────────────────
 
-  # Name the artifact after the distro, not after nixos. Volume IDs are
-  # ISO9660: 11 characters, no lowercase.
-  isoImage.isoBaseName = lib.mkForce "golem";
+  # Name the artifact after the distro, not after nixos. `image.baseName` is
+  # the 25.05 name of `isoImage.isoBaseName` (volumeID was never renamed and
+  # keeps its prefix); iso-image.nix bakes edition+label+arch into its own
+  # default, so forcing the whole basename means the file is plain golem.iso.
+  # Volume IDs are ISO9660: 11 characters, no lowercase.
+  image.baseName = lib.mkForce "golem";
   isoImage.volumeID = lib.mkForce "GOLEM_ISO";
   # (Full branding — os-release, the boot menu title, system.nixos.distroName
   # — is S10's, and it belongs to the installed system too, not just here.)
