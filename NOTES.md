@@ -360,12 +360,15 @@
   "verified" while its network third is known broken would be a lie.
 
 - todo9 item 7 (S10-lite: download link + install notes on golem-os.com):
-  blocked three ways — the site is a different repo that this sandbox cannot
-  reach, publishing it needs credentials and a deploy this session has no
-  business performing unasked, and there is nothing honest to link to yet:
-  item 1's ISO has never been built, let alone booted or installed from.
-  The notes the item wants are also downstream of item 2 (there is no
-  install procedure to describe until the installer is picked).
+  still parked, but two of the three original blockers expired 2026-09-01
+  and the entry should not keep claiming them: the site repo IS reachable
+  now (~/Golem-web — carrying 14 uncommitted files, so any work there must
+  not discard them), and the ISO HAS been built green (golem.iso, 6.33 GiB,
+  todo9 item 2 has the closure record). What still parks it: the ISO has
+  never been booted, so "honest install notes" cannot yet honestly say it
+  works; a download link needs a *hosted* artifact and publishing is a
+  deploy — Max's, per the local-only rule; and the notes are downstream of
+  item 2 (no install procedure to describe until the installer is picked).
 
 - todo9 item 8 (burn to USB, install on real metal, then on a machine that
   isn't yours): blocked on physics. It needs a USB stick, a second computer,
