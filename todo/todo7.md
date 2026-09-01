@@ -175,6 +175,21 @@
 
 ## Log
 
+- Round 19 (2026-09-01, Max: "add pointers to the overview (finger,
+  grabing hand, etc)"): THE OVERVIEW CURSOR NOW STATES THE GESTURE.
+  Only resize zones changed the pointer before; everywhere else wore
+  the plain arrow, so nothing said a thumbnail could be picked up or
+  an empty tile jumped to. Now, in the order the gestures themselves
+  resolve: dragging → closed hand, thumbnail → open hand, empty tile →
+  finger, void → arrow. The hand closes on the PRESS (the grab is real
+  from that instant; waiting for motion reads as lag) and opens on
+  release, which re-decides from whatever the drop left under the
+  pointer. One `setOverviewCursor` owns the override + change check —
+  the desktop must never inherit ours — and a live resize keeps its
+  edge shape because onMouseMove returns before this runs. Shapes
+  verified present in the ACTIVE theme (phinger-cursors-light, not
+  just breeze) before shipping — a missing name would have silently
+  done nothing. waveview `23be959` (v0.33), hot-reloaded; pin bumped.
 - Round 18 (2026-08-31, Max: "the text on options is white, but the
   text inside notifications and clipboard is black"): INK REGIME BUG,
   fixed with numbers rather than guesses. Instrumented the live daemon
