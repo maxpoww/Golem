@@ -1,5 +1,42 @@
 # NOTES
 
+> **READ THIS BEFORE TRUSTING ANY ENTRY BELOW — 2026-09-01, prep for run 2.**
+>
+> Everything under this line was written by the 2026-08-31 loop, which ran with
+> `Read,Edit,Bash(npm test *),Bash(git *)` on a session sandboxed to `~/Golem`.
+> Its reasoning is sound and its parks were honest, but a large share of them
+> rest on one premise that is **no longer true**: that the other trees are
+> unreachable and that `nix` does not exist.
+>
+> What changed:
+>
+> * All five other trees are on this machine and in scope for run 2 —
+>   `~/launcher` (waverunner), `~/waveview`, `~/Golem-web` (the site, which the
+>   notes call "a separate repo this sandbox cannot reach"),
+>   `~/AndroidStudioProjects/Golem`, `~/notification-fix`. None of them were
+>   ever missing; the harness just could not see them.
+> * `nix` works. So does `cargo`, inside `nix develop` in the Rust trees
+>   (245 workspace tests, green). `nixos-rebuild` is present.
+> * The ISO's real problem was not that it was unbuilt — it was that it did not
+>   **evaluate**: `boot.loader.timeout` collided with iso-image.nix. Fixed in
+>   `7441320`. It has since been built warm, before run 2 starts.
+>
+> What did NOT change, and is still correctly parked:
+>
+> * Anything needing Max's eyes, taste, or a values call — the browser, the
+>   surface pattern, the installer, the licence, the daily-driving week.
+> * Anything needing hardware this box does not have: no QEMU, no second
+>   machine, no USB stick, no phone on the bench, no wifi device to scan with.
+> * Anything outward-facing. Run 2 is **local commits only** — no push, no
+>   deploy, no F-Droid. A hook enforces it.
+> * Anything the roadmap freeze forbids: S3 modules, the S6 settings surface,
+>   the S8 tour. Reachable now, still frozen. Arc 1 is SH → S7 → S9.
+>
+> Nine items were unparked on that basis and annotated in place in the todo
+> files with `UNPARKED 2026-09-01` and the reason. Entries below that say
+> "sandboxed to ~/Golem" or "this harness has no nix" describe run 1's cage,
+> not the state of the project.
+
 - todo2 "Max's eyes + a day of daily use (window pill behaves identically)":
   blocked — needs Max personally daily-driving the live session for a day and
   judging the pill's feel. No test or screenshot substitutes for the owner's

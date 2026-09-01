@@ -18,7 +18,16 @@
       repo + git add — flakes can't see untracked files — and rebuilds with
       --flake; gated on golem.flakeDir, off in the VM; autoUpgrade dropped:
       flake upgrade = input bump, story TBD).
-- [?] Compose: `golem-apps.nix` (from S5)
+- [ ] Compose: `golem-apps.nix` (from S5)
+      *(UNPARKED 2026-09-01: this was never blocked on the composing — the
+      file is written, imported by `system/configuration.nix:10` and tracked
+      by git. It was blocked on the one thing a tick would assert: the eval.
+      The last loop had no `nix` at all. This session confirmed `nix` works
+      and both `.#nixosConfigurations.golem` and `.golem-vm` evaluate green.
+      What is still owed is todo5's BUILD CHECK — run
+      `nixos-rebuild build-vm --flake .#golem-vm` and fix what falls out.
+      Likeliest failure is a missing attr among the newer GNOME apps
+      (showtime, decibels, papers, snapshot); deleting the line is the fix.)*
 - [x] Golem defaults: theming, fonts, hyprland.lua, session startup
       → home.nix/zsh/foot/nvim/yazi/webapp icons ported verbatim;
       hyprland.lua's three /home/max assumptions rewritten at build time
@@ -30,6 +39,27 @@
       → started: pavucontrol + networkmanagerapplet in systemPackages,
       blueman already shipped; audit what else a stranger needs (wifi
       first-connect flow!) before ticking.
+      STAYS PARKED 2026-09-01: the audit is done (NOTES, round 19) and its
+      remaining third is the wifi scan-and-join GUI, whose fix is a curation
+      call of the same class as the browser — Max's. But the audit turned up
+      two findings that are NOT decisions, and they are split out below.
+
+- [ ] Stopgap gap: `brightnessctl` is not in the system stopgap kit
+      *(split out of the item above 2026-09-01 — a finding, not a decision.
+      `hyprland.lua:322-323` binds the brightness keys to `brightnessctl`,
+      but it arrives from `system/home/waverunner-packages.nix`, i.e. Max's
+      own launcher-installed list, which starts EMPTY on a fresh Golem (F11).
+      So on a stranger's machine the brightness keys do nothing. Move it into
+      configuration.nix's stopgap block. One line. Build-check it — that is
+      the only reason it was left undone last loop.)*
+
+- [ ] `hyprland.lua:40` execs `kdeconeectd` — a typo, and the real binary is
+      under libexec rather than on PATH
+      *(split out of the item above 2026-09-01. NOTES is explicit that the
+      correct line is NOT a one-character guess: find where the kdeconnect
+      daemon actually lives in this nixpkgs and exec that path, or drop the
+      line if kdeconnect is not meant to autostart. Verify by eval/build,
+      and be careful — this file boots Max's desktop.)*
 - [x] Ship chromium (webapp engine fallback — SH F2 resolves it at runtime,
       the flake must make it exist)
       → google-chrome ships via home.nix programs.chromium (unfree on), so
@@ -44,10 +74,19 @@
       fontconfig default sans to "DejaVu Sans" — today's accidental look
       made deliberate, zero visual change. Choosing Golem's REAL UI font
       stays open as a design call (Max + mockup, per project law).
-- [?] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
+- [ ] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
       on Wayland — no occlusion tracking) with the webapp profile via
       `--load-extension`; it lives ONLY in Max's homedir today — get it
       into a repo first
+      *(UNPARKED 2026-09-01: `~/notification-fix` is now in scope and is
+      three files — `manifest.json`, `inject.js`, `README.md`. Read the
+      manifest before wiring anything; the last loop refused to invent a
+      path it could not see, which was right. Do the reachable half: package
+      the extension into the store from this flake and point the webapp
+      profile's `--load-extension` at that path, so it does not depend on a
+      directory in Max's homedir. NOTE: "get it into a repo first" means a
+      push to Max's GitHub — OUT OF SCOPE for this run, local commits only.
+      Park that clause explicitly and do the flake half.)*
 - [x] User/home layer (home-manager module wired in)
       → home-manager flake input (release-26.05, follows nixpkgs) as a
       NixOS module, useGlobalPkgs; home-manager.users.max = system/home/.

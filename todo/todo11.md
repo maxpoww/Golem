@@ -2,13 +2,27 @@
 
 <!-- Runs alongside S8–S10, closes last. -->
 
-- [?] i18n pass: shell strings extractable, Spanish first (dictionary
+- [ ] i18n pass: shell strings extractable, Spanish first (dictionary
       already leads the way)
-- [?] Keyboard-only audit: every gesture reachable without a pointer
-      *(the compositor half of the answer is already collected:
+      *(UNPARKED 2026-09-01: "the shell" is waverunner's Rust and ~/launcher
+      is now in scope. Do the FIRST half only — pick an extraction mechanism
+      and wrap the user-visible strings in it. That is a refactor, not a new
+      surface, so the freeze allows it. Do NOT translate: `es_BO` is pinned
+      onto every machine at `system/configuration.nix:98-110` and changing
+      that is the installer's question and Max's daily driver, so it stays
+      his. Keep `nix develop -c cargo test --workspace` green.)*
+- [ ] Keyboard-only audit: every gesture reachable without a pointer
+      *(UNPARKED 2026-09-01: the compositor half is already collected in
       `accessibility-research.md` §5 — every window/workspace/launcher/
-      overview action has a bind in `system/home/hyprland.lua:263-329`.
-      The gap is the surfaces, which is the half this session can't see.)*
+      overview action has a bind in `system/home/hyprland.lua:263-329`. The
+      missing half was the surfaces, and ~/launcher and ~/waveview are both
+      in scope now. This is an audit that produces a document, not a code
+      change: read the input handling in both trees and fill in the rows —
+      dock, pills, boxes, the drag-to-install gesture, the overview's drags.
+      Write "no keyboard path" where that is the finding; do not invent one.
+      One thing to check while in there: `input.follow_mouse = 2`
+      (`hyprland.lua:250`) lets the pointer move focus, which may fight
+      keyboard-only navigation.)*
 - [x] Accessibility research: what a11y means for a layer-shell/wgpu surface
       (hard problem — investigate early, don't leave for last; features.md §9)
       → `accessibility-research.md`. The finding that reorders the work:
@@ -28,12 +42,18 @@
       forks the compositor, so that route is ours to build and no plan
       works without it. §6 orders the cheap true steps, §7 is the checklist
       for a session with a machine, §8 answers the last item in this file.
-- [?] Reduce-motion / reduce-transparency modes (our glass needs an off switch)
-      *(design settled from here — `accessibility-research.md` §4: one
-      intent, four consumers (compositor animations `hyprland.lua:172`,
-      compositor transparency `:139-156`, the shell via `config.toml`
-      `home.nix:316-326`, the apps via dconf `home.nix:102-107`). The
-      engine has to read the flag first or the other three are pointless.)*
+- [ ] Reduce-motion / reduce-transparency modes (our glass needs an off switch)
+      *(UNPARKED 2026-09-01: NOTES recorded this as blocked "only on
+      ordering" — the engine must read the flag before the other three
+      consumers are flipped, and the engine was out of reach. ~/launcher is
+      in scope now, so do the engine step: waverunner reads a reduce-motion /
+      reduce-transparency intent from `xdg.configFile."waverunner/config.toml"`
+      (`home.nix:316-326`) and honours it in its own motion and glass.
+      Design is settled in `accessibility-research.md` §4: ONE intent, four
+      consumers, never a per-layer toggle. Do NOT flip the compositor
+      one-liners (`hyprland.lua:172`, `:139-156`) until the engine lands —
+      that produces the worst result, windows still and the dock still
+      flying. Keep the workspace tests green.)*
 - [?] Non-expert testing rounds: watch real people, fix what confuses them
 - [?] The final check: is the word "everyone" on the website true?
       *(the honest answer, with citations, is `accessibility-research.md`

@@ -1,3 +1,8 @@
 result
 result-*
 *.qcow2
+
+# autonomous loop transcripts (2hs.sh) — two runs flagged these as homeless
+run.log
+run.err
+raw.jsonl

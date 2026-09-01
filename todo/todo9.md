@@ -15,6 +15,22 @@
       NOTES). First boot is the test; the file's last comment block names
       the two things to suspect if it doesn't (systemd initrd on an overlay
       store; the quiet-boot black screen).
+      UPDATE 2026-09-01: it did not even evaluate — `boot.loader.timeout`
+      collided with iso-image.nix's own value and the config was dead on
+      arrival. Fixed in `7441320`; `.#iso` now resolves to golem.iso.drv.
+      The tick above stays, since the module is written; what it was
+      silently asserting is split out as its own item below.
+
+- [ ] BUILD the ISO: `nix build .#iso` green, and fix whatever falls out
+      *(new 2026-09-01 — this is what todo9 item 1's tick was asserting
+      without evidence. `nix` is available to this run and the build was
+      started warm before the loop, so the store should already carry most
+      of it. Expect the image to be LARGE: the live session carries
+      golem-apps.nix, google-chrome and the full home layer, because "live
+      session boots into REAL Golem" is the item. Also clear the deprecation
+      the eval now warns about: `isoImage.isoBaseName` has been renamed to
+      `image.baseName` (`hosts/iso.nix:85-86`). Booting it is NOT in scope —
+      there is no qemu on this machine and no display; that stays Max's.)*
 - [?] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
 - [?] Disk flow: guided partitioning, encryption option, one "install" action
