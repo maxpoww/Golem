@@ -48,7 +48,7 @@
       call of the same class as the browser — Max's. But the audit turned up
       two findings that are NOT decisions, and they are split out below.
 
-- [ ] Stopgap gap: `brightnessctl` is not in the system stopgap kit
+- [x] Stopgap gap: `brightnessctl` is not in the system stopgap kit
       *(split out of the item above 2026-09-01 — a finding, not a decision.
       `hyprland.lua:322-323` binds the brightness keys to `brightnessctl`,
       but it arrives from `system/home/waverunner-packages.nix`, i.e. Max's
@@ -56,6 +56,10 @@
       So on a stranger's machine the brightness keys do nothing. Move it into
       configuration.nix's stopgap block. One line. Build-check it — that is
       the only reason it was left undone last loop.)*
+      → DONE 2026-09-01 (Round 22): added to configuration.nix's stopgap
+      block with a comment saying why it can't ride the user list;
+      build-vm exits 0. Left in waverunner-packages.nix too — that file is
+      Max's launcher-managed state, not ours to edit.
 
 - [ ] `hyprland.lua:40` execs `kdeconeectd` — a typo, and the real binary is
       under libexec rather than on PATH

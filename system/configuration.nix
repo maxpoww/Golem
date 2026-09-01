@@ -211,6 +211,9 @@
       # Stopgap kit (die when their Arc-2 OPTIONS modules ship):
       pavucontrol           # audio GUI
       networkmanagerapplet  # network GUI (nm-connection-editor)
+      brightnessctl         # hyprland.lua's brightness keys exec it; must
+                            # exist system-wide, not ride the user's
+                            # launcher-installed list (empty on fresh Golem)
     ] ++ lib.optional (config.golem.flakeDir != null)
       (pkgs.writeShellScriptBin "rebuild-golem" ''
         set -euo pipefail
