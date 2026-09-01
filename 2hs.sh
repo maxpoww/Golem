@@ -186,11 +186,14 @@ for f in $(printf '%s\n' "$TODO_DIR"/todo*.md | sort -V); do
     "$(grep -c '^- \[x\]' "$f")" "$(grep -c '^- \[?\]' "$f")" "$(grep -c '^- \[ \]' "$f")"
 done
 echo
-echo "commits this run:"
+echo "commits this run (vs the pre-loop tag):"
 for d in "$GOLEM" "${ADD_DIRS[@]}"; do
   [ -d "$d/.git" ] || continue
-  n=$(git -C "$d" rev-list --count "pre-loop-$(date +%Y%m%d)"*..HEAD 2>/dev/null || echo 0)
-  printf '  %-40s %s\n' "$(basename "$d")" "$n"
+  tag=$(git -C "$d" tag -l 'pre-loop-*' | sort | tail -1)
+  [ -n "$tag" ] || { printf '  %-40s (untagged)\n' "$(basename "$d")"; continue; }
+  n=$(git -C "$d" rev-list --count "$tag..HEAD" 2>/dev/null || echo '?')
+  printf '  %-40s %-4s (roll back: git -C %s reset --hard %s)\n' \
+    "$(basename "$d")" "$n" "$d" "$tag"
 done
 echo
 echo "total cost:"
