@@ -290,3 +290,46 @@
     passphrase prompt on such a console is the first thing to verify on the
     first encrypted install: if it is invisible, the encryption option is
     worse than not offering it.
+
+- todo9 item 5 (wifi in the install flow): blocked on the flow (item 2) and,
+  underneath it, on a curation call todoSH round 19 already put in Max's
+  hands — nm-connection-editor cannot scan and nm-applet is a tray client on
+  a desktop with no tray, so there is no scan-and-join GUI anywhere in Golem
+  today; the libadwaita-consistent fix (gnome-control-center's Wi-Fi panel)
+  drags in a Settings app that collides with S6's. What this session can add
+  is the S9-specific half nobody had written: whether wifi must work DURING
+  the install is not a given, it is a consequence of the ISO not being
+  self-contained. `hosts/iso.nix` now carries the flake source at
+  /etc/golem/src, but carrying the source is not an offline install — the
+  eval still wants the inputs. Prefetching the inputs into the image (or
+  installing a prebuilt toplevel) would demote wifi from "blocks the
+  install" to "needed on first boot", which is a much easier bar and makes
+  the Arc-1 exit depend on the curation call above only AFTER the machine is
+  installed. That is the trade to make deliberately in item 2, not by
+  accident.
+
+- todo9 item 6 (verify the stopgap kit covers post-install life): the audit
+  half is already done and did not need this item — todoSH round 19
+  (`todo/todo7.md:207-217`) has the verdict: bluetooth and audio ARE covered
+  (blueman-manager plus the applet as pairing agent; pavucontrol plus the
+  wpctl keys), network is NOT. Nothing landed since that changes it. The
+  remaining half is the item's own verb, "verify", and it means a person at
+  a keyboard on an INSTALLED machine — which needs item 8's metal and cannot
+  be substituted from here (the VM cannot test it either: slirp gives a
+  wired virtio NIC, there is no wifi device to fail on). Closing it as
+  "verified" while its network third is known broken would be a lie.
+
+- todo9 item 7 (S10-lite: download link + install notes on golem-os.com):
+  blocked three ways — the site is a different repo that this sandbox cannot
+  reach, publishing it needs credentials and a deploy this session has no
+  business performing unasked, and there is nothing honest to link to yet:
+  item 1's ISO has never been built, let alone booted or installed from.
+  The notes the item wants are also downstream of item 2 (there is no
+  install procedure to describe until the installer is picked).
+
+- todo9 item 8 (burn to USB, install on real metal, then on a machine that
+  isn't yours): blocked on physics. It needs a USB stick, a second computer,
+  someone else's computer, and a human watching what happens — an agent can
+  supply none of the four. It is also the roadmap's Arc-1 exit criterion,
+  so it is the last thing in the file by design: items 2 and 3 have to exist
+  before there is anything to burn.

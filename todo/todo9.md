@@ -31,9 +31,9 @@
       config. Unfree: already always-on, and the shipped set (google-chrome
       engine, firmware, nvidia) means a "no" would break Golem — so it is a
       baked-in stance, not a toggle. Comments say all three in place.
-- [ ] Wifi in the install flow (an ISO that can't get online on another
+- [?] Wifi in the install flow (an ISO that can't get online on another
       PC fails the Arc-1 exit)
-- [ ] Verify the stopgap kit (S7) covers post-install life: network,
+- [?] Verify the stopgap kit (S7) covers post-install life: network,
       audio, bluetooth reachable without terminal
-- [ ] S10-lite: download link + honest install notes on golem-os.com
-- [ ] Burn to USB, install on real metal, then on a machine that isn't yours
+- [?] S10-lite: download link + honest install notes on golem-os.com
+- [?] Burn to USB, install on real metal, then on a machine that isn't yours
