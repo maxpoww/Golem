@@ -414,7 +414,8 @@
   has no stroke mode, and an outer+inner rounded pair would need an
   opaque inner fill, punching a hole in the blur. Shared helper
   (`push_hover_frame`) so both boxes frame identically. launcher
-  `bd7271d`. Needs Max's pointer to judge.
+  `bd7271d`, strengthened to 0.52 in `7578708` (Max: "sligthly less
+  subtle"). Needs Max's pointer to judge.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
