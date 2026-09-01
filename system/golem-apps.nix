@@ -54,9 +54,28 @@
     gnome-disk-utility
 
     # Emoji & characters. The app half of apps.md's "must ALSO be
-    # system-wide input" — the input-method half is todo5 item 8.
+    # system-wide input"; the input-method half is below.
     gnome-characters
   ];
+
+  # Emoji everywhere, not just in an app (apps.md, todo5 item 8). fcitx5 is
+  # the pick apps.md already made; its built-in Unicode addon is the
+  # system-wide picker — Ctrl+Alt+Shift+U in any focused text field types
+  # the character into that field, which is the part GNOME Characters
+  # (copy, then paste) cannot do.
+  #
+  # waylandFrontend = true because Golem is Hyprland: input goes over
+  # text-input-v3 and the candidate popup is a layer surface, instead of
+  # every app needing GTK_IM_MODULE set. To back the whole thing out,
+  # delete this block — nothing else depends on it.
+  i18n.inputMethod = {
+    enable = true;
+    type = "fcitx5";
+    fcitx5 = {
+      waylandFrontend = true;
+      addons = [ pkgs.fcitx5-gtk ];
+    };
+  };
 
   # GNOME Disks, and Nautilus mounting USB sticks, both talk to udisks2.
   # (Nix defaults this on; stated here so the dependency is visible when

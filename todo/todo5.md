@@ -23,7 +23,14 @@
       wiring them would settle the browser by the back door.
       Same BUILD CHECK OWED. Also: a machine with a hand-written
       ~/.config/mimeapps.list will need it moved aside on first rebuild.
-- [ ] Per-app touch check (features.md §5 touchscreen)
-- [ ] Music pick: try Decibels vs Amberol, keep one
-- [ ] Replace launcher's Files section with Nautilus handoff
-- [ ] Emoji/characters as system-wide input, not just an app
+- [?] Per-app touch check (features.md §5 touchscreen)
+- [?] Music pick: try Decibels vs Amberol, keep one
+      (both ship as of the golem-apps.nix commit, so the trying is set up)
+- [?] Replace launcher's Files section with Nautilus handoff
+- [x] Emoji/characters as system-wide input, not just an app
+      → fcitx5 (apps.md's own pick) in `system/golem-apps.nix`, wayland
+      frontend + GTK addon; its Unicode addon (Ctrl+Alt+Shift+U) types the
+      character straight into the focused field, which GNOME Characters
+      can't do. Same BUILD CHECK OWED, plus one live check only a session
+      can do: press the hotkey in a GTK app and in an XWayland one.
+      Deleting the `i18n.inputMethod` block backs it out completely.

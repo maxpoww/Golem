@@ -61,3 +61,27 @@
   Most likely failure mode is a missing attr for one of the newer apps
   (showtime, decibels, papers, snapshot) — deleting the offending line is the
   whole fix.
+
+- todo5 "Per-app touch check": blocked — it is fingers on glass (tap, scroll,
+  pinch, on-screen keyboard per app), and the apps to check only exist as of
+  the golem-apps.nix commit, unbuilt. But there is a prerequisite an agent
+  CAN name: `system/configuration.nix` currently ships a udev rule setting
+  `LIBINPUT_IGNORE_DEVICE=1` on every `ID_INPUT_TOUCHSCREEN` device, i.e.
+  touch is switched off system-wide right now. Nothing can be touch-checked
+  until that rule goes or is narrowed to Max's specific panel, and removing
+  it is a call about his machine (it was presumably added for a reason — a
+  ghost-touch panel), so it is his, not an agent's.
+
+- todo5 "Music pick: try Decibels vs Amberol": blocked — the item's verb is
+  "try", and the winner is a taste call about how Max listens (one file at a
+  time vs a library). What this session could do it did: golem-apps.nix ships
+  BOTH, so the trying needs no setup, and the audio mime default points at
+  Decibels with a comment saying it flips if Amberol wins. Whichever loses
+  gets deleted from golem-apps.nix, not left installed.
+
+- todo5 "Replace launcher's Files section with Nautilus handoff": blocked —
+  same wall as todo3/todo4. The Files section is a waverunner surface
+  (`github:maxpoww/launcher`, checkout at ~/launcher, a pinned flake input
+  here), and this session is sandboxed to ~/Golem. The ~/Golem half is done:
+  Nautilus ships and owns `inode/directory`, so the handoff has something to
+  hand off TO — what remains is Rust, in the other tree.
