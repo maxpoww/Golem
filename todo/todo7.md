@@ -456,6 +456,14 @@
   which is what the code always claimed ("the box is the pill grown").
   launcher `aaf1bf2`. Notif's bubble preview has the same shape and
   was left alone (scope).
+  → Max: "take it back to how it was. all pills have to look the same
+  at least at resting point" — REVERTED (`76baf55`, code byte-identical
+  to `4e6d49d`). The peek pill keeps the plain resting wash; only the
+  opened PANEL takes the frosted box fill. The comment at the fill now
+  records this as intent, so a future session doesn't rediscover the
+  "transparent peek pill" and fix it again. STANDING RULE: pills are a
+  set — they share one resting appearance, and anything that dresses
+  one of them up must dress all of them or nothing.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
