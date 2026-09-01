@@ -19,6 +19,24 @@
 
   programs.waverunner.enable = true;
 
+  # notification-fix (vendored in ./notification-fix): the Chrome extension
+  # that un-breaks FB/Messenger/IG notifications on Wayland — Chromium does
+  # no occlusion tracking there, so those sites think the window is always
+  # visible and never post a system notification. The daemon appends the
+  # store path as --load-extension on every webapp launch (waverunner
+  # ≥ 47b9793 reads this var; older pins ignore it — harmless).
+  # As a systemd drop-in rather than programs.waverunner.webappExtension so
+  # this evals against the CURRENT pinned waverunner too; switch to the
+  # option once the input bumps past 47b9793.
+  # CAVEAT (verified 2026-09-01 on Chrome 152): branded Chrome removed
+  # --load-extension in 137, so there the extension still needs a one-time
+  # manual chrome://extensions "Load unpacked" of this store path; Chromium
+  # honours the flag. Matters for the open browser decision (todo5 item 1).
+  xdg.configFile."systemd/user/waverunner.service.d/webapp-extension.conf".text = ''
+    [Service]
+    Environment=WAVERUNNER_WEBAPP_EXTENSION=${./notification-fix}
+  '';
+
   home.packages = with pkgs; [
     papirus-icon-theme
     phinger-cursors

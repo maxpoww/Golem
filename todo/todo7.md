@@ -91,7 +91,7 @@
       fontconfig default sans to "DejaVu Sans" — today's accidental look
       made deliberate, zero visual change. Choosing Golem's REAL UI font
       stays open as a design call (Max + mockup, per project law).
-- [ ] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
+- [x] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
       on Wayland — no occlusion tracking) with the webapp profile via
       `--load-extension`; it lives ONLY in Max's homedir today — get it
       into a repo first
@@ -104,6 +104,23 @@
       directory in Max's homedir. NOTE: "get it into a repo first" means a
       push to Max's GitHub — OUT OF SCOPE for this run, local commits only.
       Park that clause explicitly and do the flake half.)*
+      → DONE 2026-09-01 (Round 22), with one finding that changes the
+      picture: **branded Chrome removed `--load-extension` in 137** — probed
+      empirically on the shipped Chrome 152 (test extension + headless
+      dump-dom: chromium injects, Chrome doesn't, and the old
+      `--disable-features=DisableLoadExtensionCommandLineSwitch` hatch is
+      dead too). So the flag route works on Chromium only; on Chrome the
+      one-time manual "Load unpacked" of the STORE PATH remains (persists in
+      the profile — Max's current install keeps working). Weighs on the open
+      browser decision (todo5 item 1). Built anyway, correctly for both:
+      extension vendored at `system/home/notification-fix/` (in-repo half of
+      "get it into a repo"; the push is Max's); daemon appends
+      `--load-extension=$WAVERUNNER_WEBAPP_EXTENSION` in `app_exec_with`
+      (launcher `47b9793`, 246 tests green) + HM option `webappExtension`;
+      Golem wires the env via a systemd drop-in so it evals against the
+      PINNED waverunner too (switch to the option on the next input bump).
+      build-vm green pinned AND --override-input; drop-in verified to carry
+      the store path, store path verified to hold all three files.
 - [x] User/home layer (home-manager module wired in)
       → home-manager flake input (release-26.05, follows nixpkgs) as a
       NixOS module, useGlobalPkgs; home-manager.users.max = system/home/.
