@@ -137,6 +137,21 @@ blocker, it is the invocation.
    it, that is expected — do the local half and park the outward half. Max
    reviews and pushes himself.
 
+## Keep your context lean (this is cost, not style)
+
+Last run averaged 44 turns per iteration and its spend was almost entirely
+context re-reads. Same capability, fewer tokens:
+
+- NEVER dump a build into the transcript. Run it as
+  `nix build ... > /tmp/build.log 2>&1; echo $?` then `tail -30` or grep the
+  log for errors. Same for cargo, gradlew and nixos-rebuild — their happy
+  output is thousands of lines you will pay to re-read every turn after.
+- Do not read NOTES.md top to bottom; it is 600 lines. `grep -A5 todoN` it
+  for the entries about your file.
+- Read the sections of files you need, not whole files, when the file is
+  large and you know what you are looking for.
+- Batch independent shell commands into one call instead of five.
+
 ## Per item
 
 Before starting, decide if you can finish it end-to-end:
@@ -178,7 +193,12 @@ while :; do
   TODO=$(next_todo)
   [ -n "$TODO" ] && [ -f "$TODO" ] || { echo "all todos resolved"; break; }
 
-  if [ "$TODO" = "$LAST" ]; then STUCK=$(( STUCK + 1 )); else STUCK=0; fi
+  # Same file back again = the last session ran out of slice mid-file. Resume
+  # that session instead of paying to re-derive its context from zero — the
+  # continued session also remembers what it already tried, which a cold one
+  # re-discovers at full price.
+  CONT=()
+  if [ "$TODO" = "$LAST" ]; then STUCK=$(( STUCK + 1 )); CONT=(--continue); else STUCK=0; fi
   LAST="$TODO"
   if [ "$STUCK" -ge 3 ]; then
     echo "no progress on $TODO after 3 passes — parking it"
@@ -192,7 +212,14 @@ while :; do
   printf '\n\033[1m=== %s | %s | %dm left ===\033[0m\n' \
     "$(date +%H:%M)" "$(basename "$TODO")" "$(( REMAIN / 60 ))"
 
-  timeout "$SLICE" claude -p "$(printf "$PROMPT_TEMPLATE" "$TODO")" \
+  if [ ${#CONT[@]} -gt 0 ]; then
+    PROMPT="Continue working through the unchecked items in $TODO under the same rules. Your previous slice was cut by a timeout, not by an error — pick up where you stopped."
+  else
+    PROMPT="$(printf "$PROMPT_TEMPLATE" "$TODO")"
+  fi
+
+  timeout "$SLICE" claude -p "$PROMPT" \
+    "${CONT[@]}" \
     --model "$MODEL" \
     --permission-mode bypassPermissions \
     --settings "$SETTINGS" \
