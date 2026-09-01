@@ -77,6 +77,7 @@ Design doc (what the tour must be, where it attaches): `onboarding-design.md`.
 ### S10 — Website & release
 Manifesto ✔ → story, motion screencasts, generations/"roll back" headline,
 alpha release of **Golem 26 "Uprise"** proper.
+Alpha gate (versioning, known issues, feedback channel): `release-checklist.md`.
 
 ### S11 — Everyone-hardening *(cross-cutting, closes last)*
 i18n (Spanish first), keyboard-only, accessibility, non-expert testing.

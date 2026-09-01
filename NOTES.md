@@ -333,3 +333,44 @@
   supply none of the four. It is also the roadmap's Arc-1 exit criterion,
   so it is the last thing in the file by design: items 2 and 3 have to exist
   before there is anything to burn.
+
+- todo10 item 1 (site structure): blocked on access — golem-os.com is a
+  separate repo and this sandbox reaches only /home/max/Golem, so there is
+  no site tree here to structure. The item is also mostly a container for
+  the rest of the file: its four slots are the manifesto (already live),
+  item 2 (screenshots), item 5 (download) and an install guide that cannot
+  be written until todo9 item 2 picks the installer.
+
+- todo10 item 2 (capture real screenshots/screencasts): blocked on a running
+  machine and an eye. It needs a live Golem session on a display, a
+  recorder, and — since the item's own point is that "the motion IS the
+  pitch" — someone judging which take is worth showing. This harness has no
+  nix (every `nix` invocation is permission-blocked, same as the last three
+  loops) and no display. It is also downstream of SH: seven of the surfaces
+  worth filming are fixed-in-code but never looked at
+  (`release-checklist.md` §2.3), so filming now risks shipping a recording
+  of a bug.
+
+- todo10 item 3 (headline the Ground superpower): blocked twice, and the
+  second one matters more than the site being out of reach. The headline it
+  asks for is "atomic updates + a roll back BUTTON", and the button does not
+  exist — `features.md:129-134` still lists it as needed, and rolling back
+  today means catching a 3-second boot menu
+  (`system/configuration.nix:35`) on a machine that boots deliberately
+  silent. Half the claim is true and unmatched; half is a feature that would
+  exist only on a website, which `Golem.md:52` refuses by name. What this
+  session could add is the choice, not the copy: `release-checklist.md` §3
+  states both halves with the citations and recommends headlining the
+  capability with the boot menu shown honestly. Picking the words is Max's.
+  Worth knowing before that copy is written: rollback depth is the smaller
+  of `configurationLimit = 15` and the daily gc's `--delete-older-than 7d`
+  (`system/configuration.nix:39,241-245`) — on the feature being headlined,
+  a machine broken and unnoticed for eight days may have nothing left to
+  roll back to. Confirm which limit bites first at build.
+
+- todo10 item 5 (publish ISO + instructions on golem-os.com): blocked the
+  same three ways todo9 item 7 already recorded — separate repo, deploy
+  credentials this session has no business using unasked, and no honest
+  artifact to link (the ISO has still never been built or booted). Now also
+  gated by its own file: `release-checklist.md` §5 is the ordered gate, and
+  every line above "publish" is open.
