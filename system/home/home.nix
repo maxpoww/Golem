@@ -57,6 +57,55 @@
     _JAVA_AWT_WM_NONREPARENTING = "1";
   };
 
+  # ── Theming pass (roadmap S5) ─────────────────────────────────────────
+  # libadwaita apps cannot be re-skinned the old GTK3 way, so "look at home"
+  # means the levers they DO honour, set to what the desktop already is:
+  #   accent  → #ffbe98, the active window border in hyprland.lua
+  #   dark    → the whole desktop is (inactive border #3c3836, foot gruvbox)
+  #   fonts   → the ones configuration.nix already ships and defaults to
+  #   icons   → Papirus-Dark, the same theme waverunner's config.toml uses
+  #   corners → nothing to do: libadwaita's radius isn't configurable, and
+  #             Hyprland rounds every window to 12 anyway, which is what
+  #             Adwaita draws — they already agree.
+  # Aesthetic judgement is still Max's; this only wires the levers.
+  gtk = {
+    enable = true;
+    font = {
+      name = "DejaVu Sans";
+      size = 11;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    # GTK3 apps (file-roller, simple-scan) only go dark if told to.
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
+    gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+
+    # libadwaita reads ~/.config/gtk-4.0/gtk.css and lets these named
+    # colours be overridden — the only way to get the desktop's exact amber
+    # into GNOME apps. Foreground is foot's background (#1d2021): amber is a
+    # light accent, so text on top of it must be dark to stay readable.
+    gtk4.extraCss = ''
+      @define-color accent_color #ffbe98;
+      @define-color accent_bg_color #ffbe98;
+      @define-color accent_fg_color #1d2021;
+    '';
+  };
+
+  # The rest of what libadwaita reads at runtime. Only keys the gtk module
+  # above does NOT already write, so nothing here can conflict with it:
+  # accent-color is a named palette (GNOME 47+), so "orange" is the closest
+  # NAME to #ffbe98 — the exact colour comes from the CSS above, but apps
+  # that ask for the name still get a warm one. Cursor is deliberately
+  # absent: hyprland.lua already exports it for every client.
+  dconf.settings."org/gnome/desktop/interface" = {
+    color-scheme = "prefer-dark";
+    accent-color = "orange";
+    document-font-name = "DejaVu Sans 11";
+    monospace-font-name = "JetBrainsMono Nerd Font 11";
+  };
+
   xdg.configFile."waypaper/config.ini".text = ''
     [Settings]
     language = en
