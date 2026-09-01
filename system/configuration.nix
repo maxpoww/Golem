@@ -51,6 +51,25 @@
     home-manager.users.max.imports =
       lib.optional (!config.golem.lean) ./home/waverunner-packages.nix;
 
+    # /bin/sh and /usr/bin/env on FRESH roots (found booting the ISO in qemu,
+    # 2026-09-01). This nixpkgs boots stage 2 through nixos-init (toplevel
+    # /init is its ELF), which makes the classic `activationScripts.binsh` a
+    # no-op — and on the ISO's tmpfs root nothing else created the links, so
+    # /bin sat EMPTY. First casualty: greetd, whose worker execve's a
+    # hardcoded "/bin/sh" (worker.rs:277) — it panicked with ENOENT, restarted
+    # five times, hit the start limit, and the "live session IS Golem" booted
+    # to a black screen with a running system underneath. Max's machine never
+    # showed it because its stateful root carries /bin/sh from years of
+    # generations. Verified live in the guest: symlinking /bin/sh and
+    # restarting greetd took the session all the way to Hyprland.
+    # Belt-and-suspenders as tmpfiles rules: harmless where the links already
+    # exist, load-bearing on every fresh root (ISO today, installer targets
+    # tomorrow — this would have hit S9's first real-metal install too).
+    systemd.tmpfiles.rules = [
+      "L+ /bin/sh - - - - ${config.environment.binsh}"
+      "L+ /usr/bin/env - - - - ${config.environment.usrbinenv}"
+    ];
+
     boot.loader = {
       timeout = 3;
       efi.canTouchEfiVariables = true;
