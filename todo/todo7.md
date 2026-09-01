@@ -415,7 +415,19 @@
   opaque inner fill, punching a hole in the blur. Shared helper
   (`push_hover_frame`) so both boxes frame identically. launcher
   `bd7271d`, strengthened to 0.52 in `7578708` (Max: "sligthly less
-  subtle"). Needs Max's pointer to judge.
+  subtle").
+  → Max: "sligthly less subtle and rounded corners" — 0.68, and the
+  corners needed a RENDERER feature: RectInst gained a `border` width
+  and the SDF shader folds the signed distance about the band's
+  midline to keep only a stroke just inside the edge. Corners come out
+  right by construction; four thin rects can only draw a square frame,
+  and the outer+inner trick needs an opaque inner fill that would
+  punch a hole in the frosted blur. The frame is now ONE instance
+  (1px, radius 7, inset 2). Threading it cost a field on 49 literals
+  (mechanical, perl one-liner) rather than a third meaning on the
+  `glass` float, which already carries two — worth it: `border` is now
+  available to every surface. Seen live on Max's own hover in a
+  verification screenshot. launcher `2a9add7`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
