@@ -380,6 +380,16 @@
   text. Verified live (rule registered at runtime via `hyprctl eval`
   first — layer rules CAN be added without a rebuild, handy).
   launcher `a10d353`. Config half needs the next rebuild to persist.
+  → Max: "the bold is too agresive. and also now the colors look good
+  for some reason" (the frosted blur is why — it softened everything
+  behind the text). So the hover stopped doing three things at once:
+  weight now applies to the FIRST LINE only (the notif card's summary,
+  its wrapped body left regular; a clip row's first line), and the ink
+  no longer pushes past the resting colour — it just goes to full
+  strength. That push existed only because lightness was carrying the
+  hint alone; with weight doing that job it was piling on. Net: one
+  line changes weight, the same line firms up slightly, nothing else
+  moves. launcher `30d5996`.
   THE LESSON of the hover sub-thread: "emphasis" is not a direction in
   colour space, it is DISTANCE FROM THE BACKGROUND — and any
   emphasis mechanism needs the resting state to leave it room, in
