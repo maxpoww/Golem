@@ -23,14 +23,24 @@
 
 - [ ] BUILD the ISO: `nix build .#iso` green, and fix whatever falls out
       *(new 2026-09-01 — this is what todo9 item 1's tick was asserting
-      without evidence. `nix` is available to this run and the build was
-      started warm before the loop, so the store should already carry most
-      of it. Expect the image to be LARGE: the live session carries
-      golem-apps.nix, google-chrome and the full home layer, because "live
-      session boots into REAL Golem" is the item. Also clear the deprecation
-      the eval now warns about: `isoImage.isoBaseName` has been renamed to
-      `image.baseName` (`hosts/iso.nix:85-86`). Booting it is NOT in scope —
-      there is no qemu on this machine and no display; that stays Max's.)*
+      without evidence. BUILT GREEN before this run, so the store is warm:
+      `/nix/store/kdfj9gvqz0n4i5rc6mjvl910jh21fxd3-golem.iso`. Verified
+      structurally — ISO9660 magic, an El Torito boot catalog, volume ID
+      GOLEM_ISO. Booting it is NOT in scope: no qemu on this machine and no
+      display, so that stays Max's. Two things DID fall out, and they are
+      what is left of this item:
+      1. `isoImage.isoBaseName`/`volumeID` (`hosts/iso.nix:89-90`) are
+         deprecated — eval warns they are renamed to `image.baseName`.
+         Rename, rebuild, confirm the warning is gone and volumeID survives.
+      2. THE IMAGE IS 6.4 GiB. That is not weak compression — squashfs is
+         already at the nixpkgs default `zstd -Xcompression-level 19` — it
+         is genuine payload: google-chrome, the whole golem-apps.nix set and
+         the full home layer, because "live session boots into REAL Golem"
+         is the item. Record the number and what drives it (`nix path-info
+         -rS` on the toplevel will rank the closure). Do NOT start cutting
+         apps to shrink it — what ships in the live session is a curation
+         call and Max's. This is a finding for S10, whose download link this
+         blocks, not a licence to trim.)*
 - [?] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
 - [?] Disk flow: guided partitioning, encryption option, one "install" action
