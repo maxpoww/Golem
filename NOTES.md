@@ -587,3 +587,10 @@
   part of the collector's job rather than left as a footnote under a ticked
   line, so the waverunner session starts knowing discovery has a host-side
   half.
+- ~~parked todo11.md: loop made no progress in 3 iterations~~ CORRECTED
+  2026-09-01: that park was the quota, not the items. At ~12:40 the account
+  hit its session limit ("resets 4pm America/La_Paz") and every iteration
+  after that died on turn 1 at $0 — the loop's stuck-detector read three such
+  instant deaths as "no progress" and force-parked the file. The two items
+  (keyboard-only audit, reduce-motion engine flag) are reopened `- [ ]`;
+  nothing about them was attempted or found hard. Re-run after 4pm.
