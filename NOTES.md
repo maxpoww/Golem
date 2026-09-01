@@ -600,3 +600,18 @@
   instant deaths as "no progress" and force-parked the file. The two items
   (keyboard-only audit, reduce-motion engine flag) are reopened `- [ ]`;
   nothing about them was attempted or found hard. Re-run after 4pm.
+
+- S9 first boot, VERIFIED 2026-09-01 (qemu, host store): the fixed lean ISO
+  boots to the real Golem session — waverunner topbar (clipboard pill, bell,
+  clock), dock with recycle bin, grim screenshot from inside the guest as
+  proof. Two hard-won facts for whoever boots it next:
+  * /bin/sh was the killer (commit e381892) — fixed, verified present at
+    boot via the tmpfiles rule.
+  * In qemu, the GPU device MATTERS: Max's Hyprland fork segfaults in
+    getOrCreateRenderbuffer on `-device virtio-gpu-gl-pci`, and renders fine
+    on `-device virtio-vga-gl -display gtk,gl=on` — the exact combination
+    hosts/vm.nix:104-106 already pinned after the venus revert. Use that.
+    Plain virtio-gpu-pci (no GL) also crashes the fork (kms_swrast path).
+  * QMP screendump reports "no surface" under gl=on — screenshot from
+    INSIDE the guest (grim, per-user profile path
+    /etc/profiles/per-user/max/bin/grim) and pull it out base64 over serial.
