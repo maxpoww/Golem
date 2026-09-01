@@ -218,6 +218,8 @@
   tiles (regrab/end), and each dragEnd UNSETS the override with
   nothing restoring it. Fix: assert the closed hand inside the drag
   branch, after the commit, every motion. waveview `e49da53` (v0.36).
+  ✅ VERIFIED by Max: "works now, the hand stays closed the whole drag"
+  — including across commits.
   LESSON: when a fix "doesn't take", check it EXECUTES before
   theorising about why it doesn't work — one trace beat three
   hypotheses.
