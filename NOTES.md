@@ -245,3 +245,48 @@
   installation-device profile, so Ctrl+Alt+F2 is the way in. Expect the image
   to be large: the live session carries golem-apps.nix, google-chrome and the
   full home layer, because "live session boots into REAL Golem" is the item.
+
+- todo9 item 2 (decide installer): blocked twice over. Its own decision
+  procedure is a *friction test*, which needs the ISO built and two candidate
+  images to sit in front of — this harness has no `nix`, no VM and no display
+  — and "the installer is Golem's first impression" makes it the same class of
+  call as the browser and the surface pattern: Max's. Three facts the item's
+  binary framing misses, for whoever runs that test:
+  * calamares-nixos is not a drop-in. The graphical NixOS ISOs use it with
+    `calamares-nixos-extensions`, whose `nixos` job renders
+    `/mnt/etc/nixos/configuration.nix` from a TEMPLATE plus the GUI's answers
+    and then runs `nixos-install` — i.e. it produces a channel-based plain
+    NixOS with a stock DE, not Golem. Installing Golem through it means
+    forking that extension (Python + template) so it instead seeds a flake
+    checkout and instantiates our attr, which is the shape S7 already fixed
+    (`golem.flakeDir`/`golem.flakeAttr`, `hosts/vm.nix:21`). Its cost is a
+    fork, not an integration.
+  * It is also a Qt app: the very first screen a stranger sees would be
+    system-wide-nothing-like-Golem, on an ISO whose whole point is that the
+    live session IS Golem.
+  * The fork is not really two-way. "Our own guided surface" is waverunner
+    code (out of reach from ~/Golem) plus privileged disk work; the third
+    option nobody wrote down is *neither surface* — `disko` + `nixos-install
+    --flake` behind a handful of questions, which would turn item 3's
+    "guided partitioning, encryption option" into a data file instead of a
+    program. That option is the cheapest path to the Arc-1 exit and the
+    ugliest first impression, which is exactly the trade the friction test
+    exists to settle.
+
+- todo9 item 3 (disk flow): blocked on item 2 — partitioning, the encryption
+  option and the single "install" action are all shaped by which surface owns
+  them, and building either before that is picked is guessing. Two concrete
+  things the flow will have to handle, found while reading the tree:
+  * There is no host attr for a machine that isn't Max's.
+    `nixosConfigurations.golem` carries `hosts/golem/hardware-configuration.nix`
+    (his disk UUIDs) and `nvidia.nix`; `golem-vm` is the VM. A stranger's
+    install needs a generic host whose `hardware-configuration.nix` is
+    generated at install time INTO the seeded checkout — the ISO already
+    carries the source to seed it from (`/etc/golem/src`, `hosts/iso.nix`).
+  * Encryption may boot to a black screen. Golem core boots silent on
+    purpose (`quiet`, `loglevel=0`, `kernel.printk` all zeroes,
+    `fbcon=map:1`, `system/configuration.nix:43-75`) and ships no plymouth
+    at all — the `splash` kernel param in that list is inert today. A LUKS
+    passphrase prompt on such a console is the first thing to verify on the
+    first encrypted install: if it is invisible, the encryption option is
+    worse than not offering it.

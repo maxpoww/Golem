@@ -15,9 +15,9 @@
       NOTES). First boot is the test; the file's last comment block names
       the two things to suspect if it doesn't (systemd initrd on an overlay
       store; the quiet-boot black screen).
-- [ ] Decide installer: calamares-nixos vs our own guided surface (friction
+- [?] Decide installer: calamares-nixos vs our own guided surface (friction
       test decides — the installer is Golem's first impression)
-- [ ] Disk flow: guided partitioning, encryption option, one "install" action
+- [?] Disk flow: guided partitioning, encryption option, one "install" action
 - [ ] Hardware: graphics drivers, wifi firmware, unfree toggle
 - [ ] Wifi in the install flow (an ISO that can't get online on another
       PC fails the Arc-1 exit)
