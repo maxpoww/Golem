@@ -429,6 +429,10 @@ offers across the desktop use-cases.
 35. **slides.present** — a presentation app (impress/powerpoint/…) focused but not
     yet fullscreen → "Present" starts the slideshow (F5, compositor keystroke),
     complementing the fullscreen slide-nav.
+36. **git.show_commit** — a bare git commit hash (7–40 hex) on the clipboard while
+    focused in a repo → "Show commit" (git show in a terminal pager). The sha + repo
+    root are shell-quoted (clipboard text). Gated to Coding. CONFIRMED-by-construction
+    (selection→pill like selection.url/path; `foot sh -c git show` like git.diff).
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
