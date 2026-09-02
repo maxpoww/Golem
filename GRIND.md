@@ -35,14 +35,30 @@ commits, options-catalog.md, or this file.
 
 ## QUEUE (top = next; tick with `[x] <hash>`)
 
-- [ ] VM BATCH OWED (next VM session, batch these together):
-      (a) media box uniform scale (launcher 654b88d) — boot golem-vm at a
-          small logical height (<900 → e.g. 800 → scale 0.889), play something
-          via MPRIS, open the media box, screenshot: panel + transport circles
-          + seek/volume tracks + fonts must all be proportionally smaller and
-          the drag bands must still hit. Unit-verified (lockstep test) and
-          full-screen-unchanged by algebra; the screenshot is the missing half.
-      (b) any other pending visual/behavioral item that has piled up.
+- [x] VM BATCH DONE (2026-09-02, golem-vm at 1280x800 → options_scale 0.889;
+      VM built with `--override-input waverunner git+file:///home/max/launcher`
+      and the running daemon verified as the build carrying both changes):
+      (a) media box uniform scale (654b88d) — CONFIRMED. Box drew 320x114
+          (360x128 × 0.889), title/transport/tracks/time all proportionally
+          smaller, everything inside the panel, no clipping.
+      (b) notif box uniform scale (b4ee500) — CONFIRMED. Box drew ~338 wide
+          (380 × 0.889) with three cards; identity tiles ~35px (40 × 0.889),
+          the smaller body font wraps inside the card (the 3-line "Ana" card
+          laid out exactly), zebra row, right-aligned timestamps and the
+          footer ✕ all correct. Bell pill and clock unchanged beside it —
+          the pill/box split holds.
+      Recipe for the next batch (saves an hour): boot headless with
+      `QEMU_OPTS="-display egl-headless"` (no GTK window on Max's session,
+      GL still works); ssh -p 2222 max@127.0.0.1; the box-open verbs are
+      `waverunner-ctl debug-notif` / `debug-media-box`, and the box
+      auto-collapses after ~1.5 s so grim must fire ~0.7 s after the verb.
+      No notify-send in the VM — use dbus-send to org.freedesktop.
+      Notifications.Notify. No MPRIS from mpv (no mpris script) — VLC
+      (`vlc --intf dummy --no-video --repeat <file>`) does publish MPRIS, and
+      it needs a REAL finite file (av://lavfi stops instantly, length -1);
+      generate one on the host with ffmpeg and scp it in. Never `pkill -f`
+      a pattern that also matches the ssh command line — it kills your own
+      remote shell.
 - [x] 654b88d Responsive shell, media box — the third dropdown box now scales
       uniformly (footprint + pads + transport + tracks + fonts) like the
       clipboard box (ddde8f0). Draw and hit-test share the same geometry fns,
@@ -50,7 +66,16 @@ commits, options-catalog.md, or this file.
       transport_btns_at), so the desync class is closed by construction and
       unit-testable; test asserts offsets/sizes scale by exactly the box factor,
       nothing interactive escapes the panel, and scale 1.0 == the original
-      constants. Screenshot owed — see the VM BATCH item above.
+      constants. CONFIRMED in the VM — see the VM BATCH item above.
+- [x] b4ee500 Responsive shell, notif box — Max's call (2026-09-02) on the
+      style question the last pass flagged: UNIFORM EVERYWHERE. The notif box
+      no longer scales footprint-only; a `BoxMetrics` struct carries every box
+      dimension incl. font/line size, the raw consts are gone from the module
+      (so a missed site is a compile error, not shipped overflowing text), and
+      each of ~110 sites was classified box (scales) vs topbar pill (does not:
+      bell, +N chip, collapsed preview line). The top card lerps between the
+      two sizes as it morphs out of the preview band (`TextPx`). All three
+      dropdown boxes now scale the same way. CONFIRMED in the VM.
 - [x] dc117ab Hardening+tests pass A: git module (commit/push/pull/diff/remote)
       — matcher unit tests (diff pipeline, open-remote URL, dirty warning),
       edge cases (detached HEAD→silent, no upstream→still commit/push/pull but
