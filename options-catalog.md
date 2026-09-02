@@ -414,6 +414,15 @@ offers across the desktop use-cases.
     high-CPU. Gated above the CPU threshold so at most one monitor pill ever shows.
 31. **browser.reopen_tab** — Browsing → "Reopen closed tab" (Ctrl+Shift+T, compositor
     keystroke) alongside Find. Universal across browsers, the classic "oops" recovery.
+32. **shell.install_missing** — a command-not-found (shell exit 127) in a focused
+    terminal → "Install <cmd>?" whose action opens the launcher's Install search
+    pre-filled with the missing program (new `pkgsearch:<name>` daemon action: set query
+    → Toggle open → refilter, which also kicks the lazy pkg index). Command parsed by
+    first_command_token (skips sudo/VAR=val, rejects paths). Gated to Terminal/Coding.
+    **CONFIRMED live in the golem-vm:** shell exit-127 `cowsay hi` surfaced the pill
+    (`options: … [shell.install_missing, shell.search_error]`); triggering it opened the
+    launcher with the nixpkgs search showing cowsay + neo-cowsay/xcowsay/kittysay/…. Live
+    validation caught a real bug (Expand is a no-op from Hidden; fixed to Toggle, fdcd88c).
 
 ## 8. Coverage summary (grind mode)
 

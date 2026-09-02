@@ -41,13 +41,31 @@ commits, options-catalog.md, or this file.
       no open-remote), reactive clear outside a repo. Note: a *bare* repo has no
       worktree so the collector reports no branch/dirty → same silent path as
       detached (covered). Also added a focus-churn behavioral-cue test.
-- [ ] Hardening+tests pass B: media (pill, box, sliders, MPRIS edge cases:
-      player vanishes mid-drag, two players, no MPRIS).
-- [ ] Hardening+tests pass C: selection/clipboard slices (huge clipboard,
-      non-UTF8, rapid changes) + downloads watcher (partial files, ~1000
-      files in ~/Downloads).
-- [ ] Hardening+tests pass D: bridges (zsh + nvim) — daemon restarts while
-      bridge connected, malformed bridge input never panics the daemon.
+- [x] d1de501 Hardening+tests pass B: media. no-MPRIS reactive clear, fmt_time
+      + hit_band unit tests, length-0 streams (already covered), two-player
+      pick_best (already covered), player-vanishes-mid-drag safe by construction
+      (media_drag_commit filters length>0 through the Option, no panic).
+- [x] bd28b01 Hardening+tests pass C: selection/clipboard. Bounded classify to
+      the SNIPPET_CAP snippet (huge paste no longer scans MBs per change),
+      looks_like_path length-guard-first (O(1) on huge), non-UTF8 via
+      from_utf8_lossy (tested with U+FFFD), rapid changes coalesce via the watch
+      channel by construction. Downloads partial/0-byte/hidden already covered
+      (e52737e); ~1000-files is a bounded readdir+stat sweep, correctness fine.
+- [x] 13ebcd3 Hardening+tests pass D: bridges. Malformed/unknown/wrong-type
+      input rejected (Err→log+ignore, never panics; tested). Daemon-restart
+      resilience by construction: server removes stale socket + rebinds; both
+      clients (zsh [[ -S ]]||return+zsocket||return; nvim fs_stat+pcall+connect-
+      err) silently no-op when the daemon is down and reconnect on next event.
+- Batch VM session (2026-09-02): shell.install_missing CONFIRMED end-to-end —
+  shell exit-127 `cowsay hi` in a focused foot terminal surfaced the "Install
+  cowsay?" pill; triggering it opened the launcher with the nixpkgs search
+  pre-filled (cowsay + neo-cowsay/xcowsay/kittysay/…). Live-caught + fixed a real
+  bug: pkg_search_for used Expand (no-op from Hidden) → now Toggle (fdcd88c).
+  (VM tip: hyprctl over SSH needs HYPRLAND_INSTANCE_SIGNATURE=$(ls -t
+  /run/user/1000/hypr/|head -1); this Hyprland fork uses lua dispatch so
+  `hyprctl dispatch exec` errors — launch GUI clients directly as wayland
+  clients (setsid foot) instead. Never use `read </dev/zero` to sleep — it
+  buffers endless nulls and hangs the SSH command.)
 - [ ] Browser bridge (the last big collector): a minimal extension or CDP
       probe reporting active-tab URL + video-playing to the Brain; wire one
       new offer off it. If infeasible without a store upload, document why
