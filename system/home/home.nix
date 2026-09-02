@@ -67,6 +67,7 @@
 
     grim
     slurp
+    wf-recorder       # screen recording (the OPTIONS record control)
 
     playerctl
   ] ++ lib.optionals (!osConfig.golem.lean) [
