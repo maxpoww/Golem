@@ -66,19 +66,28 @@ commits, options-catalog.md, or this file.
   `hyprctl dispatch exec` errors — launch GUI clients directly as wayland
   clients (setsid foot) instead. Never use `read </dev/zero` to sleep — it
   buffers endless nulls and hangs the SSH command.)
-- [ ] **FULLSCREEN PERF (top priority — measured on the 2013 Air, 2026-09-02):**
-      during fullscreen video, waverunner burns ~26% CPU and Hyprland reports
-      directScanout blocked by "screen record/screenshot" (the topbar's
-      continuous screencopy colour-match) and solitary blocked by "other
-      overlays" (the bar's layer). Result: +18 °C vs GNOME on the same box →
-      thermal throttle → 36% dropped frames. Fix in waverunner: when a
-      fullscreen client is active (the daemon already tracks fullscreen
-      state), (a) PAUSE the screencopy colour-match entirely, (b) hide/
-      unmap the topbar layer (not just visually) so solitary/direct-scanout
-      can engage, (c) resume both on fullscreen exit. Validate in the VM:
-      hyprctl monitors must show the blockers gone while a fullscreen
-      window runs, waverunner CPU ~0% during fullscreen. This is the
-      GNOME-parity lever for video on weak hardware.
+- [~] 3efd1ee FULLSCREEN PERF (partial — screencopy pause DONE+CONFIRMED; layer
+      unmap deferred). (a) PAUSE the topbar screencopy colour-match during
+      fullscreen — DONE. CONFIRMED in golem-vm: directScanoutBlockedBy loses
+      "RECORD" on fullscreen-enter, regains it on exit, across clean cycles;
+      topbar stays mapped + renders correctly before/after. This removes the
+      dominant per-frame waverunner cost (the 700ms wlr-screencopy GPU readback
+      + colour histogram). (b) UNMAP the topbar layer to also clear the solitary
+      "OVERLAYS" blocker — NOT done: intractable with the wgpu-backed surface. A
+      null-buffer commit doesn't cleanly remap via wgpu present (bar stays blank
+      after exit); destroying the LayerSurface wedges the wayland/brain event
+      flow (brain updates stop, bar never returns). The dock layer also blocks
+      solitary regardless. Direct-scanout can't even engage in the VM (inherent
+      "SW"/llvmpipe blocker), so (b) needs real-hardware work. See follow-up.
+- [ ] FULLSCREEN PERF (b), follow-up: truly hide the topbar (and dock) layers
+      during fullscreen so Hyprland grants solitary/direct-scanout. Needs a
+      wgpu-compatible unmap: likely drop+recreate BOTH the LayerSurface AND its
+      wgpu Renderer together (the event-loop wedge came from dropping the layer
+      while the renderer/handlers still referenced its surface), or a
+      set_size(0,0)/exclusive-zone approach, or render the bar into the DOCK's
+      surface instead of a separate overlay. Validate on real hardware (Intel
+      GPU, no SW blocker): hyprctl monitors solitary must engage, waverunner CPU
+      ~0% during fullscreen video. Reversible: abandon if it regresses the bar.
 - [ ] Browser bridge (the last big collector): a minimal extension or CDP
       probe reporting active-tab URL + video-playing to the Brain; wire one
       new offer off it. If infeasible without a store upload, document why
