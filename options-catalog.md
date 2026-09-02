@@ -233,58 +233,67 @@ scrubber, a diff view), but the atomic "right action, right moment" is a pill.
 
 ## 4. What's real vs designed vs still-needed (honest status)
 
-Updated 2026-09-02 after building + validating the mechanism in the golem-vm.
+Updated 2026-09-02 (pass 2) after building + validating the mechanism in the golem-vm.
 
-**REAL and proven end-to-end (sensed → surfaced → action performs), validated in
-the golem-vm with screenshots:**
-- The **action vocabulary** — `AffordanceAction { None, Spawn{argv}, HyprDispatch,
-  OpenUrl }` and the `AffordanceKind::Control` (never skill-faded). Affordances now
-  carry a real `action` (options-engine).
-- The **Mind wired into the daemon**: `brain.rs` runs `Mind`, streams the ranked
-  `OptionSet`; the daemon surfaces the actionable offers as **dynamic OPTION pills**
-  on the topbar (glyph circles, ranked, capped at 5) and dispatches the action on
-  click (or the `options-trigger <id>` IPC verb). This is the general mechanism:
-  a *module* = a provider (context matcher → offers) whose offers carry actions.
-- **git-actions** (Commit all / Push): dirty repo while Coding → the two Control
-  pills; triggering **git.commit landed a real commit** (1→2), then the pills
-  reactively cleared when the tree went clean. Required a collector fix — the git
-  collector now walks the focused window's child shells (foot resets its own cwd to
-  `/`), so "a terminal in a repo → Coding" is finally sensed.
-- **media-controls** (Play/Pause, Volume ±, Next/Prev, Brightness ±): an MPRIS
-  player present → the control cluster; triggering **play/pause toggled VLC**
-  (Playing→Paused) and **vol_up moved the sink** (1.00→1.05). The play/pause glyph
-  flips Play↔Pause reactively. Brightness is offered only where a backlight exists
-  (`has_backlight`, sensed from `/sys/class/backlight`) — the VM correctly shows no
-  brightness pills; a laptop would.
-- **selection / open-copied-url**: a copied URL → an "Open copied link" Control that
-  `xdg-open`s it (dispatch confirmed).
+**The mechanism — REAL and proven:** `AffordanceAction { None, Spawn{argv},
+HyprDispatch, OpenUrl }` + `AffordanceKind::Control` (never skill-faded) +
+`Affordance.action`. `brain.rs` runs the `Mind` and streams the ranked `OptionSet`
+into the daemon; the daemon surfaces the actionable offers as **dynamic OPTION pills**
+on the topbar (glyph circles by affordance id, Mind-ranked, capped at 5) and dispatches
+the action on click (or the `options-trigger <id>` IPC verb). A *module* is just a
+provider (context matcher → offers-with-actions); adding one is a pure function. The
+ranking blends multiple active modules and de-clutters by relevance/cap (unit-tested).
 
-**REAL in the engine, mechanism proven, live collector unconfirmed in the VM:**
-- **call-controls (mic mute)**: the engine emits the mute Control when `is_mic_active`
-  (unit-tested), and the surfacing/dispatch path is the same one proven three times
-  above — but a *running* capture stream couldn't be conjured in the headless VM (no
-  real mic), so the audio collector firing wasn't observed here. Expected to work on
-  real hardware / a real call. SUSPECTED.
+**SEVEN vertical slices proven end-to-end (sensed → pill → action performs), each
+validated live in the golem-vm with a screenshot:**
+1. **git.commit** — dirty repo while Coding → ✓ pill → **landed a real commit** (1→2),
+   pills reactively cleared when clean. (Needed a collector fix: the git collector now
+   walks the focused window's child shells, since foot resets its own cwd to `/`.)
+2. **git.push** — surfaced alongside commit (⬆ pill); action = `git -C <root> push`.
+3. **media.playpause** — MPRIS player → ⏸/▶ pill → **toggled VLC** (Playing→Paused);
+   glyph flips reactively.
+4. **media volume** — 🔉/🔊 pills → **moved the sink** (`wpctl`, 1.00→1.05).
+5. **media seek** — ⏪/⏩ pills → **advanced VLC position** (playerctl, 17.6s→38.5s on
+   2× +10s). Seek outranks track-skip so the 5-pill cluster is the video set
+   (play/pause, volume, seek).
+6. **audio.mic_mute** — a running capture → activity flips to Communication, media
+   controls clear, 🎤̶ pill → **toggled source mute** (`wpctl`, [MUTED]↔on).
+7. **selection.url / selection.search** — a copied URL → "Open copied link"; any other
+   copied text → "Search the web" 🔍 → **opened Chromium to the DuckDuckGo query**
+   (percent-encoded). And **system.high_cpu** — spun CPU >85% → 📊 pill → **launched
+   btop** in foot. (That's the 4 original + seek + search + cpu-monitor.)
 
-**Designed here, cheap to add next (reuse the proven mechanism):**
+Brightness is offered only where a backlight exists (`has_backlight` from
+`/sys/class/backlight`) — the VM correctly shows none; a laptop would.
+
+**Designed, cheap next (reuse the proven mechanism):**
 - system-health actions: stale-generation → Reboot, not-activated → re-run switch,
-  screencast → Stop sharing (each a Spawn/HyprDispatch on an existing warning). Not
-  built because they're destructive/guarded to validate autonomously (reboot; and the
-  loop must not run `nixos-rebuild switch`).
-- true seek (playerctl position ±10s) alongside next/prev; a hover tooltip showing
-  each pill's title for discoverability.
+  screencast → Stop sharing (Spawn/HyprDispatch on an existing warning). Not built —
+  destructive/guarded to validate autonomously (reboot; the loop must not run
+  `nixos-rebuild switch`).
+- a **media box** (expand a single media pill to the FULL control set — transport +
+  volume + seek + brightness + next/prev) for when the 5-pill cap overflows.
+- a **hover tooltip** showing each pill's title (discoverability). Deliberately not
+  built: the topbar renderer (metamorphosis / clip / neumorph paths) is delicate and
+  the glyphs are standard; flagged so Max can decide.
+- terminal-in-repo → "Open a new terminal here" (cwd already sensed via the child walk).
 
 **Still needed (blocked on a collector/dep):** bridge clients (shell/editor/browser
 hooks) for dev-run, terminal re-run, reading-mode; a file-manager selection signal; a
 key-injection tool (`wtype`/`ydotool`) for text/nav/slide offers; a camera-in-use
 sensor for calls.
 
-## 5. The proven vertical slices (commits)
+## 5. The mechanism & modules (where in the code)
 
-- `options-engine`: actions + Control kind + the four modules; git child-shell walk;
-  backlight sensing + gating.
-- `daemon`: Mind streamed into the loop; dynamic OPTION pills (`PillId::Option`);
-  action dispatch (`run_affordance_action`); `debug-options` / `options-trigger` IPC.
-- Validated in the golem-vm (see the loop's report for screenshots): git commit &
-  push, media transport & volume, open-copied-url — each sensed by the Brain,
-  surfaced as a pill, and its action actually performed.
+- `options-engine` (`mind/`): `AffordanceAction` + `Control` kind + `Affordance.action`;
+  modules in `decide.rs` — media-controls (playpause/volume/seek/brightness/skip),
+  git-actions (commit/push), call-controls (mic mute), selection (open-url / search),
+  system (high-cpu monitor). Collectors: git now walks child shells (`git.rs`);
+  `has_backlight` in `system.rs`.
+- `daemon`: `brain.rs` runs the Mind and streams the `OptionSet`; `options.rs` renders
+  dynamic OPTION pills (`PillId::Option`, `glyph_for_option`) and dispatches actions
+  (`run_affordance_action` / `action_command_line`, shell-quoted); `main.rs`
+  `on_options` (signature-guarded redraw); `debug-options` / `options-trigger <id>` IPC.
+- All validated in the golem-vm with screenshots (see the loop report): each of the
+  seven slices in §4 was sensed by the Brain, surfaced as a pill, and its action
+  actually performed.
