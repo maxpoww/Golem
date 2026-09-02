@@ -434,7 +434,11 @@ offers across the desktop use-cases.
     the file's dir) complements editor.run (single-file scripts); "Format file"
     runs the language's in-place formatter (rustfmt/gofmt -w/black/zig fmt). Both
     shell-quote the file path, gated to Coding. The editor cluster is now
-    open-folder + run/build + format.
+    open-folder + run/build + format. **CONFIRMED live in the golem-vm:** nvim
+    open on a `main.rs` in a repo surfaced `[git.commit/push/pull/diff,
+    editor.build, editor.format, coding.terminal_here]` — the real nvim bridge
+    sent language=rust and both offers mapped in (editor.run correctly absent for
+    a compiled language). Also confirms the nvim editor bridge is healthy.
 36. **git.show_commit** — a bare git commit hash (7–40 hex) on the clipboard while
     focused in a repo → "Show commit" (git show in a terminal pager). The sha + repo
     root are shell-quoted (clipboard text). Gated to Coding. **CONFIRMED live in the
