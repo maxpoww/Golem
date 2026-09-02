@@ -113,8 +113,11 @@ commits, options-catalog.md, or this file.
       IPC verb (no headless cursor warp on this compositor). CONFIRMED in the
       golem-vm: hovering the screencast pill shows "Screen is being shared". No
       layout regression (renders in the transparent region under the bar).
-- [ ] Catalog expansion: pick the 3 highest-value unserved use-cases from
-      options-catalog.md §gaps, ground → spec → build if sensable.
+- [~] Catalog expansion (ongoing): shipped this session — reading-mode from the
+      window title (browser-bridge fallback), slides.present (F5), plus the batch
+      of downloads/battery-dim/high-mem/reopen-tab/install-missing earlier. The
+      general use-cases in §1 are now broadly served; further slices are
+      diminishing-value micro-cases. Keep adding as genuinely-useful ones surface.
 - [ ] iso-smoke `--boot` run against the current ISO build when the VM
       slot is free; record the result in the commit/catalog.
 

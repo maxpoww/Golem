@@ -423,6 +423,15 @@ offers across the desktop use-cases.
     (`options: … [shell.install_missing, shell.search_error]`); triggering it opened the
     launcher with the nixpkgs search showing cowsay + neo-cowsay/xcowsay/kittysay/…. Live
     validation caught a real bug (Expand is a no-op from Hidden; fixed to Toggle, fdcd88c).
+34. **reading-mode from the window title** (browser-bridge fallback) — see the
+    "Browser bridge (feasibility)" note above; a docs-titled browser tab infers
+    Reading → reading offers (find, brightness), no bridge.
+35. **slides.present** — a presentation app (impress/powerpoint/…) focused but not
+    yet fullscreen → "Present" starts the slideshow (F5, compositor keystroke),
+    complementing the fullscreen slide-nav.
+
+**Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
+the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
 
 ## 8. Coverage summary (grind mode)
 
@@ -432,7 +441,7 @@ those documented as blocked:
   terminal-here, editor open-folder/run, rerun), text/selection ✓ (open url/path/email,
   search), browsing ✓ (find, reopen-tab, video-tab foregrounding), terminal ✓ (search-error,
   rerun, files-here), calls ✓ (mic-mute, DND), system ✓ (cpu/mem-monitor, battery-dim,
-  privacy pills), reading ✓ (find, brightness), presentations ✓ (slide nav),
+  privacy pills), reading ✓ (find, brightness, docs-title inference), presentations ✓ (present + slide nav),
   gaming/fullscreen ✓ (DND, screenshot), downloads ✓ (open, extract).
 33. **reading-mode from the window title** (browser-bridge fallback) — a focused
     browser whose title reads like documentation (MDN, "Documentation", " docs",
