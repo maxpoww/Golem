@@ -26,14 +26,18 @@
 
   # ── The collisions ────────────────────────────────────────────────────
 
-  # 1. Wi-fi. installation-device turns on wpa_supplicant (the minimal ISO
-  #    has no NetworkManager); Golem core turns on NetworkManager. Both at
-  #    once is not just two daemons on one interface — networkmanager.nix
-  #    asserts on it unless every interface is listed unmanaged. Golem's
-  #    answer to "get online on a strange machine" is NetworkManager (the
-  #    stopgap nm-connection-editor is already in systemPackages), so
-  #    wpa_supplicant is the one that goes.
-  networking.wireless.enable = lib.mkForce false;
+  # 1. Wi-fi. There is NOTHING to force here — and forcing it broke wifi on
+  #    real hardware (2026-09-02, Acer + QCA9377). The original comment here
+  #    claimed installation-device ships a standalone wpa_supplicant that
+  #    collides with NetworkManager; that is false — installation-device
+  #    enables NetworkManager, not standalone wireless, and nothing in the ISO
+  #    base sets `networking.wireless.enable`. Worse, NetworkManager's own
+  #    module (networkmanager.nix) sets `networking.wireless.enable = true`
+  #    with `dbusControlled = true` — that IS how NM gets its wpa_supplicant
+  #    backend. A `mkForce false` here overrode that, so `wpa_supplicant.service`
+  #    never existed, and NM reported every wifi (and ethernet) device
+  #    `unavailable`: a stranger could not get online, which is the S9 exit
+  #    criterion. Let NM manage the supplicant. Do not re-add the override.
 
   # 2. Bootloader. The ISO boots from its own grub/systemd-boot image built
   #    by iso-image.nix; a live system must never try to *install* one.
