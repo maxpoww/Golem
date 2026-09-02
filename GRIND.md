@@ -101,30 +101,19 @@ commits, options-catalog.md, or this file.
       the ~97-layer reserved search tail (~33 MB, needs array realloc+re-upload
       mid-search, unvalidatable in VM llvmpipe). No clean ≥10 MB win this pass.
       Follow-up: the reserved-tail lazy allocation, validated on real hardware.
-- [ ] Responsive shell, uniform box scale — SCOPED (2026-09-02). Gap found: the
-      NOTIF box already scales via options_scale() (notif.rs:818,1085,1126); the
-      CLIPBOARD box has ZERO options_scale usage — that's the remaining work.
-      Precise plan: multiply every clipboard-box dimension by options_scale() in
-      BOTH the measure funcs (clip_text_col_w, row_height_of, clip_row_lines —
-      LINE_PX, tile size, column widths, paddings) AND the draw path, mirroring
-      exactly how the notif box threads `let s = self.options_scale()`. The prior
-      failure was a measure/draw desync, so change them in lockstep. Deferred from
-      this session (delicate; needs careful 1366x768 VM screenshot iteration with
-      real clipboard history — I could not cheaply iterate visually).
-      STRUCTURAL BLOCKER found (2026-09-02): unlike the notif box (methods that
-      call self.options_scale()), the clipboard box's layout is FREE functions
-      over module constants — clip_text_col_w(has_tile) and row_height_of(entry)
-      take no &self, and use consts PEEK_W/ROW_PAD_X/TILE_SZ/TEXT_GAP/TIME_COL_W/
-      LINE_PX/MAX_ROW_LINES/ROW_PAD_Y directly. So scaling means threading a
-      `scale: f32` param through clip_text_col_w, row_height_of, clip_row_lines
-      AND every call site (measure + draw), multiplying each const by it — a real
-      refactor, not a mirror. That's why the prior measure/draw desync happened.
-      Do it as: add `scale` params, `self.options_scale()` at the entry points,
-      scale ALL consts in lockstep. Abandon if it regresses hit-testing/alignment.
-      SCOPE (2026-09-02): clipboard.rs is 4146 lines / 74 clip fns; the dim consts
-      have ~80 usages (LINE_PX alone 40, ROW_PAD_X 11, TILE_SZ 7, TEXT_GAP 6). A
-      real multi-site refactor needing lockstep measure/draw + iterative 1366x768
-      visual validation — a dedicated task, not a session tail. Deferred, scoped.
+- [x] ddde8f0 Responsive shell, uniform box scale — DONE for the clipboard box
+      (the notif box already scaled). Threaded `scale` through the measure fns
+      (clip_text_col_w/row_height_of/clip_row_lines) and push_clip_row's draw in
+      lockstep; the desync class is closed because wrap_text is LINEAR in
+      font_px — scaling width and font by the same factor yields identical line
+      breaks, so measured heights always equal drawn text. ClipState ctor
+      measures provisionally at 1.0; open_clip_box re-measures at the live
+      scale. CONFIRMED in the VM (800px logical → scale 0.889): box opened at
+      box_h=251 with a 4-line wrapped row laid out exactly — no clipping or
+      overflow (screenshot); zebra/timestamps/footer intact. Scale 1.0 reduces
+      algebraically to the original, so full-size screens provably unchanged.
+      Detail/dict panels left unscaled (self-consistent draw+hit geometry —
+      no desync possible); scale them later only if they visually dominate.
 
 - [x] iso-smoke — PASSED (2026-09-02, coordinator's fresh ISO
       /nix/store/2dcvbqhk4l5wawnm4z44wkq0lfmqydhj-golem.iso, which DOES carry
