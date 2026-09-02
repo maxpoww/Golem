@@ -226,6 +226,17 @@ hl.config({
 
 ----  MISC  ----
 hl.config({
+    -- Direct scanout: let a fullscreen client's buffer go straight to the
+    -- display, skipping the composite pass. Verified live on the 2013 Air
+    -- (2026-09-02): flipping this cleared the "user settings" blocker in
+    -- hyprctl. Scanout still waits on the topbar layer no longer sitting
+    -- over fullscreen (overFullscreen:1 → "missing candidate") — that's the
+    -- wgpu layer-unmap follow-up in GRIND.md. Harmless on all hardware:
+    -- it only ever activates when a candidate qualifies.
+    render = {
+        direct_scanout = true,
+    },
+
     misc = {
         vrr = 1,
         force_default_wallpaper = 0,
