@@ -285,9 +285,20 @@ validated live in the golem-vm with a screenshot:**
     the call context + NotifMute toggle are separately proven (live capture flaky this
     boot). SUSPECTED live.
 
+15. **camera.live + privacy warning pills** — new collector signal
+    `SystemMetrics.is_camera_active` (system collector scans /proc/<pid>/fd for an open
+    /dev/video*). The topbar now surfaces the privacy/safety WARNINGS (camera, mic,
+    screencast) as **amber, non-clickable indicator pills** (via `is_surfaced_affordance`;
+    battery/deploy excluded). Confirmed: holding an fd on /dev/video10 raised an amber
+    camera pill.
+16. **files.open_here** — the shell bridge now also reports `cwd`; a terminal offers
+    "Open files here" (xdg-open the folder → default file manager). Engine-tested; live
+    end-to-end needs the shipped cwd-hook (validated on VM rebuild).
+
 **Ranking/quality:** background media controls (music while coding) are damped ×0.65 so
-the work controls (git) lead; when media IS the activity (watching), full weight. And
-the OPTION-pill hover re-hit-tests on set change so a click never fires a stale control.
+the work controls (git) lead; when media IS the activity (watching), full weight. The
+OPTION-pill hover re-hit-tests on set change so a click never fires a stale control. New
+`AffordanceAction::Daemon(tag)` lets an offer drive the shell itself (DND).
 
 Brightness is offered only where a backlight exists (`has_backlight` from
 `/sys/class/backlight`) — the VM correctly shows none; a laptop would.
