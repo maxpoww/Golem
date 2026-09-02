@@ -110,9 +110,17 @@ commits, options-catalog.md, or this file.
       exactly how the notif box threads `let s = self.options_scale()`. The prior
       failure was a measure/draw desync, so change them in lockstep. Deferred from
       this session (delicate; needs careful 1366x768 VM screenshot iteration with
-      real clipboard history — I could not cheaply iterate visually). Low-risk
-      once the notif pattern is mirrored constant-for-constant; abandon if it
-      regresses clipboard hit-testing/alignment.
+      real clipboard history — I could not cheaply iterate visually).
+      STRUCTURAL BLOCKER found (2026-09-02): unlike the notif box (methods that
+      call self.options_scale()), the clipboard box's layout is FREE functions
+      over module constants — clip_text_col_w(has_tile) and row_height_of(entry)
+      take no &self, and use consts PEEK_W/ROW_PAD_X/TILE_SZ/TEXT_GAP/TIME_COL_W/
+      LINE_PX/MAX_ROW_LINES/ROW_PAD_Y directly. So scaling means threading a
+      `scale: f32` param through clip_text_col_w, row_height_of, clip_row_lines
+      AND every call site (measure + draw), multiplying each const by it — a real
+      refactor, not a mirror. That's why the prior measure/draw desync happened.
+      Do it as: add `scale` params, `self.options_scale()` at the entry points,
+      scale ALL consts in lockstep. Abandon if it regresses hit-testing/alignment.
 - [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
       the offer's title in a small rounded label just below the bar (reuses the
       Label/rect rendering; per-char-estimated background, text shapes exactly at
