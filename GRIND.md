@@ -101,11 +101,18 @@ commits, options-catalog.md, or this file.
       the ~97-layer reserved search tail (~33 MB, needs array realloc+re-upload
       mid-search, unvalidatable in VM llvmpipe). No clean ≥10 MB win this pass.
       Follow-up: the reserved-tail lazy allocation, validated on real hardware.
-- [ ] Responsive shell, uniform box scale: notif + clipboard boxes scale
-      font AND chrome together via options_scale() (see memory of the
-      2026-09-02 attempt: measure/draw must use the same scaled values —
-      thread scale through clip_text_col_w/row_height_of AND the draw
-      path together). Screenshot-verify at 1366x768 in the VM.
+- [ ] Responsive shell, uniform box scale — SCOPED (2026-09-02). Gap found: the
+      NOTIF box already scales via options_scale() (notif.rs:818,1085,1126); the
+      CLIPBOARD box has ZERO options_scale usage — that's the remaining work.
+      Precise plan: multiply every clipboard-box dimension by options_scale() in
+      BOTH the measure funcs (clip_text_col_w, row_height_of, clip_row_lines —
+      LINE_PX, tile size, column widths, paddings) AND the draw path, mirroring
+      exactly how the notif box threads `let s = self.options_scale()`. The prior
+      failure was a measure/draw desync, so change them in lockstep. Deferred from
+      this session (delicate; needs careful 1366x768 VM screenshot iteration with
+      real clipboard history — I could not cheaply iterate visually). Low-risk
+      once the notif pattern is mirrored constant-for-constant; abandon if it
+      regresses clipboard hit-testing/alignment.
 - [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
       the offer's title in a small rounded label just below the bar (reuses the
       Label/rect rendering; per-char-estimated background, text shapes exactly at
