@@ -615,3 +615,31 @@
   * QMP screendump reports "no surface" under gl=on — screenshot from
     INSIDE the guest (grim, per-user profile path
     /etc/profiles/per-user/max/bin/grim) and pull it out base64 over serial.
+
+## Memory / RSS breakdown (2026-09-02, golem-vm 4 GB idle)
+
+Chasing the ~900 MB Golem-vs-GNOME gap measured on the 2013 4 GB laptop.
+Where waverunner's RAM actually goes, and where the gap actually is:
+
+- **waverunner is NOT dominated by the package index.** Idle heap (RssAnon)
+  was 170 MB. Two fixes cut it to **97 MB** (-73 MB, verified in the vm):
+  glibc `mallopt(M_ARENA_MAX,2)` — 38 threads had fragmented anon into 36
+  per-thread arenas totalling 357 MB on real hw; and lazy-loading the
+  23,673-pkg index (8.6 MB parsed) only when the launcher card is opened,
+  not at boot. VmRSS 420 -> 326 MB.
+- **The remaining large waverunner chunk is GPU/texture memory, not heap.**
+  RssShmem ~160 MB = wgpu textures + wayland buffers. The icon texture array
+  is ~60 MB of it (ICON_SIZE=256² RGBA8 + mips × ~176 layers incl. the ~97
+  reserved search/thumb tail). This is inflated under the vm's llvmpipe
+  software renderer and is largely shared with the compositor; shrinking it
+  (e.g. ICON_SIZE 256->128) is a visual-quality tradeoff, deferred.
+- **Most of the session gap is the daemon bouquet, not waverunner.** Other
+  resident processes a stock GNOME session may not run: easyeffects ~135 MB,
+  blueman, kdeconnectd ~48 MB, fcitx5, nm-applet, Xwayland ~55 MB. These, plus
+  the compositor's own buffers, account for the bulk of the delta — it is a
+  session-composition question, not a waverunner-core leak.
+
+Conclusion: waverunner's easy heap wins are now taken (-73 MB anon). Further
+waverunner savings mean trading icon crispness (GPU texture size); the larger
+lever for the 4 GB target is trimming which background daemons the session
+starts (easyeffects especially).
