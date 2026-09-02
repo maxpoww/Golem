@@ -35,6 +35,22 @@ commits, options-catalog.md, or this file.
 
 ## QUEUE (top = next; tick with `[x] <hash>`)
 
+- [ ] VM BATCH OWED (next VM session, batch these together):
+      (a) media box uniform scale (launcher 654b88d) — boot golem-vm at a
+          small logical height (<900 → e.g. 800 → scale 0.889), play something
+          via MPRIS, open the media box, screenshot: panel + transport circles
+          + seek/volume tracks + fonts must all be proportionally smaller and
+          the drag bands must still hit. Unit-verified (lockstep test) and
+          full-screen-unchanged by algebra; the screenshot is the missing half.
+      (b) any other pending visual/behavioral item that has piled up.
+- [x] 654b88d Responsive shell, media box — the third dropdown box now scales
+      uniformly (footprint + pads + transport + tracks + fonts) like the
+      clipboard box (ddde8f0). Draw and hit-test share the same geometry fns,
+      now free fns taking the scale (seek_track_at/vol_track_at/
+      transport_btns_at), so the desync class is closed by construction and
+      unit-testable; test asserts offsets/sizes scale by exactly the box factor,
+      nothing interactive escapes the panel, and scale 1.0 == the original
+      constants. Screenshot owed — see the VM BATCH item above.
 - [x] dc117ab Hardening+tests pass A: git module (commit/push/pull/diff/remote)
       — matcher unit tests (diff pipeline, open-remote URL, dirty warning),
       edge cases (detached HEAD→silent, no upstream→still commit/push/pull but
