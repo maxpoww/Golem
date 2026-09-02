@@ -374,3 +374,23 @@ PARTIAL today: when the user *copies* files, the clipboard carries their paths,
 which the selection collector already classifies (a single copied path →
 "Open file"). Multi-file copies could be added there.
 DECISION: documented, deferred to a file-manager bridge extension.
+
+## 7. Grind-pass additions (continued)
+
+21. **git.diff** — dirty repo while coding → "Show diff" (`git diff | less` in a terminal).
+22. **shell.rerun** — "Re-run last" runs the shell bridge's last command in a fresh
+    terminal at its cwd (dev-run). Reuses the shell bridge + foot spawn.
+23. **reading.find / reading.bright** — a PDF/document reader focused (Papers/evince/
+    zathura/okular/…) → Find (Ctrl+F) and, on a laptop, reading brightness.
+24. **editor.run** — editor bridge deepening: editor_language → interpreter
+    (python3/node/ruby/bash/lua/perl/php) → "Run this file" in a terminal. Compiled
+    languages skipped (project builds, not single-file).
+25. **keystroke offers via the compositor** — `find_in_page` etc. use Hyprland's
+    `send_shortcut` (the same path as clipboard paste), so keystroke-based offers need
+    NO wtype/ydotool dependency. This unlocks the whole "text/browser/reading" keystroke
+    class the catalog had marked blocked-on-a-key-tool.
+
+Engine providers now number ~19 (media/media-controls, git, coding-tools, dev-run/rerun,
+files, editor, selection, shell-error, browser, reading, mic/call, camera, fullscreen,
+cpu, battery, deploy, screencast, notifications) + the media BOX surface. ~30 distinct
+offers across the desktop use-cases.
