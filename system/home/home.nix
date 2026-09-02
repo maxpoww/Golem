@@ -282,6 +282,36 @@
       vim.keymap.set('n', '<C-n>', '<cmd>NvimTreeToggle<CR>', opts)
       vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFocus<CR>', opts)
       vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', opts)
+
+      -- OPTIONS app-bridge: tell Golem's Brain the file/language/diagnostics of
+      -- the buffer you're in, over the options-engine bridge socket (libuv, no
+      -- external dep). Powers editor-aware offers ("Open folder", the problem
+      -- count). Best-effort and silent.
+      local function _golem_editor_bridge()
+        local xrd = os.getenv("XDG_RUNTIME_DIR")
+        if not xrd then return end
+        local sock = xrd .. "/options/bridge.sock"
+        if not vim.loop.fs_stat(sock) then return end
+        local file = vim.api.nvim_buf_get_name(0)
+        if file == "" or file:match("^%w+://") then return end
+        local lang = vim.bo.filetype or ""
+        local diags = 0
+        pcall(function()
+          diags = #vim.diagnostic.get(0, { severity = { min = vim.diagnostic.severity.WARN } })
+        end)
+        local msg = string.format(
+          '{"v":1,"kind":"editor","file":%s,"language":%s,"diagnostics":%d}',
+          vim.json.encode(file), vim.json.encode(lang), diags)
+        local pipe = vim.loop.new_pipe(false)
+        pipe:connect(sock, function(err)
+          if err then pcall(function() pipe:close() end); return end
+          pipe:write(msg .. "\n", function() pcall(function() pipe:close() end) end)
+        end)
+      end
+      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "DiagnosticChanged" }, {
+        group = vim.api.nvim_create_augroup("GolemOptionsBridge", { clear = true }),
+        callback = function() pcall(_golem_editor_bridge) end,
+      })
     '';
   };
 
