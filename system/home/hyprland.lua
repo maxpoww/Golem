@@ -142,8 +142,13 @@ hl.config({
     decoration = {
         rounding       = 12,
         rounding_power = 12,
-        active_opacity   = 0.95,
-        inactive_opacity = 0.95,
+        -- Opaque focused windows: 0.95 forced the compositor to alpha-blend
+        -- every window each frame (and blocks fullscreen direct-scanout of
+        -- video). 1.0 removes that per-frame blend — the biggest free win for
+        -- weak GPUs; the frosted glass lives on the shell surfaces, not the
+        -- window fill (2026-09-02 perf pass).
+        active_opacity   = 1.0,
+        inactive_opacity = 1.0,
         dim_inactive = true,
         dim_strength = 0.3,
 
@@ -157,7 +162,11 @@ hl.config({
         blur = {
             enabled   = true,
             size      = 1,
-            passes    = 4,
+            -- 4 passes is the single most GPU-expensive effect; 2 keeps the
+            -- frosted look while roughly halving its per-frame cost — it only
+            -- runs behind shell surfaces, but on a weak iGPU every pass counts
+            -- toward the thermal budget (2026-09-02 perf pass).
+            passes    = 2,
             vibrancy  = 0.0,
         },
     },
