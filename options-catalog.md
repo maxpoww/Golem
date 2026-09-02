@@ -349,3 +349,9 @@ sensor for calls.
 - All validated in the golem-vm with screenshots (see the loop report): each of the
   seven slices in §4 was sensed by the Brain, surfaced as a pill, and its action
   actually performed.
+
+19. **editor.diagnostics / editor.open_folder** — the SECOND app-bridge client: an nvim
+    initLua autocmd (libuv socket) reports the buffer's file/language/diagnostics. Live
+    CONFIRMED: an editor message with diagnostics=3 surfaced "3 problems"; "Open folder"
+    (xdg-open the edited file's dir) shares that proven path while Coding.
+20. **media.mute** — quick mute/unmute the sink (wpctl), in the media cluster.
