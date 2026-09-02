@@ -23,19 +23,16 @@
 { config, pkgs, lib, ... }:
 
 {
-  # The wl module ships on every Golem so the live ISO can serve Mac wifi.
-  # Inert unless the service below loads it (never auto-loads, no alias
-  # binding here) — chips served by in-tree drivers are left untouched.
-  #
-  # nixpkgs marks broadcom-sta insecure (abandoned upstream, old CVEs in a
-  # driver Broadcom never maintained). Permitted deliberately and narrowly:
-  # it is the ONLY driver that exists for BCM4360-class chips — the wifi in
-  # a decade of MacBooks — and "no wifi on any Mac" fails Golem's first-boot
-  # bar harder than a local-attack-surface CVE in a module that only loads
-  # when that exact chip is present. Every distro that serves Macs ships it.
-  nixpkgs.config.allowInsecurePredicate =
-    p: (lib.getName p) == "broadcom-sta";
-  boot.extraModulePackages = [ config.boot.kernelPackages.broadcom_sta ];
+  # Broadcom wl: TRIED AND WITHDRAWN (2026-09-02, MacBookAir6,2 / BCM4360,
+  # kernel 6.18.48). The module compiles and loads, but binding it to the
+  # chip Oopsed the kernel on the live machine ([#1] SMP PTI, tainted P+O,
+  # networking left unstable). "It compiles" is not "it works" — the driver
+  # is abandoned upstream and its 6.x compat patches are not enough for this
+  # chip/kernel. Shipping a boot-time kernel oops to every Mac is strictly
+  # worse than shipping no internal wifi (a USB dongle works today; even the
+  # owner's GNOME install never got this chip up). Re-attempt only with an
+  # LTS-kernel ISO variant or a repaired driver, tested on the real machine
+  # BEFORE it ships. The VA-API half below is live and verified.
 
   systemd.services.golem-hw-runtime = {
     description = "Golem boot-time hardware adaptation (VA-API driver, Broadcom wl)";
@@ -67,20 +64,16 @@
         echo "golem-hw-runtime: LIBVA_DRIVER_NAME=$libva"
       fi
 
-      # ── Broadcom wl, only for chips that need it ──────────────────────
-      # BCM4360/4352-class PCI ids (wl-only; brcmfmac/b43 cannot drive them).
-      need_wl=0
+      # (Broadcom wl handling removed — see the withdrawal note at the top
+      # of this file: binding wl to a BCM4360 Oopsed kernel 6.18 on the real
+      # machine. Detection-only breadcrumb for the journal:)
       for d in /sys/bus/pci/devices/*; do
         [ "$(cat "$d/vendor" 2>/dev/null)" = "0x14e4" ] || continue
         case "$(cat "$d/device" 2>/dev/null)" in
-          0x43a0|0x43a2|0x43a3|0x43b1) need_wl=1 ;;
+          0x43a0|0x43a2|0x43a3|0x43b1)
+            echo "golem-hw-runtime: wl-only Broadcom chip present ($(cat "$d/device")) — no working driver on this kernel; internal wifi unavailable (USB dongle works)" ;;
         esac
       done
-      if [ "$need_wl" = 1 ]; then
-        echo "golem-hw-runtime: wl-only Broadcom chip found — switching drivers"
-        modprobe -r b43 brcmsmac bcma ssb 2>/dev/null || true
-        modprobe wl && echo "golem-hw-runtime: wl loaded" || echo "golem-hw-runtime: wl failed to load"
-      fi
     '';
   };
 }

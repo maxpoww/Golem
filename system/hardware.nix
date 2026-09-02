@@ -132,6 +132,25 @@ in
       ];
       environment.sessionVariables.LIBVA_DRIVER_NAME =
         if cfg.intelLegacy then "i965" else "iHD";
+
+      # Pre-Skylake has NO VP9/AV1 hardware decode — i965 does H.264 only.
+      # YouTube serves VP9 by default, so even with a perfect VA-API stack
+      # these machines CPU-decode, overheat, throttle and stutter (measured:
+      # 2013 HD 5000, 92-95 °C, 36% dropped frames — while the same chip
+      # hardware-decodes H.264 effortlessly). Force-install
+      # enhanced-h264ify (id verified against the Chrome Web Store
+      # 2026-09-02) via Chrome enterprise policy so YouTube falls back to
+      # H.264 on exactly these machines. Applies to installed systems whose
+      # detection set intelLegacy; needs network at first Chrome start to
+      # fetch the extension.
+      environment.etc."opt/chrome/policies/managed/golem-legacy-video.json" =
+        lib.mkIf cfg.intelLegacy {
+          text = builtins.toJSON {
+            ExtensionInstallForcelist = [
+              "omkfmpieigblcllmkgbflkikinpkodlk;https://clients2.google.com/service/update2/crx"
+            ];
+          };
+        };
     })
     (lib.mkIf (cfg.gpu == "amd") {
       hardware.graphics.extraPackages = with pkgs; [
