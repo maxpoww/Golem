@@ -643,3 +643,20 @@ Conclusion: waverunner's easy heap wins are now taken (-73 MB anon). Further
 waverunner savings mean trading icon crispness (GPU texture size); the larger
 lever for the 4 GB target is trimming which background daemons the session
 starts (easyeffects especially).
+
+**RAM follow-up profiling (2026-09-02, post arena+lazy).** Checked for a clean
+(non-quality-tradeoff) win in the icon path and found none easy:
+- The CPU-side icon mip-chain copy is ALREADY freed after GPU upload
+  (`on_apps_loaded`: `set_icons(&icons)` then `icons` drops; only stashed in
+  `pending_icons` when no renderer exists yet, briefly at startup). No retention
+  leak to reclaim.
+- The remaining icon RAM is the **GPU texture array**: `(app_count + reserved)`
+  layers of ICON_SIZE=256² RGBA8 + mips ≈ 341 KB/layer. Two levers, both
+  non-trivial: (a) lower ICON_SIZE (256→192 ≈ -26 MB) — a visual-quality
+  tradeoff, deferred per the "don't over-invest in icon crispness" call; (b) the
+  ~97-layer **reserved search tail** (RANK_HITS_MAX + PENDING_INSTALL_CAP +
+  thumbs) ≈ 33 MB is allocated always, even when never searching — reclaimable
+  only by growing the array lazily on first search (like the pkg index), which
+  means an array realloc + full re-upload mid-search (disruptive/risky) and
+  can't be validated for GPU-mem in the VM's llvmpipe. Left as the top RAM
+  follow-up. No ≥10 MB win taken this pass without a tradeoff/risk.

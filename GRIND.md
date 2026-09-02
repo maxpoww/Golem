@@ -94,9 +94,13 @@ commits, options-catalog.md, or this file.
       options-catalog.md. Built the pragmatic fallback: infer Reading from the
       browser window title (docs markers) → reading offers, no bridge. A real
       active-tab-URL signal waits on a packaged extension (out of scope here).
-- [ ] RAM: continue profiling in the VM (post arena-cap + lazy-index);
-      identify next-biggest resident block (icon/texture buffers?);
-      take any win ≥ 10 MB with before→after VmRSS in the commit.
+- [~] RAM: profiled post arena+lazy (NOTES.md). CPU icon copy already freed
+      after GPU upload (no retention leak). Next block is the GPU icon texture
+      array — both levers are tradeoff/risky: lower ICON_SIZE 256→192 (~-26 MB,
+      visual-quality tradeoff, deferred per "don't over-invest") or lazy-allocate
+      the ~97-layer reserved search tail (~33 MB, needs array realloc+re-upload
+      mid-search, unvalidatable in VM llvmpipe). No clean ≥10 MB win this pass.
+      Follow-up: the reserved-tail lazy allocation, validated on real hardware.
 - [ ] Responsive shell, uniform box scale: notif + clipboard boxes scale
       font AND chrome together via options_scale() (see memory of the
       2026-09-02 attempt: measure/draw must use the same scaled values —
