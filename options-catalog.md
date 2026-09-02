@@ -445,6 +445,30 @@ offers across the desktop use-cases.
     golem-vm:** with foot focused in a repo and a SHA `wl-copy`'d, the daemon surfaced
     `[…, git.pull, git.show_commit, coding.terminal_here, selection.search]`.
 
+38. **network.down / network.settings** (catalog-expansion 1/3, from §1.15
+    "reconnect wifi") — a new pure-sysfs sensor (`is_network_down`: no
+    non-loopback `/sys/class/net/*/operstate` is `up`; errs toward not-down on
+    unreadable sysfs) surfaces an amber "No network" warning pill plus a
+    "Network settings" Control (foot nmtui — nmtui ships with NetworkManager
+    itself). Provider unit-tested; the sysfs sensor is the same mechanism as the
+    confirmed backlight/camera sensors. Live end-to-end SUSPECTED (inducing it
+    needs root to down the interface, unavailable in the VM without passwordless
+    sudo — and downing the interface kills the validation SSH anyway).
+39. **reading.page_next / page_prev** (2/3, from §1.11) — a focused PDF/document
+    reader gets Next/Previous page (PageDown/PageUp keystrokes, XKB
+    `Next`/`Prior`). Unit-tested; CONFIRMED-by-construction — the identical
+    send_shortcut tag path as the live-confirmed find_in_page and slide nav (no
+    reader app installed in the VM to see it live).
+40. **window.record / window.record_stop** (3/3, from §1.10 gaming "record") —
+    fullscreen offers "Record screen" (timestamped MP4 → ~/Videos via
+    wf-recorder, added to the Golem home packages next to grim); a new
+    `is_recording` sensor (one /proc comm scan, like camera-in-use) drives the
+    always-on "Stop recording" Control (pkill -INT so the file finalizes),
+    which stays reachable after leaving fullscreen. **CONFIRMED live in the
+    golem-vm** (comm-faked recorder): recording →
+    `[window.record_stop, window.fullscreen_dnd, window.screenshot]` (stop
+    ranked first, record gone); stopped → record returns, stop clears.
+
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
 

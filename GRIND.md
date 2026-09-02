@@ -149,11 +149,19 @@ commits, options-catalog.md, or this file.
       IPC verb (no headless cursor warp on this compositor). CONFIRMED in the
       golem-vm: hovering the screencast pill shows "Screen is being shared". No
       layout regression (renders in the transparent region under the bar).
-- [~] Catalog expansion (ongoing): shipped this session — reading-mode from the
-      window title (browser-bridge fallback), slides.present (F5), plus the batch
-      of downloads/battery-dim/high-mem/reopen-tab/install-missing earlier. The
-      general use-cases in §1 are now broadly served; further slices are
-      diminishing-value micro-cases. Keep adding as genuinely-useful ones surface.
+- [x] c3a3800+5bab023 Catalog expansion — the 3 highest-value unserved cases
+      grounded → spec'd → BUILT (plus the earlier batch: reading-title fallback,
+      slides.present, downloads/battery-dim/high-mem/reopen-tab/install-missing):
+      1. network.down/settings (§1.15 "reconnect wifi") — sysfs operstate sensor
+         + nmtui remedy. Unit-tested; live-inducing needs root (documented).
+      2. reading.page_next/prev (§1.11) — PageDown/PageUp keystrokes for
+         readers. Confirmed-by-construction (send_shortcut path).
+      3. window.record/record_stop (§1.10) — wf-recorder pair with a new
+         is_recording /proc sensor; wf-recorder added to Golem home pkgs
+         (862b173). CONFIRMED live in the VM: pair flips both ways, stop ranks
+         first while recording, stays reachable after leaving fullscreen.
+      Remaining §1 gaps are micro-cases (image/video-editor internals) or
+      bridge-blocked — documented in the catalog.
 - [~] iso-smoke (DEFERRED, see below) — run against the current ISO build when the VM
       slot is free; record the result in the commit/catalog.
 
