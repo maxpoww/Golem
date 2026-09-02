@@ -398,6 +398,22 @@ offers across the desktop use-cases.
 26. **window.screenshot** — fullscreen → Screenshot (grim → ~/Pictures).
 27. **slides.next / slides.prev** — a fullscreen office app (impress/…) → Next/Previous
     slide via arrow keys (compositor keystroke). Gated on fullscreen (the slideshow).
+28. **downloads.open / downloads.extract** — a file just finished downloading → "Open
+    download" (xdg-open by type), plus "Extract here" (file-roller) when it's an archive.
+    A new `downloads` collector polls `$XDG_DOWNLOAD_DIR`/`~/Downloads` on a 3 s timer,
+    reports the newest regular file whose mtime is within 90 s (skipping
+    `.part`/`.crdownload`/`.tmp` sidecars and hidden files), and clears it once it ages
+    out — the transient "you just grabbed this" moment, not a pin. **CONFIRMED live in the
+    golem-vm:** dropping `holiday-photos.zip` into ~/Downloads surfaced both controls
+    (daemon log `options: 2 control(s) [downloads.extract, downloads.open]`, pills visible
+    in the topbar).
+29. **system.battery_dim** — on a laptop at critical battery (≤15 %, on power), the warning
+    gains a one-tap "Dim screen" Control (brightnessctl set 40 %) — the backlight is the
+    biggest draw, so this is the most effective runtime-stretch. Gated on `has_backlight`.
+30. **system.high_mem** — sustained RAM ≥90 % → "open monitor" (foot btop), mirroring
+    high-CPU. Gated above the CPU threshold so at most one monitor pill ever shows.
+31. **browser.reopen_tab** — Browsing → "Reopen closed tab" (Ctrl+Shift+T, compositor
+    keystroke) alongside Find. Universal across browsers, the classic "oops" recovery.
 
 ## 8. Coverage summary (grind mode)
 
@@ -405,21 +421,20 @@ Every general use-case from §1 now has real offers (sensed → pill → action)
 those documented as blocked:
 - media/watching ✓ (controls + box), coding ✓ (git commit/push/pull/diff/remote,
   terminal-here, editor open-folder/run, rerun), text/selection ✓ (open url/path/email,
-  search), browsing ✓ (find, video-tab foregrounding), terminal ✓ (search-error, rerun,
-  files-here), calls ✓ (mic-mute, DND), system ✓ (cpu-monitor, privacy pills), reading ✓
-  (find, brightness), presentations ✓ (slide nav), gaming/fullscreen ✓ (DND, screenshot).
-28. **downloads.open** — a file just finished downloading → "Open download" (xdg-open by
-    type). A new `downloads` collector polls `$XDG_DOWNLOAD_DIR`/`~/Downloads` on a 3 s
-    timer, reports the newest regular file whose mtime is within 90 s (skipping
-    `.part`/`.crdownload`/`.tmp` sidecars and hidden files), and clears it once it ages
-    out — so the offer is the transient "you just grabbed this" moment, not a pin. A
-    `Control` at 0.62, live in every activity.
-
+  search), browsing ✓ (find, reopen-tab, video-tab foregrounding), terminal ✓ (search-error,
+  rerun, files-here), calls ✓ (mic-mute, DND), system ✓ (cpu/mem-monitor, battery-dim,
+  privacy pills), reading ✓ (find, brightness), presentations ✓ (slide nav),
+  gaming/fullscreen ✓ (DND, screenshot), downloads ✓ (open, extract).
 - Blocked (documented): file-manager selection (needs a manager extension bridge);
   a browser URL/reader-mode signal (needs a browser bridge).
 
 App-bridge CLIENTS shipped: zsh (shell: last_cmd/exit/cwd) and nvim (editor:
 file/language/diagnostics). New sensors: camera-in-use, backlight, MPRIS position/length,
 git remote-url + child-shell cwd walk, shell cwd, recent-download watcher. The action vocabulary: Spawn,
-OpenUrl, HyprDispatch, Daemon(tag) (internal: toggle_dnd, find_in_page, slide_next/prev,
-fullscreen). Media BOX surface for the full transport. ~300 tests green.
+OpenUrl, HyprDispatch, Daemon(tag) (internal: toggle_dnd, find_in_page, reopen_tab,
+slide_next/prev, fullscreen). Media BOX surface for the full transport. ~310 tests green.
+
+**Memory (2026-09-02):** waverunner idle heap cut 170→97 MB anon (glibc arena cap +
+lazy-loaded pkg index), validated in the golem-vm. See NOTES.md for the full RSS
+breakdown — the remaining Golem-vs-GNOME gap is session daemons (easyeffects et al.),
+not waverunner core.
