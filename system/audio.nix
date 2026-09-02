@@ -49,16 +49,13 @@
       };
     };
   };
-  
-  systemd.user.services.audio-keepalive = {
-    description   = "TAS2781 audio keepalive — Slim Pro 9i";
-    wantedBy      = [ "default.target" ];
-    after         = [ "pipewire.service" "pipewire-pulse.service" ];
-    serviceConfig = {
-      Type       = "simple";
-      Restart    = "always";
-      RestartSec = "2s";
-      ExecStart  = "${pkgs.ffmpeg-full}/bin/ffplay -nodisp -autoexit -f lavfi -i anullsrc=r=44100:cl=mono -loglevel quiet";
-    };
-  };
+
+  # NOTE: the TAS2781 keepalive (a permanent silent ffplay stream) is NOT here
+  # — it lives in hosts/golem/audio-keepalive.nix, because it is a workaround
+  # for ONE laptop's amp, not part of the distro. It cost 2–3 % of a core,
+  # forever, per session on every machine that booted Golem — measured on the
+  # 2013 MacBook Air, where the chip it works around does not exist (Max,
+  # 2026-09-02: "that is for this particular pc … we don't want to bloat Golem
+  # up"). If another machine turns out to need it, gate it on the codec being
+  # present the way system/hardware-runtime.nix gates the VA-API driver.
 }
