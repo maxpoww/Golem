@@ -263,6 +263,19 @@ validated live in the golem-vm with a screenshot:**
    (percent-encoded). And **system.high_cpu** — spun CPU >85% → 📊 pill → **launched
    btop** in foot. (That's the 4 original + seek + search + cpu-monitor.)
 
+**Additional slices (grind pass), each validated in the golem-vm:**
+8. **git.pull** — coding in a repo → Pull control → triggering it **fast-forwarded the
+   local repo** to an ahead remote (HEAD advanced, pulled file appeared). --ff-only.
+9. **selection.open_path** — a copied absolute path → "Open file" → xdg-open (dispatch
+   confirmed). New signal `TextSelection.is_path`.
+10. **selection.email** — a copied email address → "Compose email" → xdg-open mailto:
+    (surfaced + triggered).
+11. **shell.search_error** — the **first app-bridge CLIENT** (a zsh preexec/precmd hook
+    over zsh's built-in socket module, shipped in `system/home/zsh.nix`): a failed
+    command flows hook → bridge socket → collector → an actionable "Search the error"
+    Control (web-search the command). Confirmed: running a failing command surfaced the
+    control. This also makes the friction/skill signals real.
+
 Brightness is offered only where a backlight exists (`has_backlight` from
 `/sys/class/backlight`) — the VM correctly shows none; a laptop would.
 
