@@ -275,6 +275,19 @@ validated live in the golem-vm with a screenshot:**
     command flows hook → bridge socket → collector → an actionable "Search the error"
     Control (web-search the command). Confirmed: running a failing command surfaced the
     control. This also makes the friction/skill signals real.
+12. **coding.terminal_here** — coding in a repo → "Terminal here" opens a terminal in
+    repo_root (foot --working-directory). Confirmed (trigger opened a new terminal).
+13. **git.open_remote** — new `GitContext.remote_url` (collector parses origin from
+    .git/config, normalizes ssh/https → https web url) → "Open remote" opens the repo's
+    GitHub/GitLab page. Confirmed (opened Chromium to the GitHub page).
+14. **audio.call_dnd** — a call (mic live) → "Do not disturb" mutes notifications, via
+    the new `AffordanceAction::Daemon(tag)` (an internal daemon action). Engine-tested;
+    the call context + NotifMute toggle are separately proven (live capture flaky this
+    boot). SUSPECTED live.
+
+**Ranking/quality:** background media controls (music while coding) are damped ×0.65 so
+the work controls (git) lead; when media IS the activity (watching), full weight. And
+the OPTION-pill hover re-hit-tests on set change so a click never fires a stale control.
 
 Brightness is offered only where a backlight exists (`has_backlight` from
 `/sys/class/backlight`) — the VM correctly shows none; a laptop would.
