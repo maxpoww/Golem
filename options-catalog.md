@@ -394,3 +394,26 @@ Engine providers now number ~19 (media/media-controls, git, coding-tools, dev-ru
 files, editor, selection, shell-error, browser, reading, mic/call, camera, fullscreen,
 cpu, battery, deploy, screencast, notifications) + the media BOX surface. ~30 distinct
 offers across the desktop use-cases.
+
+26. **window.screenshot** — fullscreen → Screenshot (grim → ~/Pictures).
+27. **slides.next / slides.prev** — a fullscreen office app (impress/…) → Next/Previous
+    slide via arrow keys (compositor keystroke). Gated on fullscreen (the slideshow).
+
+## 8. Coverage summary (grind mode)
+
+Every general use-case from §1 now has real offers (sensed → pill → action), except
+those documented as blocked:
+- media/watching ✓ (controls + box), coding ✓ (git commit/push/pull/diff/remote,
+  terminal-here, editor open-folder/run, rerun), text/selection ✓ (open url/path/email,
+  search), browsing ✓ (find, video-tab foregrounding), terminal ✓ (search-error, rerun,
+  files-here), calls ✓ (mic-mute, DND), system ✓ (cpu-monitor, privacy pills), reading ✓
+  (find, brightness), presentations ✓ (slide nav), gaming/fullscreen ✓ (DND, screenshot).
+- Blocked (documented): file-manager selection (needs a manager extension bridge);
+  a browser URL/reader-mode signal (needs a browser bridge); a downloads watcher (a new
+  inotify collector — not yet built).
+
+App-bridge CLIENTS shipped: zsh (shell: last_cmd/exit/cwd) and nvim (editor:
+file/language/diagnostics). New sensors: camera-in-use, backlight, MPRIS position/length,
+git remote-url + child-shell cwd walk, shell cwd. The action vocabulary: Spawn,
+OpenUrl, HyprDispatch, Daemon(tag) (internal: toggle_dnd, find_in_page, slide_next/prev,
+fullscreen). Media BOX surface for the full transport. ~300 tests green.
