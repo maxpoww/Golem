@@ -171,11 +171,15 @@
       "--disable-renderer-backgrounding"
       "--disable-background-timer-throttling"
       # Hardware video decode via VA-API — without this Chrome CPU-decodes
-      # everything even when the driver (system/hardware.nix) is present, and
-      # a weak/old iGPU cooks itself on 1080p (2026-09-02: 2013 HD 5000 hit
-      # 95 °C software-decoding VP9). VaapiIgnoreDriverChecks lets the older
-      # i965 driver's VP9 path through, which Chrome would otherwise skip.
-      "--enable-features=VaapiVideoDecoder,VaapiIgnoreDriverChecks"
+      # everything even when the driver (system/hardware.nix) is present.
+      # VaapiIgnoreDriverChecks was TRIED AND REMOVED (2026-09-02, 2013 Air):
+      # it made Chrome report hardware-efficient VP9 that Haswell cannot do,
+      # so YouTube stopped stepping down to 720p and pinned 1080p VP9 on a
+      # software decoder — 36% dropped frames at 92 °C, WORSE than honest
+      # software decode (15% at 720p). With plain VaapiVideoDecoder Chrome
+      # is truthful per-codec: H.264 accelerates where the driver has it,
+      # VP9 stays software and YouTube adapts its quality accordingly.
+      "--enable-features=VaapiVideoDecoder"
       # Run native Wayland where the compositor offers it (else XWayland),
       # so the video path isn't bounced through Xwayland.
       "--ozone-platform-hint=auto"
