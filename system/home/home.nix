@@ -308,7 +308,7 @@
           pipe:write(msg .. "\n", function() pcall(function() pipe:close() end) end)
         end)
       end
-      vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "DiagnosticChanged" }, {
+      vim.api.nvim_create_autocmd({ "BufEnter", "FileType", "BufWritePost", "DiagnosticChanged" }, {
         group = vim.api.nvim_create_augroup("GolemOptionsBridge", { clear = true }),
         callback = function() pcall(_golem_editor_bridge) end,
       })
