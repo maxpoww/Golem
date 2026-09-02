@@ -66,6 +66,19 @@ commits, options-catalog.md, or this file.
   `hyprctl dispatch exec` errors — launch GUI clients directly as wayland
   clients (setsid foot) instead. Never use `read </dev/zero` to sleep — it
   buffers endless nulls and hangs the SSH command.)
+- [ ] **FULLSCREEN PERF (top priority — measured on the 2013 Air, 2026-09-02):**
+      during fullscreen video, waverunner burns ~26% CPU and Hyprland reports
+      directScanout blocked by "screen record/screenshot" (the topbar's
+      continuous screencopy colour-match) and solitary blocked by "other
+      overlays" (the bar's layer). Result: +18 °C vs GNOME on the same box →
+      thermal throttle → 36% dropped frames. Fix in waverunner: when a
+      fullscreen client is active (the daemon already tracks fullscreen
+      state), (a) PAUSE the screencopy colour-match entirely, (b) hide/
+      unmap the topbar layer (not just visually) so solitary/direct-scanout
+      can engage, (c) resume both on fullscreen exit. Validate in the VM:
+      hyprctl monitors must show the blockers gone while a fullscreen
+      window runs, waverunner CPU ~0% during fullscreen. This is the
+      GNOME-parity lever for video on weak hardware.
 - [ ] Browser bridge (the last big collector): a minimal extension or CDP
       probe reporting active-tab URL + video-playing to the Brain; wire one
       new offer off it. If infeasible without a store upload, document why
