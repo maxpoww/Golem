@@ -429,10 +429,12 @@ offers across the desktop use-cases.
 35. **slides.present** — a presentation app (impress/powerpoint/…) focused but not
     yet fullscreen → "Present" starts the slideshow (F5, compositor keystroke),
     complementing the fullscreen slide-nav.
-37. **editor.build** — editing a compiled-language file (rust/go/zig) → "Build
-    project" runs the canonical build tool (cargo build / go build ./... / zig
-    build) in the file's dir. Complements editor.run (single-file scripts).
-    C/C++ omitted (make vs cmake is project-specific). Gated to Coding.
+37. **editor.build / editor.format** — editing a file, keyed off the bridge's
+    editor_language: "Build project" for compiled langs (cargo/go/zig build, in
+    the file's dir) complements editor.run (single-file scripts); "Format file"
+    runs the language's in-place formatter (rustfmt/gofmt -w/black/zig fmt). Both
+    shell-quote the file path, gated to Coding. The editor cluster is now
+    open-folder + run/build + format.
 36. **git.show_commit** — a bare git commit hash (7–40 hex) on the clipboard while
     focused in a repo → "Show commit" (git show in a terminal pager). The sha + repo
     root are shell-quoted (clipboard text). Gated to Coding. **CONFIRMED live in the
