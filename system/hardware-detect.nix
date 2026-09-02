@@ -33,13 +33,24 @@
         # a machine with both an iGPU and a dGPU should pick the dGPU here.
         gpu="auto"
         have_intel=0
+        intel_legacy=false
         for v in /sys/class/drm/card[0-9]*/device/vendor; do
           [[ -r "$v" ]] || continue
           id=$(tr -d '[:space:]' < "$v")
           case "$id" in
             0x10de) gpu="nvidia" ;;
             0x1002) [[ "$gpu" == "nvidia" ]] || gpu="amd" ;;
-            0x8086) have_intel=1 ;;
+            0x8086)
+              have_intel=1
+              # Pre-Skylake Intel iGPUs (Haswell/Ivy Bridge and older, PCI
+              # device id < 0x1600) need the LEGACY i965 VA-API driver — iHD
+              # (intel-media-driver) only supports Broadwell+ and silently
+              # gives no hardware decode on older parts, which is exactly why a
+              # 2013 HD 5000 CPU-decodes VP9 and cooks the chip. Skylake+
+              # (>= 0x1900) and Broadwell (0x16xx) are fine on iHD.
+              dev=$(tr -d '[:space:]' < "$(dirname "$v")/device" 2>/dev/null || true)
+              if [[ -n "$dev" ]] && (( dev < 0x1600 )); then intel_legacy=true; fi
+              ;;
             0x1af4|0x1234|0x15ad) [[ "$gpu" == "auto" ]] && gpu="virtio" ;;
           esac
         done
@@ -59,6 +70,7 @@
             ramMB = $ram_mb;
             cores = $cores;
             gpu = "$gpu";
+            intelLegacy = $intel_legacy;
           };
         }
         EOF

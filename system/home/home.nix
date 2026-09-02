@@ -170,6 +170,15 @@
       "--disable-backgrounding-occluded-windows"
       "--disable-renderer-backgrounding"
       "--disable-background-timer-throttling"
+      # Hardware video decode via VA-API — without this Chrome CPU-decodes
+      # everything even when the driver (system/hardware.nix) is present, and
+      # a weak/old iGPU cooks itself on 1080p (2026-09-02: 2013 HD 5000 hit
+      # 95 °C software-decoding VP9). VaapiIgnoreDriverChecks lets the older
+      # i965 driver's VP9 path through, which Chrome would otherwise skip.
+      "--enable-features=VaapiVideoDecoder,VaapiIgnoreDriverChecks"
+      # Run native Wayland where the compositor offers it (else XWayland),
+      # so the video path isn't bounced through Xwayland.
+      "--ozone-platform-hint=auto"
     ];
   };
 

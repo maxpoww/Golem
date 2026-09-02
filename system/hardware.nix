@@ -53,6 +53,17 @@ in
         nvidia GPU drives the display directly (a desktop).
       '';
     };
+    intelLegacy = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        The Intel iGPU is pre-Skylake (Haswell/Ivy Bridge and older). Those
+        parts need the legacy i965 VA-API driver — intel-media-driver (iHD)
+        only supports Broadwell+ and gives NO hardware video decode on older
+        GPUs, so they fall back to CPU-decoding (a 2013 HD 5000 hits 95 °C
+        software-decoding VP9). Detected from the GPU's PCI device id.
+      '';
+    };
     nvidiaBusId = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
@@ -88,13 +99,22 @@ in
 
     # ── GPU driver selection ───────────────────────────────────────────
     (lib.mkIf (cfg.gpu == "intel") {
-      # Broadwell-and-later VA-API (video decode/encode) — the HD 5500 in
-      # the 4 GB test laptop is exactly this class.
+      # Ship BOTH Intel VA-API drivers and let LIBVA_DRIVER_NAME pick the
+      # right one for the detected generation. iHD (intel-media-driver) is
+      # Broadwell+; i965 (intel-vaapi-driver) covers Haswell/Ivy and older.
+      # Getting this wrong is not cosmetic: iHD on a pre-Skylake part yields
+      # NO hardware decode, so the browser CPU-decodes video — measured on a
+      # 2013 HD 5000: 95 °C / thermal-throttle / 720p-stutter, vs GNOME (same
+      # box) forcing i965 → GPU-assisted decode → 74 °C / smooth 1080p60
+      # (verified 2026-09-02 against its /etc/nixos config). Chrome's VA-API
+      # is enabled in home.nix (programs.chromium args).
       hardware.graphics.extraPackages = with pkgs; [
         intel-media-driver
+        intel-vaapi-driver
         libvdpau-va-gl
       ];
-      environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
+      environment.sessionVariables.LIBVA_DRIVER_NAME =
+        if cfg.intelLegacy then "i965" else "iHD";
     })
     (lib.mkIf (cfg.gpu == "amd") {
       hardware.graphics.extraPackages = with pkgs; [
