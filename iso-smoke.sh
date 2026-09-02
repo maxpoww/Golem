@@ -11,8 +11,8 @@
 # not on a stranger's first boot.
 #
 #   ./iso-smoke.sh          static checks — fast, no GPU, CI-able
-#   ./iso-smoke.sh --boot   also boot the ISO in qemu and assert the session
-#                           comes up (needs a GPU + a Wayland/X display)
+#   ./iso-smoke.sh --boot   also boot the ISO in qemu (headless) and assert
+#                           the session comes up (needs a GPU; opens no window)
 #
 # Exit non-zero on the first failure. Green means the three known classes of
 # distro-breaker are absent from the built image.
@@ -35,10 +35,25 @@ for c in golem golem-vm golem-iso; do
 done
 ok "all three configs evaluate"
 
+# Resolve a tool from nixpkgs. A package can have SEVERAL outputs (lua5_4 and
+# xorriso both ship a `-man` beside the binaries) and `--print-out-paths` prints
+# them ALL, one per line — so the naive "$(…)/bin/x" builds a two-line path that
+# never exists. That bit the boot check: qemu launched with an empty -kernel and
+# the guest's silence was reported as "the session never came up", i.e. the gate
+# failed for its own reason and looked like a real distro breaker. Pick the
+# output that actually holds the binary.
+tool() { # tool <flake-attr> <binary>
+  local p
+  while read -r p; do
+    [ -x "$p/bin/$2" ] && { printf '%s\n' "$p/bin/$2"; return 0; }
+  done < <(nix build --no-link --print-out-paths "$1" 2>/dev/null)
+  return 1
+}
+
 # 2. hyprland.lua parses as Lua. `nix eval` never touches this — the config is
 #    read at runtime, so a stray brace ships silently and greets the user with
 #    an error banner. Parse it with a real Lua compiler.
-LUAC="$(nix build --no-link --print-out-paths nixpkgs#lua5_4 2>/dev/null)/bin/luac"
+LUAC="$(tool nixpkgs#lua5_4 luac)"
 [ -x "$LUAC" ] || fail "could not get luac to check hyprland.lua"
 "$LUAC" -p system/home/hyprland.lua 2>/dev/null \
   || fail "hyprland.lua has a Lua syntax error (would banner on the user's screen)"
@@ -76,33 +91,50 @@ echo "── static checks passed ──"
 [ "${1:-}" = "--boot" ] || { echo "run with --boot to also verify the session boots"; exit 0; }
 
 echo "── boot check (qemu) ──"
-[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ] || fail "--boot needs a display (GPU); none found"
 
 ISO="$(nix build --no-link --print-out-paths .#iso 2>/dev/null)/iso/golem.iso"
 [ -f "$ISO" ] || fail "ISO build failed"
-QEMU="$(nix build --no-link --print-out-paths nixpkgs#qemu_kvm 2>/dev/null)/bin/qemu-system-x86_64"
-XORRISO="$(nix build --no-link --print-out-paths nixpkgs#xorriso 2>/dev/null)/bin/xorriso"
-SOCAT="$(nix build --no-link --print-out-paths nixpkgs#socat 2>/dev/null)/bin/socat"
+QEMU="$(tool nixpkgs#qemu_kvm qemu-system-x86_64)"
+XORRISO="$(tool nixpkgs#xorriso xorriso)"
+SOCAT="$(tool nixpkgs#socat socat)"
+for t in "$QEMU" "$XORRISO" "$SOCAT"; do
+  [ -x "$t" ] || fail "boot check needs qemu, xorriso and socat; one is missing"
+done
 
 work=$(mktemp -d); trap 'rm -rf "$work"; kill "${qpid:-0}" 2>/dev/null' EXIT
 "$XORRISO" -osirrox on -indev "$ISO" -extract /isolinux/isolinux.cfg "$work/cfg" >/dev/null 2>&1
 K=$(grep -m1 LINUX "$work/cfg" | awk '{print $2}' | sed 's|^/boot/||')
 I=$(grep -m1 INITRD "$work/cfg" | awk '{print $2}' | sed 's|^/boot/||')
 INIT=$(grep -m1 APPEND "$work/cfg" | grep -oE 'init=[^ ]+')
-sock="$XDG_RUNTIME_DIR/iso-smoke-ser.sock"
+# Never boot a half-built command line: without these, qemu comes up with no
+# kernel and the guest's silence reads as "the session never came up" — a gate
+# failing for its own reason is worse than no gate.
+[ -n "$K" ] && [ -n "$I" ] && [ -n "$INIT" ] \
+  || fail "could not read kernel/initrd/init from the ISO's isolinux.cfg"
+sock="${XDG_RUNTIME_DIR:-/tmp}/iso-smoke-ser.sock"
+rm -f "$sock"
 
 "$QEMU" -enable-kvm -cpu host -m 4096 -smp 2 \
   -kernel "$K" -initrd "$I" \
   -append "$INIT nohibernate root=fstab lsm=landlock,yama,bpf loglevel=4 fbcon=map:0 console=ttyS0,115200" \
-  -cdrom "$ISO" -device virtio-vga-gl -display gtk,gl=on \
+  -cdrom "$ISO" -device virtio-vga-gl -display egl-headless \
   -serial "unix:$sock,server,nowait" -name "iso-smoke" >/dev/null 2>&1 &
 qpid=$!
-echo "booting (up to 3 min)..."
-sleep 150
+echo "booting (up to 4 min)..."
+sleep 200
 
-ask() { printf '%s\r\n' "$1" | timeout 12 "$SOCAT" -t 8 - "UNIX-CONNECT:$sock" 2>/dev/null; }
+# Wake the tty first (the autologin shell may still be settling), then send the
+# probe and hold the connection open long enough to read the reply.
+ask() {
+  { printf '\r\n'; sleep 2; printf '%s\r\n' "$1"; sleep 9; } \
+    | timeout 20 "$SOCAT" -t 15 - "UNIX-CONNECT:$sock" 2>/dev/null
+}
 res=$(ask 'echo SMOKE greetd=$(systemctl is-active greetd) hypr=$(pgrep -c Hyprland) wr=$(pgrep -c waverunner) supp=$(systemctl is-active wpa_supplicant) binsh=$(test -e /bin/sh && echo yes || echo no)')
-line=$(grep -o 'SMOKE .*' <<<"$res" | head -1)
+# The serial line ECHOES what we typed, so the first "SMOKE …" match is the
+# command itself, with its $(…) still unexpanded — reading that one made the
+# gate report a dead session on an ISO that had booted perfectly. Take the
+# answer: the last line that no longer carries an unexpanded substitution.
+line=$(grep -o 'SMOKE .*' <<<"$res" | grep -v '[$]' | tail -1)
 [ -n "$line" ] || fail "no response from the booted guest (session never came up?)"
 echo "$line"
 grep -q 'greetd=active' <<<"$line" || fail "greetd not active in the booted ISO"
