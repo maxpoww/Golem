@@ -154,6 +154,20 @@ commits, options-catalog.md, or this file.
 - [~] iso-smoke (DEFERRED, see below) — run against the current ISO build when the VM
       slot is free; record the result in the commit/catalog.
 
+- [ ] Notif box: complete the uniform scale. It scales only outer chrome
+      (EXTENDED_W/EMPTY_H/EXPANDED_H); its card fonts/paddings don't scale —
+      now inconsistent with the fully-scaled clipboard box (ddde8f0). Apply the
+      same pattern (scale measure + draw in lockstep; wrap_text there takes a
+      measure closure — scale the font it measures with AND the drawn font).
+      Validate via debug-notif screenshot in the VM at scale 0.889.
+- [ ] Idle-wakeup profile: measure the daemon's timer load (700ms screencopy
+      poll + collector polls + clip/anim frames) — wakeups/sec at idle in the
+      VM; document; take any cheap coalescing win.
+- NOTE (2026-09-02): ab8ccaf (reject CPU adapters) verified in the VM: rejects
+  llvmpipe via the gpu path, attempts GL (guest exposes no wgpu-usable GL
+  surface → "no surface via gl only"), falls back to software with an honest
+  log, no crash-loop. The real-GPU win applies on hardware.
+
 ## Done (this file's history is the progress log)
 
 - Session 2026-09-02 (before GRIND.md existed), all local commits in launcher
