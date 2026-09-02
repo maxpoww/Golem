@@ -295,10 +295,25 @@ validated live in the golem-vm with a screenshot:**
     "Open files here" (xdg-open the folder → default file manager). Engine-tested; live
     end-to-end needs the shipped cwd-hook (validated on VM rebuild).
 
+17. **window.fullscreen_dnd** — a fullscreen window (video/game/presentation) offers
+    "Do not disturb". Confirmed: fullscreen → control surfaced, and triggering it flipped
+    the notif-state `muted` false→true→false (proves `AffordanceAction::Daemon` end to end;
+    also confirms the call-DND action).
+18. **browser.find** — a browser focused → "Find in page" (Ctrl+F). The action is a
+    **compositor keystroke** (`send_shortcut_active`, the same no-dep path as clipboard
+    paste), so keystroke offers need NO wtype/ydotool. Confirmed (Browsing → control →
+    triggered).
+
 **Ranking/quality:** background media controls (music while coding) are damped ×0.65 so
 the work controls (git) lead; when media IS the activity (watching), full weight. The
 OPTION-pill hover re-hit-tests on set change so a click never fires a stale control. New
-`AffordanceAction::Daemon(tag)` lets an offer drive the shell itself (DND).
+`AffordanceAction::Daemon(tag)` lets an offer drive the shell (DND, find-in-page).
+Non-clickable warning pills keep the default cursor.
+
+**Media box:** definitively deferred — the clipboard/notification boxes are 4000+ lines
+each of animated, delicate surface code; a media box mirroring that is a very large,
+high-risk build for marginal overflow value (the 5-pill media cluster already covers the
+core video controls: play/pause, volume, seek). Left for Max to decide if worth it.
 
 Brightness is offered only where a backlight exists (`has_backlight` from
 `/sys/class/backlight`) — the VM correctly shows none; a laptop would.
