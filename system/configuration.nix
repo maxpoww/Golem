@@ -8,6 +8,8 @@
     ./audio.nix
     ./bluetooth.nix
     ./golem-apps.nix
+    ./hardware.nix
+    ./hardware-detect.nix
     ./waverunner-apply.nix
   ];
 

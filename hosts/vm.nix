@@ -21,6 +21,15 @@
   golem.flakeDir = "/home/max/Golem";
   golem.flakeAttr = "golem-vm";
 
+  # The VM's own hardware profile — what golem-hw-detect would find inside
+  # it (see system/hardware.nix): 8 GB, virtio graphics. Proves the
+  # detected-facts path end to end without a physical target.
+  golem.hardware = {
+    ramMB = 8192;
+    cores = 8;
+    gpu = "virtio";
+  };
+
   # Seed the checkout once from the image's own source. After "users" so
   # chown works on first boot.
   system.activationScripts.seedGolemFlake = {
