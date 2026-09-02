@@ -35,6 +35,30 @@ commits, options-catalog.md, or this file.
 
 ## QUEUE (top = next; tick with `[x] <hash>`)
 
+- [x] 2026-09-02 ISO CUT — built, gated, and shippable:
+      `/nix/store/mahw6g2fj21zag0602h4aidphbxa7hw3-golem.iso` (3.01 GiB, also
+      at `~/Golem/result`). Max authorised the push, so launcher is public at
+      9f23d80 and flake.lock moved 63af71b → 9f23d80 (77 commits): this image
+      is the FIRST to carry the daemon-side work (OPTIONS engine, fullscreen
+      screencopy pause, renderer/RAM fixes, uniform box scaling, the screencast
+      self-suppression). Gate green on the exact image: static 6/6 +
+      `SMOKE greetd=active hypr=1 wr=1 supp=active binsh=yes`.
+      NOTE for whoever cuts the next one: the ISO carries its own flake source
+      (`golemSrc = self`), so editing ANY tracked file changes the ISO hash —
+      commit first, then build, then gate, then don't touch the tree.
+- [ ] Confirm the screencast fix on real hardware. The blink was diagnosed on
+      the 2013 Air (18 `screencast>>1/0` toggles in 8 s from our own 700 ms
+      colour-match) and fixed in 9f23d80, but never seen fixed live: the VM
+      can't reproduce it (its colour-match never engages under llvmpipe, so
+      there are no captures to suppress). Boot this ISO on the Air and watch
+      the bar: the warning pill must never appear on an idle desktop, and must
+      still appear for a REAL share.
+- [ ] Dynamic OPTION pills appear/disappear with no animation at all
+      (`options.rs:770-800` places them at fixed x with no progress value), so
+      every engine change is a hard cut and the neighbours jump. Max, 2026-09-02:
+      the old animation rules are considered LOST — do not try to reconstruct
+      them; treat this as a fresh design decision WITH him before building.
+
 - [x] VM BATCH DONE (2026-09-02, golem-vm at 1280x800 → options_scale 0.889;
       VM built with `--override-input waverunner git+file:///home/max/launcher`
       and the running daemon verified as the build carrying both changes):
