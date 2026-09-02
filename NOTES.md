@@ -616,6 +616,24 @@
     INSIDE the guest (grim, per-user profile path
     /etc/profiles/per-user/max/bin/grim) and pull it out base64 over serial.
 
+## Idle CPU / wakeup profile (2026-09-02, golem-vm)
+
+Where the daemon's idle CPU actually goes (measured, not reasoned):
+- The **engine + mind logic is cheap**: the aggregate publishes ~2.1
+  updates/sec at idle (measured via `generation` growth — see the new
+  `options-engine` example `genrate`), and the `options-brain` runtime thread
+  spends only ~6 jiffies / 8 s ≈ **0.75 % of one core**. Its high *wakeup*
+  count (~350/s) is cheap tokio current-thread park/unpark + llvmpipe worker
+  signalling — wakeups, not work; ignore the count, watch the jiffies.
+- The daemon's ~16 % of-a-core idle in the VM is the **llvmpipe render
+  threads** re-rasterizing the 700 ms screencopy colour-match in SOFTWARE
+  every tick. This is a VM artifact (no real GPU): on hardware the same
+  re-render is near-free, and it's already PAUSED during fullscreen (3efd1ee).
+- No cheap coalescing win on the brain; widening the idle colour-match poll
+  would trade the safety-net responsiveness the screencopy design defends.
+  The meaningful follow-up is idle profiling on real hardware, where llvmpipe
+  no longer dominates the picture.
+
 ## Memory / RSS breakdown (2026-09-02, golem-vm 4 GB idle)
 
 Chasing the ~900 MB Golem-vs-GNOME gap measured on the 2013 4 GB laptop.

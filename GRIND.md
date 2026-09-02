@@ -164,9 +164,19 @@ commits, options-catalog.md, or this file.
       box to (b) against its in-code rationale is churn. FOR MAX: pick one
       style — if uniform wins, apply ddde8f0's pattern to notif (wrap there
       uses a measure closure: scale the measured AND drawn font together).
-- [ ] Idle-wakeup profile: measure the daemon's timer load (700ms screencopy
-      poll + collector polls + clip/anim frames) — wakeups/sec at idle in the
-      VM; document; take any cheap coalescing win.
+- [x] Idle-wakeup profile — DONE + documented (NOTES.md), no code change
+      warranted. Measured in the golem-vm: engine aggregate = 2.1 updates/sec
+      (new `options-engine` example `genrate` measures it via the generation
+      counter); the options-brain thread shows a high WAKEUP count (~350/s park/
+      unpark from tokio current-thread timers + llvmpipe workers) but only ~6
+      jiffies/8s = ~0.75% of one core — the wakeups are cheap, not a CPU cost.
+      The daemon's ~16% of-a-core idle in the VM is dominated by the llvmpipe
+      RENDER threads re-rasterizing the 700ms screencopy colour-match in
+      software — VM-specific (near-free on a real GPU; and already PAUSED during
+      fullscreen by 3efd1ee). No cheap coalescing win on the brain; widening the
+      idle colour-match poll would trade the safety-net responsiveness the
+      screencopy design defends. Real-HW idle profiling is the meaningful
+      follow-up (llvmpipe hides the true picture).
 - NOTE (2026-09-02): ab8ccaf (reject CPU adapters) verified in the VM: rejects
   llvmpipe via the gpu path, attempts GL (guest exposes no wgpu-usable GL
   surface → "no surface via gl only"), falls back to software with an honest
