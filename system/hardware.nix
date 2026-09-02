@@ -98,6 +98,23 @@ in
     })
 
     # ── GPU driver selection ───────────────────────────────────────────
+    # ── Undetected machines (the LIVE ISO above all): ship every userspace
+    # VA-API driver so runtime detection has something to pick from. These
+    # are inert unless libva selects them, and small next to the image — but
+    # without them the live session on an Intel laptop has NO hardware video
+    # decode at all (the Air CPU-decoded VP9 at 95 °C for exactly this
+    # reason: detection only ran at install, and the ISO is pre-install by
+    # definition). The right driver NAME is chosen at boot by
+    # hardware-runtime.nix; AMD needs nothing here (mesa's radeonsi VA
+    # driver rides the default stack).
+    (lib.mkIf (cfg.gpu == "auto") {
+      hardware.graphics.extraPackages = with pkgs; [
+        intel-media-driver
+        intel-vaapi-driver
+        libvdpau-va-gl
+      ];
+    })
+
     (lib.mkIf (cfg.gpu == "intel") {
       # Ship BOTH Intel VA-API drivers and let LIBVA_DRIVER_NAME pick the
       # right one for the detected generation. iHD (intel-media-driver) is

@@ -10,6 +10,7 @@
     ./golem-apps.nix
     ./hardware.nix
     ./hardware-detect.nix
+    ./hardware-runtime.nix
     ./waverunner-apply.nix
   ];
 
