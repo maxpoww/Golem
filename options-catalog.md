@@ -431,8 +431,9 @@ offers across the desktop use-cases.
     complementing the fullscreen slide-nav.
 36. **git.show_commit** — a bare git commit hash (7–40 hex) on the clipboard while
     focused in a repo → "Show commit" (git show in a terminal pager). The sha + repo
-    root are shell-quoted (clipboard text). Gated to Coding. CONFIRMED-by-construction
-    (selection→pill like selection.url/path; `foot sh -c git show` like git.diff).
+    root are shell-quoted (clipboard text). Gated to Coding. **CONFIRMED live in the
+    golem-vm:** with foot focused in a repo and a SHA `wl-copy`'d, the daemon surfaced
+    `[…, git.pull, git.show_commit, coding.terminal_here, selection.search]`.
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
