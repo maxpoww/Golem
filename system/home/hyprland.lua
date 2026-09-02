@@ -1,15 +1,18 @@
 
 
 ---- MONITORS ----
--- Distro default: every panel auto-configures to its preferred mode and a
--- DPI-appropriate scale. Do NOT hardcode a specific panel here. A fixed
--- 3200x2000@165 / scale 1.60 (the dev's Slim Pro) shipped in the ISO and, on
--- a 1366x768 Acer, the mode didn't exist so Hyprland fell back to scale 2.0 —
--- a cramped, unusable desktop on first boot (2026-09-02). Verified live on
--- that 1366x768 panel: this catch-all gives preferred mode at scale 1.0.
--- A machine that wants a tuned scale pins its own output by description
--- (e.g. `output = "desc:LG Display 0x..."`); the shipped default fits all.
+-- Distro default FIRST: every panel auto-configures to its preferred mode and
+-- a DPI-appropriate scale. Do NOT hardcode a specific panel as the default. A
+-- fixed 3200x2000@165 / scale 1.60 (the dev's Slim Pro) shipped in the ISO
+-- and, on a 1366x768 Acer, the mode didn't exist so Hyprland fell to scale
+-- 2.0 — a cramped desktop on first boot (2026-09-02). Verified live on that
+-- panel: this catch-all gives preferred mode at scale 1.0.
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })
+-- Personal override, matched by DESCRIPTION so it applies only to Max's
+-- Slim Pro 9i panel and never to a stranger's machine. Comes after the
+-- catch-all so it wins on that one output. This is the ONLY place a specific
+-- panel belongs — a per-device tuning, not the shipped default.
+hl.monitor({ output = "desc:Lenovo Group Limited 0x8BA2", mode = "3200x2000@165", position = "0x0", scale = 1.60 })
 
 
 ---- MY PROGRAMS ----
