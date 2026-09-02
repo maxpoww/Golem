@@ -408,12 +408,18 @@ those documented as blocked:
   search), browsing ✓ (find, video-tab foregrounding), terminal ✓ (search-error, rerun,
   files-here), calls ✓ (mic-mute, DND), system ✓ (cpu-monitor, privacy pills), reading ✓
   (find, brightness), presentations ✓ (slide nav), gaming/fullscreen ✓ (DND, screenshot).
+28. **downloads.open** — a file just finished downloading → "Open download" (xdg-open by
+    type). A new `downloads` collector polls `$XDG_DOWNLOAD_DIR`/`~/Downloads` on a 3 s
+    timer, reports the newest regular file whose mtime is within 90 s (skipping
+    `.part`/`.crdownload`/`.tmp` sidecars and hidden files), and clears it once it ages
+    out — so the offer is the transient "you just grabbed this" moment, not a pin. A
+    `Control` at 0.62, live in every activity.
+
 - Blocked (documented): file-manager selection (needs a manager extension bridge);
-  a browser URL/reader-mode signal (needs a browser bridge); a downloads watcher (a new
-  inotify collector — not yet built).
+  a browser URL/reader-mode signal (needs a browser bridge).
 
 App-bridge CLIENTS shipped: zsh (shell: last_cmd/exit/cwd) and nvim (editor:
 file/language/diagnostics). New sensors: camera-in-use, backlight, MPRIS position/length,
-git remote-url + child-shell cwd walk, shell cwd. The action vocabulary: Spawn,
+git remote-url + child-shell cwd walk, shell cwd, recent-download watcher. The action vocabulary: Spawn,
 OpenUrl, HyprDispatch, Daemon(tag) (internal: toggle_dnd, find_in_page, slide_next/prev,
 fullscreen). Media BOX surface for the full transport. ~300 tests green.
