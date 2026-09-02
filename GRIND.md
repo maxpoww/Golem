@@ -126,12 +126,22 @@ commits, options-catalog.md, or this file.
       real multi-site refactor needing lockstep measure/draw + iterative 1366x768
       visual validation — a dedicated task, not a session tail. Deferred, scoped.
 
-- [ ] iso-smoke `--boot` against the current ISO — DEFERRED as not-useful-yet:
-      the ISO in golem-lock/ predates this session's launcher work (my daemon
-      changes are local commits, not packaged into that ISO), so a smoke test
-      would validate old code. Meaningful only after a fresh ISO is built with
-      the updated waverunner input — a heavy full-image rebuild not warranted for
-      a smoke test mid-OPTIONS-work. Run it when an ISO with these changes exists.
+- [x] iso-smoke — PASSED (2026-09-02, coordinator's fresh ISO
+      /nix/store/2dcvbqhk4l5wawnm4z44wkq0lfmqydhj-golem.iso, which DOES carry
+      this session's daemon: closure contains waverunner cycnsjq… whose binary
+      has install_missing/pkgsearch/reopen_tab/battery_dim/high_mem strings —
+      i.e. the fullscreen-fix-era build; my earlier "predates the session" note
+      was wrong). Static checks: all 6 green (configs eval, hyprland.lua parses,
+      /bin/sh tmpfiles, wpa_supplicant, greetd+oomd, monitor catch-all). Boot
+      check (replicated the script's qemu invocation headless against the given
+      ISO — the script itself would have rebuilt the ISO since my Golem commits
+      changed the flake source, and would have popped a GTK window):
+      **SMOKE greetd=active hypr=1 wr=1 supp=active binsh=yes** — all five
+      assertions green. Notes: serial socket path must be short (<108 bytes,
+      use /run/user/1000); boot needs >150 s before the serial shell responds
+      (nixos@Golem autologin appears on ttyS0); with `server,nowait` early boot
+      output is dropped, so probe by holding the connection and sending the
+      command, reading for ~8 s.
 - [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
       the offer's title in a small rounded label just below the bar (reuses the
       Label/rect rendering; per-char-estimated background, text shapes exactly at
