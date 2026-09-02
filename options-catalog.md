@@ -310,10 +310,7 @@ OPTION-pill hover re-hit-tests on set change so a click never fires a stale cont
 `AffordanceAction::Daemon(tag)` lets an offer drive the shell (DND, find-in-page).
 Non-clickable warning pills keep the default cursor.
 
-**Media box:** definitively deferred — the clipboard/notification boxes are 4000+ lines
-each of animated, delicate surface code; a media box mirroring that is a very large,
-high-risk build for marginal overflow value (the 5-pill media cluster already covers the
-core video controls: play/pause, volume, seek). Left for Max to decide if worth it.
+**Media box:** BUILT (mediabox.rs). A music-glyph pill appears when a player is active; clicking it (or `debug-media-box`) grows a transport box into the reserved dropdown region: track title, prev/play-pause/next, a seek bar showing live MPRIS position (0:22 / 1:30), and a volume bar (click-to-set). CONFIRMED rendering in the VM with VLC. Draggable sliders + hover-peek are the next refinement.
 
 Brightness is offered only where a backlight exists (`has_backlight` from
 `/sys/class/backlight`) — the VM correctly shows none; a laptop would.
