@@ -352,3 +352,25 @@ sensor for calls.
     CONFIRMED: an editor message with diagnostics=3 surfaced "3 problems"; "Open folder"
     (xdg-open the edited file's dir) shares that proven path while Coding.
 20. **media.mute** — quick mute/unmute the sink (wpctl), in the media cluster.
+
+## 6. File-manager selection — investigated, no clean signal (documented)
+
+Sensing the *current selection* in a focused file manager was investigated (task
+"file-manager selection collector"). Finding: **there is no standard signal to
+read a file manager's live selection.**
+- Nautilus (GNOME Files) exposes `org.freedesktop.FileManager1` (ShowItems /
+  ShowFolders) and `org.gtk.Actions` — these *drive* the manager, they don't
+  report what's selected. No "get selection" method or signal.
+- Thunar exposes `org.xfce.FileManager` / `org.xfce.Thunar` — again actions
+  (launch, display-folder, bulk-rename), not a selection read.
+- The window process's cwd stays at launch dir (nautilus doesn't chdir), so
+  "current folder" isn't derivable from `/proc` either.
+The only clean path is a **file-manager extension** that pushes the selection to
+the OPTIONS bridge socket — a bridge CLIENT exactly like the shipped zsh and
+nvim ones (e.g. a `nautilus-python` extension on `selection-changed`). That is
+the same shape as the other bridges and is the recommended next step; it is not
+a "collector" that can read the signal without the manager's cooperation.
+PARTIAL today: when the user *copies* files, the clipboard carries their paths,
+which the selection collector already classifies (a single copied path →
+"Open file"). Multi-file copies could be added there.
+DECISION: documented, deferred to a file-manager bridge extension.
