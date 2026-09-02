@@ -106,9 +106,13 @@ commits, options-catalog.md, or this file.
       2026-09-02 attempt: measure/draw must use the same scaled values —
       thread scale through clip_text_col_w/row_height_of AND the draw
       path together). Screenshot-verify at 1366x768 in the VM.
-- [ ] Pill tooltips (discoverability): hover shows the offer's title.
-      Delicate renderer — screenshot before/after; abandon cleanly if it
-      regresses layout rather than forcing it.
+- [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
+      the offer's title in a small rounded label just below the bar (reuses the
+      Label/rect rendering; per-char-estimated background, text shapes exactly at
+      render; suppressed while the media box is open). Added a debug-hover-option
+      IPC verb (no headless cursor warp on this compositor). CONFIRMED in the
+      golem-vm: hovering the screencast pill shows "Screen is being shared". No
+      layout regression (renders in the transparent region under the bar).
 - [ ] Catalog expansion: pick the 3 highest-value unserved use-cases from
       options-catalog.md §gaps, ground → spec → build if sensable.
 - [ ] iso-smoke `--boot` run against the current ISO build when the VM
