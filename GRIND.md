@@ -154,12 +154,16 @@ commits, options-catalog.md, or this file.
 - [~] iso-smoke (DEFERRED, see below) — run against the current ISO build when the VM
       slot is free; record the result in the commit/catalog.
 
-- [ ] Notif box: complete the uniform scale. It scales only outer chrome
-      (EXTENDED_W/EMPTY_H/EXPANDED_H); its card fonts/paddings don't scale —
-      now inconsistent with the fully-scaled clipboard box (ddde8f0). Apply the
-      same pattern (scale measure + draw in lockstep; wrap_text there takes a
-      measure closure — scale the font it measures with AND the drawn font).
-      Validate via debug-notif screenshot in the VM at scale 0.889.
+- [x] Notif box scale — RESOLVED as already-consistent-by-design, no code
+      change. Reading notif.rs:814-817: the box deliberately shrinks only its
+      FOOTPRINT (EXTENDED_W × options_scale feeds both measure and draw) while
+      "the internal pads/icon/font stay full size so text stays legible" — a
+      documented legibility decision, internally desync-free. The clipboard box
+      (ddde8f0) now scales uniformly (fonts too, 17→15.1px at 0.889 — still
+      legible). Two defensible answers to the same question; forcing the notif
+      box to (b) against its in-code rationale is churn. FOR MAX: pick one
+      style — if uniform wins, apply ddde8f0's pattern to notif (wrap there
+      uses a measure closure: scale the measured AND drawn font together).
 - [ ] Idle-wakeup profile: measure the daemon's timer load (700ms screencopy
       poll + collector polls + clip/anim frames) — wakeups/sec at idle in the
       VM; document; take any cheap coalescing win.
