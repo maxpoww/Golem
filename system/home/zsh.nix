@@ -164,6 +164,35 @@ programs.fzf = {
 
     # Updated to initContent (Home Manager 26.05+)
     initContent = ''
+      # ── OPTIONS app-bridge (Golem's Brain) ──────────────────────────────
+      # Feed the shell's last command + exit code to the options-engine bridge
+      # socket, so OPTIONS can sense terminal context (a failed build → "Search
+      # the error", friction → skill calibration). Uses zsh's built-in unix
+      # socket module — no external dependency. Silent + best-effort: if the
+      # socket isn't there (no daemon) it does nothing.
+      zmodload zsh/net/socket 2>/dev/null
+      _golem_bridge_last=""
+      _golem_bridge_send() {
+        local sock="''${XDG_RUNTIME_DIR:-/run/user/$UID}/options/bridge.sock"
+        [[ -S "$sock" ]] || return
+        local fd
+        zsocket "$sock" 2>/dev/null || return
+        fd=$REPLY
+        print -u $fd -r -- "$1" 2>/dev/null
+        exec {fd}>&- 2>/dev/null
+      }
+      _golem_bridge_preexec() { _golem_bridge_last="$1" }
+      _golem_bridge_precmd() {
+        local ec=$?
+        [[ -n "$_golem_bridge_last" ]] || return
+        local c="''${_golem_bridge_last//\\/\\\\}"; c="''${c//\"/\\\"}"
+        _golem_bridge_send "{\"v\":1,\"kind\":\"shell\",\"last_cmd\":\"$c\",\"exit_code\":$ec}"
+        _golem_bridge_last=""
+      }
+      autoload -Uz add-zsh-hook
+      add-zsh-hook preexec _golem_bridge_preexec
+      add-zsh-hook precmd _golem_bridge_precmd
+
       # Shell options
       setopt NOBEEP
       setopt NUMERIC_GLOB_SORT
