@@ -186,7 +186,8 @@ programs.fzf = {
         local ec=$?
         [[ -n "$_golem_bridge_last" ]] || return
         local c="''${_golem_bridge_last//\\/\\\\}"; c="''${c//\"/\\\"}"
-        _golem_bridge_send "{\"v\":1,\"kind\":\"shell\",\"last_cmd\":\"$c\",\"exit_code\":$ec}"
+        local d="''${PWD//\\/\\\\}"; d="''${d//\"/\\\"}"
+        _golem_bridge_send "{\"v\":1,\"kind\":\"shell\",\"last_cmd\":\"$c\",\"exit_code\":$ec,\"cwd\":\"$d\"}"
         _golem_bridge_last=""
       }
       autoload -Uz add-zsh-hook
