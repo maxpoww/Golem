@@ -434,8 +434,28 @@ those documented as blocked:
   rerun, files-here), calls ✓ (mic-mute, DND), system ✓ (cpu/mem-monitor, battery-dim,
   privacy pills), reading ✓ (find, brightness), presentations ✓ (slide nav),
   gaming/fullscreen ✓ (DND, screenshot), downloads ✓ (open, extract).
+33. **reading-mode from the window title** (browser-bridge fallback) — a focused
+    browser whose title reads like documentation (MDN, "Documentation", " docs",
+    Stack Overflow, Wikipedia, "man page", "API reference", …) infers the Reading
+    activity purely from the compositor-sensed title, so a docs tab gets the
+    reading offers (find, brightness) with NO browser bridge. Strong markers only,
+    so a false positive merely adds harmless offers.
+
+**Browser bridge (feasibility, 2026-09-02).** A true browser bridge reporting the
+active-tab URL + video-playing was assessed and is BLOCKED under the guardrails:
+- A browser *extension* is the clean path but needs a store upload (nothing may
+  leave the machine) and can't inject into Golem's sandboxed `--app` webapps.
+- *CDP* (remote-debugging) would require launching the main browser with
+  `--remote-debugging-port`, a local-security exposure (any process could then
+  drive the browser); the webapps already expose it but they're single-app so the
+  URL adds nothing over the window class.
+- *Video-tab* detection — the one high-value signal — is ALREADY covered without a
+  bridge by `media_is_foreground` (the MPRIS player being the focused browser).
+So the pragmatic fallback is the title-based reading heuristic above; a real
+URL/reader-mode signal waits on a packaged extension.
+
 - Blocked (documented): file-manager selection (needs a manager extension bridge);
-  a browser URL/reader-mode signal (needs a browser bridge).
+  a browser active-tab URL signal (needs a packaged extension — see above).
 
 App-bridge CLIENTS shipped: zsh (shell: last_cmd/exit/cwd) and nvim (editor:
 file/language/diagnostics). New sensors: camera-in-use, backlight, MPRIS position/length,

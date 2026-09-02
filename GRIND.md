@@ -88,10 +88,12 @@ commits, options-catalog.md, or this file.
       surface instead of a separate overlay. Validate on real hardware (Intel
       GPU, no SW blocker): hyprctl monitors solitary must engage, waverunner CPU
       ~0% during fullscreen video. Reversible: abandon if it regresses the bar.
-- [ ] Browser bridge (the last big collector): a minimal extension or CDP
-      probe reporting active-tab URL + video-playing to the Brain; wire one
-      new offer off it. If infeasible without a store upload, document why
-      in options-catalog.md and build the best CDP fallback.
+- [x] 521998e Browser bridge — assessed + BLOCKED under guardrails (extension
+      needs a store upload / can't reach --app webapps; CDP needs a security-
+      exposing debug port; video-tab already covered by MPRIS). Documented in
+      options-catalog.md. Built the pragmatic fallback: infer Reading from the
+      browser window title (docs markers) → reading offers, no bridge. A real
+      active-tab-URL signal waits on a packaged extension (out of scope here).
 - [ ] RAM: continue profiling in the VM (post arena-cap + lazy-index);
       identify next-biggest resident block (icon/texture buffers?);
       take any win ≥ 10 MB with before→after VmRSS in the commit.
