@@ -121,6 +121,17 @@ commits, options-catalog.md, or this file.
       refactor, not a mirror. That's why the prior measure/draw desync happened.
       Do it as: add `scale` params, `self.options_scale()` at the entry points,
       scale ALL consts in lockstep. Abandon if it regresses hit-testing/alignment.
+      SCOPE (2026-09-02): clipboard.rs is 4146 lines / 74 clip fns; the dim consts
+      have ~80 usages (LINE_PX alone 40, ROW_PAD_X 11, TILE_SZ 7, TEXT_GAP 6). A
+      real multi-site refactor needing lockstep measure/draw + iterative 1366x768
+      visual validation — a dedicated task, not a session tail. Deferred, scoped.
+
+- [ ] iso-smoke `--boot` against the current ISO — DEFERRED as not-useful-yet:
+      the ISO in golem-lock/ predates this session's launcher work (my daemon
+      changes are local commits, not packaged into that ISO), so a smoke test
+      would validate old code. Meaningful only after a fresh ISO is built with
+      the updated waverunner input — a heavy full-image rebuild not warranted for
+      a smoke test mid-OPTIONS-work. Run it when an ISO with these changes exists.
 - [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
       the offer's title in a small rounded label just below the bar (reuses the
       Label/rect rendering; per-char-estimated background, text shapes exactly at
@@ -133,7 +144,7 @@ commits, options-catalog.md, or this file.
       of downloads/battery-dim/high-mem/reopen-tab/install-missing earlier. The
       general use-cases in §1 are now broadly served; further slices are
       diminishing-value micro-cases. Keep adding as genuinely-useful ones surface.
-- [ ] iso-smoke `--boot` run against the current ISO build when the VM
+- [~] iso-smoke (DEFERRED, see below) — run against the current ISO build when the VM
       slot is free; record the result in the commit/catalog.
 
 ## Done (this file's history is the progress log)
