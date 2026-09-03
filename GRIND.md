@@ -173,6 +173,10 @@ commits, options-catalog.md, or this file.
 - [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
+- [x] 508f77d i18n gap — OPTION tooltip titles (engine Strings) were the
+      one user-visible text bypassing the tr() table; new tr_dyn routes
+      them through (English literal = key, es.json ships them later like
+      every daemon string). Tested; green, clippy clean.
 - [x] a4a06c6 Hardening pass J — pins/usage persistence: pins.json format
       drift + corruption (object/legacy-array/excluded-ignored/no-pins/
       garbage → never panic, never invented pins), pin_at moves-not-dups +
