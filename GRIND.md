@@ -87,28 +87,40 @@ commits, options-catalog.md, or this file.
       daemon runs in the guest via a systemd user override on its store path
       (no VM rebuild needed).
 
-- [ ] Multi-output correctness for the shell's small-screen scale:
-      `output_logical_height` reads the FIRST enumerated output, but the
-      compositor picks which output the topbar/dock actually map to — on a
-      laptop+external setup the scale can follow the wrong panel. Track the
-      surface's real output via wl_surface enter events (smithay's
-      CompositorHandler surface_enter / OutputState), use its logical size,
-      fall back to the first output before enter arrives. Re-run
-      sync_options_zone on enter. Unit-test the pick order; VM can only
-      exercise the single-output path (real dual-head is REAL-HW), so mark
-      honestly.
-- [ ] waverunner-ctl usage string is stale (found live: it lists only through
-      debug-dict, hiding debug-options/options-trigger/debug-media-box …), and
-      two-word verbs must be quoted to parse. Generate the usage from the proto
-      verb list (single source), accept `options-trigger <id>` as TWO argv
-      elements too, and add a proto Display↔FromStr round-trip test over every
-      verb.
-- [ ] Hardening pass F: the daemon's Daemon-tag dispatch seam. The tag strings
-      ("undo", "define:…", "page_next", …) are stringly-typed across two crates
-      — a typo ships silently as a logged warn. Add a daemon unit test that
-      every Daemon(tag) the ENGINE can emit is handled (walk the providers over
-      synthetic contexts, collect tags, assert against the dispatch match), so
-      an unhandled tag is a test failure, not a dead pill.
+- [x] 8bfdbd9 Multi-output scale correctness — the scale-owner surface (topbar,
+      else dock) tracks its REAL output via wl_surface enter/leave; enter on a
+      different panel re-syncs the exclusive zone at that panel's size, leave
+      falls back to first-output (enter-before-leave move ordering handled).
+      Pure precedence fn (options::preferred_output_height) unit-tested both
+      directions + fallbacks. Single-output CONFIRMED live in the VM (new build
+      via the store-share override: zone still 25, no daemon errors — only the
+      usual MESA vdrm noise); dual-head observation stays REAL-HW.
+- [x] 784810f ctl usage + payload argv — usage renders from a new proto
+      USAGE_VERBS table (one entry per Command); Display↔FromStr round-trips
+      EVERY variant (exhaustive-match tripwire), and a coverage test makes the
+      table and parser police each other, so stale help is a failing test.
+      Client space-joins argv, so `options-trigger <id>` works unquoted —
+      CONFIRMED live against the VM daemon (exit 0 + trigger logged).
+- [x] d197c4b Hardening pass F — the Daemon-tag seam: daemon_tag_known() as a
+      pure predicate beside the dispatch (fallback arm debug_asserts the
+      inverse), and engine_daemon_tags_are_all_dispatchable drives the real
+      `decide` over scenarios firing EVERY tag-emitting provider, asserting
+      both directions (all emitted tags dispatchable; all expected tags
+      actually emitted — a silenced scenario fails, not hollows). 327 green.
+
+- [ ] VM: live resolution-switch validation of the dynamic zone (the real
+      hotplug path): with the bar up at 1280x800 (zone 25), `hyprctl keyword
+      monitor Virtual-1,1366x768@60,…` must re-fire update_output → zone
+      re-commits at 24 (28 × 0.853), pills/text re-measure, screenshot clean;
+      switch back → 25 again. Also probe a switch while a box is OPEN (see
+      next item).
+- [ ] Scale-change × open-box interaction: if the output scale changes while a
+      notif/clip/media box is OPEN (hotplug, resolution switch), the box's
+      eased box_h/geometry was seeded at the old scale. sync_options_zone
+      re-measures rows + pill text but not an open box's seed. Decide + build
+      the honest behavior (likely: collapse open boxes on zone change — a
+      resolution switch mid-box is rare and a clean close beats a mismatched
+      panel), with a test if the seam allows.
 
 - [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
       (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top
