@@ -711,3 +711,15 @@ the lua-config Hyprland fork rejects `hyprctl keyword monitor`, eval'd
 `hl.monitor` rules don't retro-apply to a connected output (even with
 `hyprctl reload`), and wlr-randr isn't installed. `hyprctl output create
 headless` / `remove` DOES work (used to exercise the output add/remove paths).
+
+**Fresh-VM bake one-liner (2026-09-03, works well):** build the VM runner
+directly — `nix build .#nixosConfigurations.golem-vm.config.system.build.vm
+--override-input waverunner git+file:///home/max/launcher --out-link
+<scratch>/vm` — then boot headless with a FRESH disk so no soured overlay or
+stale nix db can interfere: `NIX_DISK_IMAGE=<scratch>/golem-test.qcow2
+QEMU_OPTS="-display egl-headless" <scratch>/vm/bin/run-Golem-vm`. First boot
+seeds the checkout; ssh -p 2222 answers in ~90 s. The extra `-display
+egl-headless` appended by QEMU_OPTS wins over the config's gtk display (last
+-display wins), so no window opens on the host session. Kill the qemu PID
+explicitly and re-check `ss -tlnp | grep 2222` — the runner script's death
+does not free the port.
