@@ -198,6 +198,12 @@ commits, options-catalog.md, or this file.
       rev= must print 9 hex chars from nixos-version
       --configuration-revision; eval + probe semantics verified, full
       --boot assertion rides the next cut.
+- NOTE (2026-09-03, watch item — not actioned): content.rs
+      truncate_label (grid labels) is the same estimated-width + one-line
+      Label class as the tooltip wrap bug (5baa726), at 0.52 em/char. It
+      is battle-tested in daily use (no wrapped-label reports), so it was
+      NOT churned without a live repro; if an app name ever renders as its
+      first word, this is where.
 - [x] 2026-09-03 ISO #4 — built and FULLY gated, superseding #3:
       `/nix/store/by5ghzpgcnqpi5xxwhb4lsfbv5hchcm4-golem.iso`
       (`~/Golem/result`). Cut clean at 7646b2b; static 9/9 (incl. the new
