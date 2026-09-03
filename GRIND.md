@@ -122,20 +122,41 @@ commits, options-catalog.md, or this file.
       open path re-seeds at the live scale. By-construction (VM can't switch
       modes, see above); real-HW hotplug is the observable.
 
-- [ ] VM regression sweep of the freshest daemon (ef9a9c4 era) via the
-      store-share override: pills + zone, notif/clip/media boxes open-collapse,
-      define end-to-end, dnd toggle, no journal errors over a few minutes of
-      exercise. Catches anything the per-item checks missed in combination.
-- [ ] Hardening pass G: battery.rs — the concurrent fix 92e97e6 ("auto-sleep
-      ladder can no longer kill a machine at boot") landed mid-session from
-      another hand; read it, then pin the ladder's edge cases with unit tests
-      (boot grace, thresholds, charging transitions, absent battery) in the
-      same spirit as passes A-F.
+- [x] VM regression sweep DONE (2026-09-03, FRESH golem-vm rebuilt with
+      launcher@ef9a9c4 baked — the old VM's 9p overlay had soured, see
+      NOTES.md "golem-vm test-loop mechanics"): zone 25 on the baked build;
+      new ctl usage table renders + two-argv options-trigger works from the
+      PROFILE binary; selection chain cycles live (word → define above search,
+      URL → "Open copied link"); define end-to-end opens the dict panel seeded
+      "serendipity" (screenshot); notif box empty-state at scale beside
+      bell+clock (screenshot); debug-hover-option clean; ZERO daemon
+      errors/panics/unknown-daemon-action over the session's journal.
+      (Battery pass G is engine-side unit-tested — no battery in the VM.)
+- [x] ecf11a2 Hardening pass G — battery ladder: extracted pure alarm_for()
+      (exact rung boundaries 11/10/7/5/0; charging clears EVERY rung incl. the
+      lying-gauge "discharging 0% on AC"; no-battery calm) and sleep_decision()
+      (BOOT_GRACE blocks suspend AND post-wake hibernate to the ms boundary;
+      CRITICAL_STREAK blocks below threshold for both wake states; past the
+      guards wake→hibernate always, awake→one suspend per episode via the
+      armed latch; sub-Critical never sleeps). One deliberate improvement: a
+      battery that VANISHES mid-episode now resets streak + re-arms (the old
+      early-return left stale streak). 331 green.
+- [ ] Gate the battery showstopper class in iso-smoke.sh (static): the VM gate
+      can never exercise the sleep ladder (no battery), so assert the PINNED
+      waverunner source still carries the boot-grace guard (BOOT_GRACE +
+      CRITICAL_STREAK in battery.rs, resolved from flake.lock's waverunner
+      input) — a repin to an older launcher fails the gate instead of
+      resurrecting the "doesn't boot" ISO.
+- [ ] Re-profile the engine's idle cost in the fresh VM (baseline: 2.1
+      updates/sec aggregate via the options-engine `genrate` example,
+      NOTES.md): the engine has since grown providers (define/find/undo,
+      micro-slices) and the mind loop gained the settle deadline timer —
+      confirm no idle regression.
 - [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
       92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
-      E/F, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
-      open-box collapse ef9a9c4) is LOCAL-ONLY and reaches no ISO until Max
-      pushes launcher and the pin moves again.
+      E/F/G, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
+      open-box collapse ef9a9c4, battery-ladder tests ecf11a2) is LOCAL-ONLY
+      and reaches no ISO until Max pushes launcher and the pin moves again.
 
 - [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
       (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top
