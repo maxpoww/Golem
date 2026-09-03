@@ -199,6 +199,12 @@ commits, options-catalog.md, or this file.
       always; substring/prefix only at normalized length ≥3; claimed ids
       never reused; fuzzy only over newly-appeared apps), all sites share
       them; ring/shine curves bounded+monotonic under test. 348 green.
+- [x] bd5468b golem.owner (release-checklist §2.2) — the five baked-in
+      maxes (user/greetd/sudo/HM wiring, home layer, apply watch path, ISO
+      live password, vm host) all derive from ONE option. Proven both ways:
+      extendModules{owner="anna"} → no max user, greetd/sudo/home/ssh/
+      flakeDir/apply-watch all anna; default owner attrs unchanged;
+      iso-smoke 8/8. Installer rename = set one option.
 - [ ] VM batch: live-confirm selection.multi_path (wl-copy two paths →
       pill → trigger; folder-open dispatch in the log is enough if no file
       manager in VM) + eyeball a pending-install tile still resolves
