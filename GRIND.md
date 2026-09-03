@@ -190,9 +190,20 @@ commits, options-catalog.md, or this file.
       URI is now a path (was falling through to web search). Unit-tested
       both sides (catalog §44); LIVE VM confirm queued for the next batch.
       Workspace 336 green, clippy + fmt clean.
-- [ ] Hardening pass H — next untested daemon seam (candidates from the
-      no-tests list: ipc verb dispatch, files.rs, usage.rs, pins.rs,
-      dragging.rs); pick the one with real pure logic, edges first.
+- [x] 2de7608 Hardening pass H — install resolution (issues.md P1 "does
+      failure leave a cell stuck?" territory): the finished-install→app
+      match was inlined 3× and its fuzzy relation had no length floor, so
+      short nixpkgs attrs latched onto strangers ('go' ~ 'google-chrome',
+      'R' ~ anything) — resolving AND uninstall-mapping the wrong app.
+      Extracted pure ids_relate/attr_prefixes_id/resolve_hit (equality
+      always; substring/prefix only at normalized length ≥3; claimed ids
+      never reused; fuzzy only over newly-appeared apps), all sites share
+      them; ring/shine curves bounded+monotonic under test. 348 green.
+- [ ] VM batch: live-confirm selection.multi_path (wl-copy two paths →
+      pill → trigger; folder-open dispatch in the log is enough if no file
+      manager in VM) + eyeball a pending-install tile still resolves
+      (drag-install in VM is root-gated; at minimum daemon logs stay
+      clean on the new build). Batch with the NEXT launcher items.
 - [ ] MAX-GATED (release-checklist §1.2/§1.3/§3/§4): generation label/tags,
       distroId, the one version string + alpha marker, the rollback headline
       copy, the feedback channel pick. All explicitly reserved as Max's
