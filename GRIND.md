@@ -198,6 +198,12 @@ commits, options-catalog.md, or this file.
       rev= must print 9 hex chars from nixos-version
       --configuration-revision; eval + probe semantics verified, full
       --boot assertion rides the next cut.
+- [x] 7daba89 Empty-trash offer says what it reclaims — bounded trash_bytes
+      sweep → "Reclaim 1.2 GB" detail (0-byte fallback to the disk figure);
+      fmt_bytes pure+tested. Green.
+- [x] release-checklist §2.1 wifi bullet corrected — slice 38's nmtui path
+      verified in the ISO closure; offline machine has a discoverable
+      scan-and-join path (TUI stopgap, disclosed, not the finished trio).
 - [x] VM BATCH 2 DONE (2026-09-03, fresh VM baked launcher@74f40c1, then
       the tooltip-fix daemon 5baa726 via store-share override — fresh boot,
       overlay healthy):
