@@ -380,19 +380,32 @@
   # Hyprland raw Lua file — the /etc/nixos copy's three homedir assumptions
   # rewritten at build time: waveview loads from its store path, waverunner
   # autostarts via its systemd unit, waverunner-ctl comes from PATH.
+  # GUARD (release-checklist §2.6): replaceStrings never errors on a missed
+  # needle — if hyprland.lua is edited so a needle no longer matches, a
+  # stranger's machine would silently load the plugin from /home/max and come
+  # up without the overview. So a missing needle is an EVAL failure, not a
+  # silent ship.
   xdg.configFile."hypr/hyprland.lua".text =
-    builtins.replaceStrings
-      [
+    let
+      raw = builtins.readFile ./hyprland.lua;
+      needles = [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
         ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
-      ]
-      [
+      ];
+      replacements = [
         "hyprctl plugin load ${waveview}/lib/libwaveview.so"
         "-- waverunner autostarts via systemd (programs.waverunner)"
         "waverunner-ctl"
-      ]
-      (builtins.readFile ./hyprland.lua);
+      ];
+      missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
+    in
+    assert lib.assertMsg (missing == [ ]) ''
+      hyprland.lua rewrite needle(s) no longer match — a built system would
+      silently keep the /home/max path(s) and boot without the overview.
+      Update the needles in system/home/home.nix to match hyprland.lua:
+      ${lib.concatMapStrings (n: "  MISSING: " + n + "\n") missing}'';
+    builtins.replaceStrings needles replacements raw;
 
   # Waverunner config
   xdg.configFile."waverunner/config.toml".text = ''
