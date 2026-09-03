@@ -492,6 +492,19 @@ offers across the desktop use-cases.
     Everything richer in §1.8/1.9 (export, crop, brush) stays bridge-gated as
     documented.
 
+44. **selection.multi_path** (§6's documented PARTIAL, 2026-09-03) — a
+    file-manager multi-file Copy (newline-separated absolute paths or
+    `file://` URIs on the clipboard) → "Open copied files": xdg-open the
+    files' deepest common parent folder. Classifier bounded to the snippet
+    (a truncated tail line is dropped, so the cap can neither fail nor
+    corrupt the set); common dir is component-bounded; URIs percent-decoded
+    (malformed → literal, non-UTF8 → lossy, never a panic). Mixed
+    prose+path lines are NOT a copy set. Adjacent fix: a SINGLE copied
+    `file:///` URI now classifies as a path → "Open file" (it used to fall
+    through to "Search the web"). Unit-tested both sides; live VM confirm
+    queued for the next batch (the sensing chain and OpenUrl action path
+    are the same ones live-confirmed for selection.define/url).
+
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
 

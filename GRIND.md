@@ -182,9 +182,14 @@ commits, options-catalog.md, or this file.
       configurationLimit, then plain store gc; live-ISO-safe via '-' prefix).
       +15 semantics verified on a synthetic 20-gen profile against real
       nix-env. iso-smoke static check 8 gates the class; 8/8 green.
-- [ ] Catalog micro-slice: selection.multi_path (§6 documented PARTIAL) —
-      multiple copied file paths on the clipboard → an offer (open the
-      common folder / open N files). Slice pattern: sensed → pill → action.
+- [x] 0cbb49f Catalog micro-slice: selection.multi_path (§6 documented
+      PARTIAL) — multi-file Copy (paths or file:// URIs, one per line) →
+      "Open copied files" opens the deepest common parent folder;
+      snippet-truncation-safe, component-bounded common dir, percent-decode
+      (lossy/literal on bad input). Adjacent fix: a single copied file:///
+      URI is now a path (was falling through to web search). Unit-tested
+      both sides (catalog §44); LIVE VM confirm queued for the next batch.
+      Workspace 336 green, clippy + fmt clean.
 - [ ] Hardening pass H — next untested daemon seam (candidates from the
       no-tests list: ipc verb dispatch, files.rs, usage.rs, pins.rs,
       dragging.rs); pick the one with real pure logic, edges first.
