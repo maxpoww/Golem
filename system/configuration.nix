@@ -33,6 +33,19 @@
     '';
   };
 
+  options.golem.owner = lib.mkOption {
+    type = lib.types.str;
+    default = "max";
+    description = ''
+      The machine's single human user — the account greetd logs in, the home
+      layer configures, waverunner-apply watches, and sudo trusts. ONE knob
+      instead of the hardcoded name scattered across five files
+      (release-checklist §2.2 "Every Golem user is named max"): the S9
+      installer's rename job becomes setting this option. The GECOS full
+      name (users.users.<owner>.description) stays the installer's to set.
+    '';
+  };
+
   options.golem.lean = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -51,7 +64,7 @@
     # The owner's launcher-installed app list rides the home layer only on
     # non-lean systems (see options.golem.lean above; home/home.nix says why
     # the import lives here and not there).
-    home-manager.users.max.imports =
+    home-manager.users.${config.golem.owner}.imports =
       lib.optional (!config.golem.lean) ./home/waverunner-packages.nix;
 
     # /bin/sh and /usr/bin/env on FRESH roots (found booting the ISO in qemu,
@@ -158,8 +171,9 @@
       LC_TIME = "es_BO.UTF-8";
     };
 
-    users.users."max" = {
+    users.users.${config.golem.owner} = {
       isNormalUser = true;
+      # GECOS full name: the installer's to personalize alongside the owner.
       description = "Max";
       shell = pkgs.zsh;
       extraGroups = [
@@ -209,7 +223,7 @@
       settings = {
         default_session = {
           command = "uwsm start hyprland-uwsm.desktop";
-          user = "max";
+          user = config.golem.owner;
         };
       };
     };
@@ -336,7 +350,7 @@
     # Golem dev loop: max (and Claude working as max) rebuilds without a
     # password. Build always runs before switch; generations are the net.
     security.sudo.extraRules = [{
-      users = [ "max" ];
+      users = [ config.golem.owner ];
       commands = [{
         command = "/run/current-system/sw/bin/nixos-rebuild";
         options = [ "NOPASSWD" ];

@@ -59,16 +59,15 @@
 
   # ── The live session ──────────────────────────────────────────────────
 
-  # greetd (Golem core) autologins `max` into Hyprland — on the ISO that is
-  # the *live* user, not a person: the whole tree hardcodes the name in four
-  # places, one with teeth (system/waverunner-apply.nix:31 watches
-  # /home/max/…, so on any other account installing an app does nothing).
-  # Renaming the user is the installer's job, together with seeding the
-  # flake checkout — todo9 item 3, NOT this file.
+  # greetd (Golem core) autologins the owner (golem.owner, default `max`)
+  # into Hyprland — on the ISO that is the *live* user, not a person. The
+  # name is ONE option now (release-checklist §2.2): the installer's rename
+  # job is setting golem.owner, together with seeding the flake checkout —
+  # todo9 item 3, NOT this file.
   #
   # No password: a live medium that asks for one it never showed you is a
   # dead end, and installation-device already gives wheel passwordless sudo.
-  users.users.max.initialHashedPassword = "";
+  users.users.${config.golem.owner}.initialHashedPassword = "";
 
   # No flake checkout on the live medium (golem.flakeDir stays null), so
   # waverunner-apply and rebuild-golem are absent by design: a nixos-rebuild

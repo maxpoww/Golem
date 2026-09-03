@@ -18,8 +18,10 @@
   # into the Install section. Imports can't be conditional inside a module,
   # so the switch lives at the NixOS level.
 
-  home.username = "max";
-  home.homeDirectory = "/home/max";
+  # The account this home layer configures follows the machine's owner
+  # (golem.owner) — the S9 installer renames ONE option, not five files.
+  home.username = osConfig.golem.owner;
+  home.homeDirectory = "/home/${osConfig.golem.owner}";
   home.stateVersion = "26.05";
 
   # Tell systemd-oomd (enabled at the system level for the low-RAM freeze

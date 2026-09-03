@@ -28,7 +28,7 @@
 let
   flakeDir = config.golem.flakeDir;
   flakeAttr = config.golem.flakeAttr;
-  user = "max";
+  user = config.golem.owner;
   userHome = "/home/${user}";
   listFile = "${userHome}/.config/waverunner/packages.list";
   statusFile = "${userHome}/.config/waverunner/apply-status.json";

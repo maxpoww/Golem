@@ -74,16 +74,18 @@
         ./system/configuration.nix
         home-manager.nixosModules.home-manager
         waverunner.nixosModules.notification-service
-        {
+        ({ config, ... }: {
           services.options-notify = {
             enable = true;
             enableKdeConnect = true;
           };
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.max = import ./system/home/home.nix;
+          # The home layer follows the machine's owner (golem.owner) — one
+          # knob for the installer, not a name baked into the wiring.
+          home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
-        }
+        })
       ];
     in
     {

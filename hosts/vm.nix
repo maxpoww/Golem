@@ -1,8 +1,15 @@
 # Hardware-free Golem for the S7 test loop:
 #   nixos-rebuild build-vm --flake .#golem-vm && ./result/bin/run-Golem-vm
-# No nvidia, virtio graphics; greetd autologs max straight into Hyprland.
-{ lib, pkgs, golemSrc, modulesPath, ... }:
+# No nvidia, virtio graphics; greetd autologs the owner straight into
+# Hyprland. Everything owner-shaped derives from golem.owner — this file is
+# "the shape" the S9 installer cribs (see hosts/iso.nix), so it must not
+# re-hardcode the name the core just un-hardcoded.
+{ config, lib, pkgs, golemSrc, modulesPath, ... }:
 
+let
+  owner = config.golem.owner;
+  ownerHome = "/home/${owner}";
+in
 {
   # qemu-vm imported DIRECTLY (not via vmVariant): the toplevel this config
   # evaluates to IS the running VM system — so an in-VM `nixos-rebuild
@@ -18,7 +25,7 @@
   # (waverunner-apply) and rebuild-golem work inside the VM. The VM
   # rebuilds itself as golem-vm — switching to #golem's nvidia config
   # in here would be nonsense.
-  golem.flakeDir = "/home/max/Golem";
+  golem.flakeDir = "${ownerHome}/Golem";
   golem.flakeAttr = "golem-vm";
 
   # The VM's own hardware profile — what golem-hw-detect would find inside
@@ -35,35 +42,35 @@
   system.activationScripts.seedGolemFlake = {
     deps = [ "users" ];
     text = ''
-      if [ ! -e /home/max/Golem ]; then
-        mkdir -p /home/max
-        cp -r ${golemSrc} /home/max/Golem
-        chmod -R u+w /home/max/Golem
+      if [ ! -e ${ownerHome}/Golem ]; then
+        mkdir -p ${ownerHome}
+        cp -r ${golemSrc} ${ownerHome}/Golem
+        chmod -R u+w ${ownerHome}/Golem
         (
-          cd /home/max/Golem
+          cd ${ownerHome}/Golem
           ${pkgs.git}/bin/git init -q -b main
           ${pkgs.git}/bin/git add -A
           ${pkgs.git}/bin/git -c user.name=golem -c user.email=golem@golem \
             commit -qm "seeded from the VM image"
         )
-        chown -R max:users /home/max/Golem
-      elif ! ${pkgs.diffutils}/bin/cmp -s ${golemSrc}/flake.lock /home/max/Golem/flake.lock; then
+        chown -R ${owner}:users ${ownerHome}/Golem
+      elif ! ${pkgs.diffutils}/bin/cmp -s ${golemSrc}/flake.lock ${ownerHome}/Golem/flake.lock; then
         # Keep the checkout in lockstep with the image (preserving the
         # VM's own package list): a stale lock made an in-VM install
         # rebuild SWAP the running daemon to the old pinned build —
         # shell restarted mid-install, pending-install UI lost.
         keep=$(${pkgs.coreutils}/bin/mktemp)
-        cp /home/max/Golem/system/home/waverunner-packages.nix "$keep" || true
-        cp -r --no-preserve=mode,ownership ${golemSrc}/. /home/max/Golem/
-        cp "$keep" /home/max/Golem/system/home/waverunner-packages.nix || true
+        cp ${ownerHome}/Golem/system/home/waverunner-packages.nix "$keep" || true
+        cp -r --no-preserve=mode,ownership ${golemSrc}/. ${ownerHome}/Golem/
+        cp "$keep" ${ownerHome}/Golem/system/home/waverunner-packages.nix || true
         rm -f "$keep"
         (
-          cd /home/max/Golem
+          cd ${ownerHome}/Golem
           ${pkgs.git}/bin/git add -A
           ${pkgs.git}/bin/git -c user.name=golem -c user.email=golem@golem \
             commit -qm "sync from image" || true
         )
-        chown -R max:users /home/max/Golem
+        chown -R ${owner}:users ${ownerHome}/Golem
       fi
     '';
   };
@@ -76,15 +83,19 @@
   boot.loader.efi.canTouchEfiVariables = lib.mkForce false;
 
   # A stranger's first login (greetd autologin makes this rarely needed).
-  users.users.max.initialPassword = "golem";
+  # One merged set: Nix forbids two dynamic `users.users.${owner}` attrs in
+  # the same attrset, so the password and the dev-loop ssh key live together.
+  users.users.${owner} = {
+    initialPassword = "golem";
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
+    ];
+  };
 
   # Dev-loop access from the host: ssh -p 2222 max@localhost (key below is
   # the host's ~/.ssh key; forward is loopback-only). VM-only — the real
   # golem host ships no sshd.
   services.openssh.enable = true;
-  users.users.max.openssh.authorizedKeys.keys = [
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
-  ];
 
   virtualisation = {
     # The writable-store overlay defaults to tmpfs: everything installed

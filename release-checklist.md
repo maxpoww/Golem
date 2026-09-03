@@ -127,12 +127,18 @@ them, not by component.
 
 ### 2.2 Ships broken, on purpose — say so on the download page
 
-- **Every Golem user is named `max`.** The name is baked into five places
-  (`system/configuration.nix:112,163,254`, `system/home/home.nix:16-17`,
-  `system/waverunner-apply.nix:31`), and the last has teeth: the apply
-  service watches `/home/max/…`, so on any other account **installing an app
-  silently does nothing**. Renaming is the installer's job and the installer
-  does not exist yet.
+- **Every Golem user is named `max` — now ONE option, not five files
+  (2026-09-03).** `golem.owner` (default `max`) feeds every owner-shaped
+  site: the user account, greetd's autologin, the sudo rule, the home
+  layer's username/homeDirectory, the ISO's live-user password, the VM
+  host's seed/ssh/flakeDir, and — the one with teeth — waverunner-apply's
+  watch path. Verified by `extendModules { golem.owner = "anna"; }`: no
+  `max` user exists, greetd logs in `anna`, home is `/home/anna`, apply
+  watches `/home/anna/.config/waverunner/packages.list`, and at the default
+  the evaluated attrs are unchanged. The S9 installer's rename job is now
+  setting this option (plus the GECOS full name, left as `"Max"`
+  deliberately). Until the installer exists, every image still SHIPS as
+  `max` — the download page must still say so.
 - **Max's locale and timezone are everyone's.** `time.timeZone =
   "America/La_Paz"` and nine `LC_*` settings pinned to `es_BO`
   (`system/configuration.nix:98-110`) apply to every Golem machine including
