@@ -508,6 +508,20 @@ offers across the desktop use-cases.
     file:// URI surfaced selection.open_path and xdg-open took the URI
     form as-is.
 
+45. **system.disk_full / system.empty_trash** (§1.15's missing disk case,
+    2026-09-03) — statvfs on `$HOME` (df's exact arithmetic, pure fn
+    tested against root-reserve/torn-read/zero-block degenerates → None,
+    never a phantom 100%) + a trash-non-empty sensor (XDG `Trash/files`).
+    ≥90% used → amber "Disk almost full" warning pill, and — only when the
+    trash actually holds something — an "Empty trash" Control via new
+    daemon tag `empty_trash` (the daemon's own tested FreeDesktop trash;
+    refilters so an open Recycle Bin view empties too). Tag wired into
+    daemon_tag_known + the pass-F cross-crate coverage scenarios.
+    Unit-tested end to end engine-side; the daemon action path is the
+    proven Daemon-tag mechanism (toggle_dnd et al., live-confirmed).
+    Live-inducing needs a ≥90% disk — by-construction plus the next
+    convenient VM check.
+
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
 

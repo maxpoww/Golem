@@ -173,6 +173,14 @@ commits, options-catalog.md, or this file.
 - [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
+- [x] 2e74da9 Catalog slice 45: system.disk_full / system.empty_trash
+      (§1.15's disk case) — statvfs sensor (df arithmetic, degenerate-safe),
+      trash-non-empty gate, amber warning + Empty-trash Control via new
+      daemon tag empty_trash (tested FreeDesktop trash + refilter). Tag in
+      daemon_tag_known + pass-F coverage both ways. 363 green.
+- [ ] Next VM session: induce/verify disk slice visually if convenient
+      (needs a ≥90% disk — maybe a small tmpfs HOME trick), else remains
+      by-construction on the proven Daemon-tag path.
 - [x] 3bf3a83 Hardening pass K — drag edge-paging dwell clock (shared
       grid/box seam): bands+overshoot, arm-without-paging on entry, fire
       exactly on cooldown then re-arm, disarm on leave, direction-flip
