@@ -35,17 +35,43 @@ commits, options-catalog.md, or this file.
 
 ## QUEUE (top = next; tick with `[x] <hash>`)
 
+<!-- Fresh agent 2026-09-03: items marked MAX-GATED or REAL-HW below are NOT
+     yours — they need Max's hand or real hardware. Work the actionable ones;
+     when they run out, extend per the loop rules (harden, test, profile,
+     catalog). Note: launcher is now PUSHED to github and Golem's flake.lock
+     pins it — after any launcher commit, an ISO only carries it once pushed
+     and re-pinned; that push is MAX's call, never yours (local commits only). -->
+
+- [ ] Responsive shell, the LAST half: topbar pills on small screens. The boxes
+      all scale (ddde8f0/654b88d/b4ee500); the pills still don't, because their
+      reserved zone is set ONCE at startup (surface.rs set_exclusive_zone from
+      config.options.height) BEFORE outputs are enumerated. Make the bar height
+      + pill scale react to the output's logical size once known (re-set the
+      exclusive zone after output enumeration), Max wants pills "slightly
+      smaller on acer-kind screens". Delicate: measure/draw agreement, and the
+      dropdown boxes anchor to the bar height. VM-verify at 1280x800 with
+      screenshots (recipe in the VM BATCH note below).
+- [ ] OPTIONS hardening pass E: the new surfacing layer (launcher 1540fd1).
+      Unit-test looks_like_dev_work edge cases (paths, env prefixes, sudo
+      chains), cap_bystander_modules with mixed warning/control sets at every
+      activity, settle-stage interaction with the pill cap. Then a VM batch:
+      live-confirm btop-in-repo shows no git pills and a real dev command
+      brings them back (shell bridge feeds last_cmd).
+- [ ] Catalog: the §1 micro-cases still unserved (see options-catalog.md
+      "remaining gaps") — pick the 2-3 with real grounding, spec → build →
+      VM-confirm, per the established slice pattern.
+
 - [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
       (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top
       of ISO #1: the frosted glass restored (blur passes 4 — the perf pass had
       deleted it, caught by Max on his first boot) and the OPTIONS surfacing
       fixes (launcher 1540fd1). Both were live-diagnosed on the 2013 Air.
-- [ ] OPTIONS surfacing — judge ISO #2 on the Air: btop in ~/Golem must show NO
+- [ ] MAX-GATED: OPTIONS surfacing — judge ISO #2 on the Air: btop in ~/Golem must show NO
       git pills; a bar that no longer rewrites itself when the pointer grazes a
       window (follow_mouse = 2 + the new 1.2 s settle); "Review changes" only
       while actually coding. If the 1.2 s dwell feels sluggish for genuinely
       useful offers, that constant is the dial (`mind/settle.rs`).
-- [ ] KNOWN, NOT OURS: the Air pins its CPU at 799 MHz under full load (verified
+- [ ] MAX-GATED (his machine): the Air pins its CPU at 799 MHz under full load (verified
       with the performance governor forced, 64 °C, on AC, no throttle events) —
       classic Mac stuck-BD-PROCHOT. An SMC reset is the fix. Any "feels slow"
       report from that machine must be checked against
@@ -63,14 +89,14 @@ commits, options-catalog.md, or this file.
       NOTE for whoever cuts the next one: the ISO carries its own flake source
       (`golemSrc = self`), so editing ANY tracked file changes the ISO hash —
       commit first, then build, then gate, then don't touch the tree.
-- [ ] Confirm the screencast fix on real hardware. The blink was diagnosed on
+- [ ] REAL-HW: Confirm the screencast fix on real hardware. The blink was diagnosed on
       the 2013 Air (18 `screencast>>1/0` toggles in 8 s from our own 700 ms
       colour-match) and fixed in 9f23d80, but never seen fixed live: the VM
       can't reproduce it (its colour-match never engages under llvmpipe, so
       there are no captures to suppress). Boot this ISO on the Air and watch
       the bar: the warning pill must never appear on an idle desktop, and must
       still appear for a REAL share.
-- [ ] Dynamic OPTION pills appear/disappear with no animation at all
+- [ ] MAX-GATED (design WITH him, do not build): Dynamic OPTION pills appear/disappear with no animation at all
       (`options.rs:770-800` places them at fixed x with no progress value), so
       every engine change is a hard cut and the neighbours jump. Max, 2026-09-02:
       the old animation rules are considered LOST — do not try to reconstruct
@@ -161,7 +187,7 @@ commits, options-catalog.md, or this file.
       flow (brain updates stop, bar never returns). The dock layer also blocks
       solitary regardless. Direct-scanout can't even engage in the VM (inherent
       "SW"/llvmpipe blocker), so (b) needs real-hardware work. See follow-up.
-- [ ] FULLSCREEN PERF (b), follow-up: truly hide the topbar (and dock) layers
+- [ ] REAL-HW: FULLSCREEN PERF (b), follow-up: truly hide the topbar (and dock) layers
       during fullscreen so Hyprland grants solitary/direct-scanout. Needs a
       wgpu-compatible unmap: likely drop+recreate BOTH the LayerSurface AND its
       wgpu Renderer together (the event-loop wedge came from dropping the layer
