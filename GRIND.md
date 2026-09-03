@@ -168,6 +168,30 @@ commits, options-catalog.md, or this file.
       expand to that pattern is a ~10-line change once you pick a duration.
       To SEE the numbers live: RUST_LOG=waverunner=debug and watch for
       "clip box open"/"frame gap" lines while opening boxes.
+<!-- Queue extension 2026-09-03 (actionable items exhausted; per loop rules,
+     extended from release-checklist.md + options-catalog.md follow-ups). -->
+- [x] 985318b Needle guard (release-checklist §2.6 silent seam) — a missed
+      hyprland.lua rewrite needle now FAILS EVAL (lib.assertMsg names it)
+      instead of silently shipping a stranger's desktop without the overview.
+      Verified both directions (golem config evals rewritten; a deliberately
+      broken needle fails with the message).
+- [x] e84839e Rollback retention (release-checklist §2.6 "which bites first")
+      — CONFIRMED the 7d age-based gc bit first (deleted all non-current
+      system generations on an 8-days-idle machine, leaving 15 dangling boot
+      entries); FIXED count-based (nix-env --delete-generations +15 matching
+      configurationLimit, then plain store gc; live-ISO-safe via '-' prefix).
+      +15 semantics verified on a synthetic 20-gen profile against real
+      nix-env. iso-smoke static check 8 gates the class; 8/8 green.
+- [ ] Catalog micro-slice: selection.multi_path (§6 documented PARTIAL) —
+      multiple copied file paths on the clipboard → an offer (open the
+      common folder / open N files). Slice pattern: sensed → pill → action.
+- [ ] Hardening pass H — next untested daemon seam (candidates from the
+      no-tests list: ipc verb dispatch, files.rs, usage.rs, pins.rs,
+      dragging.rs); pick the one with real pure logic, edges first.
+- [ ] MAX-GATED (release-checklist §1.2/§1.3/§3/§4): generation label/tags,
+      distroId, the one version string + alpha marker, the rollback headline
+      copy, the feedback channel pick. All explicitly reserved as Max's
+      DECIDE items (configuration.nix:132-135 comment + checklist wording).
 - [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
       92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
       E/F/G, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
