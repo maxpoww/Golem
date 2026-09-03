@@ -95,6 +95,12 @@
         editor = false;
       };
     };
+    # The 26.11 default, set early (surfaced by the first `nix flake check`,
+    # 2026-09-03): force-importing ZFS pools at boot risks data loss on a
+    # pool that was live elsewhere. Golem ships no ZFS root — this only
+    # protects a tester who plugs in a machine that has pools.
+    boot.zfs.forceImportRoot = false;
+
     boot.kernel.sysctl = {
       "vm.swappiness"                   = 10;
       "vm.vfs_cache_pressure"           = 10;
