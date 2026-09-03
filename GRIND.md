@@ -153,6 +153,21 @@ commits, options-catalog.md, or this file.
       old ~16% figure (that one was measured with a redraw-heavy
       transparent-bar/frost situation; with a matched stable bar the daemon
       only redraws on change). CONFIRMED, no action needed.
+- [x] b5eb8cf Box-open lag, technical half (issues.md "laggy… like a break
+      after"): instrumented permanently at debug level — open_clip_box logs
+      its synchronous cost, tick_clip/tick_notif log any mid-animation frame
+      gap >50 ms. MEASURED in the VM (llvmpipe, the worst case): open cost
+      0.5-1.0 ms (incl. the hypr IPC + measure), ZERO frame gaps across 6
+      open/close cycles. The open path is technically clean.
+      FOR MAX (the feel half, your call): the numbers say the "break after"
+      is the CURVE, not a stall — expand uses an exponential ease
+      (MORPH_RATE 13/s: 95% of the height in ~230 ms, then a ~300 ms
+      sub-pixel crawl to the cutoff), which visually "arrives then crawls".
+      The detail/dict panels already use the other pattern (constant-duration
+      linear + smoothstep, DETAIL_OPEN_SECS) and don't crawl — switching the
+      expand to that pattern is a ~10-line change once you pick a duration.
+      To SEE the numbers live: RUST_LOG=waverunner=debug and watch for
+      "clip box open"/"frame gap" lines while opening boxes.
 - [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
       92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
       E/F/G, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
