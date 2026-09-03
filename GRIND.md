@@ -198,12 +198,30 @@ commits, options-catalog.md, or this file.
       rev= must print 9 hex chars from nixos-version
       --configuration-revision; eval + probe semantics verified, full
       --boot assertion rides the next cut.
-- [ ] VM batch 2 (VM2 baking with launcher@74f40c1): (a) disk slice live —
-      fallocate the guest disk ≥90% + a trashed file → amber disk pill +
-      Empty-trash pill → trigger → Trash/files empty; (b) tr_dyn live —
-      drop en.json translating "Open copied files", restart daemon, hover
-      pill → translated tooltip; (c) wrapped mpv from the shared store
-      publishes MPRIS → media pills appear for mpv.
+- [x] VM BATCH 2 DONE (2026-09-03, fresh VM baked launcher@74f40c1, then
+      the tooltip-fix daemon 5baa726 via store-share override — fresh boot,
+      overlay healthy):
+      (a) disk slice CONFIRMED end-to-end: fallocate → df 94% →
+          `[system.disk_full]` amber pill; trashed file → `[system.
+          disk_full, system.empty_trash]` (screenshot: amber hdd pill +
+          trash pill); trigger → "options: emptied the trash",
+          Trash/files=0, control reactively cleared next poll while the
+          warning stayed (disk still full). Exactly as designed.
+      (b) tr_dyn CONFIRMED — and the probe CAUGHT A REAL BUG: the tooltip
+          label shapes into a ONE-line box, so a title wider than the flat
+          0.62-em/char estimate wrapped invisibly ("PROBE-TRADUCIDO"
+          rendered as "PROBE-"). Fixed (5baa726): char-class-aware generous
+          est_text_w + full-box wrap limit; re-probed live — full
+          translated title renders in its pill (screenshot). NOTE for
+          translators later: locale_tags deliberately loads NO table for
+          English locales; use WAVERUNNER_I18N to force a table in tests.
+      (c) mpv-mpris CONFIRMED — wrapped store mpv published
+          org.mpris.MediaPlayer2.mpv and the FULL media cluster surfaced
+          (playpause/vol/mute/seek/next). The Golem-side package fix
+          (10943f6) is what ships it.
+      Journal sweep: zero warnings/panics/unknown-actions. VM down, port
+      freed. (Repeated an old lesson the hard way: pkill -f with a pattern
+      matching your own ssh command line kills your shell — check NOTES.)
 - [x] 3bf3a83 Hardening pass K — drag edge-paging dwell clock (shared
       grid/box seam): bands+overshoot, arm-without-paging on entry, fire
       exactly on cooldown then re-arm, disarm on leave, direction-flip

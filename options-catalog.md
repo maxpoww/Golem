@@ -517,10 +517,12 @@ offers across the desktop use-cases.
     daemon tag `empty_trash` (the daemon's own tested FreeDesktop trash;
     refilters so an open Recycle Bin view empties too). Tag wired into
     daemon_tag_known + the pass-F cross-crate coverage scenarios.
-    Unit-tested end to end engine-side; the daemon action path is the
-    proven Daemon-tag mechanism (toggle_dnd et al., live-confirmed).
-    Live-inducing needs a ≥90% disk — by-construction plus the next
-    convenient VM check.
+    Unit-tested end to end engine-side. **CONFIRMED live in the golem-vm
+    (2026-09-03):** fallocate to df 94% surfaced the amber warning; a
+    trashed file added the Empty-trash control (screenshot); triggering it
+    logged "emptied the trash", left Trash/files empty, and the control
+    reactively cleared on the next poll while the warning stayed — exactly
+    the designed lifecycle.
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
