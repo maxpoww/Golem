@@ -198,18 +198,25 @@ hold. A tester on a different Hyprland will not have them.
 
 ### 2.6 Silent seams worth one look before shipping
 
-- `system/home/home.nix:302-314` rewrites three homedir paths out of
-  `hyprland.lua` with `builtins.replaceStrings`, which **never errors on a
-  miss**. All three needles currently match (`hyprland.lua:31,33,270`), so it
-  works today — but if that file is edited without updating the needles, a
-  stranger's machine tries to load the plugin from `/home/max/waveview` and
-  the desktop comes up without the overview, silently.
-- **Rollback depth is the smaller of two limits.** `configurationLimit = 15`
-  (`system/configuration.nix:39`) keeps 15 boot entries, while the daily gc
-  runs `--delete-older-than 7d` (`:241-245`) against the profiles. Confirm at
-  build which one bites first: a tester who breaks their machine and does not
-  notice for eight days may have nothing left to roll back to — on the
-  feature the project wants to headline (§3).
+- ~~`system/home/home.nix` replaceStrings silent-miss~~ — **CLOSED
+  (2026-09-03).** A missed needle is now an eval failure, not a silent ship:
+  the rewrite asserts every needle occurs in `hyprland.lua` before replacing
+  (`lib.assertMsg`, names the missing needle). Verified both directions: the
+  golem config evals with the rewrites applied, and a deliberately broken
+  needle fails eval with the message.
+- ~~**Rollback depth is the smaller of two limits.**~~ — **CONFIRMED AND
+  FIXED (2026-09-03).** Confirmed which bites: the daily
+  `nix-collect-garbage --delete-older-than 7d` deleted system-profile
+  generations by AGE (all but current, `nix-collect-garbage(1)`), so an
+  8-days-idle machine lost every rollback while systemd-boot still showed 15
+  menu entries whose store paths were gone — dangling entries are worse than
+  none, on the §3 headline feature. Fixed count-based: the gc now runs
+  `nix-env --delete-generations +15` on the system profile (exactly matching
+  `configurationLimit = 15`, so every menu entry stays bootable) followed by
+  a plain store gc, and iso-smoke static check 8 gates the regression class
+  (retention must be count-based, gc must carry no age-based deletion).
+  `+15` semantics verified against the real nix-env on a synthetic
+  20-generation profile (removes 1–5, keeps 15).
 - **`nix flake check` has never been run**, and this repo has no test suite
   of its own. The gate below is the first time anything here is mechanically
   checked.

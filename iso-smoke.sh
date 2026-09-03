@@ -102,6 +102,21 @@ grep -q 'BOOT_GRACE' "$WR_SRC/crates/daemon/src/battery.rs" \
   || fail "pinned waverunner lacks the battery boot-grace guards (pre-92e97e6) — the ISO would auto-sleep at boot on a drained battery"
 ok "battery auto-sleep guards present in the pinned waverunner"
 
+# 8. Rollback never silently evaporates (release-checklist §2.6/§3). The old
+#    daily gc deleted system generations by AGE (--delete-older-than 7d): a
+#    machine not rebuilt for 8 days lost every rollback while systemd-boot
+#    still showed 15 dangling menu entries — the headline feature, gone,
+#    silently. Retention must be count-based (delete-generations +N on the
+#    system profile) and the gc itself must carry no age-based profile
+#    deletion. Checked on the INSTALLED config (rollback is a disk feature;
+#    the live ISO has no system profile to protect).
+GC_PRE="$(nix eval --raw '.#nixosConfigurations.golem.config.systemd.services.nix-gc.serviceConfig.ExecStartPre' 2>/dev/null)"
+grep -q -- '--delete-generations +' <<<"$GC_PRE" \
+  || fail "nix-gc has no count-based generation retention — rollback depth is unbounded-loss again"
+nix eval --raw '.#nixosConfigurations.golem.config.systemd.services.nix-gc.script' 2>/dev/null | grep -q -- '--delete-older-than' \
+  && fail "nix-gc still deletes generations by age — an idle week erases every rollback"
+ok "gc keeps rollback: count-based retention, no age-based generation deletion"
+
 echo "── static checks passed ──"
 
 [ "${1:-}" = "--boot" ] || { echo "run with --boot to also verify the session boots"; exit 0; }

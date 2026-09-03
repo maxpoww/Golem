@@ -312,11 +312,22 @@
 
     nix.settings.experimental-features = [ "nix-command" "flakes" ];
     nix.settings.auto-optimise-store = true;
+    # Rollback depth (release-checklist §2.6, CONFIRMED 2026-09-03): the old
+    # `--delete-older-than 7d` deleted system generations by AGE — a machine
+    # not rebuilt for 8 days lost every rollback while systemd-boot still
+    # showed 15 (dangling) menu entries pointing at GC'd store paths. The gc
+    # is now count-based on the system profile: keep the newest 15
+    # generations (exactly matching configurationLimit, so every boot-menu
+    # entry stays bootable), then collect unreachable store paths. Disk cost
+    # is bounded by the 15 kept closures; rollback — the §3 headline — never
+    # silently evaporates. `-` prefix: don't fail the gc on a system without
+    # the profile (the live ISO).
     nix.gc = {
       automatic = true;
       dates     = "daily";
-      options   = "--delete-older-than 7d";
     };
+    systemd.services.nix-gc.serviceConfig.ExecStartPre =
+      "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15";
 
     services.udev.extraRules = ''
       ACTION=="add|change",SUBSYSTEM=="input",KERNEL=="event*",ENV{ID_INPUT_TOUCHSCREEN}=="1",ENV{LIBINPUT_IGNORE_DEVICE}="1"
