@@ -1,0 +1,39 @@
+[package]
+name = "golem-connectd"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Golem desktop daemon: phone as touchpad, keyboard, game controller and mirrored screen"
+
+[dependencies]
+# Wayland input injection (unprivileged; proven on Hyprland 0.55.4)
+wayland-client = "0.31"
+wayland-protocols-wlr = { version = "0.3", features = ["client"] }
+wayland-protocols-misc = { version = "0.3", features = ["client"] }
+tempfile = "3"
+
+# uinput gamepad. Gamepads have no Wayland protocol — games read evdev
+# directly — so this one input path goes through the kernel. Raw ioctls rather
+# than an evdev crate: the uinput UAPI is small, stable, and this keeps the
+# dependency surface honest.
+libc = "0.2"
+
+# KDE Connect protocol
+tokio = { version = "1", features = ["full"] }
+tokio-rustls = "0.26"
+rustls = { version = "0.23", features = ["ring"] }
+rustls-pemfile = "2"
+rcgen = "0.13"
+x509-parser = "0.16"
+serde_json = "1"
+sha2 = "0.10"
+rand = "0.8"
+anyhow = "1"
+
+[[bin]]
+name = "golem-connectd"
+path = "src/main.rs"
+
+[[bin]]
+name = "golem-inject-test"
+path = "src/bin/inject_test.rs"

@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# golem-mirror — the phone's screen on the desktop (scrcpy wrapped in Golem UX).
+#
+# Wireless by default: the phone's current Wi-Fi address is discovered from the
+# Golem/kdeconnect link (kdeconnect-cli -l), so nothing is hardcoded. Falls back
+# to USB when no wireless path exists. The wireless path needs adb-over-TCP
+# enabled once per phone boot, with the phone plugged in:
+#
+#   golem-mirror --setup
+#
+# Extra arguments go straight to scrcpy (e.g. --turn-screen-off, --no-audio).
+set -euo pipefail
+
+# kdeconnectd invokes runcommands with a minimal environment.
+PATH="/etc/profiles/per-user/max/bin:/run/current-system/sw/bin:$PATH"
+
+PORT=5555
+
+if [[ "${1:-}" == "--setup" ]]; then
+    usb=$(adb devices | awk 'NR>1 && $2=="device" && $1 !~ /:/ {print $1; exit}')
+    if [[ -z "$usb" ]]; then
+        echo "golem-mirror: --setup needs the phone on USB." >&2
+        exit 1
+    fi
+    adb -s "$usb" tcpip "$PORT"
+    echo "adb TCP enabled on port $PORT (persists until the phone reboots)."
+    exit 0
+fi
+
+# The phone as the Golem link currently sees it: name and LAN address.
+line=$(kdeconnect-cli -l 2>/dev/null | grep 'via LAN (paired and reachable)' | head -1 || true)
+ip=$(sed -n 's/.* on \([0-9.]*\) via LAN.*/\1/p' <<<"$line")
+name=$(sed -n 's/^- \(.*\): [0-9a-f]* on .*/\1/p' <<<"$line")
+
+serial=""
+if [[ -n "$ip" ]]; then
+    if adb connect "$ip:$PORT" 2>/dev/null | grep -q '^\(already \)\?connected' \
+        && [[ "$(adb -s "$ip:$PORT" get-state 2>/dev/null)" == "device" ]]; then
+        serial="$ip:$PORT"
+    else
+        adb disconnect "$ip:$PORT" >/dev/null 2>&1 || true
+    fi
+fi
+if [[ -z "$serial" ]]; then
+    serial=$(adb devices | awk 'NR>1 && $2=="device" && $1 !~ /:/ {print $1; exit}')
+fi
+if [[ -z "$serial" ]]; then
+    echo "golem-mirror: no phone reachable." >&2
+    echo "  wireless: run 'golem-mirror --setup' once with the phone on USB" >&2
+    echo "  (or just plug the phone in)" >&2
+    exit 1
+fi
+
+exec scrcpy -s "$serial" \
+    --window-title "Golem — ${name:-phone}" \
+    --stay-awake \
+    "$@"
