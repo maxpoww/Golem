@@ -180,7 +180,7 @@ ask() {
   { printf '\r\n'; sleep 2; printf '%s\r\n' "$1"; sleep 9; } \
     | timeout 20 "$SOCAT" -t 15 - "UNIX-CONNECT:$sock" 2>/dev/null
 }
-res=$(ask 'echo SMOKE greetd=$(systemctl is-active greetd) hypr=$(pgrep -c Hyprland) wr=$(pgrep -c waverunner) supp=$(systemctl is-active wpa_supplicant) binsh=$(test -e /bin/sh && echo yes || echo no)')
+res=$(ask 'echo SMOKE greetd=$(systemctl is-active greetd) hypr=$(pgrep -c Hyprland) wr=$(pgrep -c waverunner) supp=$(systemctl is-active wpa_supplicant) binsh=$(test -e /bin/sh && echo yes || echo no) rev=$(nixos-version --configuration-revision 2>/dev/null | cut -c1-9)')
 # The serial line ECHOES what we typed, so the first "SMOKE …" match is the
 # command itself, with its $(…) still unexpanded — reading that one made the
 # gate report a dead session on an ISO that had booted perfectly. Take the
@@ -193,5 +193,10 @@ grep -q 'hypr=1'         <<<"$line" || fail "Hyprland not running in the booted 
 grep -q 'wr=1'           <<<"$line" || fail "waverunner not running in the booted ISO"
 grep -q 'supp=active'    <<<"$line" || fail "wpa_supplicant not active in the booted ISO"
 grep -q 'binsh=yes'      <<<"$line" || fail "/bin/sh missing in the booted ISO"
-ok "booted ISO: greetd + Hyprland + waverunner + wpa_supplicant + /bin/sh all good"
+# Identity (release-checklist §1.2): a booted Golem must be able to name its
+# build — configurationRevision comes from self.rev/dirtyRev (77a8c82). An
+# empty/None answer means bug reports can't be tied to a build again.
+grep -qE 'rev=[0-9a-f]{9}' <<<"$line" \
+  || fail "booted ISO cannot name its source revision (nixos-version --configuration-revision empty)"
+ok "booted ISO: greetd + Hyprland + waverunner + wpa_supplicant + /bin/sh + source-rev identity all good"
 echo "── boot check passed ──"
