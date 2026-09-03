@@ -117,6 +117,26 @@ nix eval --raw '.#nixosConfigurations.golem.config.systemd.services.nix-gc.scrip
   && fail "nix-gc still deletes generations by age — an idle week erases every rollback"
 ok "gc keeps rollback: count-based retention, no age-based generation deletion"
 
+# 9. The owner is ONE option (release-checklist §2.2). golem.owner replaced
+#    five hardcoded "max"es; a future edit that bakes the name back in would
+#    quietly re-break every non-max install (the S9 installer's whole rename
+#    path). Re-evaluate the vm config with a different owner and assert the
+#    chain follows and no max user reappears.
+OWNER_CHECK="$(nix eval --impure --json --expr '
+  let f = builtins.getFlake "'"$GOLEM"'";
+      c = (f.nixosConfigurations.golem-vm.extendModules {
+            modules = [ { golem.owner = "smoketest"; } ]; }).config;
+  in { noMax = !(c.users.users ? max);
+       greet = c.services.greetd.settings.default_session.user;
+       home  = c.home-manager.users.smoketest.home.homeDirectory; }' 2>/dev/null)"
+grep -q '"noMax":true' <<<"$OWNER_CHECK" \
+  || fail "a hardcoded max user came back — golem.owner no longer covers every site"
+grep -q '"greet":"smoketest"' <<<"$OWNER_CHECK" \
+  || fail "greetd does not follow golem.owner"
+grep -q '"home":"/home/smoketest"' <<<"$OWNER_CHECK" \
+  || fail "the home layer does not follow golem.owner"
+ok "golem.owner drives the whole chain (no baked-in max)"
+
 echo "── static checks passed ──"
 
 [ "${1:-}" = "--boot" ] || { echo "run with --boot to also verify the session boots"; exit 0; }
