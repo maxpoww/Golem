@@ -35,6 +35,23 @@ commits, options-catalog.md, or this file.
 
 ## QUEUE (top = next; tick with `[x] <hash>`)
 
+- [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
+      (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top
+      of ISO #1: the frosted glass restored (blur passes 4 — the perf pass had
+      deleted it, caught by Max on his first boot) and the OPTIONS surfacing
+      fixes (launcher 1540fd1). Both were live-diagnosed on the 2013 Air.
+- [ ] OPTIONS surfacing — judge ISO #2 on the Air: btop in ~/Golem must show NO
+      git pills; a bar that no longer rewrites itself when the pointer grazes a
+      window (follow_mouse = 2 + the new 1.2 s settle); "Review changes" only
+      while actually coding. If the 1.2 s dwell feels sluggish for genuinely
+      useful offers, that constant is the dial (`mind/settle.rs`).
+- [ ] KNOWN, NOT OURS: the Air pins its CPU at 799 MHz under full load (verified
+      with the performance governor forced, 64 °C, on AC, no throttle events) —
+      classic Mac stuck-BD-PROCHOT. An SMC reset is the fix. Any "feels slow"
+      report from that machine must be checked against
+      `/sys/devices/system/cpu/cpufreq/policy0/cpuinfo_avg_freq` FIRST, before
+      blaming the shell.
+
 - [x] 2026-09-02 ISO CUT — built, gated, and shippable:
       `/nix/store/mahw6g2fj21zag0602h4aidphbxa7hw3-golem.iso` (3.01 GiB, also
       at `~/Golem/result`). Max authorised the push, so launcher is public at
