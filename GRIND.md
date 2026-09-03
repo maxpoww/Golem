@@ -173,6 +173,16 @@ commits, options-catalog.md, or this file.
 - [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
+- [x] 2026-09-03 ISO #3 CANDIDATE — built and FULLY gated (static 8/8 at
+      build time + real qemu boot: `SMOKE greetd=active hypr=1 wr=1
+      supp=active binsh=yes`):
+      `/nix/store/fczpi2gdak3758knvxjw2dag16v11l3v-golem.iso`. Cut from a
+      CLEAN tree at the "tick pass K" commit; carries this session's Golem
+      fixes on top of ISO #2 — count-based rollback gc, the needle guard,
+      golem.owner, zfs.forceImportRoot=false, source-rev identity
+      (77a8c82-era). Launcher pin UNCHANGED (still 92e97e6) — daemon-side
+      work after that stays MAX-GATED on the push+repin. Static check 9
+      (owner chain) landed after this cut; it's in the tree for the next.
 - [x] 2e74da9 Catalog slice 45: system.disk_full / system.empty_trash
       (§1.15's disk case) — statvfs sensor (df arithmetic, degenerate-safe),
       trash-non-empty gate, amber warning + Empty-trash Control via new
