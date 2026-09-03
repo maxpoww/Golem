@@ -198,6 +198,16 @@ commits, options-catalog.md, or this file.
       rev= must print 9 hex chars from nixos-version
       --configuration-revision; eval + probe semantics verified, full
       --boot assertion rides the next cut.
+- [x] 2026-09-03 ISO #4 — built and FULLY gated, superseding #3:
+      `/nix/store/by5ghzpgcnqpi5xxwhb4lsfbv5hchcm4-golem.iso`
+      (`~/Golem/result`). Cut clean at 7646b2b; static 9/9 (incl. the new
+      owner-chain check) + boot `SMOKE greetd=active hypr=1 wr=1
+      supp=active binsh=yes rev=7646b2bac` — the booted image NAMES ITS
+      BUILD (the new identity assertion, live-proven). Adds over #3:
+      mpv-mpris (media module can see mpv), owner-chain gate, boot
+      identity probe. Launcher pin still 92e97e6 (MAX-GATED repin).
+- [x] waveview brain tests: 7/7 green (cargo test --offline in
+      waveview/rust) — both sibling repos verified green today.
 - [x] 9fea2f6 Tooltip shows the offer's DETAIL — Affordance.detail was
       rendered nowhere (reclaim size, branch, copied word all invisible);
       tooltip now reads "title — detail" (data untranslated, 40-char cap,
