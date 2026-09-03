@@ -302,6 +302,12 @@ commits, options-catalog.md, or this file.
       CONFIRMED → selection.open_path → xdg-open takes the URI form as-is;
       journal sweep ZERO warnings/panics/unknown-actions on the pass-H
       build. VM killed, port 2222 freed.
+- [ ] MAX-GATED (design call, found 2026-09-03): the clipboard box footer
+      ships a DEAD "New note" button — clip_box_click's ClipHit::NewNote is
+      a debug-log stub ("editor not yet wired", clipboard.rs:3153) and no
+      note-editor spec exists anywhere in the tree. A stranger clicks it
+      and nothing happens. Either design the floating note editor WITH Max
+      or hide the button until it exists — both are his call.
 - [ ] MAX-GATED (release-checklist §1.2/§1.3/§3/§4): generation label/tags,
       distroId, the one version string + alpha marker, the rollback headline
       copy, the feedback channel pick. All explicitly reserved as Max's
