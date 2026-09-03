@@ -173,6 +173,14 @@ commits, options-catalog.md, or this file.
 - [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
+- [x] 3bf3a83 Hardening pass K — drag edge-paging dwell clock (shared
+      grid/box seam): bands+overshoot, arm-without-paging on entry, fire
+      exactly on cooldown then re-arm, disarm on leave, direction-flip
+      fires on the elapsed hold. Green.
+- [x] waveview build regression check: `nix-build` at HEAD (93fa78c,
+      v0.50) builds clean → /nix/store/g0ywiqihna3xmqdnr3fy047xq5hq3d3s.
+      Tree clean, no action needed (float-leak watch stays armed, its
+      verdict is Max's week of daily driving).
 - [x] 508f77d i18n gap — OPTION tooltip titles (engine Strings) were the
       one user-visible text bypassing the tr() table; new tr_dyn routes
       them through (English literal = key, es.json ships them later like
