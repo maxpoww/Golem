@@ -141,17 +141,18 @@ commits, options-catalog.md, or this file.
       armed latch; sub-Critical never sleeps). One deliberate improvement: a
       battery that VANISHES mid-episode now resets streak + re-arms (the old
       early-return left stale streak). 331 green.
-- [ ] Gate the battery showstopper class in iso-smoke.sh (static): the VM gate
-      can never exercise the sleep ladder (no battery), so assert the PINNED
-      waverunner source still carries the boot-grace guard (BOOT_GRACE +
-      CRITICAL_STREAK in battery.rs, resolved from flake.lock's waverunner
-      input) — a repin to an older launcher fails the gate instead of
-      resurrecting the "doesn't boot" ISO.
-- [ ] Re-profile the engine's idle cost in the fresh VM (baseline: 2.1
-      updates/sec aggregate via the options-engine `genrate` example,
-      NOTES.md): the engine has since grown providers (define/find/undo,
-      micro-slices) and the mind loop gained the settle deadline timer —
-      confirm no idle regression.
+- [x] 64be9ef iso-smoke static check 7 — the pinned waverunner must carry the
+      battery boot-grace guards (BOOT_GRACE + CRITICAL_STREAK, via
+      builtins.getFlake on the locked input); a repin to pre-92e97e6 fails the
+      gate. Verified green against the current pin (7/7).
+- [x] Idle re-profile DONE (2026-09-03, fresh VM, ef9a9c4-era build): engine
+      aggregate 1.8 updates/sec (baseline 2.1 — no regression from the new
+      providers or the settle deadline timer; the timer wakes the mind loop
+      only while an offer is pending its 1.2 s dwell, then goes quiet). Daemon
+      process CPU over 20 s idle: 30 jiffies = ~1.5% of a core — far below the
+      old ~16% figure (that one was measured with a redraw-heavy
+      transparent-bar/frost situation; with a matched stable bar the daemon
+      only redraws on change). CONFIRMED, no action needed.
 - [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
       92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
       E/F/G, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
