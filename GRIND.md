@@ -274,6 +274,11 @@ commits, options-catalog.md, or this file.
       one user-visible text bypassing the tr() table; new tr_dyn routes
       them through (English literal = key, es.json ships them later like
       every daemon string). Tested; green, clippy clean.
+- [x] c0d351f Hardening pass L — the phantom-CLI-tile filter (issues.md P1
+      "stuck cell"): extracted pure cli_tiles_from(snapshot, apps); tested
+      the shipped-bug filter directly (GUI apps NEVER fabricate a tile even
+      pre-.desktop-scan; real CLI + legacy-None DO; a scanned .desktop
+      suppresses the duplicate) + icon mip-chain const math. 369 green.
 - [x] a4a06c6 Hardening pass J — pins/usage persistence: pins.json format
       drift + corruption (object/legacy-array/excluded-ignored/no-pins/
       garbage → never panic, never invented pins), pin_at moves-not-dups +
