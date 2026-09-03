@@ -64,6 +64,32 @@
         echo "golem-hw-runtime: LIBVA_DRIVER_NAME=$libva"
       fi
 
+      # ── H.264 fallback for pre-Skylake, at RUNTIME ────────────────────
+      # The right VA-API driver is only half the battle: i965 decodes H.264
+      # ONLY, and YouTube serves VP9 by default, so these machines still
+      # CPU-decode video — 1080p60 stutters and the chip cooks. hardware.nix
+      # ships the enhanced-h264ify enterprise policy that fixes it, but gated
+      # on `intelLegacy`, which INSTALL-time detection sets. On the live ISO
+      # nothing sets it (`intelLegacy = false`), so the stick — the first
+      # thing anyone judges Golem by — was the one system that never got the
+      # fallback (measured 2026-09-03 on the 2013 Air off ISO #4: i965 live,
+      # policy absent, 1080p60 "not great, still a lot behind GNOME").
+      #
+      # So the policy is written HERE too, by the same probe that picks the
+      # driver: whatever can be decided at runtime is decided every boot.
+      # Writing it on an installed legacy machine is harmless — identical
+      # content to the one hardware.nix already placed there. Needs network
+      # at the first Chrome start to fetch the extension.
+      if [ "$libva" = "i965" ]; then
+        for d in /etc/opt/chrome/policies/managed /etc/chromium/policies/managed; do
+          mkdir -p "$d" 2>/dev/null || continue
+          cat > "$d/golem-legacy-video.json" <<'POLICY' 2>/dev/null || true
+{"ExtensionInstallForcelist":["omkfmpieigblcllmkgbflkikinpkodlk;https://clients2.google.com/service/update2/crx"]}
+POLICY
+        done
+        echo "golem-hw-runtime: pre-Skylake Intel — H.264 fallback policy written (VP9 has no hardware decode here)"
+      fi
+
       # (Broadcom wl handling removed — see the withdrawal note at the top
       # of this file: binding wl to a BCM4360 Oopsed kernel 6.18 on the real
       # machine. Detection-only breadcrumb for the journal:)
