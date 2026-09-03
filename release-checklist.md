@@ -118,12 +118,16 @@ them, not by component.
   one (`system/configuration.nix:145-151`) — deliberate, and it means a
   tester with an nvidia GPU gets the open driver until the generic host
   exists.
-- **No scan-and-join wifi GUI anywhere in Golem.** The stopgap is
-  `networkmanagerapplet` (`system/configuration.nix:213`), whose
-  `nm-connection-editor` cannot scan and whose applet is a tray client on a
-  desktop with no tray (`todo/todo7.md:207-217`). Audio and bluetooth *are*
-  covered; the network third is not. On a laptop with no ethernet this is the
-  difference between a working install and a brick.
+- **No polished scan-and-join wifi GUI in Golem** — but no longer a brick
+  (re-checked 2026-09-03): when NO interface is up, the OPTIONS bar
+  surfaces an amber "No network" warning plus a "Network settings" control
+  that opens `nmtui` (options-catalog §38) — and nmtui, verified present in
+  the ISO closure via the enabled NetworkManager, CAN scan and join wifi.
+  So a laptop with no ethernet has a working, discoverable path online; it
+  is a TUI in a terminal window, which is a stopgap to say out loud, not a
+  finished third of the audio/bluetooth/network trio. The applet's
+  `nm-connection-editor` still cannot scan and the tray applet still has no
+  tray (`todo/todo7.md:207-217`).
 
 ### 2.2 Ships broken, on purpose — say so on the download page
 
