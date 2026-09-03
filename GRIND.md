@@ -274,6 +274,9 @@ commits, options-catalog.md, or this file.
       one user-visible text bypassing the tr() table; new tr_dyn routes
       them through (English literal = key, es.json ships them later like
       every daemon string). Tested; green, clippy clean.
+- [x] 6bd858e Hardening pass M — open-box slot bijection (a click resolves
+      to exactly one member, both sides) + scroll_to_reveal page/clamp +
+      dock_box_rect centre/clamp. 372 green.
 - [x] c0d351f Hardening pass L — the phantom-CLI-tile filter (issues.md P1
       "stuck cell"): extracted pure cli_tiles_from(snapshot, apps); tested
       the shipped-bug filter directly (GUI apps NEVER fabricate a tile even
