@@ -73,9 +73,42 @@ commits, options-catalog.md, or this file.
       Warning + branch Info); last_cmd="git status" → Coding, Commit all/Push/
       Pull/Review changes return and the cluster renders on the scaled bar.
       321 workspace tests green, clippy + rustfmt clean.
-- [ ] Catalog: the §1 micro-cases still unserved (see options-catalog.md
-      "remaining gaps") — pick the 2-3 with real grounding, spec → build →
-      VM-confirm, per the established slice pattern.
+- [x] 1136e0c Catalog micro-cases — the 3 with real grounding, per the slice
+      pattern (catalog §41-43): selection.define (copied single word → "Define
+      word" above search; new `define:<word>` tag opens the dict panel seeded —
+      CONFIRMED live in the VM end-to-end via options-trigger, screenshot);
+      text.find (word processors → universal Ctrl+F through the live-confirmed
+      find_in_page tag; by-construction); creative.undo (image/video editors →
+      Ctrl+Z, the one universal chord; redo deliberately absent — divergent
+      chords; by-construction). Unit tests for all three; 324 green.
+      VM tip: the shipped waverunner-ctl predates options-trigger's two-word
+      form — pass it as ONE quoted arg (`waverunner-ctl "options-trigger
+      <id>"`); and the VM shares the host /nix/store, so a freshly built
+      daemon runs in the guest via a systemd user override on its store path
+      (no VM rebuild needed).
+
+- [ ] Multi-output correctness for the shell's small-screen scale:
+      `output_logical_height` reads the FIRST enumerated output, but the
+      compositor picks which output the topbar/dock actually map to — on a
+      laptop+external setup the scale can follow the wrong panel. Track the
+      surface's real output via wl_surface enter events (smithay's
+      CompositorHandler surface_enter / OutputState), use its logical size,
+      fall back to the first output before enter arrives. Re-run
+      sync_options_zone on enter. Unit-test the pick order; VM can only
+      exercise the single-output path (real dual-head is REAL-HW), so mark
+      honestly.
+- [ ] waverunner-ctl usage string is stale (found live: it lists only through
+      debug-dict, hiding debug-options/options-trigger/debug-media-box …), and
+      two-word verbs must be quoted to parse. Generate the usage from the proto
+      verb list (single source), accept `options-trigger <id>` as TWO argv
+      elements too, and add a proto Display↔FromStr round-trip test over every
+      verb.
+- [ ] Hardening pass F: the daemon's Daemon-tag dispatch seam. The tag strings
+      ("undo", "define:…", "page_next", …) are stringly-typed across two crates
+      — a typo ships silently as a logged warn. Add a daemon unit test that
+      every Daemon(tag) the ENGINE can emit is handled (walk the providers over
+      synthetic contexts, collect tags, assert against the dispatch match), so
+      an unhandled tag is a test failure, not a dead pill.
 
 - [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
       (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top

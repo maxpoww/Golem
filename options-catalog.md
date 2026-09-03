@@ -469,6 +469,29 @@ offers across the desktop use-cases.
     `[window.record_stop, window.fullscreen_dnd, window.screenshot]` (stop
     ranked first, record gone); stopped → record returns, stop clears.
 
+41. **selection.define** (micro-cases batch, §1.3/§1.11 "define/lookup") — a
+    copied SINGLE WORD (2–32 letters incl. hyphen/apostrophe; skipped when the
+    selection reads as a git sha) earns "Define word", ranked above the generic
+    web search. New daemon tag `define:<word>`: expands the clipboard box, opens
+    its offline dictionary panel, seeds the query (the DebugDict sequence).
+    **CONFIRMED live in the golem-vm:** `wl-copy serendipity` surfaced
+    `selection.define` above `selection.search`; `options-trigger
+    selection.define` opened the dict panel pre-filled "serendipity"
+    (screenshot).
+42. **text.find** (§1.3 document editing) — a focused word processor
+    (libreoffice/abiword/gedit/gnome-text-editor/kwrite/onlyoffice/wps) gets
+    "Find" via the same universal-Ctrl+F `find_in_page` tag as the browser's
+    live-confirmed Find. Unit-tested; CONFIRMED-by-construction (identical tag
+    path; no word processor installed in the VM). The richer §1.3 reach-fors
+    (replace, formatting, word-count) remain bridge-gated.
+43. **creative.undo** (§1.8/§1.9 image & video editing) — gimp/krita/inkscape/
+    darktable/kdenlive/shotcut/blender get "Undo" (Ctrl+Z), the one chord
+    universal across the set. Redo deliberately NOT offered (chord diverges:
+    Ctrl+Y vs Ctrl+Shift+Z — a control that's wrong in half the apps is worse
+    than none). Unit-tested; CONFIRMED-by-construction (send_shortcut path).
+    Everything richer in §1.8/1.9 (export, crop, brush) stays bridge-gated as
+    documented.
+
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
 
