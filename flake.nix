@@ -62,6 +62,15 @@
 
       # Everything common to every Golem machine. Hardware lives in hosts/.
       golemModules = [
+        # Every image/system names the source revision it was built from
+        # (`nixos-version --configuration-revision`, and os-release
+        # VARIANT_ID-adjacent tooling reads it too): a bug report that cannot
+        # name its build is not actionable (release-checklist §1.2). A dirty
+        # tree is labeled as such rather than lying with the last commit.
+        {
+          system.configurationRevision =
+            self.rev or self.dirtyRev or "unknown";
+        }
         ./system/configuration.nix
         home-manager.nixosModules.home-manager
         waverunner.nixosModules.notification-service
