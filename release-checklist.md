@@ -77,6 +77,10 @@ belongs to the installed system too, not just here."* It belongs in
       version attribute; the ISO's only identity is its source revision. A
       bug report that cannot name the build is not actionable, and
       `nix build .#iso` at HEAD is not reproducible after the next commit.
+      → HALF DONE (77a8c82): every image now embeds its source rev
+      (`system.configurationRevision` from self.rev/dirtyRev; read with
+      `nixos-version --configuration-revision`), so any booted Golem can name
+      its build. The git TAG at alpha cut remains the release act.
 
 ### 1.3 Alpha marker
 
