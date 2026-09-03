@@ -42,21 +42,37 @@ commits, options-catalog.md, or this file.
      pins it — after any launcher commit, an ISO only carries it once pushed
      and re-pinned; that push is MAX's call, never yours (local commits only). -->
 
-- [ ] Responsive shell, the LAST half: topbar pills on small screens. The boxes
-      all scale (ddde8f0/654b88d/b4ee500); the pills still don't, because their
-      reserved zone is set ONCE at startup (surface.rs set_exclusive_zone from
-      config.options.height) BEFORE outputs are enumerated. Make the bar height
-      + pill scale react to the output's logical size once known (re-set the
-      exclusive zone after output enumeration), Max wants pills "slightly
-      smaller on acer-kind screens". Delicate: measure/draw agreement, and the
-      dropdown boxes anchor to the bar height. VM-verify at 1280x800 with
-      screenshots (recipe in the VM BATCH note below).
-- [ ] OPTIONS hardening pass E: the new surfacing layer (launcher 1540fd1).
-      Unit-test looks_like_dev_work edge cases (paths, env prefixes, sudo
-      chains), cap_bystander_modules with mixed warning/control sets at every
-      activity, settle-stage interaction with the pill cap. Then a VM batch:
-      live-confirm btop-in-repo shows no git pills and a real dev command
-      brings them back (shell bridge feeds last_cmd).
+- [x] 4e02463 Responsive shell, the LAST half — topbar pills scale on small
+      screens. `App::options_bar_h()` (config height × options_scale) is now the
+      single source for ALL bar geometry (drawn strip, pill layout, hover hits,
+      input region, box anchors, colour-match rows), and `sync_options_zone()`
+      re-sets the exclusive zone once the output's logical size is known
+      (hooked into new/update/destroy output + the topbar configure). Pill text
+      measures AND draws at FONT_PX × scale so widths always fit. The mapping is
+      pure + unit-tested (options::pill_scale_for: 1.0 ≥900px, h/900 below,
+      0.82 floor). CONFIRMED in golem-vm at 1280x800: Hyprland reports
+      `reserved: 0 25 0 0` (28 × 800/900 → 25, re-reserved post-enumeration),
+      pixel scan shows the bell pill ~20px in the 25px bar (19.9 expected),
+      clock text fits its pill, the notif box opens anchored to the shrunk band
+      (wrapped card laid out exactly), and the dynamic OPTION cluster renders at
+      the scaled size (screenshots taken; ≥900px screens provably unchanged —
+      scale is exactly 1.0 and the zone re-commit is skipped).
+- [x] f61ac18 OPTIONS hardening pass E — the surfacing layer (1540fd1) earns
+      its tests, and the edges found real bugs: wrapper flags/numbers made
+      "nice -n 10 make" NOT-dev (fixed: flags, bare numbers, command/exec all
+      skipped; edge-case test incl. gitk/"./git-hooks.sh"/degenerates);
+      bystander cap pinned at EVERY activity (primary keeps its cluster,
+      bystanders keep their best two in rank order, warnings/info never counted,
+      Idle/Unknown cap nothing, fg-media owns the bar even while Coding);
+      settle × cap: rank churn keeps the dwell, cap-squeeze restarts it. REAL
+      FIX: the mind loop was purely change-driven, so an offer arriving just
+      before a quiet spell stayed hidden past its dwell — Settle::next_deadline
+      now arms a sleep_until beside the context stream. VM live-confirmed
+      (bridge.sock fed as the zsh hook does, foot in a dirty repo):
+      last_cmd=btop → Terminal, NO git controls (only the passive dirty
+      Warning + branch Info); last_cmd="git status" → Coding, Commit all/Push/
+      Pull/Review changes return and the cluster renders on the scaled bar.
+      321 workspace tests green, clippy + rustfmt clean.
 - [ ] Catalog: the §1 micro-cases still unserved (see options-catalog.md
       "remaining gaps") — pick the 2-3 with real grounding, spec → build →
       VM-confirm, per the established slice pattern.
