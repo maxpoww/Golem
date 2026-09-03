@@ -274,6 +274,7 @@ commits, options-catalog.md, or this file.
       one user-visible text bypassing the tr() table; new tr_dyn routes
       them through (English literal = key, es.json ships them later like
       every daemon string). Tested; green, clippy clean.
+- [x] dc52d48 is_browser_class covered (copy-link/find gate: case-insensitive substring; real class shapes + non-browsers). Green.
 - [x] 6bd858e Hardening pass M — open-box slot bijection (a click resolves
       to exactly one member, both sides) + scroll_to_reveal page/clamp +
       dock_box_rect centre/clamp. 372 green.
