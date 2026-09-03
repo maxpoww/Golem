@@ -108,19 +108,34 @@ commits, options-catalog.md, or this file.
       both directions (all emitted tags dispatchable; all expected tags
       actually emitted — a silenced scenario fails, not hollows). 327 green.
 
-- [ ] VM: live resolution-switch validation of the dynamic zone (the real
-      hotplug path): with the bar up at 1280x800 (zone 25), `hyprctl keyword
-      monitor Virtual-1,1366x768@60,…` must re-fire update_output → zone
-      re-commits at 24 (28 × 0.853), pills/text re-measure, screenshot clean;
-      switch back → 25 again. Also probe a switch while a box is OPEN (see
-      next item).
-- [ ] Scale-change × open-box interaction: if the output scale changes while a
-      notif/clip/media box is OPEN (hotplug, resolution switch), the box's
-      eased box_h/geometry was seeded at the old scale. sync_options_zone
-      re-measures rows + pill text but not an open box's seed. Decide + build
-      the honest behavior (likely: collapse open boxes on zone change — a
-      resolution switch mid-box is rare and a clean close beats a mismatched
-      panel), with a test if the seam allows.
+- [~] VM res-switch validation — BLOCKED in this VM: the lua-config Hyprland
+      fork rejects `hyprctl keyword monitor` ("non-legacy parsers"), eval'd
+      `hl.monitor` rules don't retro-apply to a connected output (tried, incl.
+      reload), and wlr-randr isn't installed. What WAS live-confirmed instead:
+      the output ADD/REMOVE event path (`hyprctl output create headless` +
+      remove) — zone stable at 25 through both events, bar renders cleanly
+      after churn (screenshot), zero daemon errors/warns. The mode-switch
+      observable moves to REAL-HW (plug an external into the Air).
+- [x] ef9a9c4 Scale-change × open-box — a LIVE zone change (not the initial
+      sync) now collapses open clip/notif/media boxes via the same close paths
+      clicks use (new force_collapse_notif mirrors the empty-box reset); every
+      open path re-seeds at the live scale. By-construction (VM can't switch
+      modes, see above); real-HW hotplug is the observable.
+
+- [ ] VM regression sweep of the freshest daemon (ef9a9c4 era) via the
+      store-share override: pills + zone, notif/clip/media boxes open-collapse,
+      define end-to-end, dnd toggle, no journal errors over a few minutes of
+      exercise. Catches anything the per-item checks missed in combination.
+- [ ] Hardening pass G: battery.rs — the concurrent fix 92e97e6 ("auto-sleep
+      ladder can no longer kill a machine at boot") landed mid-session from
+      another hand; read it, then pin the ladder's edge cases with unit tests
+      (boot grace, thresholds, charging transitions, absent battery) in the
+      same spirit as passes A-F.
+- [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
+      92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
+      E/F, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
+      open-box collapse ef9a9c4) is LOCAL-ONLY and reaches no ISO until Max
+      pushes launcher and the pin moves again.
 
 - [x] 2026-09-02 ISO #2 — `/nix/store/28a2lcqg25f93d75y31xjwa417vfh4w1-golem.iso`
       (`~/Golem/result`, gate green: static 6/6 + SMOKE all-green). Adds, on top
