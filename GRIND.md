@@ -170,6 +170,15 @@ commits, options-catalog.md, or this file.
       "clip box open"/"frame gap" lines while opening boxes.
 <!-- Queue extension 2026-09-03 (actionable items exhausted; per loop rules,
      extended from release-checklist.md + options-catalog.md follow-ups). -->
+- [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
+      boot.zfs.forceImportRoot=false committed (the 26.11 default — no
+      data-loss default left armed; warning gone, checks still pass).
+- [x] 68ee698 Hardening pass I — jelly membrane liveness contract: worst
+      poke settles <5 s (redraw liveness — is_active drives frames),
+      impulses exactly-once across fragmented drains, crossed edge gets
+      the main kick, pointer-warp kick clamped, snap PRESERVES pending
+      (the contract frame.rs's !has_pending() guard depends on). 353
+      green.
 - [x] 985318b Needle guard (release-checklist §2.6 silent seam) — a missed
       hyprland.lua rewrite needle now FAILS EVAL (lib.assertMsg names it)
       instead of silently shipping a stranger's desktop without the overview.
