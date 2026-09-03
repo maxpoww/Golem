@@ -678,3 +678,36 @@ starts (easyeffects especially).
   means an array realloc + full re-upload mid-search (disruptive/risky) and
   can't be validated for GPU-mem in the VM's llvmpipe. Left as the top RAM
   follow-up. No ≥10 MB win taken this pass without a tradeoff/risk.
+
+## golem-vm test-loop mechanics (2026-09-03, learned the hard way)
+
+The VM's `/nix/store` is an **overlayfs over a live 9p share of the host
+store** (`lowerdir=/nix/.ro-store`, 9p `cache=0xf`). Consequences for the
+"build on host, run in guest via systemd override" loop:
+
+- It WORKS at first: a `nix build .#waverunner-daemon` output made after VM
+  boot is visible in the guest immediately — override
+  `~/.config/systemd/user/waverunner.service.d/test.conf` (ExecStart= cleared
+  then set to the store path), `daemon-reload`, `restart`. Fastest daemon
+  iteration loop there is (no VM rebuild).
+- It DEGRADES over a long session: the overlay caches **stale negative
+  dentries** — paths that exist on the host (even ones the guest resolved
+  before, e.g. the wrapper's bash interpreter) start returning ENOENT in
+  `/nix/store` while still resolving under `/nix/.ro-store`. Symptoms:
+  systemd `status=203/EXEC` with "bad interpreter", previously-working ctl
+  binaries suddenly 127. No user-space fix (drop_caches needs root; the
+  autologin user has no passwordless sudo; `loginctl/systemctl reboot` needs
+  interactive auth).
+- The recovery is a VM RESTART — and if the daemon under test matters,
+  rebuild the VM with `--override-input waverunner git+file:///home/max/launcher`
+  at the commit under test so the baked daemon IS the freshest (don't rely on
+  overrides after the overlay has soured).
+- Killing the VM from the host: the qemu process can outlive a TaskStop of
+  its parent script long enough to hold port 2222 — check `ss -tlnp | grep
+  2222` before relaunching.
+
+Also blocked in this VM (for the record): live monitor mode/scale switching —
+the lua-config Hyprland fork rejects `hyprctl keyword monitor`, eval'd
+`hl.monitor` rules don't retro-apply to a connected output (even with
+`hyprctl reload`), and wlr-randr isn't installed. `hyprctl output create
+headless` / `remove` DOES work (used to exercise the output add/remove paths).
