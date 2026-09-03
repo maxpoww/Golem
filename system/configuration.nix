@@ -128,6 +128,13 @@
     '';
 
     networking.hostName = "Golem";
+
+    # The distro's NAME — what os-release (NAME/PRETTY_NAME) and the
+    # systemd-boot entry titles say. Lives here (every Golem machine), not in
+    # the ISO module, per release-checklist §1.2. The generation label / tags,
+    # distroId, and the full version string are DECIDE items and stay Max's.
+    system.nixos.distroName = "Golem";
+
     networking.networkmanager.enable = true;
 
     networking.firewall.enable = true;

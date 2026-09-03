@@ -53,9 +53,11 @@ os-release, the boot menu title, `system.nixos.distroName` — is S10's, and it
 belongs to the installed system too, not just here."* It belongs in
 `system/configuration.nix` (every Golem machine), not in the ISO module.
 
-- [ ] `system.nixos.distroName = "Golem"` in `system/configuration.nix`.
-      Confirm at build: os-release `NAME`/`PRETTY_NAME` and the systemd-boot
-      entry titles both follow it.
+- [x] `system.nixos.distroName = "Golem"` in `system/configuration.nix`
+      (2026-09-03). Eval-confirmed on all three configs: os-release reads
+      `NAME=Golem`, `PRETTY_NAME="Golem 26.05 (Yarara)"` (systemd-boot titles
+      derive from the same option). The codename/version half of the string is
+      the §1.2 version-string DECIDE below — untouched.
 - [ ] A Golem generation label (`system.nixos.label`, or `system.nixos.tags`
       if the nixpkgs revision should stay in the string for diagnostics).
       **Decide which:** a bare `26-Uprise` reads right in the boot menu; the

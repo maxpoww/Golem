@@ -1,0 +1,338 @@
+[1mprobing quota...[0m tokens available
+[1mstarting: 120m budget, model fable, 6 trees in scope, guard active[0m
+
+[1m=== 15:24 | todo11.md | 120m left ===[0m
+I'll start by reading the context files and the todo list.
+[36m▸ Read[0m /home/max/Golem/Golem.md
+
+[36m▸ Read[0m /home/max/Golem/roadmap.md
+
+[36m▸ Read[0m /home/max/Golem/todo/todo11.md
+
+[36m▸ Bash[0m grep -n "todo11" /home/max/Golem/NOTES.md | head -20
+
+[36m▸ Bash[0m grep -n "^#\|^##" /home/max/Golem/accessibility-research.md
+
+[36m▸ Bash[0m sed -n '433,470p' /home/max/Golem/NOTES.md
+
+[36m▸ Bash[0m sed -n '188,262p' /home/max/Golem/accessibility-research.md
+The compositor half is done in §5; my job is the surfaces half. Let me survey the input handling in ~/launcher and ~/waveview.
+[36m▸ Bash[0m ls /home/max/launcher/crates/daemon/src/ && ls /home/max/waveview/src/ 2>/dev/null || ls /home/max/waveview/
+
+[36m▸ Bash[0m sed -n '245,335p' /home/max/Golem/system/home/hyprland.lua
+Now let me examine how waverunner handles keyboard vs pointer input.
+[36m▸ Bash[0m cd /home/max/launcher && grep -rn "keyboard\|Keysym\|key_press\|KeyEvent\|wl_keyboard" crates/daemon/src/ --include="*.rs" -l | head; echo ---; grep -rn "keyboard_interactivity\|KeyboardInteractivity" crates/daemon/src/ | head -20
+
+[36m▸ Bash[0m sed -n '20,150p' crates/daemon/src/surface.rs
+
+[36m▸ Bash[0m grep -n "Keysym\|keysym" crates/daemon/src/state.rs | head -40
+
+[36m▸ Bash[0m grep -rn "keysym\|Keysym\|press_key\|KeyboardHandler" crates/daemon/src/*.rs | head -30
+
+[36m▸ Bash[0m sed -n '3280,3420p' crates/daemon/src/main.rs
+The popup has solid keyboard support (type-to-search, arrows, Enter, Escape). Now let me enumerate the pointer-only gestures: the Hit types, drag handling, and the topbar pills.
+[36m▸ Bash[0m grep -n "enum Hit" -A 40 crates/daemon/src/*.rs | head -60; echo ===; grep -rn "fn activate_hit" crates/daemon/src/*.rs
+
+[36m▸ Bash[0m ls /home/max/waveview/; echo ===; ls /home/max/waveview/src/ 2>/dev/null
+
+[36m▸ Bash[0m ls /home/max/waveview/src /home/max/waveview/rust; grep -rn "keysym\|xkb\|key" /home/max/waveview/src/main.cpp | head -30
+Waveview has digits, Q, and Esc. Let me see what its pointer drags do, and what Q does.
+[36m▸ Bash[0m sed -n '2500,2540p' /home/max/waveview/src/main.cpp; echo ====; grep -n "drag\|Drag" /home/max/waveview/src/main.cpp | head -40
+Q closes the *hovered* window — pointer-dependent. Now the overview's drag gestures:
+[36m▸ Bash[0m grep -n 'drag\|Drag' /home/max/waveview/src/main.cpp | head -40
+Now the core of the audit — what `activate_hit` does per section (is there a keyboard path to install?), and what drags exist in the dock:
+[36m▸ Bash[0m grep -n "fn activate_hit" -A 80 crates/daemon/src/launch.rs 2>/dev/null || grep -rln "fn activate_hit" crates/daemon/src/
+
+[36m▸ Bash[0m grep -n "fn activate_hit" crates/daemon/src/main.rs
+
+[36m▸ Bash[0m sed -n '2838,2990p' crates/daemon/src/main.rs
+Confirmed: install is drag-only by design ("installing is a drag to the Apps section, not a click"). Now the dock drags and the topbar pills:
+[36m▸ Bash[0m sed -n '1,80p' crates/daemon/src/dragging.rs
+
+[36m▸ Bash[0m grep -n "click\|Click\|press\|Press" crates/daemon/src/frame.rs | head -30
+
+[36m▸ Bash[0m grep -rn "fn.*click\|top_click\|bar_click\|pill_click\|on_top_pointer\|TopHit" crates/daemon/src/*.rs | head -20
+
+[36m▸ Bash[0m sed -n '1540,1680p' crates/daemon/src/options.rs
+The topbar pill inventory is now clear. Let me check a few remaining details: fullscreen keybind existence, how the dict panel grabs the keyboard, and how the clip/notif boxes expand.
+[36m▸ Bash[0m grep -n "fullscreen" /home/max/Golem/system/home/hyprland.lua; grep -n "set_interactive\|dict_open = true\|clip.expanded = true\|expand" crates/daemon/src/clipboard.rs | head -25
+
+[36m▸ Bash[0m sed -n '2240,2260p' crates/daemon/src/clipboard.rs; sed -n '2440,2475p' crates/daemon/src/clipboard.rs
+
+[36m▸ Bash[0m grep -rn "open_clip_box()\|open_dict()" crates/daemon/src/*.rs | grep -v "fn open"; echo ---; grep -n "hover\|dwell" crates/daemon/src/clipboard.rs | grep -in "open\|expand" | head
+
+[36m▸ Bash[0m sed -n '1420,1515p' crates/daemon/src/main.rs; sed -n '2225,2242p' crates/daemon/src/clipboard.rs
+
+[36m▸ Bash[0m grep -rn "open_notif_box()" crates/daemon/src/*.rs | grep -v "fn open"; grep -n "fn notif_click" -A 40 crates/daemon/src/notif.rs | head -55
+
+[36m▸ Bash[0m sed -n '2350,2370p' crates/daemon/src/notif.rs
+Both boxes open by scrolling over their pills — pointer-only. Now the drop-resolution inventory (what actions exist only as drags) and whether search reaches box members:
+[36m▸ Bash[0m grep -n "fn drop_resolve\|fn end_drag\|fn finish_drag\|DragOrigin\|enum.*Origin" crates/daemon/src/dragging.rs crates/daemon/src/state.rs | head; echo ---; grep -n "pub enum DragState" -A 30 crates/daemon/src/state.rs 2>/dev/null || grep -rn "enum DragState" -A 30 crates/daemon/src/*.rs | head -40
+
+[36m▸ Bash[0m grep -rn "DragState" crates/daemon/src/main.rs | head -5; grep -rn "struct DragState" -A 25 crates/daemon/src/*.rs | head -35
+
+[36m▸ Bash[0m grep -n "fn refilter" -A 45 crates/daemon/src/main.rs | head -60
+
+[36m▸ Bash[0m sed -n '2034,2110p' crates/daemon/src/main.rs
+
+[36m▸ Bash[0m grep -n "scroll\|Scroll\|axis" /home/max/waveview/src/main.cpp | head -15; echo ---; grep -n "tour\|Tour" /home/max/waveview/src/main.cpp | head -10; echo ---; grep -n "onMouseButton\|CLICK_SLOP" /home/max/waveview/src/main.cpp | head
+
+[36m▸ Bash[0m grep -n "trash\|Trash" crates/daemon/src/dragging.rs | head -12; echo ---; grep -rn "hl.dsp.window.fullscreen\|fullscreen" /home/max/Golem/system/home/hyprland.lua | head
+
+[36m▸ Bash[0m sed -n '120,160p' crates/daemon/src/dragging.rs; sed -n '340,420p' crates/daemon/src/dragging.rs
+One last detail — whether keyboard arrow-selection covers the Install section:
+[36m▸ Bash[0m grep -n "fn flat_len\|fn flat_to_pos" -A 14 crates/daemon/src/main.rs | head -40
+I have the complete picture. Let me check the research doc's opening style so the audit document matches, then write it.
+[36m▸ Bash[0m sed -n '1,34p' /home/max/Golem/accessibility-research.md
+
+[36m▸ Bash[0m grep -n "Packages aren't launchable\|fn activate(" crates/daemon/src/main.rs; grep -n "retain(|&idx|" crates/daemon/src/main.rs | head -3; grep -n "fn clip_scroll\|fn notif_scroll" crates/daemon/src/clipboard.rs crates/daemon/src/notif.rs; grep -n "fn cycle_focus" crates/daemon/src/focus_cycle.rs | head -2; grep -n "onSwipe\|swipe" /home/max/waveview/src/main.cpp | head -5
+
+[36m▸ Bash[0m grep -n "fn clip_scroll(\|scroll_accum += delta" crates/daemon/src/clipboard.rs crates/daemon/src/notif.rs | head; grep -n "fn open_dock_folder\|fn open_trash_stack\|fn open_dir_stack" crates/daemon/src/*.rs | head -5
+
+[36m▸ Bash[0m sed -n '415,433p' /home/max/Golem/NOTES.md
+
+[36m▸ Bash[0m tail -30 /home/max/Golem/NOTES.md; wc -l /home/max/Golem/NOTES.md
+All the evidence is in. Writing the audit document now.
+[36m▸ Bash[0m git rev-parse --short HEAD; cd /home/max/waveview && git rev-parse --short HEAD; cd /home/max/Golem && git rev-parse --short HEAD
+
+[36m▸ Write[0m /home/max/Golem/keyboard-audit.md
+Now the cross-references in accessibility-research.md — pointing §5 at the audit and adding the `follow_mouse` live check to §7's list:
+[36m▸ Edit[0m /home/max/Golem/accessibility-research.md
+
+[36m▸ Edit[0m /home/max/Golem/accessibility-research.md
+Now mark the item done in todo11.md (matching item 1's DONE style) and retire the stale NOTES blocker:
+[36m▸ Edit[0m /home/max/Golem/todo/todo11.md
+
+[36m▸ Edit[0m /home/max/Golem/NOTES.md
+This item is documentation-only — no code was changed in any tree, so no build or test applies (and I'm saying that rather than implying verification). Committing:
+[36m▸ Bash[0m git add keyboard-audit.md accessibility-research.md todo/todo11.md NOTES.md && git commit -m "$(cat <<'EOF'
+todo11 item 2 done: keyboard-audit.md — the surfaces half, row by row
+
+The compositor half sat finished in accessibility-research.md §5; the
+audit's other half needed the trees this run can finally read. Every
+waverunner/waveview gesture is now a cited row: navigation is covered,
+curation is not — drags (pin, box, install, uninstall, trash) have no
+keyboard path, the clipboard/notification boxes are pointer-only end to
+end, fullscreen has no bind. The follow_mouse=2 fear was backwards:
+hover moves cursor focus only. Docs only; nothing built, nothing run.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+EOF
+)"
+140 deletions is more than my edits should produce — let me check what happened:
+[36m▸ Bash[0m git show --stat HEAD; git show HEAD -- todo/todo11.md | head -40
+`keyboard-audit.md` already existed and my Write replaced it — I need to see what was lost:
+[36m▸ Bash[0m git show HEAD~1:keyboard-audit.md | head -60; echo ...; git show HEAD~1:keyboard-audit.md | wc -l; git log --oneline HEAD~1 -- keyboard-audit.md | head
+
+[36m▸ Bash[0m git show HEAD~1:keyboard-audit.md | sed -n '60,141p'
+
+[36m▸ Bash[0m git status -sb | head -2; git log --oneline origin/main..HEAD 2>/dev/null | wc -l
+42 commits ahead, nothing pushed — safe to amend. Writing the merged document:
+[36m▸ Write[0m /home/max/Golem/keyboard-audit.md
+Before amending, let me spot-check the citations I added or inherited:
+[36m▸ Bash[0m grep -n "resize\|SHIFT + \" .. key\|mouse:272" /home/max/Golem/system/home/hyprland.lua | head -8; sed -n '73,77p' /home/max/launcher/crates/daemon/src/surface.rs; sed -n '122,131p' /home/max/launcher/crates/daemon/src/surface.rs; sed -n '143,145p' /home/max/launcher/crates/daemon/src/state.rs; sed -n '175,187p' /home/max/launcher/crates/daemon/src/install.rs | head -6; sed -n '2993,2997p' /home/max/launcher/crates/daemon/src/main.rs
+All check out except two line numbers I should pin exactly:
+[36m▸ Bash[0m grep -n '" + Q"\|" + SPACE"\|" + TAB"\|SHIFT + TAB\|" + P"\|" + R"' /home/max/Golem/system/home/hyprland.lua
+
+[36m▸ Bash[0m sed -i 's|`SUPER+TAB` / `SUPER+SHIFT+TAB` (`hyprland.lua:270-272`)|`SUPER+TAB` / `SUPER+SHIFT+TAB` (`hyprland.lua:273-274`)|; s|`SUPER+Q` (`hyprland.lua:265`)|`SUPER+Q` (`hyprland.lua:267`)|; s|`SUPER+P` (`hyprland.lua:278`)|`SUPER+P` (`hyprland.lua:279`)|; s|`SUPER+SHIFT+digit` (`hyprland.lua:305-309`)|`SUPER+SHIFT+digit` (`hyprland.lua:305`)|; s|(`hyprland.lua:293-296`)|(`hyprland.lua:295-298`)|' keyboard-audit.md && grep -c "hyprland.lua:" keyboard-audit.md
+Citations corrected. Now amending the commit with an honest message about the merge:
+[36m▸ Bash[0m git add keyboard-audit.md && git commit --amend -m "$(cat <<'EOF'
+todo11 item 2 done: keyboard-audit.md — the surfaces half, merged and corrected
+
+A draft audit already sat in the tree (it rode in with 37eae71, item left
+unchecked); this pass re-derived the audit independently from both trees,
+then merged the two. Kept from the draft: InstallNotify's hidden-tile trap,
+the try-it/retry-install nuances, the proto-doc citation, the AccessKit
+closing argument. Added/corrected: the clip pill's click pastes (the boxes
+open by SCROLL over their pills, not click), boxed apps stay searchable
+(the real open-box mitigation), the fullscreen topbar-reveal dead end, two
+overview rows (wheel paging, in-tile resize), and bind line numbers checked
+against hyprland.lua. Verdict unchanged and now twice-derived: navigation
+is covered, curation is pointer-only, notifications are the sharpest edge,
+follow_mouse=2 is not a fight. Docs only; nothing built, nothing run.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+EOF
+)"
+
+[36m▸ Bash[0m sed -n '154,187p' /home/max/Golem/accessibility-research.md; sed -n '310,330p' /home/max/Golem/system/home.nix 2>/dev/null || find /home/max/Golem/system -name home.nix
+
+[36m▸ Bash[0m sed -n '300,340p' /home/max/Golem/system/home/home.nix; echo ---; grep -rn "config.toml\|struct Config" /home/max/launcher/crates/daemon/src/main.rs /home/max/launcher/crates/core/src/*.rs 2>/dev/null | head -10
+
+[36m▸ Read[0m /home/max/launcher/crates/core/src/config.rs
+This item touches waverunner's motion and glass. Two config keys (`reduce_motion`, `reduce_transparency`) under one new section, then honour them centrally. Let me scope the animation engine first:
+[36m▸ Bash[0m cd /home/max/launcher && sed -n '1,60p' crates/daemon/src/animation.rs && grep -c "ease_toward\|spring" crates/daemon/src/*.rs | grep -v ":0" | sort -t: -k2 -rn | head
+
+[36m▸ Skill[0m 
+
+[36m▸ Bash[0m grep -n "fn wash\|fn push_backdrop\|backdrop\|fn blur\|blur_pass\|frost" crates/daemon/src/renderer.rs | head -25; grep -n "fn wash" crates/daemon/src/options.rs
+
+[36m▸ Bash[0m grep -n "push_box_backdrop\|box_backdrop\|fn.*backdrop" crates/daemon/src/renderer.rs | grep "fn \|push" | head; grep -rn "backdrop" crates/daemon/src/frame.rs crates/daemon/src/clipboard.rs crates/daemon/src/notif.rs | grep -v "//" | head -10; sed -n '475,500p' crates/daemon/src/options.rs
+
+[36m▸ Bash[0m grep -rn "backdrop" crates/daemon/src/frame.rs | head; grep -n "backdrop" crates/daemon/src/content.rs crates/daemon/src/jelly.rs crates/daemon/src/boxes.rs 2>/dev/null | head; grep -n "pub struct Scene" -A 30 crates/daemon/src/renderer.rs | head -40
+
+[36m▸ Bash[0m grep -rn "Backdrop\|frost" crates/daemon/src/*.rs | grep -v "^crates/daemon/src/renderer.rs" | head; grep -n "struct Scene" crates/daemon/src/renderer.rs
+
+[36m▸ Bash[0m sed -n '150,165p' crates/daemon/src/content.rs; grep -rn "box_rect\|BoxRect" crates/daemon/src/renderer.rs | head -8
+The composition is clear. Let me find the surface-backing fills — the popup card, the open-box panel, the topbar strip, and the two OPTIONS boxes:
+[36m▸ Bash[0m grep -n "background_rgba()" crates/daemon/src/*.rs | head; grep -n "BAR_WASH\|resting wash\|0.11" crates/daemon/src/options.rs | head -8; grep -n "box_rect = Some\|box_rect:" crates/daemon/src/frame.rs crates/daemon/src/content.rs | head -6
+
+[36m▸ Bash[0m sed -n '1110,1125p' crates/daemon/src/content.rs; sed -n '1378,1392p' crates/daemon/src/content.rs; sed -n '1952,1976p' crates/daemon/src/content.rs; sed -n '760,780p' crates/daemon/src/options.rs
+
+[36m▸ Bash[0m sed -n '780,816p' crates/daemon/src/options.rs; grep -n "options_box_wash\|options_rest_wash" crates/daemon/src/*.rs | grep -v "fn \|///" | head
+
+[36m▸ Bash[0m grep -rn "BOX_ALPHA" crates/daemon/src/*.rs | head
+
+[36m▸ Bash[0m sed -n '270,285p' crates/daemon/src/options.rs
+The glass inventory is complete. Now the rest of animation.rs to find every motion primitive, and the bar-fill site at options.rs:832:
+[36m▸ Bash[0m sed -n '60,200p' crates/daemon/src/animation.rs; echo SITE832; sed -n '825,850p' crates/daemon/src/options.rs
+
+[36m▸ Bash[0m grep -n "base fill\|bar fill\|fn draw_options\b\|options_bar_fill\|fn push_options_bar" crates/daemon/src/*.rs | head; grep -n "fn draw_options" crates/daemon/src/frame.rs
+
+[36m▸ Read[0m /home/max/launcher/crates/daemon/src/frame.rs
+The plan is set: config section + central snap in animation primitives + three glass seams. Let me check jelly.rs — it may integrate its own springs outside animation.rs:
+[36m▸ Bash[0m grep -n "Follower\|fn step\|vel +=\|ease_toward" crates/daemon/src/jelly.rs | head -12; grep -n "Follower" crates/daemon/src/*.rs | grep -v jelly | grep -v animation | head
+Jelly rides on `Follower` — covered. One more sweep for raw `+= dt` motion outside the primitives:
+[36m▸ Bash[0m grep -rn "+= dt\|elapsed()\.as_secs_f32" crates/daemon/src/*.rs | grep -v animation.rs | grep -v "test" | head -20
+
+[36m▸ Bash[0m sed -n '140,155p' crates/daemon/src/battery.rs; sed -n '125,145p' crates/daemon/src/frame.rs; grep -n "record_click" crates/daemon/src/*.rs | grep -v renderer.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/core/src/config.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/core/src/config.rs
+Add config tests:
+[36m▸ Edit[0m /home/max/launcher/crates/core/src/config.rs
+Now the animation primitives — the central motion lever:
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/animation.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/animation.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/animation.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/animation.rs
+The global flag creates a test-parallelism hazard — a test that flips it could race other animation tests. Let me see what the existing tests assert:
+[36m▸ Bash[0m grep -n "#\[test\]" -A 3 crates/daemon/src/animation.rs | head -40; grep -rn "mod tests" crates/daemon/src/animation.rs
+
+[36m▸ Bash[0m sed -n '255,360p' crates/daemon/src/animation.rs
+Only `ease_toward_steps_and_snaps` asserts mid-flight values, so it and the new test share a lock:
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/animation.rs
+Now the daemon wiring — startup, bar fill, bounce, ripple, box alpha:
+[36m▸ Bash[0m sed -n '135,150p' crates/daemon/src/main.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/main.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/frame.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/frame.rs
+Now the box-panel alpha seam in options.rs and its four call sites, plus the ripple gate:
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/options.rs
+
+[36m▸ Bash[0m sed -n '1560,1570p' crates/daemon/src/clipboard.rs; sed -n '1650,1660p' crates/daemon/src/clipboard.rs; sed -n '1265,1275p' crates/daemon/src/notif.rs; sed -n '1315,1325p' crates/daemon/src/notif.rs
+
+[36m▸ Bash[0m sed -i 's/crate::options::BOX_ALPHA,$/self.box_panel_alpha(),/; s/\[fill\[0\], fill\[1\], fill\[2\], crate::options::BOX_ALPHA\],/[fill[0], fill[1], fill[2], self.box_panel_alpha()],/' crates/daemon/src/clipboard.rs crates/daemon/src/notif.rs && grep -rn "BOX_ALPHA" crates/daemon/src/clipboard.rs crates/daemon/src/notif.rs
+
+[36m▸ Bash[0m sed -n '984,995p' crates/daemon/src/renderer.rs
+
+[36m▸ Bash[0m grep -n "box wave\|fn record_wave\|open/close wave" crates/daemon/src/renderer.rs | head -4; sed -n '995,1005p' crates/daemon/src/renderer.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/renderer.rs
+
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/renderer.rs
+Now build and run the full test suite:
+[36m▸ Bash[0m nix develop -c cargo test --workspace > /tmp/a11y-test.log 2>&1; echo exit=$?; tail -25 /tmp/a11y-test.log
+
+[36m▸ Bash[0m grep -E "^test result" /tmp/a11y-test.log | awk -F'[ ;]' '{s+=$4} END {print s " tests passed total"}'; grep -c "FAILED\|error\[" /tmp/a11y-test.log; nix develop -c cargo clippy --workspace --all-targets -- -D warnings > /tmp/a11y-clippy.log 2>&1; echo clippy=$?; tail -5 /tmp/a11y-clippy.log
+252 tests green (up from 249 — three new), clippy clean with `-D warnings`. One last check — the group-expand animation might advance progress manually rather than through the primitives:
+[36m▸ Bash[0m grep -rn "group_expand_ms" crates/daemon/src/*.rs | grep -v config; grep -rn "expand_t\s*+=\|_t += dt" crates/daemon/src/*.rs | head
+
+[36m▸ Bash[0m grep -rn "group_expand" crates/daemon/src/*.rs crates/core/src/*.rs | grep -v "///" | head; grep -rn "as_secs_f32() /" crates/daemon/src/*.rs | grep -v install.rs | grep -v frame.rs | head
+
+[36m▸ Bash[0m sed -n '640,675p' crates/daemon/src/frame.rs
+One manual stepper found — the box open/close. Gating it:
+[36m▸ Edit[0m /home/max/launcher/crates/daemon/src/frame.rs
+
+[36m▸ Bash[0m nix develop -c cargo test --workspace > /tmp/a11y-test2.log 2>&1; echo exit=$?; grep -E "^test result" /tmp/a11y-test2.log | awk -F'[ ;]' '{s+=$4} END {print s " passed"}'; grep -c "FAILED" /tmp/a11y-test2.log
+
+[36m▸ Bash[0m git -C /home/max/launcher add -A && git -C /home/max/launcher status --short && git -C /home/max/launcher commit -m "$(cat <<'EOF'
+Accessibility: [accessibility] config — reduce_motion and reduce_transparency
+
+The engine step of Golem todo11 item 4 (design settled in the plan repo's
+accessibility-research.md §4: one intent, four consumers — this is the
+consumer that had to land first). Both flags default off; nothing changes
+until config.toml asks.
+
+reduce_motion is a process-wide flag in animation.rs that every primitive
+honours — ease_toward, Follower, Spring, Timed — so opens, closes, slides,
+springs and the AGUA water settle instantly at every call site without
+threading a parameter through them. The three steppers outside the
+primitives are gated where they live: the box open/close manual step, the
+launch bounce, and the renderer's click ripple / box wave (no new spawns).
+Install rings and the battery alarm still animate: information, not
+ornament.
+
+reduce_transparency rewrites the theme background to full alpha at startup
+(card, dock, box panels, label pills all draw solid), lifts the OPTIONS
+boxes' panel/zebra alpha to 1.0 (box_panel_alpha()), and swaps the bar's
+see-through strip for the same opaque slab the boxes use, hard-edged.
+Hover/emphasis washes stay translucent — they are tints on now-solid
+ground, not glass.
+
+252 tests green (3 new: config parse/defaults, opaque rewrite, primitive
+snap under the flag — lock-serialised against the mid-flight assertions),
+clippy clean with -D warnings. Not seen live: this run has no display; the
+flags default off so the resting look is byte-identical.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+EOF
+)"
+Engine step landed in launcher (d47951c). Now recording completion in the plan repo — the unpark note scoped this item to the engine step, same pattern as item 1:
+[36m▸ Edit[0m /home/max/Golem/todo/todo11.md
+
+[36m▸ Edit[0m /home/max/Golem/NOTES.md
+
+[36m▸ Bash[0m cd /home/max/Golem && git add todo/todo11.md NOTES.md && git commit -m "$(cat <<'EOF'
+todo11 item 4 done: the reduce-motion/transparency engine landed in waverunner
+
+The ordering block is dissolved: launcher d47951c gives the daemon an
+[accessibility] config section and honours both flags in its motion and
+glass (details in the todo note). The three one-liners in this repo stay
+unflipped on purpose — they wait on the ONE intent that writes all four
+consumers, and that writer is the S6 settings surface, frozen until Arc 2.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+EOF
+)"
+todo11.md is finished — no unchecked items remain. Here's what this run did:
+
+**Item 2 — keyboard-only audit: done.** The surfaces half now exists as `keyboard-audit.md` (Golem e549972). Mid-way I discovered a prior draft of the audit already sat in the tree (it had ridden in silently with commit 37eae71, item never checked), so the final document is a merge: I kept its findings my pass missed (the InstallNotify hidden-tile trap, "Try it" webapps, the retry-install nuance) and corrected what it had wrong — clicking the clipboard pill *pastes*, the clip/notif boxes actually open by scrolling over their pills, and boxed apps remain reachable through search. The twice-derived verdict: navigation is fully covered (popup search/arrows/Enter, compositor binds, overview digits), but curation is pointer-only — every drag (pin, reorder, box, install, uninstall, trash) has no keyboard path, notifications can't even be read without a pointer, and fullscreen has no bind at all. The `follow_mouse = 2` worry was backwards: it's the keyboard-friendly setting (hover moves cursor focus only), retired in §5 with a live check queued in research §7. Docs only, so no build applies.
+
+**Item 4 — reduce-motion / reduce-transparency: done** (the engine step the unpark scoped). Launcher d47951c adds an `[accessibility]` section to config.toml. `reduce_motion` is honoured centrally in the animation primitives plus the three steppers outside them (box open/close, launch bounce, click ripple/box wave), while install rings and the battery alarm keep animating — information, not ornament. `reduce_transparency` makes the card/dock/box-panel background opaque at startup, lifts the OPTIONS boxes' zebra/panel to full alpha, and draws the topbar as the boxes' opaque slab. Both flags default off, so the resting look is unchanged. Verified: 252 workspace tests green (3 new), clippy clean under `-D warnings`. Not seen live — no display in this run. The repo-side one-liners stay unflipped by design: they wait on the single intent that writes all four consumers, which is S6 settings work, frozen until Arc 2.
+
+Items 5 and 6 remain `[?]` from before (blocked on real people and on the honest state of the ISO — both correctly parked). Everything is committed locally in both trees, nothing pushed, per the rules.
+[33m— iteration done (116 turns, $18.105826999999998)[0m
+all todos resolved
+
+--- summary ---
+todo1.md                 done:10   parked:0    open:0
+todo2.md                 done:9    parked:1    open:0
+todo3.md                 done:0    parked:7    open:0
+todo4.md                 done:1    parked:6    open:0
+todo5.md                 done:5    parked:3    open:0
+todo6.md                 done:0    parked:6    open:0
+todo7.md                 done:21   parked:5    open:0
+todo8.md                 done:0    parked:5    open:0
+todo9.md                 done:3    parked:6    open:0
+todo10.md                done:1    parked:4    open:0
+todo11.md                done:4    parked:2    open:0
+todoSH.md                done:27   parked:6    open:0
+todo-android.md          done:27   parked:18   open:0
+
+commits this run (vs the pre-loop tag):
+  Golem                                    21   (roll back: git -C /home/max/Golem reset --hard pre-loop-20260901-1114)
+  launcher                                 4    (roll back: git -C /home/max/launcher reset --hard pre-loop-20260901-1114)
+  waveview                                 0    (roll back: git -C /home/max/waveview reset --hard pre-loop-20260901-1114)
+  Golem-web                                0    (roll back: git -C /home/max/Golem-web reset --hard pre-loop-20260901-1114)
+  Golem                                    0    (roll back: git -C /home/max/AndroidStudioProjects/Golem reset --hard pre-loop-20260901-1114)
+
+total cost:
+67.1631165
