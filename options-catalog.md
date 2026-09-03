@@ -522,7 +522,9 @@ offers across the desktop use-cases.
     trashed file added the Empty-trash control (screenshot); triggering it
     logged "emptied the trash", left Trash/files empty, and the control
     reactively cleared on the next poll while the warning stayed — exactly
-    the designed lifecycle.
+    the designed lifecycle. Follow-up (7daba89): the control's detail now
+    says what emptying reclaims ("Reclaim 1.2 GB", bounded sweep; 0-byte
+    fallback to the disk figure).
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
