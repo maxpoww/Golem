@@ -161,12 +161,25 @@ hl.config({
 
         blur = {
             enabled   = true,
+            -- size 1 with FOUR passes is the frosted glass. The passes are what
+            -- grow the radius here (each halves the resolution it samples), so
+            -- at size 1 dropping 4 → 2 does not "keep the frosted look while
+            -- halving the cost" — it deletes the blur. The shell then reads as
+            -- plain see-through: on the 2013 Air the whole btop behind the menu
+            -- stayed sharply legible through the panel (Max caught it on the
+            -- first boot of the new ISO, 2026-09-02).
+            --
+            -- MEASURED live on that machine (the weakest target we have — HD
+            -- 5000, menu open, blur actually running) before restoring it:
+            --   size 1 / passes 2 — no blur      — Hyprland 2 % of a core
+            --   size 1 / passes 4 — frosted      — Hyprland 3 % of a core
+            --   size 4 / passes 3 — frosted      — Hyprland 3 % of a core
+            --   size 8 / passes 2 — frosted      — Hyprland 8 % of a core
+            -- One point of one core is what the look actually costs. The
+            -- earlier pass traded it away on reasoning, having written that it
+            -- "NEEDS a live Golem boot to confirm feel" — this is that boot.
             size      = 1,
-            -- 4 passes is the single most GPU-expensive effect; 2 keeps the
-            -- frosted look while roughly halving its per-frame cost — it only
-            -- runs behind shell surfaces, but on a weak iGPU every pass counts
-            -- toward the thermal budget (2026-09-02 perf pass).
-            passes    = 2,
+            passes    = 4,
             vibrancy  = 0.0,
         },
     },
