@@ -86,6 +86,22 @@ grep -q 'output = ""' system/home/hyprland.lua \
   || fail "no generic monitor catch-all — a hardcoded panel will misconfigure others"
 ok "monitors auto-configure (generic catch-all present)"
 
+# 7. The PINNED waverunner still carries the battery auto-sleep guards. The
+#    fourth shipped showstopper (2026-09-03): the ladder suspended a machine
+#    seconds after boot on a drained/lying battery — to the person standing
+#    there the ISO "doesn't boot" (the Air AND the Acer, the same night). The
+#    boot check can NEVER catch a regression here (qemu has no battery, the
+#    ladder never runs), so gate it statically: the flake-locked launcher
+#    source must contain both guards (launcher 92e97e6). A re-pin to an older
+#    launcher fails HERE, not on a stranger's first boot.
+WR_SRC="$(nix eval --raw --impure --expr "(builtins.getFlake \"$GOLEM\").inputs.waverunner.outPath" 2>/dev/null)"
+[ -n "$WR_SRC" ] && [ -f "$WR_SRC/crates/daemon/src/battery.rs" ] \
+  || fail "cannot resolve the pinned waverunner source to check the battery guards"
+grep -q 'BOOT_GRACE' "$WR_SRC/crates/daemon/src/battery.rs" \
+  && grep -q 'CRITICAL_STREAK' "$WR_SRC/crates/daemon/src/battery.rs" \
+  || fail "pinned waverunner lacks the battery boot-grace guards (pre-92e97e6) — the ISO would auto-sleep at boot on a drained battery"
+ok "battery auto-sleep guards present in the pinned waverunner"
+
 echo "── static checks passed ──"
 
 [ "${1:-}" = "--boot" ] || { echo "run with --boot to also verify the session boots"; exit 0; }
