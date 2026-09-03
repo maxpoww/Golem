@@ -173,6 +173,10 @@ commits, options-catalog.md, or this file.
 - [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
+- [x] a4a06c6 Hardening pass J — pins/usage persistence: pins.json format
+      drift + corruption (object/legacy-array/excluded-ignored/no-pins/
+      garbage → never panic, never invented pins), pin_at moves-not-dups +
+      clamps, unpin-missing no-op, usage counts. 358 green.
 - [x] 68ee698 Hardening pass I — jelly membrane liveness contract: worst
       poke settles <5 s (redraw liveness — is_active drives frames),
       impulses exactly-once across fragmented drains, crossed edge gets
