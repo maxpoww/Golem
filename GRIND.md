@@ -198,6 +198,12 @@ commits, options-catalog.md, or this file.
       rev= must print 9 hex chars from nixos-version
       --configuration-revision; eval + probe semantics verified, full
       --boot assertion rides the next cut.
+- [x] 9fea2f6 Tooltip shows the offer's DETAIL — Affordance.detail was
+      rendered nowhere (reclaim size, branch, copied word all invisible);
+      tooltip now reads "title — detail" (data untranslated, 40-char cap,
+      skip when empty/duplicate). Eyeball in the next VM batch.
+- [x] 85685dc Trash sweep gated to near-full disks (was 2000 stats every
+      3 s poll on healthy machines; now O(1) sensors only until ≥89%).
 - [x] 7daba89 Empty-trash offer says what it reclaims — bounded trash_bytes
       sweep → "Reclaim 1.2 GB" detail (0-byte fallback to the disk figure);
       fmt_bytes pure+tested. Green.
