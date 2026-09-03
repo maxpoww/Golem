@@ -9,7 +9,11 @@
     fd
     fzf
     zoxide
-    mpv
+    # mpv with MPRIS: stock mpv ships silent to the session — no MPRIS means
+    # the OPTIONS media module (pills, media box, play/pause/seek) can't see
+    # it at all. The mpris script closes that hole (found live: the VM's mpv
+    # never published a player while VLC did).
+    (mpv.override { scripts = [ mpvScripts.mpris ]; })
     lf
   ];
 
