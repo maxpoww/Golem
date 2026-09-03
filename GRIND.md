@@ -188,9 +188,22 @@ commits, options-catalog.md, or this file.
       trash-non-empty gate, amber warning + Empty-trash Control via new
       daemon tag empty_trash (tested FreeDesktop trash + refilter). Tag in
       daemon_tag_known + pass-F coverage both ways. 363 green.
-- [ ] Next VM session: induce/verify disk slice visually if convenient
-      (needs a ≥90% disk — maybe a small tmpfs HOME trick), else remains
-      by-construction on the proven Daemon-tag path.
+- [x] 10943f6 mpv MPRIS hole — stock mpv ships silent (no MPRIS), so mpv
+      playback was invisible to the whole media module (seen live in every
+      VM session: VLC published, mpv never did). zsh.nix now ships
+      mpv.override{scripts=[mpvScripts.mpris]}; wrapper verifiably passes
+      --script=…mpris.so; configs eval. VM confirm in the next batch (run
+      the wrapped store path via the shared /nix/store).
+- [x] 5f59037 iso-smoke boot probe asserts source-rev identity (§1.2) —
+      rev= must print 9 hex chars from nixos-version
+      --configuration-revision; eval + probe semantics verified, full
+      --boot assertion rides the next cut.
+- [ ] VM batch 2 (VM2 baking with launcher@74f40c1): (a) disk slice live —
+      fallocate the guest disk ≥90% + a trashed file → amber disk pill +
+      Empty-trash pill → trigger → Trash/files empty; (b) tr_dyn live —
+      drop en.json translating "Open copied files", restart daemon, hover
+      pill → translated tooltip; (c) wrapped mpv from the shared store
+      publishes MPRIS → media pills appear for mpv.
 - [x] 3bf3a83 Hardening pass K — drag edge-paging dwell clock (shared
       grid/box seam): bands+overshoot, arm-without-paging on entry, fire
       exactly on cooldown then re-arm, disarm on leave, direction-flip
