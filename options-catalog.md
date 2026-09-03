@@ -501,9 +501,12 @@ offers across the desktop use-cases.
     (malformed → literal, non-UTF8 → lossy, never a panic). Mixed
     prose+path lines are NOT a copy set. Adjacent fix: a SINGLE copied
     `file:///` URI now classifies as a path → "Open file" (it used to fall
-    through to "Search the web"). Unit-tested both sides; live VM confirm
-    queued for the next batch (the sensing chain and OpenUrl action path
-    are the same ones live-confirmed for selection.define/url).
+    through to "Search the web"). Unit-tested both sides. **CONFIRMED live
+    in the golem-vm (2026-09-03):** two copied paths surfaced the control
+    and triggering it launched `xdg-open '/home/max/pics'` (the exact
+    common folder; folder pill + tooltip in the screenshot); the single
+    file:// URI surfaced selection.open_path and xdg-open took the URI
+    form as-is.
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
 the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.

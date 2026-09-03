@@ -223,9 +223,13 @@ hold. A tester on a different Hyprland will not have them.
   (retention must be count-based, gc must carry no age-based deletion).
   `+15` semantics verified against the real nix-env on a synthetic
   20-generation profile (removes 1–5, keeps 15).
-- **`nix flake check` has never been run**, and this repo has no test suite
-  of its own. The gate below is the first time anything here is mechanically
-  checked.
+- ~~**`nix flake check` has never been run**~~ — **RUN AND GREEN
+  (2026-09-03):** "all checks passed" over the iso derivation and all three
+  nixosConfigurations. One upstream eval warning worth a future look:
+  `boot.zfs.forceImportRoot` still defaults true (nixpkgs recommends
+  explicitly setting false, the 26.11 default — a data-loss-risk default on
+  machines with ZFS pools; Golem ships no ZFS root, so it is cosmetic
+  today). iso-smoke's static checks (8) are the repo's mechanical gate.
 
 ---
 

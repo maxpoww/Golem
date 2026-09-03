@@ -205,11 +205,17 @@ commits, options-catalog.md, or this file.
       extendModules{owner="anna"} → no max user, greetd/sudo/home/ssh/
       flakeDir/apply-watch all anna; default owner attrs unchanged;
       iso-smoke 8/8. Installer rename = set one option.
-- [ ] VM batch: live-confirm selection.multi_path (wl-copy two paths →
-      pill → trigger; folder-open dispatch in the log is enough if no file
-      manager in VM) + eyeball a pending-install tile still resolves
-      (drag-install in VM is root-gated; at minimum daemon logs stay
-      clean on the new build). Batch with the NEXT launcher items.
+- [x] VM batch DONE (2026-09-03, FRESH golem-vm baked with launcher@2de7608
+      via --override-input, fresh qcow2 in the scratchpad): running daemon
+      verified as the new build (binary carries the multi_path strings);
+      selection.multi_path CONFIRMED live end-to-end — two copied paths →
+      `options: 1 control(s) [selection.multi_path]` → trigger →
+      `launching: xdg-open '/home/max/pics'` (the exact common folder), and
+      the screenshot shows the folder pill + its "Open copied files" hover
+      tooltip + the clip preview beside bell/clock; single file:// URI
+      CONFIRMED → selection.open_path → xdg-open takes the URI form as-is;
+      journal sweep ZERO warnings/panics/unknown-actions on the pass-H
+      build. VM killed, port 2222 freed.
 - [ ] MAX-GATED (release-checklist §1.2/§1.3/§3/§4): generation label/tags,
       distroId, the one version string + alpha marker, the rollback headline
       copy, the feedback channel pick. All explicitly reserved as Max's
