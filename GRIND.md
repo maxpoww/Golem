@@ -214,10 +214,22 @@ commits, options-catalog.md, or this file.
       identity probe. Launcher pin still 92e97e6 (MAX-GATED repin).
 - [x] waveview brain tests: 7/7 green (cargo test --offline in
       waveview/rust) — both sibling repos verified green today.
+- [x] VM BATCH 3 DONE (2026-09-03, VM3 baked launcher HEAD + debug-options
+      detail dump overridden in): reclaim detail + tooltip-detail both
+      CONFIRMED live on the shipping path — debug-options logged
+      `Control system.empty_trash — Empty trash [Reclaim 200.0 MB] (action:
+      yes)` with a real 200 MB trash file, and the disk pill's tooltip
+      rendered "Disk almost full — 93% used" (screenshot: title + detail,
+      amber hdd + trash + foot window pills). Journal clean (the lone
+      warning was benign, no panics/unknown-actions). VM down, port freed,
+      qcow2 removed. (State lesson: batch 2's empty_trash trigger left
+      Trash/files empty into batch 3 — re-seed the trash per run.)
+- [x] ffcd682 debug-options dump shows each offer's detail (headless
+      verification; committed this session).
 - [x] 9fea2f6 Tooltip shows the offer's DETAIL — Affordance.detail was
       rendered nowhere (reclaim size, branch, copied word all invisible);
       tooltip now reads "title — detail" (data untranslated, 40-char cap,
-      skip when empty/duplicate). Eyeball in the next VM batch.
+      skip when empty/duplicate). CONFIRMED live (batch 3 screenshot).
 - [x] 85685dc Trash sweep gated to near-full disks (was 2000 stats every
       3 s poll on healthy machines; now O(1) sensors only until ≥89%).
 - [x] 7daba89 Empty-trash offer says what it reclaims — bounded trash_bytes
