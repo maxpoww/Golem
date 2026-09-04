@@ -586,6 +586,36 @@ commits, options-catalog.md, or this file.
 
 ## Done (this file's history is the progress log)
 
+- Session 2026-09-04 — **OptionUXRules.md born**: the file of UX LAWS every
+  OPTION obeys, six rules agreed with Max and implemented (launcher 4cb0775).
+  The division now: `options-catalog.md` = WHAT each OPTION is,
+  `optionsmodules.md` = when one is DONE (DoD grew lines 7–12),
+  `OptionUXRules.md` = how they must all BEHAVE.
+  - §1 **The Leader** — a click pins a pill to its place on the bar. The first
+    cut anchored to the POINTER and the cluster travelled with it, so [X] fled
+    at the speed it was chased; the anchor is a bar coordinate now.
+  - §2 **The Still Bar** — a re-flow nobody asked for waits until the pointer
+    leaves. The clock's date sets the bell's position, so its 3s collapse was
+    dragging the bell out from under a pointer aiming at it.
+  - §3 **One Material** — one tempo, one settle, one leave-hold, owned by
+    `animation.rs`. Six module-local rates (all coincidentally 13.0) and two
+    inline `* 1.3` multipliers deleted; the bar's own show/hide now fades on
+    that tempo instead of snapping.
+  - §4 **Sticky OPTIONS** — undoing must cost what doing cost: an action that
+    takes the bar away leaves its control standing plus an empty doorway back.
+    `waverunner-ctl debug-sticky` stands the pair for screenshots.
+  - §5 **One Kills the Other** — the four window modes are exclusive;
+    [float] pill added, Super+P routed through the same switch.
+  - §6 **A Transition Is One Motion** — one eval chunk per mode change; the
+    window's tile is remembered on the way past rather than measured after.
+  - Also: click-to-focus for floating windows (`float_switch_override_focus =
+    0` in /etc/nixos/hyprland.lua — the default 1 let a floating window steal
+    focus just by being passed over; rebuilt + mirrored to simpledev 508703d).
+  - NOT done, and known: nothing on the bar SHOWS which window mode is active;
+    the sticky pair has no ground of its own over bright fullscreen content;
+    entry/exit are still one symmetric ease where the design language asks for
+    spring-in / decay-out.
+
 - Session 2026-09-02 (before GRIND.md existed), all local commits in launcher
   unless noted:
   - RAM: glibc arena cap + lazy-loaded pkg index (gated on launcher-open).

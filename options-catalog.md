@@ -195,6 +195,11 @@ activated), free RAM (pressure), reconnect wifi/bluetooth.
 
 ## 3. The module mechanism (what an OPTIONS "module" IS)
 
+> How every OPTION must *behave*, regardless of which module it is, lives in
+> **`OptionUXRules.md`** — the UX laws (§1 The Leader: the pill under the
+> pointer holds still while its group re-lays-out around it). This section is
+> the mechanism; that file is the conduct.
+
 A **module** = **a context matcher + a set of offers + the action each performs.**
 Concretely, in this engine a module is expressed as a **provider** —
 `fn(&ContextState) -> Vec<Affordance>` — where each `Affordance` now carries an

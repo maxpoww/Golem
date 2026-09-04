@@ -67,3 +67,28 @@
    rest, clippy/tests clean.
 6. **Frictionless** — it appears at the right moment, gets out of the way,
    and never interrupts flow. If it needs a manual to use, it's not done.
+7. **Repeatable** — if the action can sensibly be done twice, doing it twice
+   must not require re-aiming. Verified by: act, don't move the pointer, act
+   again, land the same control. (The Leader — `OptionUXRules.md` §1.)
+8. **Still** — its animations must not move another OPTION while the pointer is
+   on the surface. Verified by: rest the pointer on a neighbour, let the OPTION
+   grow, collapse or re-rank on its own, and watch the neighbour not move.
+   (The Still Bar — `OptionUXRules.md` §2.)
+9. **On tempo** — it animates on the shared rate, settle and leave-hold from
+   `animation.rs`; it declares no rate of its own and multiplies nobody's.
+   Verified by: search the module for a rate or a hold constant — there isn't
+   one, unless it is an auto-withdraw dwell, which is a different thing.
+   (One Material — `OptionUXRules.md` §3.)
+10. **Reversible** — if using it takes away the way back, it leaves the way
+    back. Verified by: use it, don't move the pointer, and undo it with one
+    click; then use it again and walk away, and confirm nothing is left on
+    screen. (Sticky OPTIONS — `OptionUXRules.md` §4.)
+11. **Exclusive** — if it presents a state among several, exactly one is true
+    at a time, pressing the active one returns to the base state, and the state
+    shown matches what is on screen. Verified by: reach every state from every
+    other state, and get out of each one by pressing it again.
+    (One Kills the Other — `OptionUXRules.md` §5.)
+12. **One motion** — the change it makes goes out as a single act, and the user
+    never sees a state on the way that nobody asked for. Verified by: watch it
+    happen. If you can count the steps, it is not done.
+    (A Transition Is One Motion — `OptionUXRules.md` §6.)
