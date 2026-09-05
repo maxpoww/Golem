@@ -1,0 +1,175 @@
+{
+  "nodes": {
+    "golem": {
+      "inputs": {
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs",
+        "waverunner": "waverunner",
+        "waveview-src": "waveview-src"
+      },
+      "locked": {
+        "path": "../",
+        "type": "path"
+      },
+      "original": {
+        "path": "../",
+        "type": "path"
+      },
+      "parent": []
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "golem",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1787377438,
+        "narHash": "sha256-Sxu1NLTD/Ern6hFGLlZmtKCSct3YQXZI/lls8RE1XeM=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "65258d5c65a250189fde2e35f490d15e064c4c62",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "release-26.05",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "home-manager_2": {
+      "inputs": {
+        "nixpkgs": [
+          "golem",
+          "waverunner",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1784351324,
+        "narHash": "sha256-By+kuRJZRqs2TuXgtR8vJ8cTKWXw33YG/Yollu5cO1U=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "460108009ca1ff69ca2ff19079ca2c838d6e3080",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "nix-index-database": {
+      "inputs": {
+        "nixpkgs": [
+          "golem",
+          "waverunner",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788080100,
+        "narHash": "sha256-n14luQo3F/ZLfCEHk1QieiI1nGnW92ZQZeZ0UIb0UMQ=",
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "rev": "dbb978fa87faf13398e90ccbc52c343d21c7dd6d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nix-index-database",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1787962033,
+        "narHash": "sha256-u6z9VTZA4Kf3RkHQo9sQI7NI4Ei/uiU9vrMqOiwWP1Y=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c5c4a43b0e8056328ec4529f735cabdb8f1942bb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "c5c4a43b0e8056328ec4529f735cabdb8f1942bb",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "golem": "golem",
+        "home-manager": [
+          "golem",
+          "home-manager"
+        ],
+        "nixpkgs": [
+          "golem",
+          "nixpkgs"
+        ],
+        "waverunner": [
+          "golem",
+          "waverunner"
+        ],
+        "waverunner-hm": [
+          "golem",
+          "waverunner",
+          "home-manager"
+        ],
+        "waverunner-nid": [
+          "golem",
+          "waverunner",
+          "nix-index-database"
+        ],
+        "waveview-src": [
+          "golem",
+          "waveview-src"
+        ]
+      }
+    },
+    "waverunner": {
+      "inputs": {
+        "home-manager": "home-manager_2",
+        "nix-index-database": "nix-index-database",
+        "nixpkgs": [
+          "golem",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1788436783,
+        "narHash": "sha256-dGDiWZJY/vwD2I4QSUXCzYc3C0SMEQN7vVKxRrhm50o=",
+        "owner": "maxpoww",
+        "repo": "launcher",
+        "rev": "2de760883ee71c2fe463fd152afb1635956a7881",
+        "type": "github"
+      },
+      "original": {
+        "owner": "maxpoww",
+        "repo": "launcher",
+        "type": "github"
+      }
+    },
+    "waveview-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1788404746,
+        "narHash": "sha256-w4C6DJWWM9ThY/S4Rq5sy1JZ/8fh1yEihHLotRHZu4c=",
+        "owner": "maxpoww",
+        "repo": "waveview",
+        "rev": "93fa78c86dea071a230765dba0e4e804d65e4782",
+        "type": "github"
+      },
+      "original": {
+        "owner": "maxpoww",
+        "repo": "waveview",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

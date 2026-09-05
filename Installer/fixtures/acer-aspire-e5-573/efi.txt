@@ -1,0 +1,8 @@
+config_table
+efivars
+esrt
+fw_platform_size
+fw_vendor
+runtime
+runtime-map
+systab

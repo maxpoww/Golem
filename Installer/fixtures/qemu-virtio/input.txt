@@ -1,0 +1,4 @@
+/sys/class/input/input0/name=AT Translated Set 2 keyboard
+/sys/class/input/input2/name=Power Button
+/sys/class/input/input3/name=VirtualPS/2 VMware VMMouse
+/sys/class/input/input4/name=VirtualPS/2 VMware VMMouse

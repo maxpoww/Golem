@@ -1,0 +1,2 @@
+ls: cannot access '/sys/firmware/efi': No such file or directory
+EXIT:2 (absent on this machine?)

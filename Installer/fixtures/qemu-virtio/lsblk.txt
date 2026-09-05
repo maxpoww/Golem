@@ -1,0 +1,4 @@
+NAME  SIZE TYPE TRAN ROTA MODEL
+fd0     4K disk         1 
+loop0 1.4G loop         1 
+sr0   1.4G rom  ata     1 QEMU DVD-ROM

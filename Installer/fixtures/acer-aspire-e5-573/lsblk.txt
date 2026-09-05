@@ -1,0 +1,10 @@
+NAME     SIZE TYPE TRAN ROTA MODEL
+loop0    1.4G loop         1 
+sda    931.5G disk sata    1 WDC WD10JPVX-22JC3T0
+├─sda1   100M part         1 
+├─sda2    16M part         1 
+├─sda3 930.6G part         1 
+└─sda4   857M part         1 
+sdb     14.4G disk usb     1 USB 2.0 FD
+├─sdb1   1.4G part         1 
+└─sdb2     3M part         1 

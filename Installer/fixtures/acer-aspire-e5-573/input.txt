@@ -1,0 +1,14 @@
+/sys/class/input/input0/name=AT Translated Set 2 keyboard
+/sys/class/input/input11/name=Acer WMI hotkeys
+/sys/class/input/input12/name=HDA Digital PCBeep
+/sys/class/input/input13/name=HDA Intel PCH Front Headphone
+/sys/class/input/input14/name=Video Bus
+/sys/class/input/input15/name=HDA Intel HDMI HDMI/DP,pcm=3
+/sys/class/input/input16/name=HDA Intel HDMI HDMI/DP,pcm=7
+/sys/class/input/input17/name=HDA Intel HDMI HDMI/DP,pcm=8
+/sys/class/input/input1/name=Power Button
+/sys/class/input/input2/name=Sleep Button
+/sys/class/input/input3/name=Lid Switch
+/sys/class/input/input4/name=Power Button
+/sys/class/input/input8/name=SYN1B81:01 06CB:2970 Mouse
+/sys/class/input/input9/name=SYN1B81:01 06CB:2970 Touchpad

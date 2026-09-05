@@ -16,12 +16,6 @@
 
 let
   cfg = config.golem.hardware;
-  # RAM tier drives the swap policy. 0 = "unknown" (no detection has run):
-  # keep the historical generic defaults so an un-detected machine is never
-  # worse off than before this module existed.
-  known = cfg.ramMB > 0;
-  low  = known && cfg.ramMB <  6144;   # 4 GB class — lean on zram hard
-  high = known && cfg.ramMB > 16384;   # 16 GB+ — a big zram is just waste
 in
 {
   options.golem.hardware = {
@@ -34,10 +28,29 @@ in
         defaults (50 % zram) are used.
       '';
     };
+    cpuModel = lib.mkOption {
+      type = lib.types.str;
+      default = "unknown";
+      description = ''
+        The CPU's marketing name, straight from /proc/cpuinfo
+        (informational). It identifies a lab machine at a glance in the
+        census summary; nothing gates on it.
+      '';
+    };
     cores = lib.mkOption {
       type = lib.types.int;
       default = 0;
-      description = "Detected CPU core count (informational; 0 = unknown).";
+      description = ''
+        PHYSICAL CPU cores (informational; 0 = unknown) — distinct
+        (physical id, core id) pairs, not `nproc`. Until 2026-09-05 this
+        held the logical count, which reported a 2-core i5-5200U as 4.
+        See `threads` for the logical one.
+      '';
+    };
+    threads = lib.mkOption {
+      type = lib.types.int;
+      default = 0;
+      description = "Logical CPUs / hardware threads (informational; 0 = unknown).";
     };
     gpu = lib.mkOption {
       type = lib.types.enum [ "auto" "intel" "amd" "nvidia" "virtio" ];
@@ -70,31 +83,105 @@ in
       example = "PCI:1:0:0";
       description = "nvidia GPU bus id for PRIME offload (null = no offload).";
     };
+    nvidiaGen = lib.mkOption {
+      type = lib.types.enum [ "unknown" "pre-turing" "turing+" ];
+      default = "unknown";
+      description = ''
+        NVIDIA GPU generation, from the PCI device id (probe: >= 0x1e00 is
+        Turing or newer, 0x1340-0x1dff Maxwell/Pascal/Volta). Decides the
+        driver stack in hardware/gpu-nvidia.nix: "turing+" gets the open
+        GSP kernel module + current branch, "pre-turing" the 580 legacy
+        branch (last to support those parts). "unknown" is the iron law
+        (GolemInstall.md §8): an nvidia GPU whose generation we could not
+        classify stays on the modesetting/nouveau floor that boots on
+        everything — an RTX on nouveau is a bug report, a black screen is
+        a dead distro.
+      '';
+    };
     intelBusId = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
       example = "PCI:0:2:0";
       description = "iGPU bus id for PRIME offload (null = no offload).";
     };
+    hasBluetooth = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        A Bluetooth radio is present. Default TRUE on purpose (the
+        conservatism rule, GolemInstall.md §4): an undetected machine keeps
+        today's always-on stack — only a confident "no radio" verdict drops
+        bluez/blueman. First demanded by lab row 1 (Acer E5-573), whose
+        radio hides from a single sysfs glob: detection triangulates
+        /sys/class/bluetooth, rfkill and USB interface class.
+      '';
+    };
+    cpuVendor = lib.mkOption {
+      type = lib.types.enum [ "unknown" "intel" "amd" ];
+      default = "unknown";
+      description = ''
+        CPU vendor from /proc/cpuinfo; drives microcode updates. "unknown"
+        changes nothing (today's behavior — nothing in this tree ever set
+        updateMicrocode, see configuration.nix's firmware note).
+      '';
+    };
+    chassis = lib.mkOption {
+      type = lib.types.enum [ "unknown" "laptop" "desktop" ];
+      default = "unknown";
+      description = ''
+        Machine class from DMI chassis-type (battery presence as the
+        fallback tell). Drives the laptop power stack
+        (hardware/power-laptop.nix).
+      '';
+    };
+    vmGuest = lib.mkOption {
+      type = lib.types.enum [ "none" "qemu" "vmware" "virtualbox" "hyperv" ];
+      default = "none";
+      description = ''
+        Hypervisor this machine is a guest of, from DMI vendor strings.
+        Drives that hypervisor's guest tools (hardware/virt-guest.nix);
+        "none" — a physical machine, or one we could not classify — adds
+        nothing.
+      '';
+    };
+    fingerprint = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        A USB fingerprint reader is present — detected by USB vendor id
+        (Validity 138a, Synaptics 06cb, Goodix 27c6: the vendors that are
+        fingerprint hardware in practice). Enables fprintd
+        (hardware/fingerprint.nix). A false positive costs an idle daemon;
+        a false negative costs enrollment — the reader still does nothing
+        until its owner enrolls a finger, so default false is safe.
+      '';
+    };
+    panelDpi = lib.mkOption {
+      type = lib.types.int;
+      default = 0;
+      description = ''
+        The internal panel's physical DPI — native horizontal pixels
+        against the EDID's physical width (eDP connector only; externals
+        are the user's business). 0 = unknown/no internal panel = no
+        scaling opinion. The home layer turns this into a Hyprland
+        monitor scale for the eDP output so a 4K 13-inch stranger's
+        laptop doesn't boot at ant size (and a 1366x768 Acer isn't
+        cramped at 2.0 — the 2026-09-02 lesson in hyprland.lua).
+      '';
+    };
   };
 
   config = lib.mkMerge [
-    # ── RAM-scaled swap ────────────────────────────────────────────────
-    # zramSwap.memoryPercent is a percentage of the machine's ACTUAL RAM at
-    # boot, so the absolute size already tracks hardware; what this tiers is
-    # the POLICY. A 4 GB machine wants more compressed swap than physical
-    # RAM (zram compresses ~2-3x, and swapping to RAM beats an OOM freeze),
-    # so 150 %; a 16 GB+ machine will essentially never swap, so a big zram
-    # is wasted reservation — 25 %. Between, the historical 50 %.
-    (lib.mkIf low {
-      zramSwap.memoryPercent = lib.mkForce 150;
-      # zram is RAM-fast, so on a tight machine PREFER it over letting the
-      # working set get squeezed — the opposite of the disk-swap-avoidance
-      # 10 the core sets for machines with headroom.
-      boot.kernel.sysctl."vm.swappiness" = lib.mkForce 150;
+    # RAM-tiered swap/zram/sysctl policy moved to hardware/memory.nix
+    # (spec §5's library) — grown into the full memory family when
+    # hibernation-backed disk swap became a locked decision (2026-09-04).
+
+    # ── CPU microcode — free correctness/security once the vendor is known
+    (lib.mkIf (cfg.cpuVendor == "intel") {
+      hardware.cpu.intel.updateMicrocode = lib.mkDefault true;
     })
-    (lib.mkIf high {
-      zramSwap.memoryPercent = lib.mkForce 25;
+    (lib.mkIf (cfg.cpuVendor == "amd") {
+      hardware.cpu.amd.updateMicrocode = lib.mkDefault true;
     })
 
     # ── GPU driver selection ───────────────────────────────────────────
@@ -157,23 +244,10 @@ in
         libvdpau-va-gl
       ];
     })
-    (lib.mkIf (cfg.gpu == "nvidia") {
-      services.xserver.videoDrivers = [ "nvidia" ];
-      hardware.nvidia = {
-        modesetting.enable = true;
-        open = true;
-        nvidiaSettings = true;
-        package = config.boot.kernelPackages.nvidiaPackages.stable;
-      } // lib.optionalAttrs (cfg.nvidiaBusId != null && cfg.intelBusId != null) {
-        prime = {
-          offload = {
-            enable = true;
-            enableOffloadCmd = true;
-          };
-          nvidiaBusId = cfg.nvidiaBusId;
-          intelBusId = cfg.intelBusId;
-        };
-      };
-    })
+    # nvidia moved to hardware/gpu-nvidia.nix (spec §5's module library):
+    # the ported dev-host module — open kmod on Turing+, the suspend/VRAM
+    # fix, legacy_580 for pre-Turing, nouveau floor when the generation is
+    # unknown. This file keeps the facts schema and the families too small
+    # to split (zram tiers, microcode, intel/amd VA-API).
   ];
 }

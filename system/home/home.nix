@@ -390,15 +390,39 @@
   xdg.configFile."hypr/hyprland.lua".text =
     let
       raw = builtins.readFile ./hyprland.lua;
+
+      # HiDPI from the census (golem.hardware.panelDpi — EDID width vs
+      # native mode, eDP only): a generated monitor rule for the internal
+      # panel lands right after the catch-all, so a 4K-13" stranger's
+      # laptop doesn't boot at ant size while externals stay at the
+      # catch-all's scale. Tiers calibrated against the one measured
+      # point: the Slim Pro 9i's 260 DPI panel, hand-tuned to 1.60 (the
+      # desc override below it — which still wins there, agreeing).
+      # 0 (unknown) or ordinary panels: no rule, catch-all behavior —
+      # the 1366x768 Acer lesson of 2026-09-02 stays fixed.
+      panelDpi = osConfig.golem.hardware.panelDpi;
+      edpScale =
+        if panelDpi >= 280 then "2.0"
+        else if panelDpi >= 210 then "1.6"
+        else if panelDpi >= 170 then "1.25"
+        else null;
+      monitorNeedle =
+        ''hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })'';
+
       needles = [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
         ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
+        monitorNeedle
       ];
       replacements = [
         "hyprctl plugin load ${waveview}/lib/libwaveview.so"
         "-- waverunner autostarts via systemd (programs.waverunner)"
         "waverunner-ctl"
+        (if edpScale == null then monitorNeedle else ''
+          ${monitorNeedle}
+          -- generated from the panelDpi fact (${toString panelDpi} DPI)
+          hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${edpScale} })'')
       ];
       missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
     in

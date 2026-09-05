@@ -1,0 +1,1 @@
+/sys/class/net/ens2/device/uevent=DRIVER=virtio_netMODALIAS=virtio:d00000001v00001AF4

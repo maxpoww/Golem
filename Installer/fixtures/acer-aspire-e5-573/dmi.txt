@@ -1,0 +1,7 @@
+/sys/class/dmi/id/sys_vendor=Acer
+/sys/class/dmi/id/product_name=Aspire E5-573
+/sys/class/dmi/id/product_family=BDW
+/sys/class/dmi/id/chassis_type=10
+/sys/class/dmi/id/board_vendor=Acer
+/sys/class/dmi/id/bios_vendor=Insyde Corp.
+/sys/class/dmi/id/bios_version=V1.25

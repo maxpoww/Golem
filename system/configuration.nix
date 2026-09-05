@@ -9,6 +9,15 @@
     ./bluetooth.nix
     ./golem-apps.nix
     ./hardware.nix
+    # The hardware module library (GolemInstall.md §5): one family each,
+    # permanently imported, internally mkIf-gated on golem.hardware facts.
+    # Families too small to split yet live in hardware.nix itself.
+    ./hardware/fingerprint.nix
+    ./hardware/gpu-nvidia.nix
+    ./hardware/memory.nix
+    ./hardware/power-laptop.nix
+    ./hardware/storage.nix
+    ./hardware/virt-guest.nix
     ./hardware-detect.nix
     ./hardware-runtime.nix
     ./waverunner-apply.nix
@@ -101,11 +110,16 @@
     # protects a tester who plugs in a machine that has pools.
     boot.zfs.forceImportRoot = false;
 
+    # vm.* memory sysctls (swappiness, cache pressure, dirty ratios) live
+    # in hardware/memory.nix now — RAM-tiered on the golem.hardware facts,
+    # same historical values when no detection ran.
+    #
+    # fq+BBR came in with the /etc/nixos port and STAY as distro policy
+    # (Max asked, 2026-09-04): BBR models the path instead of backing off
+    # on every loss — noticeably better throughput on wifi and long/lossy
+    # routes, no worse on clean ones — and fq provides the pacing BBR
+    # expects. Hardware-independent, so no fact and no gate.
     boot.kernel.sysctl = {
-      "vm.swappiness"                   = 10;
-      "vm.vfs_cache_pressure"           = 10;
-      "vm.dirty_ratio"                  = 10;
-      "vm.dirty_background_ratio"       = 5;
       "net.core.default_qdisc"          = "fq";
       "net.ipv4.tcp_congestion_control" = "bbr";
       "kernel.printk"                   = "0 0 0 0";
@@ -177,10 +191,23 @@
       LC_TIME = "es_BO.UTF-8";
     };
 
+    # Creates the `uinput` group and a udev rule giving it 0660 on
+    # /dev/uinput. Without this the node is 0600 nobody:nogroup and nothing
+    # unprivileged can open it — golem-connectd needs it to present the phone
+    # as a virtual game controller, because gamepads have no Wayland protocol
+    # (games read evdev directly) the way the pointer and keyboard do.
+    hardware.uinput.enable = true;
+
     users.users.${config.golem.owner} = {
       isNormalUser = true;
-      # GECOS full name: the installer's to personalize alongside the owner.
-      description = "Max";
+      # GECOS full name: the installer's to personalize alongside the owner
+      # (line 54, and spec §6's machine.nix). mkDefault is what makes that
+      # sentence true — at normal priority this collided with the
+      # machine.nix golem-install writes, and the very first real install
+      # died on it (VM, 2026-09-04): "conflicting definition values: Max /
+      # Max Power". A base value a per-machine file cannot override is not
+      # a default, it is a decision.
+      description = lib.mkDefault "Max";
       shell = pkgs.zsh;
       extraGroups = [
         "networkmanager"
@@ -188,6 +215,8 @@
         "video"
         "adbusers"
         "input"
+        # Membership is only picked up by a fresh login session.
+        "uinput"
       ];
     };
 
@@ -255,6 +284,13 @@
     # it implies the redistributable one. It needs allowUnfree, which Golem
     # sets below regardless.
     hardware.enableAllFirmware = true;
+
+    # …and keep that firmware current: fwupd serves UEFI/SSD/dock updates
+    # from the LVFS the same way every other distro's GUI updaters do.
+    # Always-on (anti-over-gating): on hardware with no LVFS entries the
+    # daemon idles. Nothing updates without an explicit fwupdmgr call or
+    # a future OPTIONS surface — no surprise reboots.
+    services.fwupd.enable = lib.mkDefault true;
 
     # Golem ships unfree and does not ask. The webapp engine is google-chrome
     # (home/home.nix), the firmware above is partly unfree, and nvidia's

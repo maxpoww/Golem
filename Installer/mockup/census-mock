@@ -1,0 +1,854 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────
+# Golem installer — TUI mockup. Nothing here detects or installs.
+#
+# Built to the blueprint (Max, 2026-09-05) and to the browser mockup the
+# proportions were settled in: one main window, two titled tiles with the
+# tab marker centred in the seam, three buttons along the bottom with
+# install standing a row proud.
+#
+#   Evaluation   what the machine IS      (the audit)
+#   Directions   what Golem WILL DO to it (version + the decisions)
+#
+#   ./census-mock                  the Acer
+#   ./census-mock -p slim          a different machine
+#   ./census-mock --dump           print one frame and exit (no TUI)
+#   ./census-mock --dump --cols 120 --rows 34 --focus install
+#
+#   profiles: acer slim vm old blind
+#   keys:     space (or tab) selects, then cycles the buttons
+#             ↑ ↓ scroll both tiles, each to its own depth · q or esc quits
+#
+#   The line above main's bottom rule is the GUIDE — it changes with
+#   state and is meant to carry the user through the whole install.
+#   hint_text() is that script; add a case per step.
+#
+# LAYOUT LIVES IN layout(). Those numbers came out of the browser mockup;
+# the parity rule in there is load-bearing, not a nicety — see the comment.
+# ─────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+
+# ══ LOOK ═════════════════════════════════════════════════════════════════
+
+esc=$'\e'
+NORM="$esc[0m"
+BOLD="$esc[1m"
+
+# ── palette ──────────────────────────────────────────────────────────────
+# Neutrals carry the whole screen; ONE accent, and it only appears where it
+# means something — what has focus, and what a section is called. Colour
+# used for decoration is what makes a terminal UI look amateur, so there is
+# no second hue anywhere.
+#
+# The neutrals are a ramp, not a set: frame < label < value. Values are the
+# brightest thing on screen because they are the content — everything else
+# is scaffolding pointing at them.
+fg()  { printf '%s' "$esc[38;5;$1m"; }
+bg()  { printf '%s' "$esc[48;5;$1m"; }
+
+C_SHELL=$(fg 236)                  # the outer frame, a step back
+C_FRAME=$(fg 240)                  # tile frames, a step forward
+C_TITLE=$(fg 245)                  # a tile that is not in focus
+C_SECTION=$(fg 180)                # section names inside a tile
+C_LABEL=$(fg 244)                  # row labels
+C_VALUE=$(fg 252)                  # row values — the brightest ink
+C_ABSENT=$(fg 240)                 # "none", "off", "not installed"
+# Buttons are outlines, never filled. Selection moves the frame and the
+# label up the ramp and into the accent — exactly what a focused tile does,
+# so the whole screen has ONE way of saying "this is where you are" rather
+# than a fill down here and a brightening up there.
+C_BTN=$(fg 238)                    # frame at rest — quieter than the tiles
+C_BTN_TX=$(fg 243)                 # label at rest
+C_BTN_HI=$(fg 180)                 # frame selected
+C_BTN_HI_TX="$(fg 223)$BOLD"       # label selected
+# A third state, one step down the SAME accent ramp rather than a new
+# colour: selected enough to show you got there and to put its line on
+# screen, dim enough that the eye knows it will not do anything yet.
+C_BTN_SOFT=$(fg 137)               # frame selected, feature unfinished
+C_BTN_SOFT_TX=$(fg 180)            # label, ditto — accent but not lit
+C_TRACK=$(fg 238)                  # scrollbar track
+C_GRIP="$(bg 240)$(fg 250)"        # the scroller, pane not focused
+
+# Rounded corners. The one place softness belongs: it takes the hard edge
+# off a screen made entirely of right angles without costing a cell.
+B_TL='╭' B_TR='╮' B_BL='╰' B_BR='╯' B_H='─' B_V='│'
+
+A_TITLE=' Evaluation '
+B_TITLE=' Directions '
+# Six, seven, six. A label centres only when box − label is even, so a set
+# of mixed parities cannot share one box width — which is why the buttons
+# are sized by constant PADDING instead: every box is its label plus one
+# space each side plus the frame, so box − label is always 4 and every word
+# lands dead centre. The cost is that Install's box is a column wider than
+# its neighbours, because its word is a letter longer.
+LABELS=(Reboot Install Device)
+
+# Buttons whose feature is not in this release. They still select — the
+# guide line is the whole point — but they select softly.
+UNFINISHED=(Device)
+
+# The guide line, one row above main's bottom rule. It is a function of
+# state, not a caption: every step of the install gets its own line here,
+# so this table is the script the screen speaks. Empty FOCUS means nothing
+# is selected yet — the user has just arrived and is reading.
+HINT_PRIMARY=Install               # what the first SPACE reaches for
+# ── VOICE ────────────────────────────────────────────────────────────────
+# The guide line is the only place the installer speaks, so it carries the
+# whole tone. Golem is spoken ABOUT, never as "I" — the voice is its maker
+# describing what it did, which stays warm without the machine pretending
+# to be a person.
+#
+# WHO DOES WHAT. Golem does not build itself — it is built. So:
+#   · GOLEM acts on the device. It reads it, installs, reboots. That is its
+#     whole job: making the person's life easier.
+#   · WE act on Golem. Unfinished features are OUR work, not its. "Golem is
+#     still building this" is nonsense; "we are still working on it" is true.
+# Nothing is ever done "for you" — saying so out loud is flattery, and the
+# work speaks without being pointed at.
+#
+# THE TAIL IS FIXED, NOT LAZY. Three of the four lines end in the same
+# words: "or SPACE to continue". Varied phrasing reads better on a page,
+# but nobody reads this on a page — they read it once, standing up, on a
+# machine they just booted. Repetition is how the key gets learned. It
+# stays identical everywhere and only ever changes meaning, never wording.
+#
+# TWO MORE RULES THIS COPY OBEYS:
+#   · Install does NOT warn about erasing. The disk step comes next and
+#     owns that warning. Saying it twice makes the real one cheap, and
+#     saying it early frightens someone who has not chosen a disk yet.
+#   · Device tells the truth: the feature is not in this release. A button
+#     that quietly does nothing costs more trust than one that says so.
+#
+# The rest line is two words and stops. It is the first thing anyone ever
+# reads from Golem, and a short line gets read where a long one gets
+# skipped. Nothing here teaches the ARROWS yet — see the note below.
+hint_text() {
+  case "$FOCUS" in
+    '')      printf 'Press SPACE.' ;;
+    Install) printf 'Press ENTER to install Golem on this device, or SPACE to continue.' ;;
+    Reboot)  printf 'Press ENTER to reboot this device, or SPACE to continue.' ;;
+    Device)  printf 'This feature is not finished — press SPACE to continue.' ;;
+  esac
+}
+# OPEN: nothing tells the user the ARROWS scroll the tiles. It was on the
+# rest line and came off — that line has to stay short. The arrows only
+# matter once a tile actually overflows, so the honest place for it is a
+# line that appears only then, rather than a permanent hint for a thing
+# most machines will not need.
+BTN_DROP=(0 -1 0)      # install stands one row proud
+
+# ══ LAYOUT ═══════════════════════════════════════════════════════════════
+
+layout() {
+  # main: ~8% in at the sides; 2 rows above, 4 below — deliberately not
+  # vertically centred.
+  local hm=$(( (COLS * 83 + 500) / 1000 ))
+  MAIN_W=$(( COLS - hm * 2 ))
+
+  # MAIN_W MUST BE ODD. 2·TILE_W = MAIN_W − 2·SIDE − GAP, so the gap always
+  # shares main's parity; an even main forces an even gap, and an even gap
+  # has no middle cell for the one-cell ↹ to stand on. Odd main, odd gap,
+  # true centre.
+  (( MAIN_W % 2 == 0 )) && MAIN_W=$(( MAIN_W - 1 ))
+  MAIN_X=$(( (COLS - MAIN_W) / 2 ))
+  MAIN_Y=2
+  MAIN_H=$(( ROWS - 6 ))
+
+  SIDE=$(( (MAIN_W * 91 + 500) / 1000 ))
+  (( SIDE < 2 )) && SIDE=2
+  GAP=$(( (MAIN_W * 71 + 500) / 1000 ))
+  (( GAP < 3 )) && GAP=3
+  # match main's parity so TILE_W divides evenly
+  (( (MAIN_W - GAP) % 2 != 0 )) && GAP=$(( GAP + 1 ))
+  TILE_W=$(( (MAIN_W - SIDE * 2 - GAP) / 2 ))
+
+  TILE_Y=$(( MAIN_Y + 3 ))
+  TILE_H=$(( MAIN_H - 11 ))   # a row back to the tiles' bottom lifts the
+                             # button row with it, since BTN_Y hangs off it
+  A_X=$(( MAIN_X + SIDE ))
+  B_X=$(( A_X + TILE_W + GAP ))
+
+
+  # Each button is its label plus one space either side plus its frame, so
+  # width − label is ALWAYS 4 — an even number, whatever the label's own
+  # parity. That is what lets every label sit dead centre.
+  #
+  # With today's labels all seven characters this comes out as three equal
+  # 11-wide boxes anyway. The rule earns its keep the moment one of them is
+  # renamed to an even length: a shared fixed width would put that label a
+  # cell off centre, where constant padding just makes its box a cell
+  # narrower and keeps every word centred.
+  BTN_GAP=4; BTN_H=3; BTN_PAD=1
+  BTN_W=()
+  local total=0 i
+  for i in "${!LABELS[@]}"; do
+    BTN_W[i]=$(( ${#LABELS[i]} + BTN_PAD * 2 + 2 ))
+    total=$(( total + BTN_W[i] ))
+  done
+  total=$(( total + BTN_GAP * (${#LABELS[@]} - 1) ))
+  BTN_Y=$(( TILE_Y + TILE_H + 2 ))
+  BTN_X=$(( MAIN_X + (MAIN_W - total) / 2 ))
+}
+
+# ══ GRID ═════════════════════════════════════════════════════════════════
+# One character cell and one style per position, so drawing is literal:
+# whatever is painted later sits on top, exactly as a terminal would.
+
+grid_reset() {
+  CH=(); ST=()
+  local n=$(( COLS * ROWS )) i
+  for ((i=0;i<n;i++)); do CH[i]=' '; ST[i]='.'; done
+}
+setc() { local i=$(( $2 * COLS + $1 )); (( $1 < 0 || $1 >= COLS || $2 < 0 || $2 >= ROWS )) && return; CH[i]="$3"; ST[i]="$4"; }
+
+# Only the border cells are touched, and NOTHING here forks. The first
+# version chose each character with a $( … ) per cell — 4000 subshells a
+# frame, which is where 1.2 s of redraw went.
+draw_box() {   # x y w h style
+  local x=$1 y=$2 w=$3 h=$4 s=$5 i j
+  local xr=$(( x + w - 1 )) yb=$(( y + h - 1 ))
+  setc "$x" "$y" "$B_TL" "$s";  setc "$xr" "$y" "$B_TR" "$s"
+  setc "$x" "$yb" "$B_BL" "$s"; setc "$xr" "$yb" "$B_BR" "$s"
+  for ((i=1;i<w-1;i++)); do
+    setc $(( x + i )) "$y" "$B_H" "$s"
+    setc $(( x + i )) "$yb" "$B_H" "$s"
+  done
+  for ((j=1;j<h-1;j++)); do
+    setc "$x" $(( y + j )) "$B_V" "$s"
+    setc "$xr" $(( y + j )) "$B_V" "$s"
+  done
+}
+
+put() {        # x y text style
+  local x=$1 y=$2 text=$3 s=$4 i
+  for ((i=0;i<${#text};i++)); do setc $(( x + i )) "$y" "${text:i:1}" "$s"; done
+}
+
+# draw_box paints only the frame, so a box whose style is a BACKGROUND —
+# reverse video — comes out with unstyled holes wherever the interior was
+# never touched. Anything reverse has to be filled first.
+fill_box() {   # x y w h style
+  local x=$1 y=$2 w=$3 h=$4 s=$5 i j
+  for ((j=0;j<h;j++)); do
+    for ((i=0;i<w;i++)); do setc $(( x + i )) $(( y + j )) ' ' "$s"; done
+  done
+}
+
+# A rounded button — frame only, nothing behind it.
+#
+# The frame sits on the DEFAULT background, which is the only way a corner
+# can look round: a cell carrying a background fill is a square whatever
+# glyph is printed in it. That is also why there is no body fill any more —
+# it would square off the very corners the ╭╮╰╯ are there to curve.
+button() {     # x y w h frame-style
+  draw_box "$1" "$2" "$3" "$4" "$5"
+}
+
+# Sets CIN rather than echoing, so callers do not need a subshell either.
+#
+# A label centres EXACTLY only when (width − length) is even, i.e. when the
+# label's length matches the box's parity. The buttons are 11 wide, so
+# odd-length labels land dead centre and even-length ones sit one cell
+# left. "install" and "Devices" are 7; "back" is 4, and that is the whole
+# reason it looks off next to them — not a width difference, the boxes are
+# identical. Fixing it means an odd-length word, not a wider box: an even
+# box would centre "back" and throw the other two off instead.
+centre_in() { CIN=$(( $1 + ($2 - ${#3}) / 2 )); }
+
+# Style id -> escape, as a lookup rather than a function call: this is
+# consulted on every style change of every row, and a $( … ) here was the
+# second fork-per-cell after draw_box.
+declare -A SC
+SC[.]="$NORM"
+SC[o]="$C_SHELL"
+SC[f]="$C_FRAME"
+SC[t]="$C_TITLE"
+SC[h]="$C_SECTION"
+SC[l]="$C_LABEL"   SC[v]="$C_VALUE"    SC[d]="$C_ABSENT"
+# Buttons are FILLED in both states, never outlined. An outline's stroke
+# runs down the middle of its border cells while a fill covers them edge to
+# edge, so an outlined button and a filled one of identical cell size still
+# measure about a cell apart on screen — 200px against 218px, which is the
+# size difference that would not go away. Same primitive, two colours.
+SC[u]="$C_BTN_TX"  SC[U]="$C_BTN_HI_TX"
+SC[y]="$C_BTN_SOFT" SC[Y]="$C_BTN_SOFT_TX"
+SC[n]="$C_BTN"     SC[N]="$C_BTN_HI"
+SC[k]="$C_TRACK"   SC[m]="$C_GRIP"
+
+# One write for the whole frame, and NO trailing newline on the last row —
+# a newline on the bottom line scrolls the terminal, which loses the top
+# row and makes the frame jitter upward on every redraw.
+flush_grid() {
+  local out="" y x i st run cur base
+  for ((y=0;y<ROWS;y++)); do
+    base=$(( y * COLS ))
+    cur='.'; run=''
+    (( y > 0 )) && out+=$'\n'
+    for ((x=0;x<COLS;x++)); do
+      i=$(( base + x ))
+      st="${ST[i]}"
+      if [ "$st" != "$cur" ]; then
+        out+="$run$NORM${SC[$st]}"
+        cur="$st"; run=''
+      fi
+      run+="${CH[i]}"
+    done
+    out+="$run$NORM"
+  done
+  printf '%s' "$out"
+}
+
+# ══ CONTENT ══════════════════════════════════════════════════════════════
+
+LSEP=$'\x01'; FSEP=$'\x02'
+
+build_pane() {
+  PANE=()
+  local name="" rows=() line
+  emit() {
+    [ ${#rows[@]} -eq 0 ] && return
+    local w=0 r label value text
+    for r in "${rows[@]}"; do label="${r%%|*}"; (( ${#label} > w )) && w=${#label}; done
+    [ ${#PANE[@]} -gt 0 ] && PANE+=("B")
+    PANE+=("S$name")
+    # The section's natural label width travels with the row instead of
+    # being baked in, so the painter can cap it against the tile it is
+    # actually drawing into.
+    for r in "${rows[@]}"; do
+      label="${r%%|*}"; value="${r#*|}"
+      PANE+=("R$w$FSEP$label$FSEP$value")
+    done
+    rows=()
+  }
+  while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    if [[ "$line" == "#"* ]]; then emit; name="${line#\# }"; else rows+=("$line"); fi
+  done
+  emit
+}
+
+paint_pane() {  # array-name x y w h top title bar
+# "bar" draws the scrollbar; it does NOT decide whether the pane scrolls.
+# A pane with bar=n still moves with the offset it is handed — the bar is
+# the indicator, not the mechanism.
+  local -n P=$1
+  local x=$2 y=$3 w=$4 h=$5 top=$6 bar_on=${8:-y}
+  draw_box "$x" "$y" "$w" "$h" 'f'
+
+  # Tiles never take selection — they are containers, not controls. The
+  # only thing on this screen that can be chosen is a button, so nothing
+  # here brightens and there is no second highlight competing with it.
+  local title="$7"
+  centre_in "$x" "$w" "$title"; put "$CIN" "$y" "$title" 't'
+
+  # Scrollbar: a track down the full inner height, one column inside the
+  # right border — the padding column that was already blank, so content
+  # width is unchanged. The scroller is three rectangles, ^ * v, and slides
+  # the length of the track. Fixed at three rather than sized to the
+  # visible fraction: the arrows have to stay legible, and a proportional
+  # thumb would collapse to one cell on a long pane.
+  local vis=$(( h - 2 ))
+  local total=${#P[@]}
+  local bar=$(( x + w - 2 ))
+  if [ "$bar_on" = y ] && (( total > vis && vis >= 3 )); then
+    local k
+    for ((k=0;k<vis;k++)); do setc "$bar" $(( y + 1 + k )) '│' 'k'; done
+
+    # The scroller is PROPORTIONAL — its length is the visible fraction, so
+    # it says how much of the pane you are looking at as well as where you
+    # are. Floored at three so ^ * v always have a cell each; a three-cell
+    # grip on a sixteen-row track looked lost, which is the right instinct.
+    local grip=$(( vis * vis / total ))
+    (( grip < 3 )) && grip=3
+    local maxtop=$(( total - vis )) pos=0
+    (( maxtop > 0 )) && pos=$(( top * (vis - grip) / maxtop ))
+    local gs='m'
+    for ((k=0;k<grip;k++)); do setc "$bar" $(( y + 1 + pos + k )) ' ' "$gs"; done
+    setc "$bar" $(( y + 1 + pos ))              '^' "$gs"
+    setc "$bar" $(( y + pos + grip ))           'v' "$gs"
+  fi
+
+  local inner=$(( w - 4 )) j
+  for ((j=0;j<h-2;j++)); do
+    local idx=$(( top + j )) seg kind body val
+    (( idx >= ${#P[@]} )) && break
+    seg="${P[idx]}"; kind="${seg:0:1}"; body="${seg:1}"
+    case "$kind" in
+      S) put $(( x + 2 )) $(( y + 1 + j )) "${body:0:inner}" 'h' ;;
+      R) local lw="${body%%$FSEP*}"; local rest="${body#*$FSEP}"
+         local key="${rest%%$FSEP*}"; val="${rest#*$FSEP}"
+
+         # Cap the label column at half the tile. Padding every row to the
+         # section's longest label is right when there is room and ruinous
+         # when there is not — one "virtual machine" was reserving fifteen
+         # columns in a twenty-column tile and every value in the section
+         # collapsed to an ellipsis. Values are the content; the label
+         # column yields to them, not the other way round.
+         local cap=$(( inner / 2 ))
+         (( lw > cap )) && lw=$cap
+         (( ${#key} > lw )) && key="${key:0:lw-1}…"
+         local lab="$(printf '  %-*s  ' "$lw" "$key")"
+         local room=$(( inner - ${#lab} ))
+         (( room < 1 )) && room=1
+         (( ${#val} > room )) && val="${val:0:room-1}…"
+         # An absence is dimmed. Scanning the Directions pane, what Golem
+         # will NOT do should recede rather than compete with what it will
+         # — and it is the same ramp, not a second colour, so nothing
+         # about the screen gets louder.
+         local vs='v'
+         case "$val" in
+           no|off|none|unknown|"none "*|"no "*|"not "*|"systemd default"*|"assumed "*) vs='d' ;;
+         esac
+         put $(( x + 2 )) $(( y + 1 + j )) "$lab" 'l'
+         put $(( x + 2 + ${#lab} )) $(( y + 1 + j )) "$val" "$vs" ;;
+    esac
+  done
+}
+
+# ══ FRAME ════════════════════════════════════════════════════════════════
+
+compose() {
+  grid_reset
+  draw_box "$MAIN_X" "$MAIN_Y" "$MAIN_W" "$MAIN_H" 'o'
+
+  # The outer frame carries no title. The screen is already unmistakably
+  # Golem's, and a word on the top rule only competed with the two tile
+  # titles directly under it — three labels stacked in six rows.
+
+  # ONE counter, TWO clamps. Both tiles read the same TOP but each stops at
+  # its own last row, which gives the behaviour for free in both directions:
+  # going down they move together until the shorter one lands, and the
+  # longer one carries on alone; coming back up the deeper one moves by
+  # itself until TOP falls back to where the other is parked, and from there
+  # they rise together and reach the top on the same keypress.
+  local ta=$(( TOP > MAXTOP_A ? MAXTOP_A : TOP ))
+  local tb=$(( TOP > MAXTOP_B ? MAXTOP_B : TOP ))
+  # A bar on each. They are not redundant: the two lists are different
+  # lengths and park at different depths, so each bar is reporting its own
+  # tile's position — and once Evaluation lands while Directions carries on,
+  # the two bars are what shows that it has.
+  paint_pane PANE_A "$A_X" "$TILE_Y" "$TILE_W" "$TILE_H" "$ta" "$A_TITLE" y
+  paint_pane PANE_B "$B_X" "$TILE_Y" "$TILE_W" "$TILE_H" "$tb" "$B_TITLE" y
+
+
+  local i bx=$BTN_X
+  for i in "${!LABELS[@]}"; do
+    local by=$(( BTN_Y + BTN_DROP[i] ))
+    # Selection moves colour only — frame and label — so the button never
+    # changes shape, weight or footprint as focus passes over it.
+    local s='u' fr='n'
+    if [ "$FOCUS" = "${LABELS[i]}" ]; then
+      if [[ " ${UNFINISHED[*]} " == *" ${LABELS[i]} "* ]]; then s='Y'; fr='y'
+      else s='U'; fr='N'; fi
+    fi
+    local w=${BTN_W[i]}
+    button "$bx" "$by" "$w" "$BTN_H" "$fr"
+    centre_in "$bx" "$w" "${LABELS[i]}"; put "$CIN" $(( by + 1 )) "${LABELS[i]}" "$s"
+    bx=$(( bx + w + BTN_GAP ))
+  done
+
+  # One row above main's bottom rule, centred on MAIN rather than on a
+  # button: the line grows from "Press SPACE" to a full sentence as the
+  # install proceeds, and only main is wide enough to hold every version of
+  # it. Install sits on main's centre anyway, so the short first line still
+  # lands under it.
+  # Before anything is selected the guide line IS the selection — it wears
+  # the same accent a chosen button does, because at that moment it is the
+  # only thing on screen asking to be acted on. The instant a button takes
+  # over it drops back to quiet and never lights again: two things wearing
+  # the highlight at once would make neither of them mean anything.
+  local hint hs='l'
+  hint="$(hint_text)"
+  [ -z "$FOCUS" ] && hs='U'
+  centre_in "$MAIN_X" "$MAIN_W" "$hint"
+  put "$CIN" $(( MAIN_Y + MAIN_H - 2 )) "$hint" "$hs"
+
+  flush_grid
+}
+
+# ══ CANNED DATA ══════════════════════════════════════════════════════════
+
+# ── THE TWO LISTS ─────────────────────────────────────────────────────────
+# Evaluation is what the machine IS; Directions is what Golem WILL DO about
+# it. They carry the SAME sections in the SAME order — machine/golem, cpu,
+# memory, graphics, device, storage — so the two tiles are always talking
+# about the same subject at the same time.
+#
+# The rows inside a section do NOT line up, and are not padded to. A fact
+# and its consequence are rarely one-to-one — one chassis reading decides
+# both power and lid — and holding lines open with blanks to force a false
+# symmetry made the tiles look full of holes. Each list is its natural
+# length; the sections keep them in step, not the rows.
+#
+# Because the lists differ in length the tiles scroll to different depths.
+# That is handled in compose(), not here: one counter, each tile clamping at
+# its own last row. check_sections() guards the pairing above.
+pane_a() {
+  case "$1" in
+  acer) cat <<'EOF'
+# machine
+vendor|acer
+model|aspire e5-573
+firmware|uefi
+# cpu
+cpu|intel core i5-5200u
+cores|2
+threads|4
+# memory
+ram|3833 mb
+# graphics
+gpu|intel
+panel|102 dpi
+# device
+chassis|laptop
+bluetooth|yes
+fingerprint|no
+virtual machine|no
+# storage
+disk|931.5g wdc wd10jpvx
+EOF
+  ;;
+  slim) cat <<'EOF'
+# machine
+vendor|lenovo
+model|thinkpad p1 gen 6
+firmware|uefi
+# cpu
+cpu|intel core i9-13905h
+cores|14
+threads|20
+# memory
+ram|32768 mb
+# graphics
+gpu|nvidia + intel hybrid
+panel|239 dpi
+# device
+chassis|laptop
+bluetooth|yes
+fingerprint|yes
+virtual machine|no
+# storage
+disk|953.9g samsung mzvl21t0
+EOF
+  ;;
+  vm) cat <<'EOF'
+# machine
+vendor|qemu
+model|standard pc q35
+firmware|uefi
+# cpu
+cpu|intel core i9-13905h
+cores|4
+threads|4
+# memory
+ram|3917 mb
+# graphics
+gpu|virtio
+panel|none
+# device
+chassis|unknown
+bluetooth|no
+fingerprint|no
+virtual machine|qemu
+# storage
+disk|60g virtio
+EOF
+  ;;
+  old) cat <<'EOF'
+# machine
+vendor|apple
+model|macbookair6,2
+firmware|uefi
+# cpu
+cpu|intel core i5-4260u
+cores|2
+threads|4
+# memory
+ram|3800 mb
+# graphics
+gpu|intel pre-skylake
+panel|128 dpi
+# device
+chassis|laptop
+bluetooth|yes
+fingerprint|no
+virtual machine|no
+# storage
+disk|121g apple ssd
+EOF
+  ;;
+  blind) cat <<'EOF'
+# machine
+vendor|unknown
+model|unknown
+firmware|bios
+# cpu
+cpu|unknown
+cores|4
+threads|4
+# memory
+ram|7814 mb
+# graphics
+gpu|not detected
+panel|not detected
+# device
+chassis|unknown
+bluetooth|assumed yes
+fingerprint|no
+virtual machine|no
+# storage
+disk|500g unknown
+EOF
+  ;;
+  esac
+}
+
+pane_b() {
+  case "$1" in
+  acer) cat <<'EOF'
+# golem
+version|26.05.20260829.c5c4a43
+source|332ad45
+target|golem-target
+# cpu
+microcode|intel
+builds|1 job x 2 cores
+# memory
+zram|150% of ram, zstd
+swappiness|180
+swap|6 gib, hibernation
+resume|by-label/swap
+# graphics
+driver|modesetting, fbdev
+video decode|ihd
+panel scale|none
+# device
+power|upower, profiles, thermald
+lid|suspend-then-hibernate
+bluetooth|bluez, blueman
+fingerprint|none
+guest tools|none
+# storage
+scheduler|bfq on rotational
+trim|weekly
+EOF
+  ;;
+  slim) cat <<'EOF'
+# golem
+version|26.05.20260829.c5c4a43
+source|332ad45
+target|golem-target
+# cpu
+microcode|intel
+builds|auto
+# memory
+zram|25% of ram, zstd
+swappiness|10
+swap|36 gib, hibernation
+resume|by-label/swap
+# graphics
+driver|nvidia, open kmod
+prime|pci:1:0:0 / pci:0:2:0
+video decode|ihd
+panel scale|1.6
+# device
+power|upower, profiles, thermald
+lid|suspend-then-hibernate
+bluetooth|bluez, blueman
+fingerprint|fprintd
+guest tools|none
+# storage
+scheduler|none, ssd
+trim|weekly
+EOF
+  ;;
+  vm) cat <<'EOF'
+# golem
+version|26.05.20260829.c5c4a43
+source|332ad45
+target|golem-target
+# cpu
+microcode|intel
+builds|1 job x 2 cores
+# memory
+zram|150% of ram, zstd
+swappiness|180
+swap|6 gib, hibernation
+resume|by-label/swap
+# graphics
+driver|modesetting, fbdev
+video decode|none
+panel scale|none
+# device
+power|none, chassis unknown
+lid|systemd default
+bluetooth|not installed
+fingerprint|none
+guest tools|qemu agent, spice
+# storage
+scheduler|none, virtio
+trim|weekly
+EOF
+  ;;
+  old) cat <<'EOF'
+# golem
+version|26.05.20260829.c5c4a43
+source|332ad45
+target|golem-target
+# cpu
+microcode|intel
+builds|1 job x 2 cores
+# memory
+zram|150% of ram, zstd
+swappiness|180
+swap|6 gib, hibernation
+resume|by-label/swap
+# graphics
+driver|modesetting, fbdev
+video decode|i965, legacy
+panel scale|none
+# device
+power|upower, profiles, thermald
+lid|suspend-then-hibernate
+bluetooth|bluez, blueman
+fingerprint|none
+guest tools|none
+# storage
+scheduler|none, ssd
+trim|weekly
+EOF
+  ;;
+  blind) cat <<'EOF'
+# golem
+version|26.05.20260829.c5c4a43
+source|332ad45
+target|golem-target
+# cpu
+microcode|none, vendor unknown
+builds|1 job x 2 cores
+# memory
+zram|50% of ram, zstd
+swappiness|60
+swap|10 gib, hibernation
+resume|by-label/swap
+# graphics
+driver|modesetting, fbdev
+video decode|none
+panel scale|none
+# device
+power|none, chassis unknown
+lid|systemd default
+bluetooth|bluez, blueman
+fingerprint|none
+guest tools|none
+# storage
+scheduler|bfq on rotational
+trim|weekly
+EOF
+  ;;
+  esac
+}
+
+# ══ SCAFFOLDING ══════════════════════════════════════════════════════════
+
+profile=acer; dump=no; FOCUS=""; scroll=0
+COLS=$(tput cols 2>/dev/null || echo 120)
+ROWS=$(tput lines 2>/dev/null || echo 34)
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p|--profile) profile="${2:?}"; shift 2 ;;
+    --focus)      FOCUS="${2:?}"; shift 2 ;;
+    --dump)       dump=yes; shift ;;
+    --scroll)     scroll="${2:?}"; shift 2 ;;
+    --cols)       COLS="${2:?}"; shift 2 ;;
+    --rows)       ROWS="${2:?}"; shift 2 ;;
+    -h|--help)    sed -n '2,24p' "$0"; exit 0 ;;
+    *) echo "census-mock: unknown argument '$1'" >&2; exit 2 ;;
+  esac
+done
+
+(( COLS < 60 )) && { echo "census-mock: needs at least 60 columns" >&2; exit 1; }
+(( ROWS < 20 )) && { echo "census-mock: needs at least 20 rows" >&2; exit 1; }
+
+layout
+build_pane < <(pane_a "$profile"); PANE_A=("${PANE[@]}")
+build_pane < <(pane_b "$profile"); PANE_B=("${PANE[@]}")
+
+TOP=0
+VIS=$(( TILE_H - 2 ))
+MAXTOP_A=$(( ${#PANE_A[@]} - VIS )); (( MAXTOP_A < 0 )) && MAXTOP_A=0
+MAXTOP_B=$(( ${#PANE_B[@]} - VIS )); (( MAXTOP_B < 0 )) && MAXTOP_B=0
+# The counter runs to the LONGER tile's limit; the shorter one clamps in
+# compose. Stopping at the shorter one would make its extra rows unreachable.
+MAXTOP=$MAXTOP_A; (( MAXTOP_B > MAXTOP )) && MAXTOP=$MAXTOP_B
+
+# The rows no longer line up — the lists are their natural lengths — but the
+# SECTIONS still pair off, and that pairing is what makes scrolling both at
+# once mean anything: memory beside memory, graphics beside graphics. That
+# is the invariant worth checking, and nothing in bash enforces it, so it
+# gets checked rather than trusted.
+check_sections() {
+  local i a="" b=""
+  for i in "${PANE_A[@]}"; do [ "${i:0:1}" = S ] && a+="${i:1}|"; done
+  for i in "${PANE_B[@]}"; do [ "${i:0:1}" = S ] && b+="${i:1}|"; done
+  # golem/machine are the two sides' names for the same first section —
+  # what this is, facing what it will become.
+  a="${a/#machine|/·|}"; b="${b/#golem|/·|}"
+  [ "$a" = "$b" ] && return 0
+  printf 'census-mock: sections do not pair up\n  Evaluation: %s\n  Directions: %s\n' \
+    "${a%|}" "${b%|}" >&2
+}
+check_sections
+
+# --scroll drives both tiles, so a scrolled frame can be inspected without
+# driving the TUI by hand.
+TOP=$(( scroll > MAXTOP ? MAXTOP : scroll ))
+
+if [ "$dump" = yes ]; then compose; exit 0; fi
+
+# TWO independent tracks, because they answer different questions.
+#
+#   tab / space / shift-tab   which button Enter would press
+#   left / right              which tile the arrows scroll
+#   up / down                 scroll it, always, from anywhere
+#
+# Folding the tiles into the tab cycle made scrolling conditional on
+# having tabbed to the right place first — you had to navigate before you
+# could read. Reading is the main thing this screen is for, so the arrows
+# answer immediately and the button cycle stays out of their way.
+cycle() {
+  # From nothing, the first press reaches for the primary action rather
+  # than for whichever button happens to be drawn leftmost — the guide
+  # line has just told the user SPACE gets them started, so it had better.
+  if [ -z "$FOCUS" ]; then FOCUS="$HINT_PRIMARY"; return; fi
+  local i n=${#LABELS[@]}
+  for i in "${!LABELS[@]}"; do [ "${LABELS[i]}" = "$FOCUS" ] && break; done
+  FOCUS="${LABELS[$(( (i + $1 + n) % n ))]}"
+}
+
+cleanup() { tput cnorm 2>/dev/null; tput rmcup 2>/dev/null; stty echo 2>/dev/null; }
+trap cleanup EXIT INT TERM
+tput smcup 2>/dev/null; tput civis 2>/dev/null; stty -echo 2>/dev/null
+
+while :; do
+  # Home the cursor and overwrite; never clear. Every cell of every row is
+  # painted each frame, so a clear erases nothing that is not about to be
+  # rewritten — all it does is show an empty screen for however long the
+  # compose takes, which is exactly the blink.
+  printf '%s' "$esc[H"
+  compose
+  IFS= read -rsn1 key
+  if [ "$key" = "$esc" ]; then IFS= read -rsn2 -t 0.01 rest || rest=""; key="$key$rest"; fi
+  case "$key" in
+    $'\t'|' ') cycle 1 ;;
+    "$esc[Z")  cycle -1 ;;
+    # The arrows are not aimed at anything because there is only one thing
+    # they could mean: both tiles move together, so no tile
+    # selection is needed to disambiguate and none exists.
+    "$esc[A")  (( TOP > 0 )) && (( TOP-- )) ;;
+    "$esc[B")  (( TOP < MAXTOP )) && (( TOP++ )) ;;
+    q|"$esc")  break ;;
+    "")        [ "$FOCUS" = Reboot ] && break ;;
+  esac
+done

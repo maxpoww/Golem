@@ -1,0 +1,6 @@
+/sys/class/dmi/id/sys_vendor=QEMU
+/sys/class/dmi/id/product_name=Standard PC (i440FX + PIIX, 1996)
+/sys/class/dmi/id/product_family=
+/sys/class/dmi/id/chassis_type=1
+/sys/class/dmi/id/bios_vendor=SeaBIOS
+/sys/class/dmi/id/bios_version=rel-1.17.0-0-gb52ca86e094d-prebuilt.qemu.org

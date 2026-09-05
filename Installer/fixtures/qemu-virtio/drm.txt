@@ -1,0 +1,5 @@
+/sys/class/drm/card0/device/vendor=0x1af4
+/sys/class/drm/card0/device/device=0x1050
+/sys/class/drm/card0/device/class=0x038000
+/sys/class/drm/card0/device/uevent=DRIVER=virtio-pciPCI_CLASS=38000PCI_ID=1AF4:1050PCI_SUBSYS_ID=1AF4:1100PCI_SLOT_NAME=0000:00:04.0MODALIAS=pci:v00001AF4d00001050sv00001AF4sd00001100bc03sc80i00
+/sys/class/drm/card0-Virtual-1/device/uevent=MAJOR=226MINOR=0DEVNAME=dri/card0DEVTYPE=drm_minor

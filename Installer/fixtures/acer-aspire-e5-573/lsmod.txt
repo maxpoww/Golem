@@ -1,0 +1,168 @@
+Module                  Size  Used by
+snd_hda_codec_intelhdmi    28672  1
+snd_hda_codec_hdmi     61440  1 snd_hda_codec_intelhdmi
+intel_rapl_msr         20480  0
+intel_rapl_common      53248  1 intel_rapl_msr
+snd_hda_codec_alc269   147456  1
+x86_pkg_temp_thermal    16384  0
+intel_powerclamp       20480  0
+i915                 4853760  2
+snd_hda_scodec_component    20480  1 snd_hda_codec_alc269
+snd_hda_codec_realtek_lib    65536  1 snd_hda_codec_alc269
+snd_hda_codec_generic   114688  2 snd_hda_codec_realtek_lib,snd_hda_codec_alc269
+snd_hda_intel          69632  0
+ath10k_pci             61440  0
+coretemp               24576  0
+snd_hda_codec         217088  6 snd_hda_codec_generic,snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_hda_codec_intelhdmi
+xt_conntrack           12288  2
+nf_conntrack          196608  1 xt_conntrack
+kvm_intel             442368  0
+nf_defrag_ipv6         24576  1 nf_conntrack
+nf_defrag_ipv4         12288  1 nf_conntrack
+snd_hda_core          147456  7 snd_hda_codec_generic,snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_hda_codec_intelhdmi
+uvcvideo              184320  0
+drm_buddy              12288  1 i915
+ttm                   126976  1 i915
+snd_intel_dspcfg       45056  1 snd_hda_intel
+ath10k_core           565248  1 ath10k_pci
+xt_tcpudp              16384  3
+snd_intel_sdw_acpi     16384  1 snd_intel_dspcfg
+kvm                  1409024  1 kvm_intel
+ath                    49152  1 ath10k_core
+ip6t_rpfilter          12288  1
+videobuf2_vmalloc      20480  1 uvcvideo
+ipt_rpfilter           12288  1
+drm_display_helper    319488  1 i915
+irqbypass              16384  1 kvm
+btusb                  86016  0
+uvc                    12288  1 uvcvideo
+snd_hwdep              24576  1 snd_hda_codec
+mac80211             1708032  1 ath10k_core
+xt_pkttype             12288  2
+videobuf2_memops       16384  1 videobuf2_vmalloc
+nft_compat             28672  9
+r8169                 143360  0
+x_tables               53248  6 xt_conntrack,ip6t_rpfilter,nft_compat,xt_tcpudp,ipt_rpfilter,xt_pkttype
+cec                    77824  2 drm_display_helper,i915
+videobuf2_v4l2         40960  1 uvcvideo
+ofpart                 16384  0
+cmdlinepart            16384  0
+spi_nor               180224  0
+btrtl                  32768  1 btusb
+intel_gtt              32768  1 i915
+snd_pcm               200704  4 snd_hda_codec_hdmi,snd_hda_intel,snd_hda_codec,snd_hda_core
+videobuf2_common       94208  4 videobuf2_vmalloc,videobuf2_v4l2,uvcvideo,videobuf2_memops
+polyval_clmulni        12288  0
+i2c_algo_bit           24576  1 i915
+btintel                73728  1 btusb
+mtd                   114688  4 spi_nor,cmdlinepart,ofpart
+cfg80211             1449984  3 ath,mac80211,ath10k_core
+snd_timer              57344  1 snd_pcm
+videodev              405504  2 videobuf2_v4l2,uvcvideo
+nf_tables             393216  101 nft_compat
+btmtk                  32768  1 btusb
+joydev                 28672  0
+ghash_clmulni_intel    12288  0
+realtek                57344  0
+btbcm                  28672  1 btusb
+libarc4                12288  1 mac80211
+snd                   159744  9 snd_hda_codec_generic,snd_hda_codec_hdmi,snd_hwdep,snd_hda_intel,snd_hda_codec,snd_timer,snd_hda_codec_realtek_lib,snd_hda_codec_alc269,snd_pcm
+mc                     90112  4 videodev,videobuf2_v4l2,uvcvideo,videobuf2_common
+nfnetlink              24576  2 nft_compat,nf_tables
+rtsx_usb_ms            24576  0
+aesni_intel            98304  0
+soundcore              20480  1 snd
+bluetooth            1118208  6 btrtl,btmtk,btintel,btbcm,btusb
+rtsx_usb_sdmmc         40960  0
+at24                   28672  0
+mdio_devres            12288  1 r8169
+mousedev               28672  0
+of_mdio                24576  1 mdio_devres
+fixed_phy              16384  1 of_mdio
+fwnode_mdio            16384  1 of_mdio
+libphy                188416  6 r8169,mdio_devres,fwnode_mdio,of_mdio,realtek,fixed_phy
+mdio_bus               65536  4 r8169,libphy,of_mdio,realtek
+ecdh_generic           20480  1 bluetooth
+ecc                    49152  1 ecdh_generic
+acer_wmi               45056  0
+rapl                   24576  0
+memstick               28672  1 rtsx_usb_ms
+crc16                  12288  1 bluetooth
+spi_intel_platform     12288  0
+i2c_i801               40960  0
+mei_pxp                20480  0
+sch_fq_codel           28672  1
+iTCO_wdt               16384  0
+hid_multitouch         40960  0
+mmc_core              307200  1 rtsx_usb_sdmmc
+platform_profile       24576  1 acer_wmi
+mei_hdcp               28672  0
+sparse_keymap          12288  1 acer_wmi
+rfkill                 45056  4 acer_wmi,bluetooth,cfg80211
+spi_intel              36864  1 spi_intel_platform
+intel_cstate           20480  0
+i2c_smbus              20480  1 i2c_i801
+hid_generic            12288  0
+intel_pmc_bxt          16384  1 iTCO_wdt
+wmi_bmof               12288  0
+i2c_mux                20480  1 i2c_i801
+intel_uncore          274432  0
+mei_me                 57344  2
+input_leds             16384  0
+evdev                  32768  6
+mei                   208896  5 mei_hdcp,mei_pxp,mei_me
+intel_oc_wdt           12288  0
+led_class              24576  7 snd_hda_codec_generic,videodev,input_leds,libphy,acer_wmi,rtsx_usb_sdmmc,ath10k_core
+video                  81920  2 acer_wmi,i915
+rtsx_usb               36864  2 rtsx_usb_sdmmc,rtsx_usb_ms
+lpc_ich                28672  0
+i2c_hid_acpi           12288  0
+watchdog               49152  2 iTCO_wdt,intel_oc_wdt
+i2c_hid                45056  1 i2c_hid_acpi
+hid                   286720  3 i2c_hid,hid_multitouch,hid_generic
+dw_dmac                12288  0
+mac_hid                16384  0
+tiny_power_button      12288  0
+wmi                    36864  3 video,acer_wmi,wmi_bmof
+rtc_cmos               28672  1
+acpi_pad               24576  0
+ac                     16384  0
+battery                28672  0
+thermal                28672  0
+button                 28672  0
+dw_dmac_core           40960  1 dw_dmac
+serio_raw              20480  0
+zfs                  6516736  6
+fuse                  282624  1
+spl                   155648  1 zfs
+configfs               69632  1
+dmi_sysfs              28672  0
+squashfs              102400  1
+isofs                  65536  1
+cdrom                  81920  1 isofs
+uas                    36864  0
+usb_storage            94208  2 uas
+sd_mod                 86016  1
+ahci                   57344  0
+libahci                65536  1 ahci
+atkbd                  40960  0
+libps2                 24576  1 atkbd
+vivaldi_fmap           12288  1 atkbd
+libata                499712  2 libahci,ahci
+xhci_pci               24576  0
+scsi_mod              339968  4 sd_mod,usb_storage,uas,libata
+xhci_hcd              430080  1 xhci_pci
+ehci_pci               20480  0
+ehci_hcd              114688  1 ehci_pci
+scsi_common            16384  5 scsi_mod,sd_mod,usb_storage,uas,libata
+i8042                  57344  1 acer_wmi
+serio                  32768  4 serio_raw,atkbd,i8042
+vfat                   28672  0
+overlay               249856  1
+fat                   114688  1 vfat
+dm_mod                241664  0
+loop                   49152  2
+nls_iso8859_1          12288  0
+nls_cp437              16384  0
+efivarfs               40960  1
+autofs4                65536  0

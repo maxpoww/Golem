@@ -1,0 +1,8 @@
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 001 Device 002: ID 8087:8001 Intel Corp. Integrated Hub
+Bus 002 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+Bus 002 Device 002: ID 154b:007e PNY USB 2.0 FD
+Bus 002 Device 003: ID 0489:e09c Foxconn / Hon Hai 
+Bus 002 Device 004: ID 04f2:b51f Chicony Electronics Co., Ltd HD WebCam
+Bus 002 Device 005: ID 0bda:0129 Realtek Semiconductor Corp. RTS5129 Card Reader Controller
+Bus 003 Device 001: ID 1d6b:0003 Linux Foundation 3.0 root hub
