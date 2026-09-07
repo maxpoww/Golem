@@ -456,7 +456,7 @@ S[en:go_fail]='The install stopped — the log is above.'
 S[en:f_keys]='ENTER to continue'
 S[en:e_name]='Letters and digits, starting with a letter.'
 S[en:e_pass]='Type a password.'
-S[en:luks_on]='on'
+S[en:luks_on]='LOCKED'
 S[en:luks_off]='off'
 S[en:adv_row]='Advanced'
 S[en:t_adv]='Advanced'
@@ -471,6 +471,13 @@ S[en:luks_no]='No'
 S[en:t_lpass]='Drive passphrase'
 S[en:p_lpass]='If you forget this, the drive cannot be opened — there is no recovery.'
 S[en:e_lpass]='At least 8 characters.'
+S[en:t_lcpass]='Type the passphrase again'
+S[en:e_lcpass]='The passphrases do not match — type both again.'
+S[en:erased_enc]='will be erased and encrypted'
+# The scare, deliberately (Max, round 2): a stranger who turns this on
+# without knowing what it means can lose everything. Say the cost plainly.
+S[en:luks_warn]='You will be asked for this passphrase EVERY time this device starts. There is no reset and no recovery — if you forget it, everything on the drive is lost forever. Only turn this on if you understand that.'
+S[en:luks_ack]='ENTER — I understand · ESC — turn encryption off'
 S[en:l_luks]='encryption'
 S[en:e_host]='Letters, digits and dashes.'
 
@@ -500,7 +507,7 @@ S[es:go_fail]='La instalación se detuvo — el registro está arriba.'
 S[es:f_keys]='ENTER para continuar'
 S[es:e_name]='Letras y números, empezando por una letra.'
 S[es:e_pass]='Escribe una contraseña.'
-S[es:luks_on]='activado'
+S[es:luks_on]='BLOQUEADO'
 S[es:luks_off]='desactivado'
 S[es:adv_row]='Avanzado'
 S[es:t_adv]='Avanzado'
@@ -544,7 +551,7 @@ S[fr:go_fail]='L’installation s’est arrêtée — le journal est au-dessus.'
 S[fr:f_keys]='ENTER pour continuer'
 S[fr:e_name]='Lettres et chiffres, en commençant par une lettre.'
 S[fr:e_pass]='Saisissez un mot de passe.'
-S[fr:luks_on]='activé'
+S[fr:luks_on]='VERROUILLÉ'
 S[fr:luks_off]='désactivé'
 S[fr:adv_row]='Avancé'
 S[fr:t_adv]='Avancé'
@@ -588,7 +595,7 @@ S[de:go_fail]='Die Installation hielt an — das Protokoll steht oben.'
 S[de:f_keys]='ENTER zum Fortfahren'
 S[de:e_name]='Buchstaben und Ziffern, beginnend mit einem Buchstaben.'
 S[de:e_pass]='Gib ein Passwort ein.'
-S[de:luks_on]='an'
+S[de:luks_on]='GESPERRT'
 S[de:luks_off]='aus'
 S[de:adv_row]='Erweitert'
 S[de:t_adv]='Erweitert'
@@ -632,7 +639,7 @@ S[it:go_fail]='L’installazione si è fermata — il log è sopra.'
 S[it:f_keys]='ENTER per continuare'
 S[it:e_name]='Lettere e cifre, iniziando con una lettera.'
 S[it:e_pass]='Scrivi una password.'
-S[it:luks_on]='attiva'
+S[it:luks_on]='BLOCCATO'
 S[it:luks_off]='disattiva'
 S[it:adv_row]='Avanzate'
 S[it:t_adv]='Avanzate'
@@ -676,7 +683,7 @@ S[pt:go_fail]='A instalação parou — o registo está acima.'
 S[pt:f_keys]='ENTER para continuar'
 S[pt:e_name]='Letras e algarismos, começando por uma letra.'
 S[pt:e_pass]='Escreva uma palavra-passe.'
-S[pt:luks_on]='ativada'
+S[pt:luks_on]='BLOQUEADO'
 S[pt:luks_off]='desativada'
 S[pt:adv_row]='Avançado'
 S[pt:t_adv]='Avançado'
@@ -2296,11 +2303,15 @@ step_disk() {
   DISK_TARGET=${DISK_DEV[$DISK_ROW]}
   # Capitalise the red tail's first letter here — "(Will be erased)" — the
   # same descriptive-value rule as the census.
-  local e; e=$(t erased)
+  # The red tail says the consequence: just "erased" normally, "erased and
+  # encrypted" when LUKS is on (Max, round 2) — so the summary a person
+  # confirms names the encryption on the very line about their disk.
+  local e; e=$(t erased); [ "$LUKS" = yes ] && e=$(t erased_enc)
   settle "$(t l_disk)" "${DISK_MODEL[$DISK_ROW]}  ${DISK_SIZE[$DISK_ROW]}" "" "" "(${e^})"
   # Only worth a row of its own once it is on: "encryption off" on every
-  # install would be a line about a non-event.
-  [ "$LUKS" = yes ] && settle "$(t l_luks)" "$(t luks_on)"
+  # install would be a line about a non-event. LOCKED in the danger colour
+  # (arg 4 = value colour), matching the Advanced row.
+  [ "$LUKS" = yes ] && settle "$(t l_luks)" "$(t luks_on)" "" "$C_RED"
   return 0
 }
 
@@ -2354,11 +2365,15 @@ valid_lpass() {
 # two that are not built are listed, selectable, and answer honestly.
 ADV_MSG=''
 step_advanced() {
+  local seed_row=0
   while :; do
     screen; stack
     hide_cursor
     local luks_row="$(t adv_luks)"
-    [ "$LUKS" = yes ] && luks_row="$luks_row — $(t luks_on)"
+    # LOCKED in the danger colour, not the same ink as everything else
+    # (Max, round 2): encryption is the one irreversible-if-you-lose-the-key
+    # choice, so its state stands out on the row that carries it.
+    [ "$LUKS" = yes ] && luks_row="$luks_row — ${C_RED}$(t luks_on)${NORM}"
     # Order per Max, 2026-09-05. Not by how finished they are — dual boot
     # and partition installs are the two that are not built — but by how
     # a person thinks about the disk: what else is on it, then which part
@@ -2377,11 +2392,15 @@ step_advanced() {
     PICK_TITLE=$(t t_adv)
     [ -n "$ADV_MSG" ] && PICK_TITLE="$PICK_TITLE — $ADV_MSG"
     ADV_MSG=''
-    SEED=0; QUERY=''
+    SEED=$seed_row; QUERY=''
+    seed_row=0
     pick || return 0             # backing out is the same as Back
     case $PICKED in
       0|1) ADV_MSG=$(t adv_soon) ;;   # dual boot, partition — not built
-      2)   step_luks ;;
+      # After turning encryption on, reopen with Back highlighted (Max,
+      # round 2): the person sees "— LOCKED" and one ENTER returns them to
+      # the drive list, rather than landing back on Dual-Boot.
+      2)   step_luks; [ "$LUKS" = yes ] && seed_row=3 ;;
       3)   return 0 ;;
     esac
   done
@@ -2401,8 +2420,24 @@ step_luks() {
   [ "$PICKED" = 0 ] && LUKS=yes || LUKS=no
 
   if [ "$LUKS" = yes ]; then
-    screen; stack
-    ask_field "$(t t_lpass)" "$(t p_lpass)" "" valid_lpass
+    # TYPED TWICE (Max, round 2), even though it is shown in the clear: this
+    # is the one secret with no recovery, so a second entry is deliberate
+    # friction, not redundancy — the same gate the account password has.
+    # Mismatch sends you back to the first field.
+    local lp1
+    while :; do
+      screen; stack
+      if ! ask_field "$(t t_lpass)" "$(t p_lpass)" "" valid_lpass; then
+        LUKS=no; return 1                # ESC on the passphrase = no encryption
+      fi
+      lp1=$FIELD_VALUE
+      screen; stack
+      if ask_field "$(t t_lcpass)" "$(t p_lpass)" "" valid_lpass; then
+        [ "$FIELD_VALUE" = "$lp1" ] && break
+        FIELD_ERR_INIT=$(t e_lcpass)
+      fi
+    done
+
     # THE PASSPHRASE CANNOT BE HASHED — cryptsetup needs the real thing to
     # format the container — so it cannot ride in the answers file either.
     # It goes to a 0600 file in TMPDIR, which on the medium is a tmpfs and
@@ -2410,8 +2445,24 @@ step_luks() {
     # shreds it the moment the container exists.
     LUKS_KEYFILE=$(mktemp "${TMPDIR:-/tmp}/golem-luks.XXXXXX")
     chmod 600 "$LUKS_KEYFILE"
-    printf '%s' "$FIELD_VALUE" > "$LUKS_KEYFILE"
-    FIELD_VALUE=''
+    printf '%s' "$lp1" > "$LUKS_KEYFILE"
+    lp1=''; FIELD_VALUE=''
+
+    # The scare, on its own screen: a full-drive-encryption stranger who
+    # does not grasp "no recovery" can lose everything, so make them
+    # acknowledge it. ESC here backs all the way out — encryption off.
+    screen; stack
+    hide_cursor
+    printf '\n%s%s%s%s\n' "$IND" "$C_RED" "$(t luks_warn)" "$NORM"
+    printf '\n%s%s%s%s\n' "$IND" "$C_DIM" "$(t luks_ack)" "$NORM"
+    while :; do
+      read_key || continue
+      case $KEY in
+        ENTER) break ;;
+        ESC)   LUKS=no; rm -f "$LUKS_KEYFILE"; LUKS_KEYFILE=''; return 1 ;;
+        *)     ;;
+      esac
+    done
   fi
 
   show_cursor
@@ -2714,6 +2765,7 @@ hw_row() {                       # $1 label, $2 "name · driver" (driver opt.)
 hardware_reveal() {
   if [ "$FAKE_CENSUS" = yes ]; then
     hw_row GPU         "Intel Iris Xe · i915"
+    hw_row GPU         "AMD Radeon RX 6600M · amdgpu"
     hw_row Wi-Fi       "Intel AX211 · iwlwifi"
     hw_row Ethernet    "Realtek RTL8111 · r8169"
     hw_row audio       "Realtek ALC287 · snd_hda_intel"
@@ -2727,7 +2779,10 @@ hardware_reveal() {
   # "Kernel driver in use:" names the module. Pull the three classes that
   # matter, each with its driver.
   local pci; pci=$(lspci -k 2>/dev/null || true)
-  hw_row GPU       "$(hw_pci "$pci" 'VGA|3D|Display')"
+  # One GPU row per display controller (see hw_pci_all): a hybrid shows both
+  # its Intel iGPU and its AMD/nvidia dGPU, matching what is on the case.
+  while IFS= read -r g; do [ -n "$g" ] && hw_row GPU "$g"; done \
+    < <(hw_pci_all "$pci" 'VGA|3D|Display')
   hw_row Wi-Fi     "$(hw_pci "$pci" 'Network controller')"
   # Ethernet too, or a wired-only machine shows NO networking at all — the
   # Comodore has only a Marvell NIC and its whole network row was blank
@@ -2776,6 +2831,26 @@ hw_pci() {
     END { if (matched) print out }'
 }
 
+# Like hw_pci but prints EVERY matching device, one per line — for the GPU
+# row, because a switchable-graphics laptop has two and showing only the
+# first (the Intel iGPU) while the lid wears a big red "AMD Radeon" sticker
+# reads as "we don't know your hardware" (Max, round 2). One flush() per
+# device boundary, so each match is emitted with its own driver.
+hw_pci_all() {
+  printf '%s' "$1" | awk -v want="$2" '
+    function flush() { if (matched && out != "") print out; matched=0; out="" }
+    /^[0-9a-f]+:[0-9a-f]+/ {
+      flush()
+      if ($0 ~ want) {
+        matched=1; line=$0; sub(/ \(rev [0-9a-f]+\)$/,"",line)
+        i=index(line,": "); out=substr(line,i+2)
+      }
+      next
+    }
+    matched && /Kernel driver in use:/ { out = out " \xc2\xb7 " $NF }
+    END { flush() }'
+}
+
 hw_usb() {  # lsusb line for $1, trimmed to the vendor-product description
   lsusb 2>/dev/null | grep -m1 -i "$1" | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //' || true
 }
@@ -2803,9 +2878,32 @@ hw_bt() {
   return 0
 }
 
-hw_input() {  # a /proc input device whose Name matches $1
-  awk -F'"' -v want="$1" '/^N: Name=/ && $2 ~ want { print $2; exit }' \
-    /proc/bus/input/devices 2>/dev/null || true
+hw_input() {  # a /proc input device whose Name matches $1 → "name · driver"
+  # Round 1 returned just the Name, so the touchpad row had no "· driver"
+  # while every other row did (Max, round 2). Pull the matching block's
+  # Sysfs path too and walk UP it to the bound kernel driver (a touchpad's
+  # driver — hid-multitouch, psmouse, i2c_hid — lives a few nodes above the
+  # inputN leaf), so the row reads name-first, driver-as-footnote like the
+  # rest. No driver found (rare) → just the name, as before.
+  local devs=/proc/bus/input/devices line name sysfs p drv i
+  [ -r "$devs" ] || return 0
+  # A `found` flag, not `exit`: awk's exit runs END with n/s still set, so
+  # exit-on-match double-prints and the second line corrupts $sysfs (the
+  # same trap hw_pci hit in round 1). Guard both the blank-line print and
+  # END; END covers a final block with no trailing blank line.
+  line=$(awk -F'"' -v want="$1" '
+    /^N: Name=/  { n=$2 }
+    /^S: Sysfs=/ { s=substr($0,10) }
+    /^$/ { if (!found && n ~ want && n != "") { print n "\t" s; found=1 } n=""; s="" }
+    END  { if (!found && n ~ want && n != "") print n "\t" s }' "$devs" 2>/dev/null)
+  [ -n "$line" ] || return 0
+  name=${line%%$'\t'*}; sysfs=${line#*$'\t'}
+  p="/sys$sysfs"
+  for i in 1 2 3 4 5 6; do
+    p=$(dirname "$p"); { [ "$p" = /sys ] || [ "$p" = / ]; } && break
+    [ -e "$p/driver" ] && { drv=$(basename "$(readlink -f "$p/driver" 2>/dev/null)" 2>/dev/null); break; }
+  done
+  if [ -n "${drv:-}" ]; then printf '%s · %s' "$name" "$drv"; else printf '%s' "$name"; fi
 }
 
 # A fingerprint reader is a USB device by vendor id (the probe's own list).
@@ -2834,8 +2932,19 @@ PROBE_PID=''
 probe_compute() {                # the honest count — devices with a driver
   local total have
   if command -v lspci >/dev/null 2>&1; then
-    total=$(lspci 2>/dev/null | wc -l)
-    have=$(lspci -k 2>/dev/null | grep -c 'Kernel driver in use:')
+    # Count PERIPHERALS, not chipset glue. PCI bridge-class devices (class
+    # 0x06xx: host bridge, PCI/ISA bridge, QPI registers) NEVER bind a
+    # driver on any OS and are not hardware a person thinks about — the HP
+    # read "23/31 (74%)" purely because its 8 QPI/bridge registers sat in
+    # the denominator (round 2). Exclude class 06xx from both totals via
+    # `lspci -nk` (numeric class in $2), so the ratio reflects real devices.
+    local pci; pci=$(lspci -nk 2>/dev/null)
+    total=$(printf '%s\n' "$pci" | awk '/^[0-9a-f]+:[0-9a-f]+/ && $2 !~ /^06/ {n++} END{print n+0}')
+    have=$(printf '%s\n' "$pci" | awk '
+      function flush() { if (per && drv) h++; per=0; drv=0 }
+      /^[0-9a-f]+:[0-9a-f]+/ { flush(); per=($2 !~ /^06/) }
+      /Kernel driver in use:/ { drv=1 }
+      END { flush(); print h+0 }')
   fi
   if [ -d /sys/bus/usb/devices ]; then
     local u ut=0 uh=0

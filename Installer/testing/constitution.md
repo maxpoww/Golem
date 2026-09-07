@@ -116,7 +116,28 @@ working record behind those boxes; PLAN.md is the summary in front of them.
 
 ## Rounds
 
-### Round 1 — all five tested, ready to close (2026-09-06)
+### Round 2 — open (2026-09-07)
+
+- **ISO under test:** `/nix/store/6k589761…-golem-installer.iso` (HEAD
+  `ec093ef`). Carries everything round 1 fixed PLUS the decided build:
+  BIOS boot (firmware fact → GRUB path + BIOS-boot partitioning),
+  all-hardware firmware on the medium, Broadcom `wl` on the installed
+  target, the GMA intelLegacy fix, and the surface fixes now frozen in
+  (no more live overlay).
+- **What round 2 must prove:** the BIOS path on the 3 BIOS machines (the
+  biggest untested code), i965 on the GMA machine, the MacBook target
+  carrying `wl`, a LUKS rehearsal, and fixtures pulled for CI.
+- **Laptops:**
+  - acer ☑ — pass + LUKS proven on metal + encryption UX hardened
+  - comodore ☑ — GMA→i965 & firmware=bios confirmed on metal; install
+    unrunnable at 1.9 GB (RAM-floor finding #16); BIOS rehearsal deferred
+  - hp ☑ — **BIOS install branch PROVEN end to end** (ef02 partition,
+    grub.device by-id, GRUB target eval 43 s, disk safe); "74%" explained
+    = chipset bridges (#10 concrete fix)
+  - dell ☐ · macbook ☐
+- **Big picture:** _pending round completion._
+
+### Round 1 — all five tested, closed (2026-09-06)
 
 - **ISO under test:** `/nix/store/kizf3l8kl0qbq2hpjw9hl3qvck8jgf6c-golem-installer.iso`
 - **Tree:** on top of `4461600`, dirty (rehearsal mode + cores/hostname

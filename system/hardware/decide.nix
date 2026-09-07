@@ -92,7 +92,12 @@ lib.filter (s: s != null) [
     (row "total" "${toString facts.ramMB} MB")
     (row "zram"
       (if cfg.zramSwap.enable
-      then "${toString cfg.zramSwap.memoryPercent}% of ram, ${cfg.zramSwap.algorithm}, priority ${toString cfg.zramSwap.priority}"
+      # Just "active" — no percentage, no size (Max, round 2). Any number
+      # here is misread: "50% of 8 GB" reads as "am I losing half my RAM?"
+      # or "do they only see half of it?", and the device can exceed RAM on
+      # small machines (zram is compressed) which looks impossible. A number
+      # a stranger will misread is worse than no number.
+      then "active, ${cfg.zramSwap.algorithm}, priority ${toString cfg.zramSwap.priority}"
       else "off"))
     (row "swappiness" (toString sysctl."vm.swappiness"))
     (row "cache pressure" (toString sysctl."vm.vfs_cache_pressure"))

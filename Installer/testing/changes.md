@@ -26,6 +26,101 @@ the same Golem.
 
 ## Queued for the next ISO
 
+### 17. Muxless AMD hybrid — dGPU failing/spamming, census picks the wrong GPU — [NEEDS MAX]
+- **what (HP Pavilion dm4, round 2):** the kernel spams
+  `radeon 0000:01:00.0: No VRAM object for PCIE GART` +
+  `evergreen startup failed on resume`, repeatedly, over the installer
+  console. Diagnosis: it's a MUXLESS hybrid — card0 i915 `enabled=1` drives
+  the display; card1 radeon `enabled=0`, runtime `suspended`;
+  vgaswitcheroo shows `IGD:+:Pwr` (Intel active) / `DIS: :DynOff` (AMD off).
+  Something keeps runtime-resuming the sleeping AMD Evergreen dGPU, the
+  resume fails, it re-suspends, repeat → console flood. **The display is
+  fine (Intel); the machine is not broken.**
+- **it corrects the reveal:** "AMD … · radeon" is bound but NOT functional
+  (dGPU off, can't resume). And the census `gpu = "amd"` is the wrong
+  PRIMARY here — the priority nvidia>amd>intel picks the discrete GPU, but
+  the ENABLED/display GPU is the Intel iGPU. On a muxless hybrid the
+  `enabled=1` card is the real primary.
+- **three parts:**
+  a. **[round 3, concrete]** quiet the kernel console while golem-setup
+     runs (lower console loglevel / installer owns tty1) so the reveal
+     isn't buried in radeon errors. They stay in dmesg/journal.
+  b. **[NEEDS-MAX]** census GPU logic: on a hybrid, prefer the enabled
+     display GPU (check `/sys/class/drm/card*/device/enable` +
+     vgaswitcheroo) rather than always winning for the dGPU. Here → intel.
+  c. **[NEEDS-MAX]** installed system: cleanly power the failing old dGPU
+     OFF (stop radeon resume attempts) for no spam + battery, rather than
+     treat it as usable.
+- **RECOMMENDATION (pending Max's confirm — he went to bed):** option (a)
+  for these old muxless AMD hybrids — **Intel drives the display, the dGPU
+  is left powered off/quiet** — the reliable path, over trying PRIME
+  offload to a GPU that won't even resume. Fits the broad-old-hardware
+  north star (dm4-class machines are common). Console-quiet (17a) can ship
+  round 3 regardless.
+- **where:** `system/hardware-detect.nix` (hybrid-aware gpu pick),
+  `system/hardware/` (dGPU power-off), `iso.nix`/audit (console loglevel).
+
+### 16. Very-low-RAM machines can't run the local install eval — [NEEDS MAX]
+- **what:** on ~2 GB the boot census runs (barely) but `golem-install`
+  itself makes the machine unresponsive — not only the target eval, even
+  the early `nix eval` (swap rule) + seed copy thrash it into a swap spiral
+  (Comodore 1931 MB, round 2; Dell at 1.8 GB in round 1 same). A LOCAL
+  eval/build install is not viable below ~2–3 GB.
+- **why:** reinforces the closure-delivery open question (PLAN.md's biggest
+  item). Options: (a) deliver a PREBUILT closure and skip local evaluation
+  entirely on such machines; (b) have the installer detect very-low-RAM up
+  front and either refuse with a clear message or switch to a
+  no-local-eval path, rather than thrash into an unresponsive box; (c)
+  accept ~2 GB as below the supported floor and say so.
+- **where:** install strategy (closure delivery) + a RAM preflight in
+  `install.nix` / the surface.
+- **size:** NEEDS-MAX — ties into the closure-delivery decision (round 4).
+
+### R3-1. Touchpad reveal row had no driver — [applied to source · verified on Acer · round 3]
+- **what:** every reveal row reads "name · driver" except the touchpad,
+  which showed only the name (Max, round 2). `hw_input` returned just the
+  /proc Name; now it also reads the block's `S: Sysfs=` path and walks UP
+  it to the bound kernel driver. Acer touchpad now reads
+  `SYN1B81:01 06CB:2970 Touchpad · hid-multitouch`.
+- **also fixed a bug in the doing:** the parse used `exit` on match, and
+  awk's exit runs END with the vars still set — the SAME double-print trap
+  hw_pci hit in round 1 — which corrupted `$sysfs` and hid the driver.
+  Now a `found` flag, no exit.
+- **where:** `mockup/install-cli` `hw_input`.
+
+### R3-3. Encryption was too easy to enable by accident — [applied to source · verified live on Acer · round 3]
+Max drove the LUKS flow (round 2) and it let a stranger walk into
+irreversible data loss too easily. Made it deliberately hard, all verified
+live on the Acer (`mockup/install-cli`):
+- **passphrase typed twice** (`step_luks`): confirm field + mismatch retry.
+  The one secret with no recovery gets the same gate as the account
+  password, even though it's shown in the clear.
+- **a full-screen red warning** after confirmation — "asked EVERY time …
+  no recovery … lost forever" — that must be acknowledged; ESC turns
+  encryption off (`luks_warn` / `luks_ack` strings).
+- **state reads `LOCKED`** (was "on"), in the danger colour, on the
+  Advanced row and the summary item (translated: BLOQUEADO / VERROUILLÉ /
+  GESPERRT / BLOCCATO).
+- **default selection returns to Back** after enabling (`seed_row=3`), so
+  the person sees "— LOCKED" and one ENTER returns to the drive list.
+- **disk summary reads "(Will be erased and encrypted)"** when on
+  (`erased_enc` string).
+- **why:** Max — "we don't want people to use encryption if they don't
+  know what that is … they can lose data. so scare them." LOCKED (not
+  "on") tells the truth without lying about what it costs.
+
+### R3-2. zram row shows a confusing percentage — [applied to source · verified · round 3]
+- **what:** the zram row read "150% of ram". Interpolating the real RAM
+  ("150% of 3833 MB") made it WORSE, not better: the % is RAM-tiered and
+  EXCEEDS 100% on small machines (1 GB → 150% → a 1.5 GiB device, which
+  looks impossible until you know zram is compressed), and even "50% of
+  8 GB" is misread as "am I losing half my RAM / do they only see half?".
+  **Decision (Max, round 2): show no number — just `active`.** A number a
+  stranger will misread is worse than no number.
+- **now reads:** `zram   active, zstd, priority 100` on every machine.
+- **where:** `system/hardware/decide.nix` (the ram section's zram row).
+
+
 ### 1. Hardware reveal shows only the last PCI device — [applied to source · verified live on Acer + MacBook]
 - **what:** rewrite `hw_pci` so it captures the FIRST device matching the
   class and strips the "busid class:" prefix. `lspci -k` has no blank lines
@@ -115,7 +210,45 @@ the same Golem.
   step exit paths.
 - **size:** needs-Max — is persisting the applied keymap desired or not?
 
-### 10. The driver count measures the bare medium but says "will be installed" — [DECIDED: all-in — carry all-hardware firmware on the medium]
+### 10. The driver count counted chipset bridges — [DONE · verified live on HP · round 3]
+**Fixed (round-2 build):** `probe_compute` now excludes PCI bridge-class
+devices (0x06xx — host/PCI/ISA bridges, QPI registers) that never bind a
+driver. HP went from a misleading "23 of 31 (74%)" to an honest **"19 of
+19 (100%)"** — every real peripheral driven. (The medium already carries
+all firmware; see the round-2 correction below for that story.)
+
+
+**CORRECTION (round-2 build, 2026-09-07).** Inspecting the round-2 squashfs
+showed the medium ALREADY carried `linux-firmware` all along (the
+installation-cd profile pulls it via all-hardware.nix) — 10,931 firmware
+files, incl. brcmfmac blobs. So the round-1 story "the minimal medium ships
+almost no firmware" was WRONG. `enableAllFirmware` in iso.nix now adds the
+UNFREE firmware on top (broadcom-bt for the MacBook's BT, facetimehd, etc.,
++4.5 MB) — a real but small gain, not the hundreds of MB I expected.
+
+Consequences to re-examine:
+- The HP's "74% (23/31)" is therefore NOT simply missing firmware. The 8
+  driverless devices were never enumerated (the HP dropped offline). Needs a
+  real look in round 2 — some may be genuinely unhandled on the medium, some
+  firmware-gated-but-now-present. The metric's "will be installed" wording is
+  still misleading and #10c (fix the wording) still stands.
+- The MacBook BCM4360 has NO brcmfmac firmware upstream (Broadcom never
+  released it) — which is exactly why it needs `wl`. So firmware-on-medium
+  does NOT light up the MacBook wifi; only `wl` does. That lives on the
+  INSTALLED target (finding #5, broadcom-wifi.nix) — and since the install
+  is OFFLINE, the medium never needs MacBook wifi. Optional future polish:
+  add `wl` to the medium for a live-session-with-wifi UX.
+
+**CONCRETE FIX (HP enumerated, round 2):** the HP's "23/31 (74%)" is
+chipset glue, not missing support — its 8 driverless PCI devices are ALL
+host bridges / PCI bridges / QPI registers (class 0x06xx), which no OS ever
+binds a driver to. Fix `probe_compute` (mockup/install-cli) to EXCLUDE PCI
+bridge-class devices (0x0600–0x06ff) from both numerator and denominator,
+so the count reflects real peripherals. Then the HP reads ~100%. This is
+the honest fix, better than rewording — round 3.
+
+Original (round-1) framing below, kept for the record:
+
 - **what:** `probe_compute` counts devices with a kernel driver bound ON
   THE RUNNING MEDIUM (`lspci -k | grep -c 'Kernel driver in use'` +
   USB with /driver), and the label says "%h of %t drivers **will be
@@ -199,7 +332,13 @@ LOOK at the physical console to confirm no boxes — can't be seen over SSH.
 - **where:** `system/hardware/decide.nix` (the gpu section's video-decode row).
 - **size:** small.
 
-### 9. Reveal GPU row shows the iGPU, not the decided dGPU (hybrid machines) — [small-medium]
+### 9. Reveal GPU row shows the iGPU, not the decided dGPU (hybrid machines) — [DONE · verified live on HP · round 3]
+**Fixed (round-2 build):** `hw_pci_all` enumerates EVERY display controller,
+so a hybrid shows both. HP now lists `Intel … · i915` AND `AMD/ATI Robson
+CE [Radeon HD 6370M/7370M] · radeon` — matching the big red AMD sticker on
+the lid, which was Max's whole point (round 2: "our installer showing only
+an intel GPU"). Original diagnosis below.
+
 - **what:** on a switchable-graphics laptop, `hw_pci 'VGA|3D|Display'`
   returns the FIRST VGA controller — the Intel iGPU — so the reveal says
   "GPU: Intel · i915" while the census DECISION is about the discrete GPU

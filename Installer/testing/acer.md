@@ -99,3 +99,57 @@ So the queued fixes are verified on the Acer. They stay queued in
 changes.md (marked verified-live) and ship in the round-close ISO; the
 frozen stick is unchanged. The same live overlay will be applied and
 re-verified on each subsequent laptop, across its own hardware.
+
+## Round 2 — 2026-09-07 — PASS, no findings
+
+- **ISO:** round-2 (`6k589761…`, HEAD `ec093ef`). Confirmed by the NEW
+  `firmware = "uefi"` census fact (didn't exist in round 1). All round-1
+  fixes now frozen in — no live overlay needed.
+- **Boot:** UEFI. Joined HOLA on its own (192.168.1.99), census ok.
+- **Census:** i5-5200U, cores=2/threads=4, ram 3833, gpu intel,
+  intelLegacy=false (Broadwell → iHD), **firmware = "uefi"** (new),
+  panelDpi 102, bluetooth, laptop. No broadcomWifi (correct — QCA9377 is
+  Qualcomm). All correct.
+- **Surface / reveal (frozen round-2 golem-setup):** full list — GPU
+  (HD 5500 · i915), Wi-Fi (QCA9377 · ath10k_pci), **Ethernet (RTL8111 ·
+  r8169 — NEW, round 1 missed it)**, Audio (· snd_hda_intel), Bluetooth
+  (· btusb), Touchpad. **23 of 23 (100%)**. Hostname `acer` typed clean.
+- **Rehearsal:** status ok, 0 findings, bar to 100%. checks.txt all green
+  incl. the round-2 firmware line **`ok firmware: booted UEFI —
+  systemd-boot to the ESP`** (was a hard FAIL for BIOS machines in round 1;
+  now a real path). eval 31 s → `nixos-system-acer`. `/dev/sda` factory
+  NTFS intact before and after (2 NTFS partitions) — Windows safe.
+- **Findings → changes.md:** none.
+- **Verdict:** PASS. The round-2 ISO boots and rehearses correctly on the
+  Acer; the new firmware fact and Ethernet row work; every round-1 fix
+  carried forward frozen.
+
+### Round 2 — LUKS rehearsal + encryption UX (2026-09-07)
+
+**The LUKS engine, proven on metal for the first time** (PLAN.md had it as
+"not yet proven on metal or in the VM"). Drove golem-setup → Advanced →
+encryption on the Acer (UEFI). Rehearsal `status ok`, eval 18 s, checks all
+green. Transcript recorded the encrypted plan: `cryptsetup luksFormat` →
+`open` → `pvcreate`/`vgcreate`/`lvcreate swap`+`root` (ESP + one LUKS2
+container + LVM inside, per the design). `machine.nix` carried
+`boot.initrd.luks.devices.golem.device` (placeholder UUID in rehearsal, as
+built). Keyfile kept (rehearsal opened nothing), then shredded.
+**`/dev/sda` still factory NTFS (2 partitions) — Windows intact.**
+
+**Encryption UX — Max drove it and found gaps; all fixed and verified live
+(round-3 golem-setup overlay, ISO frozen).** → changes.md R3-3:
+- **Passphrase now typed TWICE.** Verified the match path AND the mismatch
+  path ("The passphrases do not match — type both again." → back to the
+  first field).
+- **Warning screen** after confirmation, in the danger colour: "asked
+  EVERY time this device starts … no recovery … lost forever". ESC there
+  turns encryption back off.
+- **State reads `LOCKED`** (was "on"), in red, on the Advanced row AND the
+  summary — not the same ink as everything else.
+- **Default selection returns to Back** after enabling, so one ENTER goes
+  back to the drive list.
+- **Summary disk line reads "(Will be erased and encrypted)"** when on.
+- Also confirmed here: the round-3 touchpad-driver fix (`· hid-multitouch`)
+  renders in golem-setup.
+- **Verdict:** LUKS engine PASS on metal; encryption is now deliberately
+  hard to enable by accident, which is the point.

@@ -70,3 +70,36 @@ reveal detection gaps, both fixed and re-verified live on the Comodore
 The reveal went from 2 rows (GPU, Audio) to 4 (GPU, Ethernet, Audio,
 Touchpad). Also applied this pass: invitation option A + rotation 5s→4s
 (#13).
+
+## Round 2 — 2026-09-07 — census wins CONFIRMED · install unrunnable (RAM floor)
+
+Reached only in the brief window right after a reboot (Max rebooted; no
+spare RAM for this one). It thrashes into unresponsiveness under any real
+load on **1931 MB**.
+
+- **GMA fix (#12) PROVEN on metal:** census now reads **`intelLegacy =
+  true`** for the GMA 4500 (0x2a42) — round 1 read `false` (the bug → a
+  broken iHD); round 2 → the legacy i965 path. Fixed on the exact machine
+  that exposed it. (i965 follows from intelLegacy=true in decide.nix,
+  verified.)
+- **`firmware = "bios"` CONFIRMED:** the new census firmware fact correctly
+  detects BIOS boot.
+- **gpu intel, T4200, ram 1931** — as round 1.
+- **Disk safe:** `/dev/sda` before-snapshot = ext4 "root" (`fc240c7b…`) +
+  swap; rehearsal writes nothing by design and barely started, so untouched.
+
+- **FINDING — the install cannot RUN on 1.9 GB, only the census can.**
+  `golem-install --rehearse` made the machine unresponsive the instant it
+  started — before the target eval even, at the early `nix eval` (swap
+  rule) + seed copy. sshd stopped answering (TCP open, handshake times
+  out). So on this box the boot census works (barely), but the installer's
+  own nix evaluation does not. This is the low-RAM floor made concrete:
+  ~2 GB is below what a LOCAL eval/build install needs. Reinforces the
+  closure-delivery open question — a sub-2 GB machine must receive a
+  PREBUILT closure and skip local evaluation, or the installer should
+  detect very-low-RAM and refuse/redirect rather than thrash. → changes.md.
+- **BIOS install-path rehearsal:** could not be captured here (RAM). Will
+  be proven on the Dell (now 3.8 GB) or HP — both BIOS, neither starved.
+- **Verdict:** the two Comodore round-2 census fixes are confirmed on
+  metal; the machine itself is below the install's RAM floor — a finding,
+  not a Golem bug.
