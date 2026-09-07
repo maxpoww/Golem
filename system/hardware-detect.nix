@@ -94,14 +94,29 @@
             0x8086)
               have_intel=1
               intel_slot=$(slot_of "$(dirname "$v")")
-              # Pre-Skylake Intel iGPUs (Haswell/Ivy Bridge and older, PCI
-              # device id < 0x1600) need the LEGACY i965 VA-API driver — iHD
-              # (intel-media-driver) only supports Broadwell+ and silently
-              # gives no hardware decode on older parts, which is exactly why a
-              # 2013 HD 5000 CPU-decodes VP9 and cooks the chip. Skylake+
-              # (>= 0x1900) and Broadwell (0x16xx) are fine on iHD.
+              # iHD (intel-media-driver) does hardware video decode only on
+              # Broadwell+ (Gen8+); older parts need the LEGACY i965 driver,
+              # or iHD silently gives no decode — which is why a 2013 HD 5000
+              # CPU-decodes VP9 and cooks the chip.
+              #
+              # The test is NOT a single threshold, because Intel's device
+              # ids do not grow monotonically with generation. Ironlake→
+              # Haswell sit below 0x1600 (0x0042–0x0d26); Broadwell (0x16xx),
+              # Skylake+ (0x1900+) and everything newer (0x3exx CoffeeLake,
+              # 0x9bxx CometLake, 0x46xx TigerLake…) sit above it and are fine
+              # on iHD. BUT the ancient GMA family (Gen3/4 — GMA 900 through
+              # X4500, 2005–2009) has ids in 0x2500–0x2e99, ABOVE 0x1600
+              # despite being the OLDEST — so a lone < 0x1600 test marked a
+              # GMA 4500 (0x2a42) as iHD-capable and got no decode (Comodore,
+              # round 1). Both ranges are legacy. (Braswell 0x22b0 is Gen8 and
+              # iHD-capable, and sits below 0x2500, so it is correctly not
+              # caught.) Display is unaffected either way — the kernel i915
+              # driver handles all of these.
               dev=$(tr -d '[:space:]' < "$(dirname "$v")/device" 2>/dev/null || true)
-              if [[ -n "$dev" ]] && (( dev < 0x1600 )); then intel_legacy=true; fi
+              if [[ -n "$dev" ]] && { (( dev < 0x1600 )) \
+                   || { (( dev >= 0x2500 )) && (( dev <= 0x2e99 )); }; }; then
+                intel_legacy=true
+              fi
               ;;
             0x1af4|0x1234|0x15ad) [[ "$gpu" == "auto" ]] && gpu="virtio" ;;
           esac
@@ -208,6 +223,29 @@
           break
         done
 
+        # ── Firmware: how this machine boots ────────────────────────────
+        # /sys/firmware/efi exists iff the kernel booted UEFI. The medium
+        # boots the way the machine's firmware is set, so this is also how
+        # the INSTALLED system must boot: uefi → systemd-boot, bios → GRUB.
+        # 3 of the 5 lab machines boot BIOS (round 1), so this is not an
+        # edge case. Nothing else gates on how we booted, so it is read here.
+        firmware="bios"
+        [[ -d /sys/firmware/efi ]] && firmware="uefi"
+
+        # ── Broadcom wifi: the driver a stranger cannot guess ───────────
+        # Broadcom (PCI vendor 0x14e4) wireless is the wifi that does not
+        # just work — brcmfmac wants redistributable firmware and some parts
+        # want the unfree broadcom_sta (wl) module. Detect the card so the
+        # installed system enables the driver unasked; the Intel-MacBook
+        # BCM4360 is exactly this, and it is a north-star target. Wireless
+        # PCI class is 0x0280xx; ethernet (0x0200xx) does not count.
+        broadcom_wifi=false
+        for d in /sys/bus/pci/devices/*; do
+          [[ -r "$d/vendor" && -r "$d/class" ]] || continue
+          [[ "$(cat "$d/vendor")" == "0x14e4" ]] || continue
+          case "$(cat "$d/class")" in 0x0280*) broadcom_wifi=true; break ;; esac
+        done
+
         # ── Emit ─────────────────────────────────────────────────────────
         # nvidia-only facts appear only on nvidia machines: a facts file is
         # data a human should be able to read top to bottom, so intel boxes
@@ -227,6 +265,7 @@
             ramMB = $ram_mb;
             gpu = "$gpu";
             intelLegacy = $intel_legacy;
+            firmware = "$firmware";
         EOF
           if [[ "$gpu" == "nvidia" ]]; then
             echo "    nvidiaGen = \"$nvidia_gen\";"
@@ -237,6 +276,7 @@
           fi
           [[ "$vm_guest" != "none" ]] && echo "    vmGuest = \"$vm_guest\";"
           [[ "$has_fp" == true ]] && echo "    fingerprint = true;"
+          [[ "$broadcom_wifi" == true ]] && echo "    broadcomWifi = true;"
           (( panel_dpi > 0 )) && echo "    panelDpi = $panel_dpi;"
           cat <<EOF
             hasBluetooth = $has_bt;

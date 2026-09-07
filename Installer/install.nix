@@ -221,6 +221,20 @@ pkgs.writeShellApplication {
       exit 2
     fi
 
+    # How this machine boots decides the whole first partition and the
+    # bootloader (see the census firmware fact). The installer runs on the
+    # machine it installs, so it reads /sys/firmware/efi directly — same
+    # source as the probe. UEFI → ESP + systemd-boot; BIOS → a 1 MiB
+    # BIOS-boot partition + GRUB. GPT on both, so a BIOS disk can still grow
+    # into dual-boot later (MBR's 4-partition limit could not).
+    firmware="bios"; [[ -d /sys/firmware/efi ]] && firmware="uefi"
+    # BIOS + LUKS would need GRUB to unlock the container (cryptomount) and
+    # is not built yet — refuse rather than produce an unbootable disk.
+    if [[ "$firmware" == "bios" && "$luks" == true ]]; then
+      echo "golem-install: encryption on a BIOS/legacy machine is not supported yet" >&2
+      exit 2
+    fi
+
     {
       echo "── plan ─────────────────────────────────────────"
       if [[ "$rehearse" == true ]]; then
@@ -228,7 +242,12 @@ pkgs.writeShellApplication {
       fi
       echo "  disk        $disk  ($(lsblk -ndo SIZE "$disk" | tr -d ' '))"
       echo "  RAM         $ram_mb MB"
-      echo "  ESP         512 MiB       label ESP"
+      echo "  firmware    $firmware  ($([[ "$firmware" == uefi ]] && echo 'systemd-boot' || echo 'GRUB'))"
+      if [[ "$firmware" == uefi ]]; then
+        echo "  ESP         512 MiB       label ESP"
+      else
+        echo "  bios-boot   1 MiB         (GRUB core, no filesystem)"
+      fi
       echo "  swap        $swap_mb MiB  label swap   (hibernation, locked)"
       echo "  root        rest          label golem"
       echo "  owner       $owner ($fullname)"
@@ -247,15 +266,15 @@ pkgs.writeShellApplication {
     # teaches hardens the real install for free, because they are the
     # same code path.
     #
-    # The target boots systemd-boot (system/configuration.nix), which is
-    # UEFI-only — a machine that booted this medium via BIOS/syslinux
-    # would take the whole install and then have nothing that can boot
-    # it. The lab has at least one such machine; this is the finding the
-    # rehearsal exists to catch before a disk is touched.
-    if [[ -d /sys/firmware/efi ]]; then
-      check_ok "firmware: booted UEFI — systemd-boot can be installed"
+    # The bootloader follows the firmware (both are now supported): UEFI
+    # installs systemd-boot to the ESP, BIOS installs GRUB to the disk via
+    # the BIOS-boot partition. This was a hard FAIL in round 1 (systemd-boot
+    # is UEFI-only and BIOS support did not exist); round 2 made BIOS a real
+    # path, so it is an ok line now, not a blocker.
+    if [[ "$firmware" == uefi ]]; then
+      check_ok "firmware: booted UEFI — systemd-boot to the ESP"
     else
-      check_fail "firmware: this machine booted BIOS/legacy — the target's systemd-boot cannot boot here"
+      check_ok "firmware: booted BIOS/legacy — GRUB to $disk (BIOS-boot partition)"
     fi
 
     # The medium must never be its own target: lsblk resolves the disk
@@ -278,9 +297,10 @@ pkgs.writeShellApplication {
     # fails at the very end of nixos-install, which is the worst possible
     # place to find out.
     disk_mb=$(( $(blockdev --getsize64 "$disk") / 1048576 ))
-    root_mb=$(( disk_mb - 512 - swap_mb ))
+    first_mb=512; [[ "$firmware" == bios ]] && first_mb=1
+    root_mb=$(( disk_mb - first_mb - swap_mb ))
     if (( root_mb >= 20480 )); then
-      check_ok "fit: root gets $root_mb MiB after ESP+swap (the closure needs ~19 GiB)"
+      check_ok "fit: root gets $root_mb MiB after boot+swap (the closure needs ~19 GiB)"
     else
       check_fail "fit: root would get $root_mb MiB of $disk_mb — the system closure alone is ~19 GiB"
     fi
@@ -366,7 +386,7 @@ pkgs.writeShellApplication {
       else
         luks_uuid=$(blkid -s UUID -o value "$(part 2)")
       fi
-    else
+    elif [[ "$firmware" == uefi ]]; then
       run sgdisk -n1:0:+512M   -t1:ef00 -c1:ESP   "$disk"
       run sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
       run sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
@@ -374,6 +394,21 @@ pkgs.writeShellApplication {
       run udevadm settle
 
       run mkfs.fat -F32 -n ESP "$(part 1)"
+      run mkswap -L swap "$(part 2)"
+      run mkfs.ext4 -F -L golem "$(part 3)"
+    else
+      # ── BIOS/legacy LAYOUT: GPT + a BIOS-boot partition + GRUB ──────
+      # GPT even on BIOS (not MBR) so the disk can grow into dual-boot; a
+      # 1 MiB partition of type ef02 (no filesystem) is where GRUB embeds
+      # core.img, since a GPT disk has no post-MBR gap for it. There is no
+      # ESP — BIOS firmware does not read one — and no separate /boot: GRUB
+      # reads /boot straight off the root ext4. So: bios-boot, swap, root.
+      run sgdisk -n1:0:+1M     -t1:ef02 -c1:bios  "$disk"
+      run sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
+      run sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
+      run partprobe "$disk" 2>/dev/null || true
+      run udevadm settle
+
       run mkswap -L swap "$(part 2)"
       run mkfs.ext4 -F -L golem "$(part 3)"
     fi
@@ -390,8 +425,12 @@ pkgs.writeShellApplication {
     # transcript lying about the install it rehearses).
     echo "##golem 2/6 filesystems"
     run mount /dev/disk/by-label/golem /mnt
-    mkdir -p "$mnt/boot"
-    run mount /dev/disk/by-label/ESP /mnt/boot
+    # The ESP is mounted only on UEFI (plain or LUKS). On BIOS there is no
+    # ESP: /boot lives on the root fs GRUB already reads, so nothing to mount.
+    if [[ "$firmware" == uefi ]]; then
+      mkdir -p "$mnt/boot"
+      run mount /dev/disk/by-label/ESP /mnt/boot
+    fi
     # ON before nixos-generate-config: that is how the swap partition ends
     # up in hardware-configuration.nix's swapDevices, which is what wires
     # boot.resumeDevice and the lid's suspend-then-hibernate. An install
@@ -449,11 +488,15 @@ pkgs.writeShellApplication {
         echo "  # mounted target and writes by-uuid paths. Same devices, found a"
         echo "  # different way; the labels are guaranteed by the partitioning."
         echo "  fileSystems.\"/\" = { device = \"/dev/disk/by-label/golem\"; fsType = \"ext4\"; };"
-        echo "  fileSystems.\"/boot\" = { device = \"/dev/disk/by-label/ESP\"; fsType = \"vfat\"; options = [ \"fmask=0022\" \"dmask=0022\" ]; };"
+        # UEFI has an ESP mounted at /boot; BIOS keeps /boot on the root fs
+        # (GRUB reads it there), so no /boot filesystem entry.
+        if [[ "$firmware" == uefi ]]; then
+          echo "  fileSystems.\"/boot\" = { device = \"/dev/disk/by-label/ESP\"; fsType = \"vfat\"; options = [ \"fmask=0022\" \"dmask=0022\" ]; };"
+        fi
         echo "  swapDevices = [ { device = \"/dev/disk/by-label/swap\"; } ];"
         echo "}"
       } > "$seed/hosts/target/hardware-configuration.nix"
-      note "hardware-configuration.nix synthesized: measured modules + by-label filesystems"
+      note "hardware-configuration.nix synthesized: measured modules + by-label filesystems ($firmware)"
     else
       nixos-generate-config --root /mnt
       cp /mnt/etc/nixos/hardware-configuration.nix "$seed/hosts/target/"
@@ -493,6 +536,17 @@ pkgs.writeShellApplication {
         echo "  # Unlocked once in initrd; swap and root are LVM inside it,"
         echo "  # which is what lets hibernation resume from an encrypted swap."
         echo "  boot.initrd.luks.devices.golem.device = \"/dev/disk/by-uuid/$luks_uuid\";"
+      fi
+      # On BIOS the target installs GRUB, which needs the DISK to embed into
+      # (the config default is a placeholder). This names the real target
+      # disk — the by-id path, stable across reboots where /dev/sda is not.
+      if [[ "$firmware" == bios ]]; then
+        disk_byid=$(for l in /dev/disk/by-id/*; do [[ "$(readlink -f "$l")" == "$disk" ]] && { echo "$l"; break; }; done)
+        [[ -n "$disk_byid" ]] || disk_byid="$disk"
+        echo
+        echo "  # BIOS/legacy boot: GRUB embeds into this disk's BIOS-boot"
+        echo "  # partition. by-id so it survives device-name reshuffles."
+        echo "  boot.loader.grub.device = \"$disk_byid\";"
       fi
       echo
       echo "  # The keyboard step's one answer. Four values, three sinks:"

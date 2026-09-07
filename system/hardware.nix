@@ -125,6 +125,30 @@ in
         updateMicrocode, see configuration.nix's firmware note).
       '';
     };
+    firmware = lib.mkOption {
+      type = lib.types.enum [ "uefi" "bios" ];
+      default = "uefi";
+      description = ''
+        How this machine boots, from /sys/firmware/efi at probe time. Drives
+        the bootloader (configuration.nix): "uefi" → systemd-boot, "bios" →
+        GRUB (BIOS/legacy). 3 of the 5 lab machines boot BIOS, and premium
+        ~2013 gaming rigs still do — legacy support is not an edge case.
+        Default "uefi": the safe modern assumption when no probe ran (the
+        live ISO, the dev host).
+      '';
+    };
+    broadcomWifi = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        A Broadcom (PCI 0x14e4) wireless card is present — the wifi that
+        does not just work. Drives the Broadcom driver stack
+        (hardware/broadcom-wifi.nix): redistributable firmware carries
+        brcmfmac for most parts (incl. the Intel-MacBook BCM4360), with the
+        unfree broadcom_sta (wl) enabled for reliability. Default false:
+        every other wifi is handled by in-tree drivers already present.
+      '';
+    };
     chassis = lib.mkOption {
       type = lib.types.enum [ "unknown" "laptop" "desktop" ];
       default = "unknown";

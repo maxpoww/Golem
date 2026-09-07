@@ -67,6 +67,21 @@ in
   system.extraDependencies = [ offlineSeed ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   environment.systemPackages = [ hw-decide install setup ];
+
+  # ── All-hardware firmware on the medium (Max, 2026-09-06: "all-in") ────
+  # installation-cd-minimal ships almost no firmware to stay small, which
+  # cost the lab twice in round 1: internal wifi was dark (the MacBook's
+  # Broadcom needed a USB dongle) and the reveal's driver count read a
+  # demoralising "74%" on the HP — both the same missing-firmware root
+  # cause. The installed Golem already carries the full set
+  # (configuration.nix: hardware.enableAllFirmware = true); the medium must
+  # match, or "works on the stick" and "works installed" diverge — and the
+  # census's driver count finally tells the truth. This is the biggest
+  # single thing behind the Intel-MacBook goal: brcmfmac brings the BCM4360
+  # up on the stick with these blobs, no dongle. Needs unfree; Golem allows
+  # it distro-wide, and the medium must too.
+  hardware.enableAllFirmware = true;
+  nixpkgs.config.allowUnfree = true;
   # Console only, still on purpose — but the guided surface is HERE now:
   # `golem-setup` on tty1 asks the six questions (language, timezone,
   # keyboard, disk, you) and writes the answers file golem-install

@@ -12,6 +12,7 @@
     # The hardware module library (GolemInstall.md §5): one family each,
     # permanently imported, internally mkIf-gated on golem.hardware facts.
     # Families too small to split yet live in hardware.nix itself.
+    ./hardware/broadcom-wifi.nix
     ./hardware/fingerprint.nix
     ./hardware/gpu-nvidia.nix
     ./hardware/memory.nix
@@ -187,15 +188,35 @@
       "L+ /usr/bin/env - - - - ${config.environment.usrbinenv}"
     ];
 
-    boot.loader = {
-      timeout = 3;
-      efi.canTouchEfiVariables = true;
-      systemd-boot = {
-        enable = true;
-        configurationLimit = 15;
-        editor = false;
-      };
-    };
+    # Bootloader follows the firmware the machine booted (census
+    # golem.hardware.firmware): UEFI gets systemd-boot, BIOS/legacy gets
+    # GRUB. 3 of 5 lab machines boot BIOS, and it is where dual-boot will
+    # live — so this is a real fork, not a fallback. GRUB (not systemd-boot,
+    # which is UEFI-only) is also what chainloads other OSes, which is why
+    # the disk uses GPT + a BIOS-boot partition on both paths (install.nix):
+    # a layout dual-boot can grow into rather than MBR's 4-partition dead end.
+    boot.loader = lib.mkMerge [
+      { timeout = 3; }
+      (lib.mkIf (config.golem.hardware.firmware == "uefi") {
+        efi.canTouchEfiVariables = true;
+        systemd-boot = {
+          enable = true;
+          configurationLimit = 15;
+          editor = false;
+        };
+      })
+      (lib.mkIf (config.golem.hardware.firmware == "bios") {
+        grub = {
+          enable = true;
+          efiSupport = false;
+          # The disk to embed GRUB on. mkDefault so the target evaluates
+          # generically (matrix, dev host); golem-install overrides it in
+          # machine.nix with the real target disk for a BIOS install.
+          device = lib.mkDefault "/dev/sda";
+          configurationLimit = 15;
+        };
+      })
+    ];
     # The 26.11 default, set early (surfaced by the first `nix flake check`,
     # 2026-09-03): force-importing ZFS pools at boot risks data loss on a
     # pool that was live elsewhere. Golem ships no ZFS root — this only

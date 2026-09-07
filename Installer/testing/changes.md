@@ -115,7 +115,7 @@ the same Golem.
   step exit paths.
 - **size:** needs-Max — is persisting the applied keymap desired or not?
 
-### 10. The driver count measures the bare medium but says "will be installed" — [NEEDS MAX]
+### 10. The driver count measures the bare medium but says "will be installed" — [DECIDED: all-in — carry all-hardware firmware on the medium]
 - **what:** `probe_compute` counts devices with a kernel driver bound ON
   THE RUNNING MEDIUM (`lspci -k | grep -c 'Kernel driver in use'` +
   USB with /driver), and the label says "%h of %t drivers **will be
@@ -214,7 +214,7 @@ LOOK at the physical console to confirm no boxes — can't be seen over SSH.
 - **size:** small–medium (hw_pci returns one device by contract; showing
   all GPUs means iterating matches for that row).
 
-### 8. BIOS/legacy-only machines can't boot the installed target — [NEEDS MAX]
+### 8. BIOS/legacy-only machines can't boot the installed target — [DECIDED: support BIOS]
 - **what:** the target installs systemd-boot, which is UEFI-only. A machine
   that can only boot BIOS/legacy (or is set to legacy) takes the install and
   then can't boot it. The rehearsal's UEFI preflight already REFUSES this
@@ -232,7 +232,7 @@ LOOK at the physical console to confirm no boxes — can't be seen over SSH.
   `install.nix` preflight.
 - **size:** NEEDS-MAX — support-scope decision (UEFI-only vs BIOS fallback).
 
-### 5. Broadcom Macs lose Wi-Fi after install — [NEEDS MAX]
+### 5. Broadcom Macs lose Wi-Fi after install — [DECIDED: auto-enable unfree on detection]
 - **what:** the installed Golem on a Broadcom-wifi Mac comes up with no
   working internal wifi. The BCM4360 needs the UNFREE `broadcom-sta` (`wl`)
   kernel module; `nixos-generate-config` never emits it, the census has no
