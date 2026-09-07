@@ -712,7 +712,7 @@ t() {
 # looks English-only. A line that visibly changes language explains itself
 # in a way no single language can. Wait a moment and yours turns up.
 #
-# Five seconds rather than two because the line is a whole sentence and
+# Four seconds rather than two because the line is a whole sentence and
 # somebody who has just walked up to the machine needs time to finish
 # reading it in a language they do not speak before deciding it is not
 # theirs.
@@ -2715,6 +2715,7 @@ hardware_reveal() {
   if [ "$FAKE_CENSUS" = yes ]; then
     hw_row GPU         "Intel Iris Xe · i915"
     hw_row Wi-Fi       "Intel AX211 · iwlwifi"
+    hw_row Ethernet    "Realtek RTL8111 · r8169"
     hw_row audio       "Realtek ALC287 · snd_hda_intel"
     hw_row Bluetooth   "Intel AX211 · btintel"
     hw_row fingerprint "Goodix · libfprint"
@@ -2728,10 +2729,20 @@ hardware_reveal() {
   local pci; pci=$(lspci -k 2>/dev/null || true)
   hw_row GPU       "$(hw_pci "$pci" 'VGA|3D|Display')"
   hw_row Wi-Fi     "$(hw_pci "$pci" 'Network controller')"
+  # Ethernet too, or a wired-only machine shows NO networking at all — the
+  # Comodore has only a Marvell NIC and its whole network row was blank
+  # (2026-09-06). "Network controller" is the PCI class for wireless; wired
+  # is "Ethernet controller", a separate class.
+  hw_row Ethernet  "$(hw_pci "$pci" 'Ethernet controller')"
   hw_row audio     "$(hw_pci "$pci" 'Audio device|Multimedia audio')"
   hw_row Bluetooth "$(hw_bt)"
   hw_row fingerprint "$(hw_input_fp)"
-  hw_row touchpad    "$(hw_input 'ouchpad|rackpad')"
+  # Touchpads are named by vendor, not by the word "touchpad": ALPS ships
+  # "GlidePoint", so the old 'ouchpad|rackpad' pattern missed the Comodore's
+  # pad entirely (2026-09-06). Match the common vendor names too. (A
+  # capability probe — the input device with ABS axes + BTN_TOOL_FINGER —
+  # would be fully robust; noted, not done.)
+  hw_row touchpad    "$(hw_input '[Tt]ouch[Pp]ad|[Tt]rackpad|GlidePoint|Synaptics|ALPS|Elan|Cypress')"
   hw_row touchscreen "$(hw_input 'ouchscreen|ouch *[Ss]creen')"
 }
 
@@ -3181,7 +3192,7 @@ handoff() {
 
 # ══ RUN ══════════════════════════════════════════════════════════════════
 
-SECONDS_PER=5
+SECONDS_PER=4
 ASCII=no
 DUMP=''
 PRESET=''
@@ -3240,6 +3251,23 @@ done
 if [ "$FAKE_DISKS" = yes ]; then
   [ "$FAKE_CENSUS" = no ]  && FAKE_CENSUS=yes
   [ "$FAKE_INSTALL" = no ] && FAKE_INSTALL=yes
+fi
+
+# The invitation rotates through welcomes in many scripts — but fbcon has
+# no glyphs for CJK/Arabic/Cyrillic, so on the bare console (ASCII=yes,
+# TERM=linux) those lines render as boxes with a lone "ENTER" in the middle
+# (Max saw the zh-CN line, 2026-09-06). The list already goes Latin on the
+# console; the invitation must too. Keep only the PURE-ASCII welcomes there
+# (en/es/fr/pt/it/id + the already-romanized hi) so every rotation renders —
+# testing bytes, not a per-language flag, so a new native welcome is handled
+# without being marked. Off-console (ASCII=no) the full set rotates, native
+# scripts and all, on a terminal that can draw them.
+if [ "$ASCII" = yes ]; then
+  _inv=()
+  for _e in "${INVITE[@]}"; do
+    printf '%s' "${_e#*|}" | LC_ALL=C grep -q '[^ -~]' || _inv+=("$_e")
+  done
+  INVITE=("${_inv[@]}")
 fi
 
 # Both settled once ASCII is known, so nothing on the hot path forks to work

@@ -26,7 +26,7 @@ the same Golem.
 
 ## Queued for the next ISO
 
-### 1. Hardware reveal shows only the last PCI device — [applied to source · verified live on Acer]
+### 1. Hardware reveal shows only the last PCI device — [applied to source · verified live on Acer + MacBook]
 - **what:** rewrite `hw_pci` so it captures the FIRST device matching the
   class and strips the "busid class:" prefix. `lspci -k` has no blank lines
   between devices, so the current awk (which prints a device only at a
@@ -54,7 +54,7 @@ the same Golem.
   ```
 - **size:** small.
 
-### 2. Bluetooth row misses combo cards the census detects — [applied to source · verified live on Acer]
+### 2. Bluetooth row misses combo cards the census detects — [applied to source · verified live on Acer + MacBook]
 - **what:** the reveal's `hw_usb 'Bluetooth'` greps lsusb for the literal
   word "Bluetooth"; the Acer's QCA9377 BT doesn't say it, so no row — even
   though the census reports `hasBluetooth = true` (triangulated: sysfs
@@ -66,7 +66,7 @@ the same Golem.
 - **size:** small–medium (decide the source of truth: reuse the probe's
   bluetooth verdict).
 
-### 3. golem-setup reaches outside its closure for lspci/lsusb — [applied to source · verified live on Acer]
+### 3. golem-setup reaches outside its closure for lspci/lsusb — [applied to source · verified live on Acer + MacBook]
 - **what:** add `pciutils` and `usbutils` to setup.nix `runtimeInputs`. The
   reveal + `driver_count` call `lspci`/`lsusb`, which are NOT declared;
   they resolve only from the medium's system PATH. Same class as the gawk
@@ -76,7 +76,7 @@ the same Golem.
 - **where:** `setup.nix` runtimeInputs / makeWrapper `--prefix PATH`.
 - **size:** small.
 
-### 4. Progress bar stops at 83% on a rehearsal — [applied to source · verified live on Acer]
+### 4. Progress bar stops at 83% on a rehearsal — [applied to source · verified live on Acer + MacBook]
 - **what:** when step_go sees `##golem rehearsed`, fill the bar to 100%
   with a "rehearsed" label before printing the outcome. Rehearse emits up
   to `5/6` (83%) then `rehearsed` (never `6/6`, which is the reboot
@@ -85,6 +85,172 @@ the same Golem.
 - **where:** `mockup/install-cli` step_go, the `'##golem rehearsed'*)` arm
   (~line 2958) — call `paint_bar "$max" "$max" "<rehearsed label>"`.
 - **size:** small.
+
+### 6. Medium's console keymap is implicit (English by accident) — [small]
+- **what:** pin `console.keyMap = lib.mkDefault "us"` on the MiniGolem ISO
+  (iso.nix). Today the fresh-boot tty is English only because it's the
+  kernel default — `systemd-vconsole-setup` logs "Configuration of first
+  virtual console was skipped", so `KEYMAP=us` from vconsole.conf is never
+  actively applied. Pinning makes English-on-fresh-boot a guarantee, not an
+  accident. Also investigate WHY vconsole-setup skips, so the pin takes.
+- **why:** round 1, MacBook+Acer — chasing a reported "Spanish tty on fresh
+  boot". PROVEN NOT an ISO bug: the fresh default is us (keycode 39 =
+  semicolon on a freshly booted machine); the Spanish was `loadkeys es`
+  residue from golem-setup runs that picked Español (Madrid timezone → ES →
+  Spanish). `loadkeys es` globally → keycode 39 = ñ; `loadkeys us` restores.
+  This item is hardening, not a fix for a live bug.
+- **where:** `iso.nix` — add `console.keyMap`. Possibly `console.earlySetup`.
+- **size:** small.
+
+### 7. golem-setup leaves the global console keymap changed — [needs-Max, minor]
+- **what:** the keyboard step runs `loadkeys "$KB_CONSOLE"` globally
+  (install-cli:2050) so the live echo box reflects the chosen map — correct
+  DURING setup, but it persists to the bare tty after exit/back-out. Decide
+  whether to restore the prior keymap when the user backs out of the step
+  or quits before installing.
+- **why:** round 1 — this is what made the medium look "stuck in Spanish"
+  after test runs. Harmless for a real one-shot install (the machine
+  reboots into the chosen keymap), so low priority.
+- **where:** `mockup/install-cli` around the apply seam (~2025-2050) and
+  step exit paths.
+- **size:** needs-Max — is persisting the applied keymap desired or not?
+
+### 10. The driver count measures the bare medium but says "will be installed" — [NEEDS MAX]
+- **what:** `probe_compute` counts devices with a kernel driver bound ON
+  THE RUNNING MEDIUM (`lspci -k | grep -c 'Kernel driver in use'` +
+  USB with /driver), and the label says "%h of %t drivers **will be
+  installed**". But the medium is minimal and ships almost no firmware, so
+  firmware-gated devices (the AMD Radeon, some controllers, Broadcom wifi)
+  show driverless — undercounting what the INSTALLED Golem delivers. The
+  installed system sets `hardware.enableAllFirmware = true`
+  (configuration.nix:414) and drives them. HP read "23 of 31 (74%)" and
+  looked poorly supported when it is not.
+- **twin problem, same root cause:** the MacBook's internal Broadcom wifi
+  was dark on the medium for the same reason (finding #5) — no firmware on
+  the minimal medium.
+- **fix options (Max's call):**
+  a. **Carry all-hardware firmware on MiniGolem** (like the full live ISO
+     does) → the count is honest AND internal wifi works during install (no
+     USB dongle). Cost: a bigger image. This also softens #5.
+  b. Make the count reflect the INSTALLED target's driver coverage, not the
+     medium's loaded set (harder to measure honestly from the medium).
+  c. At minimum, stop the label promising "will be installed" about a
+     present-tense medium measurement.
+- **where:** `Installer/iso.nix` (firmware on the medium) and/or
+  `mockup/install-cli` `probe_compute`/`drv_line`.
+- **size:** NEEDS-MAX — image-size vs honesty tradeoff.
+
+### 13. The rotating welcome shows boxes for non-Latin scripts on the console — [applied · option A · console-visual confirm pending]
+Max chose **option A**. Applied to source: on the console (ASCII=yes) the
+invitation keeps only the PURE-ASCII welcomes (tested by bytes, not a
+per-language flag), so the 7 that render rotate (en/es/fr/pt/it/id + the
+romanized hi) and CJK/Arabic/Cyrillic/accented lines are dropped;
+off-console the full native set still rotates. Verified via `--dump invite`
+(console = ASCII-only, endonym = native scripts present). Still wants a
+LOOK at the physical console to confirm no boxes — can't be seen over SSH.
+**Also (Max): rotation beat 5s → 4s** (`SECONDS_PER`), so `./mockup/install-cli
+--fake-disks` shows the faster beat.
+
+### 14. Touchpad reveal missed vendor-named pads (ALPS GlidePoint) — [applied · verified live on Comodore]
+- **what:** `hw_input`'s pattern was `ouchpad|rackpad`; the Comodore's pad
+  is `AlpsPS/2 ALPS GlidePoint` — no "touchpad"/"trackpad" in the name, so
+  no row. Broadened to `[Tt]ouch[Pp]ad|[Tt]rackpad|GlidePoint|Synaptics|
+  ALPS|Elan|Cypress`. A capability probe (input device with ABS axes +
+  BTN_TOOL_FINGER) would be fully robust — noted, not done.
+- **verified:** the Comodore reveal now shows `Touchpad AlpsPS/2 ALPS
+  GlidePoint`.
+- **where:** `mockup/install-cli` `hardware_reveal` touchpad row.
+
+### 15. Reveal showed no networking on a wired-only machine — [applied · verified live on Comodore]
+- **what:** `hardware_reveal` only queried the Wi-Fi PCI class (`Network
+  controller`), so a machine with only wired Ethernet (Comodore: Marvell
+  88E8055) showed no network at all. Added an Ethernet row (`hw_pci
+  'Ethernet controller'`). Machines with both now show Wi-Fi AND Ethernet.
+- **verified:** the Comodore reveal now shows `Ethernet Marvell … 88E8055 ·
+  sky2`.
+- **where:** `mockup/install-cli` `hardware_reveal` (+ the fake block).
+
+### 12. intelLegacy misclassifies ancient GMA GPUs (0x2xxx) as iHD-capable — [medium]
+- **what:** the probe decides `intelLegacy` with `device-id < 0x1600 →
+  legacy (i965)`, else iHD. That holds from Ironlake through Skylake, but
+  the pre-Ironlake GMA parts have numerically HIGH ids (GM45 GMA 4500 =
+  0x2a42) despite being the OLDEST — so they fall above the threshold and
+  are wrongly marked iHD-capable. iHD supports Broadwell+ only; a Gen4 GMA
+  gets NO hardware video decode from iHD (needs i965, or accept none).
+  Fix: extend the legacy condition to cover the old GMA ranges (roughly
+  0x2500–0x2fff, the Gen4/GMA 4500 family), or replace the single threshold
+  with a generation lookup. Display is unaffected (kernel i915 handles
+  GMA 4500), so this is decode-quality, not a black-screen risk.
+- **why:** round 1, Comodore — `8086:2a42` GMA 4500 read as `intelLegacy =
+  false → iHD`.
+- **where:** `system/hardware-detect.nix` — the `intel_legacy` test
+  (~line 92, `(( dev < 0x1600 ))`).
+- **size:** medium — needs the right GMA id ranges; keep a fixture (the
+  Comodore's facts) so CI covers it.
+
+### 11. `video decode: none` reported for AMD/nvidia — [small]
+- **what:** decide.nix's GPU "video decode" row only knows the Intel VA-API
+  driver names (i965/iHD) and prints "none" for AMD/nvidia — even though
+  `gpu="amd"` enables the AMD VA-API (hardware.nix:62). A reporting gap, not
+  a missing feature. Surface the AMD/nvidia VA-API in the census instead of
+  "none".
+- **why:** round 1, HP — `gpu="amd"` showed `video decode: none`,
+  reinforcing the "AMD unsupported" misimpression.
+- **where:** `system/hardware/decide.nix` (the gpu section's video-decode row).
+- **size:** small.
+
+### 9. Reveal GPU row shows the iGPU, not the decided dGPU (hybrid machines) — [small-medium]
+- **what:** on a switchable-graphics laptop, `hw_pci 'VGA|3D|Display'`
+  returns the FIRST VGA controller — the Intel iGPU — so the reveal says
+  "GPU: Intel · i915" while the census DECISION is about the discrete GPU
+  (AMD/nvidia) and installs its driver. The screen and the decision
+  disagree. Fix: for the GPU row, enumerate ALL display controllers (show
+  both on a hybrid), or prefer the discrete one to match the census
+  priority (nvidia > amd > intel). Showing both is the honest option — a
+  hybrid laptop has two.
+- **why:** round 1, HP Pavilion dm4 — `gpu = "amd"` (Radeon HD 6370M) but
+  reveal named the Intel iGPU.
+- **where:** `mockup/install-cli` `hardware_reveal`/`hw_pci` (GPU row).
+- **size:** small–medium (hw_pci returns one device by contract; showing
+  all GPUs means iterating matches for that row).
+
+### 8. BIOS/legacy-only machines can't boot the installed target — [NEEDS MAX]
+- **what:** the target installs systemd-boot, which is UEFI-only. A machine
+  that can only boot BIOS/legacy (or is set to legacy) takes the install and
+  then can't boot it. The rehearsal's UEFI preflight already REFUSES this
+  cleanly (good) — the open question is whether Golem should SUPPORT such
+  machines (a GRUB-BIOS bootloader path on the target, chosen by a firmware
+  fact) or stay UEFI-only and rely on the refusal + telling the user to
+  enable UEFI in their firmware.
+- **why:** round 1 — Dell E6420, HP Pavilion dm4, AND the Comodore all
+  booted BIOS: **3 of the 5 lab machines**. Legacy boot is the MAJORITY
+  among old laptops, not an edge case. Some can likely do UEFI via a
+  firmware setting (so part of the answer may be "tell the user"), but 3/5
+  means Golem needs a real position on BIOS boot, not just a refusal.
+- **where:** target bootloader (`system/configuration.nix` boot.loader) +
+  possibly a firmware fact in the census; the refusal already lives in
+  `install.nix` preflight.
+- **size:** NEEDS-MAX — support-scope decision (UEFI-only vs BIOS fallback).
+
+### 5. Broadcom Macs lose Wi-Fi after install — [NEEDS MAX]
+- **what:** the installed Golem on a Broadcom-wifi Mac comes up with no
+  working internal wifi. The BCM4360 needs the UNFREE `broadcom-sta` (`wl`)
+  kernel module; `nixos-generate-config` never emits it, the census has no
+  wifi-chipset fact, and nothing tells the target to enable it. On the
+  medium the card binds `bcma-pci-bridge` (a bus bridge, not functional
+  wifi) — the reveal names it but it does not work, hence the lab's USB
+  dongle. This is the MacBook's whole reason to be in the lab.
+- **why:** round 1, MacBook — installed target's hardware-config carries no
+  Broadcom module; census has no wifi fact.
+- **where:** census (`system/hardware-detect.nix` — a wifi/broadcom fact)
+  + target (`system/hardware/` — enable `boot.extraModulePackages` /
+  `broadcom_sta` on that fact). PLAN.md already notes
+  `system/hardware-runtime.nix` carries the `wl` quirk for the LIVE
+  session; the open question is the INSTALLED system.
+- **size:** NEEDS-MAX — turns on an **unfree** driver (broadcom-sta), which
+  is a distro policy call (allowUnfree, and whether to auto-enable on
+  detection or ask). Also: which Broadcom chips get it. Not a mechanical
+  fix; Max decides scope before it's built.
 
 <!--
 Entry template:

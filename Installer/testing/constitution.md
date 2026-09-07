@@ -116,17 +116,28 @@ working record behind those boxes; PLAN.md is the summary in front of them.
 
 ## Rounds
 
-### Round 1 — open (2026-09-06)
+### Round 1 — all five tested, ready to close (2026-09-06)
 
 - **ISO under test:** `/nix/store/kizf3l8kl0qbq2hpjw9hl3qvck8jgf6c-golem-installer.iso`
 - **Tree:** on top of `4461600`, dirty (rehearsal mode + cores/hostname
   fixes, staged, uncommitted).
 - **Carries:** rehearsal mode (`GOLEM_REHEARSE=1`), the sysfs cores fix,
   the hostname ghost-placeholder fix, HOLA auto-join.
-- **Laptops:** acer ☑ (mechanics pass; 2 reveal findings, fixes verified
-  live) · dell ☐ · hp ☐ · macbook ☐ · comodore ☐
-- **Queued fixes (changes.md):** 4, all applied to source + verified live
-  on Acer — hw_pci reveal parser, bluetooth reveal detection, setup.nix
-  pci/usb deps, bar completes on rehearsed. Re-verify per laptop; ship at
-  round close.
+- **Laptops:** acer ☑ (mechanics pass; reveal findings, fixes verified
+  live) · dell ☑ (census+rehearsal pass; reveal fixes re-verified; **UEFI
+  check caught its BIOS boot** — the check's first real catch; needs-Max
+  #8) · hp ☑ (census+rehearsal pass; first AMD GPU, safe modesetting;
+  2nd BIOS catch; new hybrid-GPU reveal finding #9) · macbook ☑ (mechanics
+  pass; reveal fixes re-verified; 1 census finding — Broadcom wifi,
+  needs-Max) · comodore ☑ (census pass + GMA misclassification bug #12;
+  3rd BIOS catch; treasure disk safe)
+- **All 5 tested.** Big picture written in testing.md; ready to work the
+  queue and cut the round-2 ISO.
+- **Queued fixes (changes.md):** 4 surface fixes verified live on multiple
+  machines (hw_pci reveal parser, bluetooth detection, setup.nix pci/usb
+  deps, bar completes) + findings #5–#12: Broadcom wifi (needs-Max), BIOS
+  boot (needs-Max, 3/5 machines), hybrid-GPU reveal, driver-count/medium
+  firmware (needs-Max), AMD video-decode reporting, keyboard console pin,
+  golem-setup keymap residue, GMA intelLegacy bug. Ship/decide at round
+  close.
 - **Big picture:** _pending round completion._
