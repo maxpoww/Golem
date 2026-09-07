@@ -31,15 +31,27 @@
         # `nproc` counts LOGICAL cpus. Reporting that as "cores" told the
         # lab the Acer's i5-5200U had 4 cores when it has 2 (Max, caught
         # 2026-09-05) — a dual-core with SMT reads identically to a real
-        # quad unless you look at the topology. Physical cores = the count
-        # of distinct (physical id, core id) pairs; where the kernel does
-        # not publish those (some VMs, some ARM), fall back to threads
-        # rather than inventing a number.
+        # quad unless you look at the topology.
+        #
+        # Physical cores are counted from SYSFS, not /proc/cpuinfo: every
+        # logical CPU on a shared physical core lists the same siblings in
+        # thread_siblings_list, so the number of DISTINCT lists is the
+        # physical-core count. sysfs is chosen deliberately over cpuinfo
+        # because this pipeline then needs only cat/sort/grep — all from
+        # coreutils and gnugrep, which are in runtimeInputs above. The
+        # cpuinfo version parsed with awk (gawk), which was NOT declared and
+        # so resolved only from the ambient PATH: it read 2 in an
+        # interactive shell but was "command not found" under the boot
+        # audit's clean systemd PATH — the ONLY context that feeds the
+        # census — where the pipeline collapsed and the guard fell back to
+        # threads. The Acer's audit reported cores=4 on real metal (caught
+        # 2026-09-06, first live boot of the rehearsal stick) while every
+        # SSH re-check said 2. A tool must not reach outside its own closure
+        # for something this basic. Where sysfs has no topology (some exotic
+        # kernels), fall back to threads rather than inventing a number.
         threads=$(nproc)
-        cores=$(awk -F': *' '
-          /^physical id/ { p = $2 }
-          /^core id/     { print p ":" $2 }
-        ' /proc/cpuinfo | sort -u | grep -c . || true)
+        cores=$(cat /sys/devices/system/cpu/cpu[0-9]*/topology/thread_siblings_list \
+          2>/dev/null | sort -u | grep -c . || true)
         [[ "$cores" =~ ^[0-9]+$ ]] && (( cores > 0 )) || cores=$threads
 
         cpu_model=$(grep -m1 '^model name' /proc/cpuinfo | cut -d: -f2- \

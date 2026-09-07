@@ -409,11 +409,37 @@
       monitorNeedle =
         ''hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })'';
 
+      # KEYBOARD, from the installer's one question (golem.keyboard).
+      # Hyprland does NOT read services.xserver.xkb — it has its own input
+      # block, so this is the sink that decides what the owner actually
+      # types into. The other two (console.keyMap, services.xserver.xkb)
+      # are set in system/configuration.nix; all three come from the same
+      # option so they cannot drift.
+      #
+      # The literal below is what a dev checkout wants (us, no variant);
+      # the needle swaps in the machine's real answer. A stranger who picked
+      # Colemak gets layout us / variant colemak here, and a Russian gets
+      # "ru,us" with grp:alt_shift_toggle so they can still type a URL.
+      # Double-quoted, not ''-quoted: an indented string strips its common
+      # leading whitespace, which would silently produce a needle that can
+      # never match the eight-space indent inside hyprland.lua's input
+      # block. The guard below caught exactly that; the pad is named once
+      # so it cannot drift from the file.
+      kb = osConfig.golem.keyboard;
+      kbPad = "        ";
+      kbNeedle = lib.concatStringsSep "\n" [
+        "${kbPad}kb_layout  = \"us\","
+        "${kbPad}kb_variant = \"\","
+        "${kbPad}kb_model   = \"\","
+        "${kbPad}kb_options = \"\","
+      ];
+
       needles = [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
         ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
         monitorNeedle
+        kbNeedle
       ];
       replacements = [
         "hyprctl plugin load ${waveview}/lib/libwaveview.so"
@@ -423,6 +449,13 @@
           ${monitorNeedle}
           -- generated from the panelDpi fact (${toString panelDpi} DPI)
           hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${edpScale} })'')
+        (lib.concatStringsSep "\n" [
+          "${kbPad}-- generated from golem.keyboard (the installer's keyboard step)"
+          "${kbPad}kb_layout  = \"${kb.layout}\","
+          "${kbPad}kb_variant = \"${kb.variant}\","
+          "${kbPad}kb_model   = \"${kb.model}\","
+          "${kbPad}kb_options = \"${kb.options}\","
+        ])
       ];
       missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
     in

@@ -48,7 +48,7 @@
 - [?] Photo sync, shared OPTIONS surfaces, cross-device DND, app streaming polish
 
 ## Quality
-- [x] Unit tests: 52 covering framing, pairing crypto, id/name rules, capability
+- [x] Unit tests: 71 covering framing, pairing crypto, id/name rules, capability
       sanity, MPRIS incremental merge, SMS limit, clipboard echo suppression and
       share URL classification — every suite mutation-checked by reintroducing the
       original bug, not just left green
@@ -69,12 +69,25 @@
       touch target in both themes
 - [x] systemvolume — desktop volume/mute/default-sink from the phone (verified;
       useful when the PC mutes itself and you're not at the keyboard)
-- [x] remote input (phone as touchpad + keyboard) — phone side DONE and sending
-      correctly, but **blocked on the desktop**: kdeconnectd needs the
-      `org.freedesktop.portal.RemoteDesktop` portal, and xdg-desktop-portal-hyprland
-      1.3.12 doesn't implement it (only Screenshot/ScreenCast/GlobalShortcuts).
-      → `golem-connectd` should inject input via uinput/evdev instead; that also
-      removes a dependency kdeconnectd can't satisfy on this WM.
+- [x] remote input (phone as touchpad + keyboard) — phone side DONE, and the desktop
+      blocker is now SOLVED by `golem-connectd` (~/Golem/golem-connectd, Rust, 45
+      tests, still untracked in git). It speaks v8 itself and injects through the
+      wlroots virtual-pointer/virtual-keyboard protocols — no portal, no root — so it
+      sidesteps the `org.freedesktop.portal.RemoteDesktop` interface that
+      xdg-desktop-portal-hyprland 1.3.12 does not implement and kdeconnectd requires.
+- [x] **gamepad (phone as an on-screen game controller)** — both halves built and the
+      whole chain verified against the real phone: two sticks, D-pad, ABXY, LB/RB,
+      LT/RT, Back/Start/Guide/L3/R3, presented to the desktop as a virtual Xbox 360
+      pad so SDL/Steam/Proton need no mapping. `golem.gamepad` is a Golem extension,
+      not a `kdeconnect.` type. 18 new phone-side tests, all mutation-checked.
+- [?] **gamepad is BLOCKED on one NixOS line.** `/dev/uinput` here is `nobody:nogroup`
+      mode 0600 with no udev rule, and the `input` group does not help — nothing can
+      open it, and gamepads have no Wayland protocol so uinput is the only path.
+      Fix in ~/Golem/system/:
+        hardware.uinput.enable = true;
+        users.users.max.extraGroups = [ "uinput" ];   # then log out and back in
+      Until then golem-connectd withholds the capability and the phone hides the
+      button, rather than offering a control that goes nowhere.
 - [x] Strip the exported SelfTestReceiver dev harness from release builds
       (moved to `app/src/debug/`; verified absent from the release APK manifest)
 - [x] Version control (git init + first commit — done by Max)

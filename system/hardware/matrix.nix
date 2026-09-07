@@ -18,7 +18,7 @@
 # actually ship; keep rows meaningful (anti-over-gating rule, §5: every
 # gate added is a test permutation owed — this file is where the debt is
 # paid).
-{ lib, pkgs, mkTarget }:
+{ lib, pkgs, mkTarget, keyboards }:
 
 let
   # What nixos-generate-config provides on a real machine — the minimum a
@@ -185,6 +185,95 @@ let
           (ex "generated eDP scale rule at 1.6"
             (lib.hasInfix ''output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6'' lua))
         ];
+    }
+
+    # ── The installer's answers, all the way to the files ───────────────
+    #
+    # THESE ROWS EXIST BECAUSE THE LAB HAS NO SCREEN. The five laptops boot
+    # MiniGolem on a bare console and are driven over SSH, so "did the
+    # keyboard come out right" can never be answered by looking at a
+    # session. It has to be answered by READING WHAT WAS WRITTEN — and if
+    # that is worth doing on the metal it is worth doing in CI, where it
+    # costs seconds and covers every layout instead of the one in the room.
+    #
+    # The rows call keyboards.derive rather than restating its output, so a
+    # table edit, a derivation change and a module change are all proven by
+    # the same assertion. Nothing here is hand-copied.
+    #
+    # THE HYPRLAND ASSERTION IS THE POINT. Hyprland does not read
+    # services.xserver.xkb — it has its own input block, so the NixOS
+    # options can be perfectly right while the actual desktop stays on us.
+    # That was the real bug this whole thread found, and it is invisible to
+    # any check that only looks at NixOS options.
+    {
+      name = "install-answer-colemak"; # a variant layout, single group
+      facts = { golem.keyboard = keyboards.derive "colemak"; };
+      expect = cfg:
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+        in [
+          (ex "console keymap is kbd's name, not xkb's"
+            (cfg.console.keyMap == "colemak"))
+          (ex "xkb layout us + variant colemak"
+            (cfg.services.xserver.xkb.layout == "us"
+             && cfg.services.xserver.xkb.variant == "colemak"))
+          (ex "no second group, so no toggle" (cfg.services.xserver.xkb.options == ""))
+          (ex "latin script keeps the default console font" (cfg.console.font == null))
+          (ex "HYPRLAND carries the variant (it does not read xkb.*)"
+            (lib.hasInfix ''kb_variant = "colemak"'' lua))
+          (ex "HYPRLAND is not left on the dev-checkout literal"
+            (!lib.hasInfix ''kb_layout  = "us",
+        kb_variant = "",'' lua))
+        ];
+    }
+    {
+      name = "install-answer-russian"; # non-latin: the second group + font
+      facts = { golem.keyboard = keyboards.derive "ru"; };
+      expect = cfg:
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+            xkb = cfg.services.xserver.xkb;
+        in [
+          (ex "a latin group is appended, or the owner cannot type a URL"
+            (xkb.layout == "ru,us"))
+          (ex "variant has a slot per group (xkb reads them positionally)"
+            (xkb.variant == ","))
+          (ex "and a way to switch between them" (xkb.options == "grp:alt_shift_toggle"))
+          (ex "cyrillic console gets a font that can draw it"
+            (cfg.console.font == "LatArCyrHeb-16"))
+          (ex "ISO board is pc105, not the pc104 default" (xkb.model == "pc105"))
+          (ex "HYPRLAND carries both groups" (lib.hasInfix ''kb_layout  = "ru,us"'' lua))
+          (ex "HYPRLAND carries the toggle"
+            (lib.hasInfix ''kb_options = "grp:alt_shift_toggle"'' lua))
+        ];
+    }
+    {
+      name = "install-answer-japanese"; # the physical-board case
+      facts = { golem.keyboard = keyboards.derive "jp"; };
+      expect = cfg: [
+        (ex "JIS model, or henkan/muhenkan have no keycodes"
+          (cfg.services.xserver.xkb.model == "jp106"))
+        (ex "console keymap jp106, not the xkb name jp"
+          (cfg.console.keyMap == "jp106"))
+        (ex "latin-capable layout gets NO pointless second group"
+          (cfg.services.xserver.xkb.layout == "jp"))
+      ];
+    }
+    {
+      name = "install-answer-language"; # step 1's answer, and what it must NOT leak
+      facts = { golem.locale.defaultLocale = "es_ES.UTF-8"; };
+      expect = cfg: [
+        (ex "the chosen language is the default locale"
+          (cfg.i18n.defaultLocale == "es_ES.UTF-8"))
+        (ex "and is actually GENERATED (ungenerated silently falls back to C)"
+          (lib.elem "es_ES.UTF-8/UTF-8" cfg.i18n.supportedLocales))
+        (ex "en_US stays for rescue shells and error messages"
+          (lib.elem "en_US.UTF-8/UTF-8" cfg.i18n.supportedLocales))
+        # The regression guard for 2026-09-05: one owner's LC_* and clock
+        # were in system/configuration.nix, so every stranger got Bolivian
+        # formats and a La Paz clock whatever they chose.
+        (ex "NO owner's formats leak into a stranger's install"
+          (cfg.i18n.extraLocaleSettings == { }))
+        (ex "NO owner's timezone leaks either" (cfg.time.timeZone == "UTC"))
+      ];
     }
   ];
 

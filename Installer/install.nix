@@ -15,14 +15,40 @@
 #        machine.nix                 the human choices
 #   5. build (or accept) the toplevel and nixos-install it
 #
-# LUKS is deliberately absent. Whole-disk encryption is a default-on/off
-# call Max has not made (PLAN.md decision backlog); v1 ships the
-# unencrypted path so the flow can be proven, and encryption lands as a
-# branch of step 2 rather than a rewrite of the whole script.
+# LUKS is a branch of step 2, exactly as this header predicted it would be
+# (built 2026-09-05). --luks gives ESP + one LUKS2 container with LVM
+# inside it holding swap and root; without it, the original three-partition
+# layout, untouched. Everything after the partitioning is identical because
+# both branches label their root `golem` and their swap `swap`.
 #
-# DESTRUCTIVE. The named disk is repartitioned without recovery. --yes is
-# required for a non-interactive run precisely so that a mistyped device
-# in a script cannot quietly eat a machine.
+# ONE container rather than two, because HIBERNATION IS LOCKED: resume has
+# to read the swap from initrd, and separate volumes would mean either two
+# passphrase prompts per boot or a keyfile with nowhere safe to live.
+#
+# THE DEFAULT INSTALL IS DECIDED (Max, 2026-09-05) and it is the plain
+# branch: no encryption, ext4, a swap partition sized for hibernation, the
+# whole disk erased. Encryption is a deliberate detour behind the disk
+# step's "Advanced" row, not a question every stranger is asked.
+#
+# --rehearse IS THE SAME INSTALL WITH THE DESTRUCTIVE VERBS INTERCEPTED
+# (Max, 2026-09-06: test the whole process on the five lab laptops before
+# wiring the real installation). Every command that would change the disk
+# goes through one runner, run(), which executes in a real install and
+# records in a rehearsal — the SAME control flow either way, so the
+# rehearsal cannot drift from the installer it rehearses (PLAN.md's
+# harness-lying lesson: a hand-written fake would be the harness lying).
+# What still executes in a rehearsal is everything read-only and the real
+# work the flow exists for: the probe, the seed copy, the three dropped
+# files, and step 5 as an EVALUATION of the exact system the install would
+# build. The whole run leaves a bundle in /var/log/golem-rehearsal/ —
+# plan, command transcript, checks, the dropped files, the eval verdict —
+# for the dev box to pull over SSH and audit. It ends with `##golem
+# rehearsed`, never 6/6: 6/6 is the surface's reboot trigger and a
+# rehearsal has nothing to reboot into.
+#
+# DESTRUCTIVE (unless --rehearse). The named disk is repartitioned without
+# recovery. --yes is required for a non-interactive run precisely so that
+# a mistyped device in a script cannot quietly eat a machine.
 { pkgs, golemSrc, overrideArgs }:
 
 pkgs.writeShellApplication {
@@ -30,12 +56,29 @@ pkgs.writeShellApplication {
   runtimeInputs = with pkgs; [
     coreutils gptfdisk dosfstools e2fsprogs util-linux
     nix nixos-install-tools gnused
+    cryptsetup lvm2
+    diffutils gnutar gzip
   ];
   text = ''
     disk=""; owner="max"; fullname=""; hostname="Golem"
     system=""; labkey=""; assume_yes=false
-    prepare_only=false; skip_prepare=false
+    prepare_only=false; skip_prepare=false; rehearse=false
     src="${golemSrc}"
+
+    # The keyboard step's answer, already derived into its four values by
+    # the time it reaches here: the installer surface asks ONE question
+    # ("is this your keyboard") and the row behind the answer knows the
+    # console keymap, the XKB layout, its variant and the group toggle.
+    # Defaults are the module defaults, so omitting them changes nothing.
+    kb_layout="us"; kb_variant=""; kb_options=""; kb_console="us"
+    kb_model="pc104"; kb_font=""
+    # Steps 1 and 2's answers: the language, and the timezone the language
+    # proposed and the user confirmed against a clock.
+    locale="en_US.UTF-8"
+    timezone="UTC"
+    answers=""
+    passhash=""
+    luks=false; luks_key=""; luks_uuid=""
 
     while [[ $# -gt 0 ]]; do
       case "$1" in
@@ -47,6 +90,42 @@ pkgs.writeShellApplication {
         --lab-ssh)   labkey="''${2:?}"; shift 2 ;;
         --src)       src="''${2:?}"; shift 2 ;;
         --yes)       assume_yes=true; shift ;;
+        --kb-layout)  kb_layout="''${2:?}"; shift 2 ;;
+        --kb-variant) kb_variant="''${2-}"; shift 2 ;;
+        --kb-options) kb_options="''${2-}"; shift 2 ;;
+        --kb-model)   kb_model="''${2:?}"; shift 2 ;;
+        --kb-console) kb_console="''${2:?}"; shift 2 ;;
+        --kb-font)    kb_font="''${2-}"; shift 2 ;;
+        --locale)     locale="''${2:?}"; shift 2 ;;
+        --timezone)   timezone="''${2:?}"; shift 2 ;;
+        # A HASH, never a password. The surface hashes it the moment it is
+        # typed; nothing downstream of that screen has ever seen the text,
+        # and a flag is visible in `ps` to every user on the machine.
+        --password-hash) passhash="''${2:?}"; shift 2 ;;
+        --luks)       luks=true; shift ;;
+        --luks-key)   luks_key="''${2:?}"; shift 2 ;;
+        # The surface's answers file (install-cli --out). One flag instead
+        # of seven, so the two ends of the install actually join rather than
+        # being re-typed into each other by whoever is driving.
+        --answers)
+          answers="''${2:?}"; shift 2
+          [[ -r "$answers" ]] || { echo "golem-install: cannot read $answers" >&2; exit 2; }
+          # shellcheck disable=SC1090
+          . "$answers"
+          locale="''${GOLEM_LOCALE:-$locale}"
+          timezone="''${GOLEM_TIMEZONE:-$timezone}"
+          kb_layout="''${GOLEM_KB_LAYOUT:-$kb_layout}"
+          kb_variant="''${GOLEM_KB_VARIANT-$kb_variant}"
+          kb_options="''${GOLEM_KB_OPTIONS-$kb_options}"
+          kb_model="''${GOLEM_KB_MODEL:-$kb_model}"
+          kb_console="''${GOLEM_KB_CONSOLE:-$kb_console}"
+          kb_font="''${GOLEM_KB_FONT-$kb_font}"
+          owner="''${GOLEM_OWNER:-$owner}"
+          hostname="''${GOLEM_HOSTNAME:-$hostname}"
+          passhash="''${GOLEM_PASS_HASH:-$passhash}"
+          [[ "''${GOLEM_LUKS:-no}" == yes ]] && luks=true
+          luks_key="''${GOLEM_LUKS_KEYFILE:-$luks_key}"
+          ;;
         # The two halves, separable. A machine whose store cannot hold the
         # system closure (every machine — the medium's store is a tmpfs
         # overlay in RAM) needs the closure delivered to the TARGET disk
@@ -56,10 +135,17 @@ pkgs.writeShellApplication {
         # the same seam, so the seam is a flag rather than a fork.
         --prepare-only) prepare_only=true; shift ;;
         --skip-prepare) skip_prepare=true; shift ;;
+        --rehearse)     rehearse=true; shift ;;
         -h|--help)
           echo "usage: golem-install --disk DEV [--owner NAME] [--full-name STR]"
           echo "                     [--hostname NAME] [--system PATH] [--lab-ssh KEY] [--yes]"
+          echo "                     [--kb-layout L] [--kb-variant V] [--kb-options O]"
+          echo "                     [--locale L] [--timezone ZONE]"
+          echo "                     [--kb-model M] [--kb-console KEYMAP] [--kb-font F]"
+          echo "                     [--answers FILE]   (install-cli --out)"
+          echo "                     [--luks --luks-key FILE]"
           echo "                     [--prepare-only | --skip-prepare]"
+          echo "                     [--rehearse]       (record, evaluate, write nothing)"
           exit 0 ;;
         *) echo "golem-install: unknown argument '$1'" >&2; exit 2 ;;
       esac
@@ -69,6 +155,57 @@ pkgs.writeShellApplication {
     [[ -b "$disk" ]] || { echo "golem-install: $disk is not a block device" >&2; exit 2; }
     [[ "$(id -u)" == 0 ]] || { echo "golem-install: must run as root" >&2; exit 2; }
     [[ -n "$fullname" ]] || fullname="$owner"
+    if [[ "$rehearse" == true && ( "$prepare_only" == true || "$skip_prepare" == true ) ]]; then
+      echo "golem-install: --rehearse rehearses the WHOLE flow — it cannot split at prepare" >&2
+      exit 2
+    fi
+
+    # nvme0n1 → nvme0n1p1, sda → sda1: the kernel inserts a 'p' only when
+    # the disk name ends in a digit. (Defined up here because the plan and
+    # the preflight both name partitions before any is created.)
+    part() { if [[ "$disk" =~ [0-9]$ ]]; then echo "''${disk}p$1"; else echo "''${disk}$1"; fi; }
+
+    # ── The rehearsal seam ────────────────────────────────────────────
+    # ONE runner for every command that would change the disk: a real
+    # install executes and logs, a rehearsal logs what it WOULD have run.
+    # The transcript is written in BOTH modes so a later real install on
+    # the same machine can be diffed line-for-line against its rehearsal.
+    logdir=/var/log/golem-install
+    if [[ "$rehearse" == true ]]; then
+      logdir=/var/log/golem-rehearsal
+      rm -rf "$logdir"
+    fi
+    mkdir -p "$logdir"
+    TR="$logdir/transcript.txt"
+    CHK="$logdir/checks.txt"
+    [[ "$rehearse" == true ]] && : > "$CHK"
+    printf '%s\n' "── golem-install $(date -Is) $([[ "$rehearse" == true ]] && echo REHEARSAL) ──" >> "$TR"
+
+    findings=0
+    run() {
+      if [[ "$rehearse" == true ]]; then
+        printf '%s\n' "would  $*" >> "$TR"
+      else
+        printf '%s\n' "run    $*" >> "$TR"
+        "$@"
+      fi
+    }
+    note()       { printf '%s\n' "note   $*" >> "$TR"; }
+    check_ok()   { printf '%s\n' "ok     $*" >> "$CHK"; }
+    check_warn() { printf '%s\n' "warn   $*" >> "$CHK"; }
+    # A failed check means the install cannot produce a booting machine.
+    # Real mode stops on the spot — nothing destructive has happened yet
+    # when these run. A rehearsal RECORDS it and keeps going: it exists to
+    # collect findings, and dying at the first one on lab machine 3 would
+    # hide findings 2 through n.
+    check_fail() {
+      printf '%s\n' "FAIL   $*" >> "$CHK"
+      findings=$((findings + 1))
+      if [[ "$rehearse" != true ]]; then
+        echo "golem-install: $*" >&2
+        exit 1
+      fi
+    }
 
     # ── 1. The swap size, from the flake's rule ───────────────────────
     ram_mb=$(( $(grep -m1 MemTotal /proc/meminfo | grep -oE '[0-9]+') / 1024 ))
@@ -79,29 +216,91 @@ pkgs.writeShellApplication {
     [[ "$swap_mb" =~ ^[0-9]+$ ]] || {
       echo "golem-install: could not get the swap rule from the flake" >&2; exit 1; }
 
-    echo "── plan ─────────────────────────────────────────"
-    echo "  disk        $disk  ($(lsblk -ndo SIZE "$disk" | tr -d ' '))"
-    echo "  RAM         $ram_mb MB"
-    echo "  ESP         512 MiB       label ESP"
-    echo "  swap        $swap_mb MiB  label swap   (hibernation, locked)"
-    echo "  root        rest          label golem"
-    echo "  owner       $owner ($fullname)"
-    echo "  hostname    $hostname"
-    echo "  encryption  none (LUKS pending Max's call)"
-    echo
+    if [[ "$luks" == true && ! -r "$luks_key" ]]; then
+      echo "golem-install: --luks needs --luks-key FILE (install-cli writes one)" >&2
+      exit 2
+    fi
 
-    if [[ "$assume_yes" != true && "$skip_prepare" != true ]]; then
+    {
+      echo "── plan ─────────────────────────────────────────"
+      if [[ "$rehearse" == true ]]; then
+        echo "  mode        REHEARSAL — nothing will be written to $disk"
+      fi
+      echo "  disk        $disk  ($(lsblk -ndo SIZE "$disk" | tr -d ' '))"
+      echo "  RAM         $ram_mb MB"
+      echo "  ESP         512 MiB       label ESP"
+      echo "  swap        $swap_mb MiB  label swap   (hibernation, locked)"
+      echo "  root        rest          label golem"
+      echo "  owner       $owner ($fullname)"
+      echo "  hostname    $hostname"
+      if [[ "$luks" == true ]]; then
+        echo "  encryption  LUKS2 on $(part 2), swap and root inside it"
+      else
+        echo "  encryption  none"
+      fi
+      echo
+    } > "$logdir/plan.txt"
+    cat "$logdir/plan.txt"
+
+    # ── Preflight: what must be true before a byte moves ──────────────
+    # Grown FOR the rehearsal, run in BOTH modes: every check the lab
+    # teaches hardens the real install for free, because they are the
+    # same code path.
+    #
+    # The target boots systemd-boot (system/configuration.nix), which is
+    # UEFI-only — a machine that booted this medium via BIOS/syslinux
+    # would take the whole install and then have nothing that can boot
+    # it. The lab has at least one such machine; this is the finding the
+    # rehearsal exists to catch before a disk is touched.
+    if [[ -d /sys/firmware/efi ]]; then
+      check_ok "firmware: booted UEFI — systemd-boot can be installed"
+    else
+      check_fail "firmware: this machine booted BIOS/legacy — the target's systemd-boot cannot boot here"
+    fi
+
+    # The medium must never be its own target: lsblk resolves the disk
+    # behind /iso (the mounted stick). Absent /iso means a dev box, where
+    # the check has nothing to say.
+    if medium_part=$(findmnt -no SOURCE /iso 2>/dev/null); then
+      medium_pk=$(lsblk -no PKNAME "$medium_part" 2>/dev/null | head -1 || true)
+      medium_disk="$medium_part"
+      [[ -n "$medium_pk" ]] && medium_disk="/dev/$medium_pk"
+      if [[ "$medium_disk" == "$disk" ]]; then
+        check_fail "target: $disk is the medium this system booted from"
+      else
+        check_ok "target: $disk is not the boot medium ($medium_disk)"
+      fi
+    else
+      check_ok "target: no /iso mount (not on the medium) — self-install check has nothing to say"
+    fi
+
+    # The full system closure is ~18.8 GiB; a root that cannot hold it
+    # fails at the very end of nixos-install, which is the worst possible
+    # place to find out.
+    disk_mb=$(( $(blockdev --getsize64 "$disk") / 1048576 ))
+    root_mb=$(( disk_mb - 512 - swap_mb ))
+    if (( root_mb >= 20480 )); then
+      check_ok "fit: root gets $root_mb MiB after ESP+swap (the closure needs ~19 GiB)"
+    else
+      check_fail "fit: root would get $root_mb MiB of $disk_mb — the system closure alone is ~19 GiB"
+    fi
+
+    if [[ "$assume_yes" != true && "$skip_prepare" != true && "$rehearse" != true ]]; then
       echo "This ERASES $disk completely. Type ERASE to continue:"
       read -r reply
       [[ "$reply" == "ERASE" ]] || { echo "aborted"; exit 1; }
     fi
 
     # ── 2. Partition ──────────────────────────────────────────────────
-    # nvme0n1 → nvme0n1p1, sda → sda1: the kernel inserts a 'p' only when
-    # the disk name ends in a digit.
-    part() { if [[ "$disk" =~ [0-9]$ ]]; then echo "''${disk}p$1"; else echo "''${disk}$1"; fi; }
-
-    seed="/mnt/home/$owner/Golem"
+    # A rehearsal redirects every target write into a shadow tree inside
+    # the bundle; the real install's paths are untouched. $mnt is the ONLY
+    # thing that differs — the code below is the same in both modes.
+    mnt=/mnt
+    if [[ "$rehearse" == true ]]; then
+      mnt="$logdir/mnt"
+      mkdir -p "$mnt"
+    fi
+    seed="$mnt/home/$owner/Golem"
 
     if [[ "$skip_prepare" == true ]]; then
       mountpoint -q /mnt || { echo "golem-install: --skip-prepare but /mnt is not mounted" >&2; exit 1; }
@@ -109,45 +308,160 @@ pkgs.writeShellApplication {
       echo "resuming: /mnt mounted, seed present — install step only"
     else
 
-    swapoff -a || true
-    umount -R /mnt 2>/dev/null || true
-    wipefs -a "$disk"
-    sgdisk --zap-all "$disk"
-    sgdisk -n1:0:+512M   -t1:ef00 -c1:ESP   "$disk"
-    sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
-    sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
-    partprobe "$disk" 2>/dev/null || true
-    udevadm settle
+    echo "##golem 1/6 formatting the drive"
+    run swapoff -a || true
+    run cryptsetup close golem 2>/dev/null || true
+    run umount -R /mnt 2>/dev/null || true
+    run wipefs -a "$disk"
+    run sgdisk --zap-all "$disk"
 
-    mkfs.fat -F32 -n ESP "$(part 1)"
-    mkswap -L swap "$(part 2)"
-    mkfs.ext4 -F -L golem "$(part 3)"
-    udevadm settle
+    if [[ "$luks" == true ]]; then
+      # ── ENCRYPTED LAYOUT: ESP + one LUKS container + LVM inside ──────
+      #
+      # ONE container, not two, and LVM inside it — because HIBERNATION IS
+      # LOCKED (memory.nix) and hibernation needs the swap readable from
+      # initrd. Separate LUKS volumes for root and swap would mean either
+      # typing the passphrase twice at every boot, or a keyfile for swap
+      # that has to live somewhere — and the only place it could live is
+      # the root that is not open yet. One container unlocked once gives
+      # both, which is why the swap moves inside instead of staying its
+      # own partition.
+      #
+      # The ESP stays outside and unencrypted, as it must: the firmware
+      # reads it before anything can ask for a passphrase.
+      run sgdisk -n1:0:+512M -t1:ef00 -c1:ESP   "$disk"
+      run sgdisk -n2:0:0     -t2:8309 -c2:crypt "$disk"
+      run partprobe "$disk" 2>/dev/null || true
+      run udevadm settle
 
-    mount /dev/disk/by-label/golem /mnt
-    mkdir -p /mnt/boot
-    mount /dev/disk/by-label/ESP /mnt/boot
+      run cryptsetup luksFormat --type luks2 --batch-mode \
+        --key-file "$luks_key" "$(part 2)"
+      run cryptsetup open --key-file "$luks_key" "$(part 2)" golem
+      # The passphrase has done its job. It was written to a 0600 file on
+      # the medium's tmpfs — RAM, never a disk — and it goes now rather
+      # than at the end, so no later failure can leave it lying around.
+      # A rehearsal keeps it: it opened no container, and shredding it
+      # would eat the passphrase a real run right after might want.
+      if [[ "$rehearse" == true ]]; then
+        note "keyfile kept (rehearsal opened nothing): $luks_key"
+      else
+        shred -u "$luks_key" 2>/dev/null || rm -f "$luks_key"
+      fi
+
+      run pvcreate /dev/mapper/golem
+      run vgcreate golemvg /dev/mapper/golem
+      run lvcreate -L "''${swap_mb}M" -n swap golemvg
+      run lvcreate -l 100%FREE -n root golemvg
+      run udevadm settle
+
+      run mkfs.fat -F32 -n ESP "$(part 1)"
+      run mkswap -L swap /dev/golemvg/swap
+      run mkfs.ext4 -F -L golem /dev/golemvg/root
+      # The UUID of the CONTAINER, not of anything inside it: that is what
+      # initrd has to be told to unlock, and it is stable across reboots
+      # where /dev/sda2 is not.
+      if [[ "$rehearse" == true ]]; then
+        luks_uuid="REHEARSAL-0000-0000-0000-000000000000"
+        note "luks uuid is a placeholder — the real install reads it from blkid after luksFormat"
+      else
+        luks_uuid=$(blkid -s UUID -o value "$(part 2)")
+      fi
+    else
+      run sgdisk -n1:0:+512M   -t1:ef00 -c1:ESP   "$disk"
+      run sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
+      run sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
+      run partprobe "$disk" 2>/dev/null || true
+      run udevadm settle
+
+      run mkfs.fat -F32 -n ESP "$(part 1)"
+      run mkswap -L swap "$(part 2)"
+      run mkfs.ext4 -F -L golem "$(part 3)"
+    fi
+    run udevadm settle
+
+    # by-label works for both layouts: the encrypted branch labels its
+    # logical volumes `golem` and `swap` exactly as the plain branch labels
+    # its partitions, so everything downstream of here is identical.
+    # The mount TARGETS are spelled /mnt, not $mnt: in a real install the
+    # two are the same, and in a rehearsal the mounts are recorded, not
+    # executed — and the transcript must describe what the REAL install
+    # would do, or it can never be diffed against a real run's transcript
+    # (the first VM calibration recorded the shadow path here, which is a
+    # transcript lying about the install it rehearses).
+    echo "##golem 2/6 filesystems"
+    run mount /dev/disk/by-label/golem /mnt
+    mkdir -p "$mnt/boot"
+    run mount /dev/disk/by-label/ESP /mnt/boot
     # ON before nixos-generate-config: that is how the swap partition ends
     # up in hardware-configuration.nix's swapDevices, which is what wires
     # boot.resumeDevice and the lid's suspend-then-hibernate. An install
     # that skips this boots WITHOUT hibernation and nothing complains.
-    swapon /dev/disk/by-label/swap
+    run swapon /dev/disk/by-label/swap
 
     # ── 3. Seed the checkout ──────────────────────────────────────────
+    # Real work in both modes: the rehearsal copies into its shadow tree,
+    # which is what lets step 5 evaluate the seed exactly as the real
+    # install would.
+    echo "##golem 3/6 copying Golem"
     mkdir -p "$seed"
     cp -a "$src"/. "$seed"/
     chmod -R u+w "$seed"
+    note "seed: $(du -sm "$seed" | cut -f1) MiB at $seed"
 
     # ── 4. The three dropped files ────────────────────────────────────
+    echo "##golem 4/6 reading the device"
     mkdir -p "$seed/hosts/target"
     golem-hw-detect > "$seed/hosts/target/golem-hardware.nix"
 
-    nixos-generate-config --root /mnt
-    cp /mnt/etc/nixos/hardware-configuration.nix "$seed/hosts/target/"
-    # nixos-generate-config also drops a stock configuration.nix. Golem is
-    # a flake distro; leaving a second, channel-shaped config on the disk
-    # is only an invitation to rebuild the wrong thing.
-    rm -f /mnt/etc/nixos/configuration.nix
+    # The boot audit measured this machine ~a boot ago; the line above
+    # measured it just now. They must agree, or detection is racing
+    # something — the exact instability the three-boots-deep check on lab
+    # row 1 existed to rule out. A warning, not a failure: unplugging a
+    # USB radio between boot and install is legitimate.
+    # The "# Generated by" header carries the probe's timestamp, which
+    # differs on every run by construction — compare the FACTS (the first
+    # VM calibration warned on nothing but the two timestamps).
+    if [[ -f /var/log/golem-audit/golem-hardware.nix ]]; then
+      if diff -q <(grep -v '^# Generated' /var/log/golem-audit/golem-hardware.nix) \
+                 <(grep -v '^# Generated' "$seed/hosts/target/golem-hardware.nix") >/dev/null; then
+        check_ok "facts: the probe now matches the boot audit fact for fact"
+      else
+        check_warn "facts: the probe now DIFFERS from the boot audit — hardware changed since boot, or detection is unstable:"
+        diff <(grep -v '^# Generated' /var/log/golem-audit/golem-hardware.nix) \
+             <(grep -v '^# Generated' "$seed/hosts/target/golem-hardware.nix") >> "$CHK" || true
+      fi
+    fi
+
+    if [[ "$rehearse" == true ]]; then
+      # The real install lets nixos-generate-config MEASURE the mounted
+      # target. Nothing is mounted here, so the file is assembled from a
+      # measured half and a guaranteed half: --show-hardware-config reads
+      # this machine's kernel modules without wanting a root, and the
+      # filesystems are what the partitioning above guarantees by
+      # construction — both branches label root `golem`, boot `ESP`, swap
+      # `swap`. The real file will name the same devices by-uuid; the
+      # header inside says so, so nobody mistakes synthesis for
+      # measurement.
+      hw=$(nixos-generate-config --show-hardware-config --no-filesystems)
+      {
+        printf '%s\n' "''${hw%\}}"
+        echo "  # REHEARSAL SYNTHESIS — the real install measures these from the"
+        echo "  # mounted target and writes by-uuid paths. Same devices, found a"
+        echo "  # different way; the labels are guaranteed by the partitioning."
+        echo "  fileSystems.\"/\" = { device = \"/dev/disk/by-label/golem\"; fsType = \"ext4\"; };"
+        echo "  fileSystems.\"/boot\" = { device = \"/dev/disk/by-label/ESP\"; fsType = \"vfat\"; options = [ \"fmask=0022\" \"dmask=0022\" ]; };"
+        echo "  swapDevices = [ { device = \"/dev/disk/by-label/swap\"; } ];"
+        echo "}"
+      } > "$seed/hosts/target/hardware-configuration.nix"
+      note "hardware-configuration.nix synthesized: measured modules + by-label filesystems"
+    else
+      nixos-generate-config --root /mnt
+      cp /mnt/etc/nixos/hardware-configuration.nix "$seed/hosts/target/"
+      # nixos-generate-config also drops a stock configuration.nix. Golem is
+      # a flake distro; leaving a second, channel-shaped config on the disk
+      # is only an invitation to rebuild the wrong thing.
+      rm -f /mnt/etc/nixos/configuration.nix
+    fi
 
     {
       echo "# The human choices for this machine, written by golem-install."
@@ -157,6 +471,45 @@ pkgs.writeShellApplication {
       echo "  golem.owner = \"$owner\";"
       echo "  networking.hostName = \"$hostname\";"
       echo "  users.users.$owner.description = \"$fullname\";"
+      echo
+      echo "  # The language step's answer. Drives i18n.defaultLocale and"
+      echo "  # which locales get generated — an ungenerated locale falls"
+      echo "  # back to C at first boot without saying so."
+      echo "  golem.locale.defaultLocale = \"$locale\";"
+      echo "  golem.locale.timeZone = \"$timezone\";"
+      # Without this the account has NO password at all — which is what
+      # every install produced before the You step existed, since
+      # nixos-install also runs --no-root-password.
+      if [[ -n "$passhash" && "$passhash" != "!unhashed" ]]; then
+        echo "  users.users.$owner.hashedPassword = \"$passhash\";"
+      fi
+      # The container's UUID, so initrd knows what to ask a passphrase for.
+      # nixos-generate-config does NOT write this: it describes filesystems
+      # it can see through an already-open mapper, not the thing that has to
+      # be opened first — so a machine installed without this line comes up
+      # in an initrd emergency shell, encrypted and unbootable.
+      if [[ -n "$luks_uuid" ]]; then
+        echo
+        echo "  # Unlocked once in initrd; swap and root are LVM inside it,"
+        echo "  # which is what lets hibernation resume from an encrypted swap."
+        echo "  boot.initrd.luks.devices.golem.device = \"/dev/disk/by-uuid/$luks_uuid\";"
+      fi
+      echo
+      echo "  # The keyboard step's one answer. Four values, three sinks:"
+      echo "  # console.keyMap, services.xserver.xkb.*, and Hyprland's own"
+      echo "  # input block — wired from these in system/configuration.nix"
+      echo "  # and system/home/home.nix. A comma in layout means a second"
+      echo "  # Latin group so a non-Latin script can still type a URL."
+      echo "  golem.keyboard = {"
+      echo "    layout = \"$kb_layout\";"
+      echo "    variant = \"$kb_variant\";"
+      echo "    options = \"$kb_options\";"
+      echo "    model = \"$kb_model\";"
+      echo "    consoleKeyMap = \"$kb_console\";"
+      # Only when the script needs one — null keeps the kernel default,
+      # which is the right font for every Latin keymap.
+      [[ -n "$kb_font" ]] && echo "    consoleFont = \"$kb_font\";"
+      echo "  };"
       if [[ -n "$labkey" ]]; then
         echo
         echo "  # --lab-ssh: this machine is a lab testbed, reachable from the"
@@ -177,6 +530,7 @@ pkgs.writeShellApplication {
     fi # end of prepare
 
     if [[ "$prepare_only" == true ]]; then
+      echo "##golem prepared"
       echo "prepared: disk partitioned, /mnt mounted, seed at $seed."
       echo "deliver the system closure to /mnt, then re-run with"
       echo "  golem-install --disk $disk --owner $owner --skip-prepare --system PATH"
@@ -184,6 +538,59 @@ pkgs.writeShellApplication {
     fi
 
     # ── 5. Build and install ──────────────────────────────────────────
+    if [[ "$rehearse" == true ]]; then
+      # The rehearsal's payload: INSTANTIATE the exact system the real
+      # install would build — from the seeded checkout, with the three
+      # dropped files in place, through the same pin table, offline, on
+      # this machine's own RAM. On the 4 GB class the eval is itself a
+      # measurement: a machine that cannot evaluate its own system cannot
+      # run a product install's build step either, and that is worth
+      # knowing before any disk is touched.
+      echo "##golem 5/6 evaluating the system"
+      t0=$SECONDS
+      if drv=$(nix eval --offline --no-write-lock-file --raw \
+          ${overrideArgs} \
+          "path:$seed#nixosConfigurations.golem-target.config.system.build.toplevel.drvPath" \
+          2>"$logdir/eval.err"); then
+        check_ok "eval: the target system instantiates in $(( SECONDS - t0 ))s → $drv"
+        echo "$drv" > "$logdir/toplevel.drv"
+        # On success the file holds only nix's input-override narration —
+        # noise that contradicts "read checks.txt first". It stays when
+        # the eval fails, because then it IS the finding's trace.
+        rm -f "$logdir/eval.err"
+      else
+        check_fail "eval: the target system does NOT evaluate — eval.err has the trace"
+      fi
+      note "would nixos-install --root /mnt --system <built toplevel> --no-root-password --no-channel-copy"
+      note "would chown the seed to $owner, then reboot on the 6/6 marker"
+
+      # The bundle: everything the dev box needs to audit this machine's
+      # would-be install. The dropped files are copied out of the shadow
+      # seed because the seed itself goes — it is a full checkout in RAM,
+      # and its job (feeding the eval) is done.
+      cp -a "$seed/hosts/target" "$logdir/target"
+      if [[ -n "$answers" && -r "$answers" ]]; then
+        cp "$answers" "$logdir/answers"
+      fi
+      rm -rf "$mnt"
+      if (( findings == 0 )); then
+        echo ok > "$logdir/status"
+      else
+        echo "findings: $findings" > "$logdir/status"
+      fi
+      tmptar=$(mktemp /tmp/golem-rehearsal.XXXXXX)
+      tar czf "$tmptar" -C "$logdir" .
+      mv "$tmptar" "$logdir/rehearsal.tar.gz"
+
+      echo "##golem rehearsed $findings"
+      echo "── rehearsed ────────────────────────────────────"
+      echo "  nothing was written to $disk"
+      echo "  findings: $findings   report: $logdir"
+      echo "  read checks.txt first; rehearsal.tar.gz is ready to pull"
+      exit 0
+    fi
+
+    echo "##golem 5/6 installing"
     if [[ -z "$system" ]]; then
       echo "building golem-target (this is the long part)…"
       system=$(nix build --offline --no-write-lock-file --no-link --print-out-paths \
@@ -192,19 +599,23 @@ pkgs.writeShellApplication {
     fi
     echo "installing system: $system"
 
-    nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy
+    run nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy
 
     # The seed is the installed machine's own flake (golem.flakeDir), so it
     # must belong to the owner, not to root — rebuild-golem runs as them.
     uid=$(chroot /mnt id -u "$owner" 2>/dev/null || echo "")
     gid=$(chroot /mnt id -g "$owner" 2>/dev/null || echo "")
     if [[ -n "$uid" && -n "$gid" ]]; then
-      chown -R "$uid:$gid" "/mnt/home/$owner"
+      run chown -R "$uid:$gid" "/mnt/home/$owner"
     else
       echo "note: user '$owner' not found in the installed system — seed left root-owned" >&2
     fi
 
     echo
+    # The 6/6 marker is the surface's REBOOT TRIGGER: golem-setup restarts
+    # the machine only after seeing it, so it must mean "nixos-install
+    # succeeded", never "the script got to the end of prepare".
+    echo "##golem 6/6 done"
     echo "── done ─────────────────────────────────────────"
     echo "  installed to $disk; seed checkout at /home/$owner/Golem"
     echo "  reboot and remove the medium."

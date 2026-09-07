@@ -88,6 +88,16 @@ Decision record (Max, 2026-09-03): installer surface = **Golem-native**
 toggle**; boot menu = Start/Install only, no timeout (shipped, see
 `Installer/iso.nix`).
 
+Decision record (Max, 2026-09-05): the surface is a **CLI conversation**,
+not a TUI — one shape per step, a title saying what is being asked, a
+filter line, and the likely answers under it in order of importance. And
+**the default install is: no encryption, ext4, swap sized for hibernation,
+whole disk erased.** Encryption, installing onto a single partition and
+dual boot are all reachable from an **Advanced** row at the foot of the
+disk list, so the ordinary path is one keypress and nobody is asked a
+question they have no way to answer. That settles the LUKS default this
+section left open.
+
 ## 4. The census — what `golem-hw-detect` grows into
 
 Read-only probe of the target machine. Sources: PCI (class/vendor/device

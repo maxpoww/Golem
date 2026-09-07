@@ -60,18 +60,21 @@ win, not a bootstrapping fight.
 
 ## The scoreboard
 
-| # | Machine | Weirdness | Evidence | Census right | Installed, first boot OK |
-|---|---------|-----------|----------|--------------|--------------------------|
-| 0 | qemu VM (virtio) — the loop's dry run | none | ✅ `fixtures/qemu-virtio/` (regenerated as root 2026-09-04 from a live MiniGolem boot — the old dump predated `vmGuest`, which is why the probe now *measures* the hypervisor instead of the matrix guessing at it) | ✅ 13/13 facts+decisions, live on the medium, offline, 5.9 s | ✅ **installed + booted + audited at runtime 2026-09-04, hibernation performed** |
-| 1 | Acer Aspire E5-573 (i5-5200U Broadwell, HD 5500, QCA9377 wifi+BT) | low | ✅ `fixtures/acer-aspire-e5-573/` (regenerated 2026-09-04 by the machine's OWN boot-time audit — no hand-driving) | ✅ **8/8 facts + 13 decisions, self-audited at boot in 20.9 s, every fact cross-checked against the metal** (see below) | ☐ (census first — install is the lab's last step) |
-| 2 | (laptop TBD) | | ☐ | ☐ | ☐ |
-| 3 | (laptop TBD) | | ☐ | ☐ | ☐ |
-| 4 | (laptop TBD) | | ☐ | ☐ | ☐ |
-| 5 | MacBook (Broadcom wl, Apple EFI) | boss fight | ☐ | ☐ | ☐ |
+| # | Machine | Weirdness | Evidence | Census right | Install rehearsed | Installed, first boot OK |
+|---|---------|-----------|----------|--------------|-------------------|--------------------------|
+| 0 | qemu VM (virtio) — the loop's dry run | none | ✅ `fixtures/qemu-virtio/` (regenerated as root 2026-09-04 from a live MiniGolem boot — the old dump predated `vmGuest`, which is why the probe now *measures* the hypervisor instead of the matrix guessing at it) | ✅ 13/13 facts+decisions, live on the medium, offline, 5.9 s | ✅ **calibrated 2026-09-06**: engine over SSH (plain + LUKS) AND the full surface drive — six screens, ENTER on the confirm, bar to 5/6, "rehearsed — nothing was written, no findings", vda verified virgin after. 5/5 checks ok, eval 9 s, whole run ~19 s |  ✅ **installed + booted + audited at runtime 2026-09-04, hibernation performed** |
+| 1 | Acer Aspire E5-573 (i5-5200U Broadwell, HD 5500, QCA9377 wifi+BT) | low | ✅ `fixtures/acer-aspire-e5-573/` (regenerated 2026-09-04 by the machine's OWN boot-time audit — no hand-driving) | ✅ **8/8 facts + 13 decisions, self-audited at boot in 20.9 s, every fact cross-checked against the metal** (see below) | ✅ **round 1, 2026-09-06**: 5/5 checks, facts match boot audit (cores fix closed the old warning), eval 31 s, hostname clean, `/dev/sda` factory NTFS untouched (`testing/acer.md`) | ☐ (census first — install is the lab's last step) |
+| 2 | (laptop TBD) | | ☐ | ☐ | ☐ | ☐ |
+| 3 | (laptop TBD) | | ☐ | ☐ | ☐ | ☐ |
+| 4 | (laptop TBD) | | ☐ | ☐ | ☐ | ☐ |
+| 5 | MacBook (Broadcom wl, Apple EFI) | boss fight | ☐ | ☐ | ☐ | ☐ |
 
 Fill in the roster as Max hands over machines; a row passes only when all
-three boxes tick, and a probe change must keep every earlier row's
-fixtures green.
+four boxes tick, and a probe change must keep every earlier row's
+fixtures green. "Install rehearsed" (added 2026-09-06, see the rehearsal
+loop below) sits between the census and the install because that is where
+it sits in time: it is the census's trust extended to the whole install
+flow, earned without wiping anything.
 
 ## MiniGolem build state
 
@@ -186,8 +189,87 @@ fixtures green.
       is deliberately dumb — it prints what it is given, so wording and
       order stay next to the values in `decide.nix`, and the tty1 banner
       is just the first three sections.
-- [x] Install flow v1, mechanics (`install.nix`, whole-disk,
-      **unencrypted — LUKS still pending Max's call**): asks the flake for
+- [x] **Step 7 — confirm · progress · done, one screen** (2026-09-06). The
+      last of the six flow screens, built to PLAN.md's own old law: "the
+      summary stays put and fills in as each part lands." Pressing ENTER
+      after the password REVEALS the census into the same stack as the
+      answers — everything Golem decided on its own (zram, driver, VA-API,
+      microcode, bluetooth, thermald, lid, scheduler) lands as more `·`
+      items, read from `/var/log/golem-audit/decision.json` via jq, in
+      decide.nix's order, renderer still dumb. Then one question, then a
+      bar fed by `##golem N/6 <phase>` markers golem-install now prints at
+      real phase boundaries — MEASURED progress, not animation. 6/6 is
+      printed only after nixos-install succeeds and is the sole reboot
+      trigger (`systemctl reboot`): a bar that ended because the script
+      ended would restart a machine with no system on it. `##golem
+      prepared` is the lab seam — `GOLEM_LAB=1` (baked into the wrapper
+      until the closure-delivery question is answered) adds `--prepare-only`,
+      the bar stops at "prepared", and the resume command is printed. ESC
+      on the confirm walks back into the You step like every other back.
+      Proven on a dev box (`--fake-census --fake-install`): reveal → confirm
+      → bar 1/6…6/6 → "restarting into Golem". Metal/VM run against real
+      golem-install is the next check.
+- [x] **The surface is ON the medium** (2026-09-06, `setup.nix`): the CLI
+      conversation built in `mockup/install-cli` is packaged as
+      **`golem-setup`** and shipped in the ISO's system path. Until then
+      the whole "test on five machines" idea had a hole in the middle — a
+      lab machine had golem-install, the census, and no way to answer the
+      six questions; the surface only existed on the dev box. Packaging
+      notes: makeWrapper + patchShebangs (NOT writeShellApplication —
+      shellcheck over 2,600 lines of interactive redraw bash fails on
+      lints the tmux-driven tests are the real answer to); the keyboard
+      table is baked in from `lib.golem.keyboards.table`, the same data
+      the keyboard-table CI check verifies, so stick and CI cannot drift;
+      deps (loadkeys, lsblk, mkpasswd…) are wrapped into PATH and the
+      package runs under `env -i`. Bare `golem-setup` defaults
+      `--out /tmp/golem-answers --write /tmp/golem-machine.nix` (tmpfs =
+      RAM, where a file that may name a LUKS keyfile belongs) and its
+      exit report prints the exact
+      `sudo golem-install --answers … --disk …` line — the lab join until
+      the evaluation+install screens exist. The getty helpLine advertises
+      `sudo golem-setup`. Verified on the booted medium in the VM:
+      `--check` green over SSH, tzdata answers, and the DISKLESS machine
+      walks language→timezone→keyboard and then refuses with "No disk
+      found to install on." before anyone has typed a name — the exact
+      fail-early property the step order was designed for.
+- [x] **Rehearsal mode** (2026-09-06, Max: "when I enter on 'Install
+      Golem?' Golem should fake the installation… do a test and send it
+      to you… until we know this installer knows what it's doing").
+      `golem-install --rehearse` is the SAME installer with every
+      destructive verb routed through one runner that records instead of
+      executing — same control flow, so the rehearsal cannot drift from
+      what it rehearses. What still runs for real: the probe, the seed
+      copy, the three dropped files, and step 5 as an offline
+      INSTANTIATION of the exact system the install would build. The
+      wrapper sets `GOLEM_REHEARSE=1`, so ENTER on the confirm rehearses;
+      it ends with `##golem rehearsed N`, never 6/6 (the reboot trigger),
+      and leaves `/var/log/golem-rehearsal/` for the dev box. Full loop
+      below.
+- [x] **LUKS** (2026-09-05, `install.nix` + the surface's step 5). `--luks`
+      branches the partitioning into ESP + one LUKS2 container with LVM
+      inside holding swap and root; everything after it is identical
+      because both branches label their root `golem` and swap `swap`.
+      ONE container, not two, because hibernation is locked: resume reads
+      the swap from initrd, and separate volumes would mean two passphrase
+      prompts per boot or a keyfile with nowhere safe to live.
+      `boot.initrd.luks.devices` goes into `machine.nix` from the
+      container's UUID — nixos-generate-config never writes it, because it
+      describes filesystems seen through an already-open mapper, so a
+      machine installed without that line boots into an initrd emergency
+      shell. The passphrase rides a 0600 file on the medium's tmpfs (RAM,
+      never a disk) and is shredded the moment the container exists.
+      Not yet proven on metal or in the VM.
+- [x] **The default install, decided** (Max, 2026-09-05): *"no encryption,
+      ext4, swap + hibernation, format, erase the disk, and install
+      Golem."* That is the plain branch, which is also the one proven end
+      to end on row 0. Everything else — encryption, installing onto a
+      single partition, dual boot — lives behind the disk step's
+      **Advanced** row, so the ordinary install is one keypress and a
+      stranger is never asked a question they have no way to answer.
+      This closes GolemInstall.md §3's open "disk scope v1" item and the
+      LUKS default-on/off call that has been in the backlog since
+      2026-09-03.
+- [x] Install flow v1, mechanics (`install.nix`, whole-disk): asks the flake for
       the swap rule rather than copying it, GPT ESP/swap/root, `swapon`
       *before* `nixos-generate-config` so `swapDevices` lands in
       `hardware-configuration.nix` and hibernation actually gets wired,
@@ -294,6 +376,37 @@ rather than guessed — detection is a pure function of evidence, so that is
 the same answer the machine gives — and should be re-confirmed on its next
 boot.
 
+*Re-confirmed, and it caught a second bug (2026-09-06, first boot of the
+rehearsal stick).* The Acer's BOOT AUDIT reported `cores = 4` on metal
+while every SSH re-check said `2`. Root cause was not the topology awk —
+that is correct — but that `awk` (gawk) was **missing from
+hardware-detect.nix's runtimeInputs**. `writeShellApplication` puts
+runtimeInputs ahead of the ambient PATH, so awk resolved from
+`/run/current-system/sw/bin` in an interactive shell (cores=2) but was
+`command not found` under the boot audit's clean systemd PATH — the only
+context that feeds the census — where the pipeline collapsed and the
+`|| true` guard fell back to `threads`. Fixed not by adding gawk but by
+REMOVING the awk dependency: cores now counts distinct
+`thread_siblings_list` from sysfs with cat/sort/grep — all already in the
+closure — so the probe no longer reaches outside itself for something this
+basic (proven under `env -i`, harsher than any systemd PATH: correct count,
+was threads; final proof is the Acer's own boot audit after reflash). The
+lesson is the one metal keeps teaching: a tool that reaches outside its own
+closure works everywhere except the one stripped-PATH context that matters,
+and the best fix is to stop reaching. cores/threads are informational, so
+no decision was ever wrong — but a census that misreports the CPU on real
+hardware is exactly what the lab exists to surface, and it did so on the
+first boot.
+
+*And a surface fix in the same pass (2026-09-06):* the hostname step's
+"Golem" default was passed as the field's INITIAL VALUE, so typing a name
+appended to it — the Acer rehearsal recorded `Golemacer-lab`. "Golem" is
+now a GHOST placeholder (shown dimmed, taken on ENTER only if nothing was
+typed); the initial value is the empty/real hostname, so typing starts
+clean and an ESC-reopen still edits the prior value. A placeholder is not a
+value. Verified in tmux: clean `acer-lab`, ENTER→`Golem`, ESC-reopen keeps
+`myhost` editable.
+
 ## What running it on a real machine cost, in bugs
 
 Eight findings. Every one was invisible to the eval matrix and fell out of
@@ -392,6 +505,177 @@ plan. The real options are (a) carry a prebuilt closure on a bigger
 medium, (b) install lean and let the machine fill itself in later, or
 (c) require a network install and accept the download. **That is a Max
 call, and it is now the biggest open question in the install story.**
+
+## The installer flow (agreed 2026-09-04)
+
+Six screens, decided in order with Max. Deliberately short — every screen
+that asks a question is a screen a stranger can get wrong.
+
+| # | Screen | Carries |
+|---|---|---|
+| 1 | **Language** | english · español · … |
+| 2 | **Keyboard** | set while Golem reads the device |
+| 3 | **Evaluation** | what it found · what it will build |
+| 4 | **Disk** | target · encryption · passphrase |
+| 5 | **You** | hostname · user · password |
+| 6 | **Install** | summary → work → done, one screen, three states |
+
+Why this order, and not the obvious one:
+
+- **Language is first because every word after it depends on it.** Nobody
+  should have to read an English screen to reach the Spanish setting.
+- **No network step at all.** The offline seed exists precisely so the
+  install needs no network, and that was proven on the VM. Adding a connect
+  step would turn the optional thing into a wall — and it is the step most
+  likely to fail, on an unfamiliar keymap, before drivers are settled. The
+  consequence is that the stick IS the product: nothing can be fetched
+  later, which sharpens the closure-delivery question above.
+- **Keyboard is second because it overlaps the census.** The probe is the
+  one part that takes real time and cannot be hurried, so it runs while the
+  user does the one task that needs a human anyway. Nobody watches a
+  spinner. The line must stay true on a fast machine, where the audit may
+  finish first — "Golem is reading this device" survives both cases,
+  "while Golem reads" does not.
+- **Keyboard before disk is load-bearing, not cosmetic.** With encryption
+  on, the disk step wants a passphrase. A passphrase typed under the wrong
+  keymap locks the owner out of their own disk with no rescue — worse than
+  the account case, which at least has single-user mode. Keyboard at 2
+  makes that impossible, which is what lets the passphrase live on the disk
+  screen next to the toggle.
+- **Disk before identity** so a machine with no usable target fails before
+  anyone has typed a name or a password.
+- **Confirm, progress and done are one screen.** The summary stays put and
+  fills in as each part lands, so the progress *is* the confirmation being
+  answered line by line. Two rules for that screen: `working` and `done`
+  must not look alike, or someone pulls the stick mid-write; and the
+  buttons must leave rather than grey out, because a dimmed control reads
+  as "not yet" rather than "not anymore".
+
+### The keymap lockout, and what actually prevents it
+
+Detecting the layout from keypresses works — the kernel hands us keycodes
+regardless of the loaded keymap, so the Mac trick (press the key right of
+left Shift, then left of right Shift) reads the physical board:
+
+| press | keycode | means |
+|---|---|---|
+| right of left Shift | `KEY_Z` 44 | ANSI |
+| | `KEY_102ND` 86 | ISO |
+| left of right Shift | `KEY_SLASH` 53 | ANSI/ISO |
+| | `KEY_RO` 89 | JIS |
+
+But that is the *form factor*, not the language: France, Germany, Spain,
+the UK, Italy and the Nordics are all ISO, so "it is ISO" narrows forty
+layouts to thirty-nine. It sorts the list; it cannot decide it.
+
+What actually prevents the lockout, cheapest first:
+
+1. **Show the password in the clear while it is typed.** Masking defeats
+   shoulder-surfing; this is one person alone at their own machine during a
+   one-time setup. It buys almost no security here and hides the exact
+   error that locks them out.
+2. **A live echo box** on the keyboard screen. Turns the question from "do
+   you know your locale code" into "does this match what is printed on your
+   keys" — the only version a stranger can answer.
+3. **The shift probe, to sort rather than decide.** ANSI puts `us` first,
+   ISO the European set, JIS `jp`.
+
+Reading keycodes needs evdev or `kbd_mode -k`; bash can do neither, so this
+would be the first piece of the installer needing a helper binary.
+
+## The rehearsal loop (agreed 2026-09-06)
+
+The scoreboard's install box used to be a one-shot destructive test: the
+only way to learn whether the installer handles a machine was to wipe it.
+Rehearsal turns that into what the census already is — repeatable,
+evidence-producing, auditable over SSH, free to run on all five laptops as
+often as needed. **The wired install stays the last step**; a green
+rehearsal is what earns the right to run it.
+
+**The one design rule:** the rehearsal is the real installer with the
+destructive verbs intercepted, never a parallel fake. Every
+`sgdisk`/`mkfs`/`mount`/`cryptsetup`/`nixos-install` goes through one
+`run()` that executes in a real install and records in a rehearsal. Two of
+the eight row-0 bugs were the harness lying to the probe; a hand-written
+fake install would be that harness. Same code path ⇒ the transcript IS the
+test artifact, and drift is impossible by construction.
+
+What a rehearsal still does for real: probes the machine (and diffs the
+result against the boot audit's facts — an instability detector), copies
+the seed, writes the three `hosts/target/` files with the same code
+(hardware-configuration.nix is measured for its module half and
+synthesized by-label for its filesystem half, marked as such inside), and
+**instantiates the exact target system offline on the machine's own RAM**
+— on the 4 GB class the eval is itself a measurement.
+
+**Preflight checks, grown for the rehearsal, run in BOTH modes** (same
+code path — every check the lab teaches hardens the real install for
+free): booted-UEFI (systemd-boot cannot boot a BIOS machine — at least one
+lab laptop boots the stick via syslinux, and this catches it before a
+byte moves), target-is-not-the-medium, and disk-fit against the ~19 GiB
+closure. Real mode aborts on the spot; a rehearsal records the finding
+and keeps going, because it exists to collect findings.
+
+The bundle, `/var/log/golem-rehearsal/`: `plan.txt`, `transcript.txt`
+(every command, `run`/`would`/`note`), `checks.txt` (read this first),
+`target/` (the three dropped files), `answers`, `toplevel.drv` or
+`eval.err`, `status`, and `rehearsal.tar.gz` ready to pull. A real
+install writes the same transcript to `/var/log/golem-install/`, so a
+later wired install can be diffed line-for-line against its own
+rehearsal.
+
+**The loop per machine:** boot the stick → census lands → `sudo
+golem-setup`, answer the six screens, ENTER on the confirm → the bar runs
+1/6…5/6 and ends "rehearsed — nothing was written" with the machine's IP
+→ the dev box SSHes in, pulls the bundle, audits it against what we know
+of the machine → fix, `nix copy` the changed tool over, rehearse again.
+Bundles worth keeping go to `fixtures/<machine>/` like evidence dumps —
+commits are Max's call.
+
+**The mode ladder** (setup.nix wrapper, one env line per rung):
+`GOLEM_REHEARSE=1` → rehearse (now); delete it → `GOLEM_LAB=1`
+prepare-only, the real lab install with closure delivery from the dev
+box; delete both → the product install. The getty helpLine flips wording
+with the top rung.
+
+**Lab wifi:** the stick auto-joins HOLA at boot — machines are reachable
+the moment the census lands, and the "reflashed stick sat dark" nmcli
+step is gone. HOLA is an OPEN network (Max, 2026-09-06), so there is no
+secret to keep out of the public repo and a plain `nix build .#iso`
+carries the profile; it rides the same lab ladder as GOLEM_REHEARSE and
+goes when the medium graduates. If the lab ever moves to a protected
+network: `GOLEM_LAB_WIFI_SSID='…' GOLEM_LAB_WIFI_PSK='…' nix build
+--impure .#iso` bakes a wpa-psk profile, the PSK living only inside the
+image (same trust level as the baked SSH key).
+
+What a green rehearsal does NOT prove: mkfs, the bootloader write, first
+boot. Those stay with the scoreboard's last box, wired and watched, one
+guinea-pig machine at a time — after the rehearsals have stopped finding
+things.
+
+**Calibration (row 0, 2026-09-06).** The first bundle was audited before
+any laptop sees this, and auditing the audit caught three defects in one
+pass — the method working on itself:
+
+1. the facts-vs-boot-audit diff warned on every run, because the probe
+   embeds a generation timestamp in line 1 — it now compares facts, not
+   headers;
+2. the transcript recorded `would mount … /var/log/golem-rehearsal/mnt`,
+   the shadow path — a transcript lying about the install it rehearses,
+   and undiffable against a real run's. Mount targets are now spelled
+   `/mnt` (identical in a real install, recorded-only in a rehearsal);
+3. `eval.err` stayed in the bundle on success, holding nothing but nix's
+   override narration — removed unless the eval actually fails.
+
+After the fixes: engine over SSH green (plain AND LUKS branches, 5/5
+checks, eval 9 s, ~19 s total on the 4 GB VM), then the full surface
+drive — six screens, ENTER on the confirm, bar to 5/6 "Evaluating the
+system", the rehearsed closing block with the machine's IP — and
+`/dev/vda` verified virgin afterwards: no partition table, no
+filesystems. The Spanish keyboard chosen on the surface landed in the
+bundle's `machine.nix` (`layout = "es"`, pc105), and the LUKS rehearsal
+put the placeholder container UUID in `boot.initrd.luks.devices` with the
+keyfile kept, exactly as designed.
 
 ## Working agreements
 

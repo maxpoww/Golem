@@ -43,6 +43,35 @@
 - displays
 - power
 - screenshot
+- **keyboard** — the installer's step 2, re-openable for the life of the
+  machine. Unusual among planned modules in that its ENGINE ALREADY EXISTS
+  and is CI-enforced (2026-09-05): `lib.golem.keyboards` is 72 layouts
+  (Colemak, Dvorak, Neo, Bépo, US-International, Turkish-F, the phonetic
+  Cyrillic sets) and `derive` turns one id into all four settings —
+  `console.keyMap`, `console.font`, `services.xserver.xkb.*` and Hyprland's
+  own `input.kb_*`, which is a separate sink because Hyprland does not read
+  the NixOS option. `checks.x86_64-linux.keyboard-table` proves every name
+  against kbd + xkeyboard-config; `facts-matrix` proves the four sinks
+  actually receive it. So the module is a SURFACE over settled data, not a
+  research problem. Two things it must add that the installer deliberately
+  does not ask a stranger: **compose key** (`compose:ralt` and friends) and
+  **caps-lock remapping** (`caps:swapescape`, `caps:ctrl_modifier`) — real
+  preferences, wrong to put in front of everyone during setup, and the
+  reason `golem.keyboard.options` is a single composable string. Third:
+  adding a second layout by choice rather than by script, for the bilingual
+  case the installer's automatic Latin group does not cover.
+- **language** — the installer's step 1, likewise re-openable, over
+  `golem.locale`. The distro deliberately leaves `LC_*` unset so every
+  category follows the chosen language; the split case (English interface,
+  local dates and money — what `hosts/golem/locale.nix` does by hand) is
+  exactly the preference that belongs here rather than in setup. Note the
+  trap the module must handle: changing the language means REGENERATING the
+  locale, because an ungenerated locale falls back to C at first boot
+  without saying so — `i18n.supportedLocales` has to move with it.
+- **timezone** — not yet an installer step and not yet asked anywhere;
+  `golem.locale.timeZone` defaults to UTC, which is deliberately merely
+  wrong rather than misleading. Whichever lands first, the installer step
+  or this module, sets the same option.
 
 ## Ideas
 

@@ -55,6 +55,98 @@
     '';
   };
 
+  options.golem.locale = {
+    defaultLocale = lib.mkOption {
+      type = lib.types.str;
+      default = "en_US.UTF-8";
+      example = "es_ES.UTF-8";
+      description = ''
+        The machine's language, as chosen in the installer's first step.
+        Drives i18n.defaultLocale and, through supportedLocales, which
+        locales actually get generated — an ungenerated locale falls back
+        to C at first boot without saying so.
+      '';
+    };
+    timeZone = lib.mkOption {
+      type = lib.types.str;
+      default = "UTC";
+      example = "America/La_Paz";
+      description = ''
+        The machine's timezone. UTC is the default because it is the only
+        answer that is merely WRONG rather than misleading — a stranger
+        sees a clock that is off by hours and fixes it, where inheriting
+        the distro author's zone looks deliberate and gets trusted.
+        Nothing asks for this yet: the timezone step is still to be built,
+        and until it exists this option is the thing it will set.
+      '';
+    };
+  };
+
+  options.golem.keyboard = {
+    layout = lib.mkOption {
+      type = lib.types.str;
+      default = "us";
+      description = ''
+        XKB layout for this machine, as chosen in the installer's keyboard
+        step. May be a comma-separated list: every non-Latin script gets
+        "<script>,us" so the owner can still type a URL, a password or a
+        shell command. See options.golem.keyboard.options for the toggle.
+      '';
+    };
+    variant = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        XKB variant, positional against layout. This is where Colemak,
+        Dvorak, Neo, Bépo, Turkish-F and US-International live — they are
+        not layouts, they are variants of one ("us" + "colemak"). A
+        two-group layout needs its second slot even when empty: "deva,".
+      '';
+    };
+    options = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        XKB options — in practice the group toggle the installer adds
+        alongside a second Latin group (grp:alt_shift_toggle).
+      '';
+    };
+    model = lib.mkOption {
+      type = lib.types.str;
+      default = "pc104";
+      description = ''
+        XKB model — the PHYSICAL board, derived from the layout's form
+        factor rather than asked. Not decoration: a JIS keyboard has
+        henkan, muhenkan and katakana keys that pc104 has no keycodes for,
+        and ABNT2 has the extra key beside the right shift.
+      '';
+    };
+    consoleKeyMap = lib.mkOption {
+      type = lib.types.str;
+      default = "us";
+      description = ''
+        kbd keymap for the TTY. A SEPARATE VOCABULARY from the XKB layout
+        above, not a copy of it: gb/uk, latam/la-latin1, br/br-abnt2,
+        jp/jp106, tr/trq, hu/hu101, si/slovene, rs/sr-cy. kbd ships no
+        keymap at all for Arabic, Persian, Thai, Korean or the Indic
+        scripts, so those stay "us" on purpose — the console has no font
+        for them, and a rescue shell that cannot type Latin is a brick.
+      '';
+    };
+    consoleFont = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Console font, when the chosen keymap needs one the kernel's
+        built-in font does not have. A Cyrillic keymap on the default font
+        gives a TTY that types Russian and draws boxes — right keymap,
+        unreadable screen. Only Cyrillic, Greek and Hebrew need it, because
+        they are the only non-Latin scripts kbd ships a keymap for at all.
+        null keeps the kernel default, which is correct for Latin.
+      '';
+    };
+  };
+
   options.golem.lean = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -160,7 +252,15 @@
       ${pkgs.systemd}/bin/bootctl set-default "" 2>/dev/null || true
     '';
 
-    networking.hostName = "Golem";
+    # mkDefault, and it was not until 2026-09-05. The installer writes the
+    # owner's chosen hostname into machine.nix, and a base value at normal
+    # priority made that a CONFLICTING DEFINITION — evaluation failed, so
+    # every install that named its machine anything but "Golem" would have
+    # died at nixos-install with a message about option priorities.
+    # Identical to the GECOS collision recorded in Installer/PLAN.md:
+    # a base value a per-machine file cannot override is not a default,
+    # it is a decision.
+    networking.hostName = lib.mkDefault "Golem";
 
     # The distro's NAME — what os-release (NAME/PRETTY_NAME) and the
     # systemd-boot entry titles say. Lives here (every Golem machine), not in
@@ -177,19 +277,33 @@
       allowedTCPPorts = [ 53317 ];
     };
 
-    time.timeZone = "America/La_Paz";
-    i18n.defaultLocale = "en_US.UTF-8";
-    i18n.extraLocaleSettings = {
-      LC_ADDRESS = "es_BO.UTF-8";
-      LC_IDENTIFICATION = "es_BO.UTF-8";
-      LC_MEASUREMENT = "es_BO.UTF-8";
-      LC_MONETARY = "es_BO.UTF-8";
-      LC_NAME = "es_BO.UTF-8";
-      LC_NUMERIC = "es_BO.UTF-8";
-      LC_PAPER = "es_BO.UTF-8";
-      LC_TELEPHONE = "es_BO.UTF-8";
-      LC_TIME = "es_BO.UTF-8";
-    };
+    # Language, from the installer's first question (golem.locale).
+    #
+    # WHAT WAS HERE UNTIL 2026-09-05, and why it had to go: a hardcoded
+    # `time.timeZone = "America/La_Paz"` and nine LC_* lines pinned to
+    # es_BO. Those are ONE OWNER'S SETTINGS, and they were sitting in the
+    # file that defines every Golem machine — so a stranger installing on
+    # their own laptop got Bolivian dates, money, paper size and clock no
+    # matter what they picked in the installer. They now live in
+    # hosts/golem/locale.nix, which is where one machine's facts belong.
+    #
+    # LC_* IS NOT SET HERE AT ALL, deliberately. Unset means every category
+    # follows defaultLocale, which is right for almost everyone: someone who
+    # picks Français wants French dates AND French numbers. The split case —
+    # English interface, local formats — is real but it is a preference, and
+    # preferences belong to OPTIONS rather than to a question asked of every
+    # stranger during setup.
+    i18n.defaultLocale = lib.mkDefault config.golem.locale.defaultLocale;
+    # The chosen locale must actually be GENERATED or it silently falls back
+    # to C at first boot — the same class of failure as an XKB name that
+    # does not exist. en_US stays alongside it because a rescue shell and
+    # most error messages assume it.
+    i18n.supportedLocales = lib.mkDefault (lib.unique [
+      "${config.golem.locale.defaultLocale}/UTF-8"
+      "en_US.UTF-8/UTF-8"
+      "C.UTF-8/UTF-8"
+    ]);
+    time.timeZone = lib.mkDefault config.golem.locale.timeZone;
 
     # Creates the `uinput` group and a udev rule giving it 0660 on
     # /dev/uinput. Without this the node is 0600 nobody:nogroup and nothing
@@ -220,9 +334,23 @@
       ];
     };
 
+    # Keyboard, from the installer's one question (golem.keyboard). THREE
+    # SINKS, and they are not interchangeable: the TTY reads console.keyMap,
+    # X11/XWayland clients read services.xserver.xkb, and the actual desktop
+    # reads NEITHER — Hyprland has its own input block, wired in
+    # home/home.nix. Setting only the two here leaves the session on us,
+    # which is exactly the bug this replaces.
+    console.keyMap = lib.mkDefault config.golem.keyboard.consoleKeyMap;
+    console.font   = lib.mkIf (config.golem.keyboard.consoleFont != null)
+                       (lib.mkDefault config.golem.keyboard.consoleFont);
     services.xserver = {
-      enable     = true;
-      xkb.layout = "us";
+      enable = true;
+      xkb = {
+        layout  = lib.mkDefault config.golem.keyboard.layout;
+        variant = lib.mkDefault config.golem.keyboard.variant;
+        options = lib.mkDefault config.golem.keyboard.options;
+        model   = lib.mkDefault config.golem.keyboard.model;
+      };
     };
 
     programs.zsh = {

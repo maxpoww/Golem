@@ -100,13 +100,21 @@
         inherit pkgs overrideArgs;
         golemSrc = golem;
       };
+
+      # The surface. Its keyboard table is rendered from the parent's
+      # lib.golem — the same data the keyboard-table CI check verifies —
+      # so what the stick shows and what CI proves are one source.
+      setup = import ./setup.nix {
+        inherit pkgs;
+        keyboardsTable = golem.lib.golem.keyboards.table;
+      };
     in
     {
       nixosConfigurations.golem-installer = nixpkgs.lib.nixosSystem {
         inherit system;
         # The medium carries the distro's source and everything the census
         # needs to evaluate it without a network (see iso.nix).
-        specialArgs = { inherit golem hw-decide hw-detect hw-evidence install offlineSeed; };
+        specialArgs = { inherit golem hw-decide hw-detect hw-evidence install setup offlineSeed; };
         modules = [
           "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
           ./iso.nix
@@ -122,6 +130,7 @@
         # the stick is reflashed only for boot-level changes.
         inherit hw-decide hw-detect hw-evidence offlineSeed;
         golem-install = install;
+        golem-setup = setup;
       };
     };
 }

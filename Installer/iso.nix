@@ -1,5 +1,29 @@
-{ lib, pkgs, golem, hw-decide, install, offlineSeed, ... }:
+{ lib, pkgs, golem, hw-decide, install, setup, offlineSeed, ... }:
 
+let
+  # ── Lab wifi, baked ───────────────────────────────────────────────────
+  # The stick has no persistence, so every boot used to need the network
+  # re-joined by hand before the dev box could reach it (PLAN.md's "a
+  # reflashed stick sat dark"). HOLA is an OPEN network (Max, 2026-09-06)
+  # — no passphrase, so there is no secret to keep out of this public
+  # repo and no build ceremony: a plain `nix build .#iso` carries the
+  # profile. It rides the same ladder as GOLEM_REHEARSE in setup.nix —
+  # lab equipment, gone when the medium graduates to product.
+  #
+  # Should the lab ever move to a protected network, the secret path
+  # still exists without touching a tracked file: pure evaluation reads
+  # getEnv as "", and
+  #
+  #   GOLEM_LAB_WIFI_SSID='…' GOLEM_LAB_WIFI_PSK='…' nix build --impure .#iso
+  #
+  # bakes a wpa-psk profile instead, the PSK living only inside the image
+  # — same trust level as the SSH key below: whoever holds Max's stick
+  # holds Max's LAN.
+  labWifiSsid =
+    let s = builtins.getEnv "GOLEM_LAB_WIFI_SSID";
+    in if s != "" then s else "HOLA";
+  labWifiPsk = builtins.getEnv "GOLEM_LAB_WIFI_PSK";
+in
 {
   # The boot menu is ours: upstream iso-image.nix hardcodes rows (Options
   # submenu, Firmware Setup, Shutdown, rEFInd) and autoboots after at most
@@ -42,10 +66,15 @@
   environment.etc."golem/inputs".source = offlineSeed;
   system.extraDependencies = [ offlineSeed ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  environment.systemPackages = [ hw-decide install ];
-  # Console only, on purpose — the guided surface comes later. Behaviour is
-  # stock installation-cd-minimal (autologin to `nixos` on tty1, nmtui,
-  # nixos-install in PATH); this file is naming and the boot menu.
+  environment.systemPackages = [ hw-decide install setup ];
+  # Console only, still on purpose — but the guided surface is HERE now:
+  # `golem-setup` on tty1 asks the six questions (language, timezone,
+  # keyboard, disk, you) and writes the answers file golem-install
+  # consumes. It is typed, not autostarted: the audit owns tty1's first
+  # seconds, and a person has to be AT the machine to answer a keyboard
+  # question anyway — autostarting would only race the census banner.
+  # Behaviour is otherwise stock installation-cd-minimal (autologin to
+  # `nixos` on tty1, nmtui, nixos-install in PATH).
   networking.hostName = "golem-installer";
 
   # Same option pair the full ISO settled on (hosts/iso.nix, todo9 item 2:
@@ -72,6 +101,20 @@
   # fine air-gapped, not on lab LAN with sshd up. Keys only.
   services.openssh.settings.PasswordAuthentication = lib.mkForce false;
   services.openssh.settings.KbdInteractiveAuthentication = lib.mkForce false;
+
+  # The lab wifi profile (see the let-binding up top — open network, no
+  # secret, always baked). NetworkManager autoconnects it at boot, so a
+  # lab laptop is reachable the moment the census banner lands — the pull
+  # half of the rehearsal loop: the machine rehearses, the dev box SSHes
+  # in and collects /var/log/golem-rehearsal. No wifi-security section IS
+  # the open-network spelling; the PSK branch appears only when one was
+  # injected at build time.
+  networking.networkmanager.ensureProfiles.profiles.golem-lab = {
+    connection = { id = "golem-lab"; type = "wifi"; autoconnect = true; };
+    wifi = { mode = "infrastructure"; ssid = labWifiSsid; };
+  } // lib.optionalAttrs (labWifiPsk != "") {
+    wifi-security = { key-mgmt = "wpa-psk"; psk = labWifiPsk; };
+  };
 
   # The medium is a terminal; don't spend boot time compressing for looks.
   isoImage.squashfsCompression = "zstd -Xcompression-level 3";

@@ -128,8 +128,12 @@
 
   # The console's job is telling you where the machine is and that the
   # verdict is ready; both are one command away over SSH.
+  # "rehearse", not "install", while setup.nix's wrapper carries
+  # GOLEM_REHEARSE=1 — the two flip together when the lab graduates to
+  # real installs (the mode ladder, documented in setup.nix).
   services.getty.helpLine = lib.mkForce ''
 
     ssh nixos@\4  (key-only)
-    census: cat /var/log/golem-audit/summary.txt'';
+    census:   cat /var/log/golem-audit/summary.txt
+    rehearse: sudo golem-setup   (runs the install flow, writes nothing)'';
 }

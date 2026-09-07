@@ -7,17 +7,24 @@
 # tab marker centred in the seam, three buttons along the bottom with
 # install standing a row proud.
 #
-#   Evaluation   what the machine IS      (the audit)
-#   Directions   what Golem WILL DO to it (version + the decisions)
+# Every screen wears the same frame: main window, two tiles, three buttons,
+# guide line. Only the tiles' contents and the middle button change.
 #
-#   ./census-mock                  the Acer
+#   1  locale    Language   | Keyboard      [ Reboot ][  Next   ][ Device ]
+#   3  census    Evaluation | Directions    [ Reboot ][ Install ][ Device ]
+#
+#   ./census-mock --screen locale  screen 1 — language and keyboard
+#   ./census-mock                  screen 3 — the census, on the Acer
 #   ./census-mock -p slim          a different machine
 #   ./census-mock --dump           print one frame and exit (no TUI)
 #   ./census-mock --dump --cols 120 --rows 34 --focus install
+#   ./census-mock --dump --screen locale --lang 1 --tile B
 #
 #   profiles: acer slim vm old blind
 #   keys:     space (or tab) selects, then cycles the buttons
-#             ↑ ↓ scroll both tiles, each to its own depth · q or esc quits
+#             ← → which tile the arrows aim at  (locale — two lists)
+#             ↑ ↓ move in that tile, or scroll both  (census)
+#             enter acts on the selected button · q or esc quits
 #
 #   The line above main's bottom rule is the GUIDE — it changes with
 #   state and is meant to carry the user through the whole install.
@@ -219,9 +226,61 @@ draw_box() {   # x y w h style
   done
 }
 
+# ── zero-width characters ────────────────────────────────────────────────
+# The grid is one CELL per character, but not every character takes a
+# COLUMN. हिन्दी is six code points and five columns: the virama U+094D is a
+# nonspacing mark and draws on the consonant before it. Walking one cell per
+# code point therefore wrote six cells where the terminal drew five, and
+# every cell to the right of it on that row landed one place over — which is
+# the tile border stepping left on that row alone.
+#
+# A nonspacing mark belongs in the cell of the character it combines with,
+# so that is where it goes. flush_grid still emits cells in order, so the
+# terminal receives base and mark adjacent and shapes them exactly as
+# before; only the arithmetic changes.
+#
+# This fixes the mockup. It does NOT fix the Linux console, which cannot
+# shape at all — see KNOWN DEFECT by the language list.
+# A HASH, not a string to scan. Every character of every frame is tested
+# against this, and searching a 130-character string per cell put 39 ms back
+# onto a redraw that had already been dragged down from 1.2 s once. An
+# associative array makes it a lookup instead of a search.
+declare -A ZW=()
+zw_range() {
+  local c hex ch
+  for ((c=$1;c<=$2;c++)); do printf -v hex '%08x' "$c"; printf -v ch "\\U$hex"; ZW["$ch"]=1; done
+}
+zw_range 0x0300 0x036F   # combining diacriticals, for any Latin that needs them
+zw_range 0x0900 0x0902   # devanagari: candrabindu, anusvara
+zw_range 0x093A 0x093A
+zw_range 0x093C 0x093C   # nukta
+zw_range 0x0941 0x0948   # the matras that sit above or below, not beside
+zw_range 0x094D 0x094D   # virama — the one in हिन्दी
+zw_range 0x0951 0x0957
+zw_range 0x0962 0x0963
+zw_range 0x200B 0x200F   # zero-width space, joiners, direction marks
+zw_range 0xFE00 0xFE0F   # variation selectors
+
+# Display width — columns, not code points.
+dwidth() {     # text -> DW
+  local t=$1 i
+  DW=0
+  for ((i=0;i<${#t};i++)); do [ -n "${ZW[${t:i:1}]:-}" ] || (( DW++ )); done
+}
+
 put() {        # x y text style
-  local x=$1 y=$2 text=$3 s=$4 i
-  for ((i=0;i<${#text};i++)); do setc $(( x + i )) "$y" "${text:i:1}" "$s"; done
+  local x=$1 y=$2 text=$3 s=$4 i c col=0 idx
+  for ((i=0;i<${#text};i++)); do
+    c="${text:i:1}"
+    if (( col > 0 )) && [ -n "${ZW[$c]:-}" ]; then
+      idx=$(( y * COLS + x + col - 1 ))
+      (( x + col - 1 >= 0 && x + col - 1 < COLS && y >= 0 && y < ROWS )) \
+        && CH[idx]="${CH[idx]}$c"
+    else
+      setc $(( x + col )) "$y" "$c" "$s"
+      (( col++ ))
+    fi
+  done
 }
 
 # draw_box paints only the frame, so a box whose style is a BACKGROUND —
@@ -253,7 +312,7 @@ button() {     # x y w h frame-style
 # reason it looks off next to them — not a width difference, the boxes are
 # identical. Fixing it means an odd-length word, not a wider box: an even
 # box would centre "back" and throw the other two off instead.
-centre_in() { CIN=$(( $1 + ($2 - ${#3}) / 2 )); }
+centre_in() { dwidth "$3"; CIN=$(( $1 + ($2 - DW) / 2 )); }
 
 # Style id -> escape, as a lookup rather than a function call: this is
 # consulted on every style change of every row, and a $( … ) here was the
@@ -407,7 +466,7 @@ paint_pane() {  # array-name x y w h top title bar
 
 # ══ FRAME ════════════════════════════════════════════════════════════════
 
-compose() {
+compose_census() {
   grid_reset
   draw_box "$MAIN_X" "$MAIN_Y" "$MAIN_W" "$MAIN_H" 'o'
 
@@ -431,6 +490,29 @@ compose() {
   paint_pane PANE_B "$B_X" "$TILE_Y" "$TILE_W" "$TILE_H" "$tb" "$B_TITLE" y
 
 
+  paint_buttons
+
+  # One row above main's bottom rule, centred on MAIN rather than on a
+  # button: the line grows from "Press SPACE" to a full sentence as the
+  # install proceeds, and only main is wide enough to hold every version of
+  # it. Install sits on main's centre anyway, so the short first line still
+  # lands under it.
+  # Before anything is selected the guide line IS the selection — it wears
+  # the same accent a chosen button does, because at that moment it is the
+  # only thing on screen asking to be acted on. The instant a button takes
+  # over it drops back to quiet and never lights again: two things wearing
+  # the highlight at once would make neither of them mean anything.
+  paint_hint "$(hint_text)"
+
+  flush_grid
+}
+
+# ── shared furniture ──────────────────────────────────────────────────────
+# Every screen of the installer wears the same button row and the same guide
+# line in the same places. They live here so a new screen inherits them
+# rather than re-deriving them slightly differently.
+
+paint_buttons() {
   local i bx=$BTN_X
   for i in "${!LABELS[@]}"; do
     local by=$(( BTN_Y + BTN_DROP[i] ))
@@ -446,25 +528,237 @@ compose() {
     centre_in "$bx" "$w" "${LABELS[i]}"; put "$CIN" $(( by + 1 )) "${LABELS[i]}" "$s"
     bx=$(( bx + w + BTN_GAP ))
   done
+}
 
-  # One row above main's bottom rule, centred on MAIN rather than on a
-  # button: the line grows from "Press SPACE" to a full sentence as the
-  # install proceeds, and only main is wide enough to hold every version of
-  # it. Install sits on main's centre anyway, so the short first line still
-  # lands under it.
+paint_hint() {
   # Before anything is selected the guide line IS the selection — it wears
   # the same accent a chosen button does, because at that moment it is the
   # only thing on screen asking to be acted on. The instant a button takes
   # over it drops back to quiet and never lights again: two things wearing
   # the highlight at once would make neither of them mean anything.
-  local hint hs='l'
-  hint="$(hint_text)"
-  [ -z "$FOCUS" ] && hs='U'
-  centre_in "$MAIN_X" "$MAIN_W" "$hint"
-  put "$CIN" $(( MAIN_Y + MAIN_H - 2 )) "$hint" "$hs"
+  local hs='l'; [ -z "$FOCUS" ] && hs='U'
+  centre_in "$MAIN_X" "$MAIN_W" "$1"
+  put "$CIN" $(( MAIN_Y + MAIN_H - 2 )) "$1" "$hs"
+}
+
+# A tile holding a chooseable list. Same frame and title as a census tile,
+# but every row is a candidate and exactly one is the answer.
+#
+# THREE row states, from the ramp that already exists — no new colour:
+#   chosen, tile active     bright + bold, the thing the arrows will move
+#   chosen, tile inactive   accent only, still legibly the answer
+#   not chosen              quiet
+# The middle state is the one that matters: when focus is on the other tile
+# you must still be able to see what this one is set to, without it claiming
+# to be where you are.
+paint_list() {   # array-name x y w h title sel active [numbered]
+  local -n L=$1
+  local x=$2 y=$3 w=$4 h=$5 title=$6 sel=$7 active=$8 numbered=${9:-n}
+  draw_box "$x" "$y" "$w" "$h" 'f'
+  centre_in "$x" "$w" "$title"
+  put "$CIN" "$y" "$title" "$([ "$active" = y ] && printf h || printf t)"
+
+  local vis=$(( h - 2 )) n=${#L[@]} top=0 i j s row
+  # A numbered list is SPACED and LEFT-ALIGNED as a block.
+  #
+  # "Bigger" in a character grid cannot mean a larger glyph, so it means more
+  # room: a blank row between items gives each one the weight that a bigger
+  # font would, and fills a tile that was two-thirds empty.
+  #
+  # And the block centres as a BLOCK — every row starts at the same column —
+  # rather than each row centring on its own. Centred rows would stagger the
+  # numbers into a ragged diagonal, which is exactly what stops a list
+  # reading as a list. The numbers want to be a column.
+  local step=1 lw=0 t bx=$x
+  if [ "$numbered" = y ]; then
+    step=2
+    for ((i=0;i<n;i++)); do t="$(( i + 1 ))  ${L[i]}"; (( ${#t} > lw )) && lw=${#t}; done
+    bx=$(( x + (w - lw) / 2 ))
+  fi
+
+  # Scroll by whole items, never landing mid-gap.
+  local fits=$(( (vis + step - 1) / step ))
+  (( n > fits )) && { (( sel >= fits )) && top=$(( sel - fits + 1 )); }
+
+  # Centre the block vertically, so the MIDDLE ITEM sits on the tile's middle
+  # row whatever the terminal's height. Top-aligning only looked centred at
+  # the one height where the spaced list happened to fill the tile exactly;
+  # on anything taller it hung from the title with a growing hole beneath.
+  # Falls back to top-aligned the moment the list is long enough to scroll,
+  # because then there is no spare room to centre in.
+  local blockrows=$(( (n - 1) * step + 1 )) voff=0
+  (( n <= fits && blockrows < vis )) && voff=$(( (vis - blockrows) / 2 ))
+
+  for ((j=0;top+j<n;j++)); do
+    i=$(( top + j )); row=$(( voff + j * step ))
+    (( row >= vis )) && break
+    if (( i == sel )); then s=$([ "$active" = y ] && printf U || printf Y)
+    else s='u'; fi
+    if [ "$numbered" = y ]; then
+      put "$bx" $(( y + 1 + row )) "$(( i + 1 ))  ${L[i]}" "$s"
+    else
+      centre_in "$x" "$w" "${L[i]}"
+      put "$CIN" $(( y + 1 + row )) "${L[i]}" "$s"
+    fi
+  done
+}
+
+# ══ SCREEN 1 — LANGUAGE & KEYBOARD ═══════════════════════════════════════
+#
+# The same frame as the census: one main window, two tiles, three buttons,
+# guide line. Only the contents differ, which is the point — a stranger
+# learns the shape once and every screen after this one is already familiar.
+#
+# This is the only screen that cannot assume it is understood, because
+# everything after it is written in the language chosen here. That rules
+# almost everything out: no English instructions, no word "language" in a
+# heading, and no flags — a flag means a country, not a language, and there
+# is no flag for Spanish that does not get it wrong for most of the people
+# who speak it. What is left is the endonym: each language printed the way
+# its own speakers write it. Somebody looking for Deutsch finds "Deutsch".
+#
+# Three things move with the selection, so the choice previews itself before
+# it is committed: both tile titles and the guide line. Pick Español and the
+# screen is already speaking Spanish.
+LANG_CODE=(en       es       fr        de        it        pt         hi)
+LANG_NAME=(English  Español  Français  Deutsch   Italiano  Português  Hindi)
+LANG_WORD=(Language Idioma   Langue    Sprache   Lingua    Idioma     Bhasha)
+KB_WORD=(  Keyboard Teclado  Clavier   Tastatur  Tastiera  Teclado    Keyboard)
+
+KB_NAME=(US Español Latinoamérica Français Deutsch Italiano Português UK Indian)
+KB_CODE=(us es      latam         fr       de      it       pt        gb in)
+# The keyboard follows the language until somebody moves it themselves.
+# Nine people in ten want the obvious pairing, and the tenth can see the
+# right-hand tile is wrong before they ever type a password into it. This is
+# also the cheapest defence against the keymap lockout: the default is
+# already correct for almost everyone.
+KB_FOR_LANG=(0 1 3 4 5 6 0)
+KB_AUTO=yes
+lang_changed() { [ "$KB_AUTO" = yes ] && KB_SEL=${KB_FOR_LANG[LANG_SEL]}; return 0; }
+
+# Keys stay ENTER and SPACE in every language — the word on the key cap is
+# the same on nearly every keyboard sold, and they are the one token that
+# must not be ambiguous. The arrows have no word printed on them at all, so
+# those DO translate: FLECHAS, FLÈCHES, PFEILEN, FRECCE, SETAS.
+locale_hint() {
+  case "${LANG_CODE[HINT_LANG]}" in
+  en) case "$FOCUS" in
+      '')     printf 'Select your language by pressing the NUMBER on your keyboard.' ;;
+      Next)   printf 'Press ENTER to go on, or SPACE to continue.' ;;
+      Reboot) printf 'Press ENTER to reboot this device, or SPACE to continue.' ;;
+      Device) printf 'This feature is not finished — press SPACE to continue.' ;;
+      esac ;;
+  es) case "$FOCUS" in
+      '')     printf 'Selecciona tu idioma presionando el NÚMERO de tu teclado.' ;;
+      Next)   printf 'Presiona ENTER para seguir, o SPACE para continuar.' ;;
+      Reboot) printf 'Presiona ENTER para reiniciar, o SPACE para continuar.' ;;
+      Device) printf 'Esta función no está terminada — SPACE para continuar.' ;;
+      esac ;;
+  fr) case "$FOCUS" in
+      '')     printf 'Sélectionnez votre langue avec le NUMÉRO de votre clavier.' ;;
+      Next)   printf 'Appuyez sur ENTER pour continuer, ou SPACE pour passer.' ;;
+      Reboot) printf 'Appuyez sur ENTER pour redémarrer, ou SPACE pour passer.' ;;
+      Device) printf 'Cette fonction n’est pas terminée — SPACE pour passer.' ;;
+      esac ;;
+  de) case "$FOCUS" in
+      '')     printf 'Wähle deine Sprache mit der ZAHL auf deiner Tastatur.' ;;
+      Next)   printf 'Drücke ENTER zum Fortfahren, oder SPACE zum Wechseln.' ;;
+      Reboot) printf 'Drücke ENTER zum Neustart, oder SPACE zum Wechseln.' ;;
+      Device) printf 'Diese Funktion ist noch nicht fertig — SPACE zum Wechseln.' ;;
+      esac ;;
+  it) case "$FOCUS" in
+      '')     printf 'Seleziona la tua lingua premendo il NUMERO sulla tastiera.' ;;
+      Next)   printf 'Premi ENTER per continuare, o SPACE per passare.' ;;
+      Reboot) printf 'Premi ENTER per riavviare, o SPACE per passare.' ;;
+      Device) printf 'Questa funzione non è finita — SPACE per passare.' ;;
+      esac ;;
+  pt) case "$FOCUS" in
+      '')     printf 'Selecione o seu idioma pressionando o NÚMERO do teclado.' ;;
+      Next)   printf 'Pressione ENTER para seguir, ou SPACE para continuar.' ;;
+      Reboot) printf 'Pressione ENTER para reiniciar, ou SPACE para continuar.' ;;
+      Device) printf 'Esta função não está terminada — SPACE para continuar.' ;;
+      esac ;;
+  # Devanagari has no case, so the uppercase-keys rule cannot apply to it —
+  # which turns out to help: ENTER and SPACE stay Latin and are the only
+  # Latin words in the line, so they read as keys more plainly than they do
+  # in any of the European translations.
+  hi) case "$FOCUS" in
+      '')     printf 'Apni bhasha chunne ke liye keyboard par NUMBER dabayein.' ;;
+      Next)   printf 'Aage badhne ke liye ENTER dabayein, ya SPACE se jaari rakhein.' ;;
+      Reboot) printf 'Restart karne ke liye ENTER dabayein, ya SPACE se jaari rakhein.' ;;
+      Device) printf 'Yeh suvidha abhi poori nahin hui - SPACE se jaari rakhein.' ;;
+      esac ;;
+  esac
+}
+
+# ── KNOWN DEFECT: the grid is one cell per CODE POINT ─────────────────────
+# put() writes ${text:i:1} into one cell each, and centre_in() divides by
+# ${#text}. Both are code-point counts, and for Devanagari that is not the
+# number of columns: हिन्दी is 6 code points and 5 columns, because the
+# vowel marks combine onto the consonant before them.
+#
+# Measured on this file, at --cols 120: every row is 120 columns except the
+# two carrying Devanagari, which come out 119. The right-hand frame shifts a
+# cell left on exactly those rows.
+#
+# A terminal hides most of it by re-attaching the marks as it draws. The
+# Linux console will not — fbcon has no shaping at all, so the marks land in
+# their own cells as loose glyphs, and that is what a real install would
+# show. Adding Hindi to this list is therefore not one list entry: it is a
+# commitment to a text stack that can shape, because every screen AFTER this
+# one would be Devanagari too.
+#
+# Three ways out, cheapest first:
+#   1. list it as "Hindi" in Latin — works today, abandons the endonym rule
+#   2. make put()/centre_in() width-aware — fixes the mockup, not the console
+#   3. render text in userspace with real shaping — the only end-to-end fix
+
+compose_locale() {
+  grid_reset
+  draw_box "$MAIN_X" "$MAIN_Y" "$MAIN_W" "$MAIN_H" 'o'
+
+  local aa=n bb=n
+  [ "$TILE_FOCUS" = A ] && aa=y || bb=y
+  paint_list LANG_NAME "$A_X" "$TILE_Y" "$TILE_W" "$TILE_H" \
+             " ${LANG_WORD[LANG_SEL]} " "$LANG_SEL" "$aa" y
+  paint_list KB_NAME   "$B_X" "$TILE_Y" "$TILE_W" "$TILE_H" \
+             " ${KB_WORD[LANG_SEL]} "   "$KB_SEL"   "$bb"
+
+  paint_buttons
+  # Which language the guide line speaks. Normally the one selected — but
+  # while nobody has chosen yet it is the ROTATING one, so the invitation
+  # arrives in each language in turn. See the attract-loop note below.
+  HINT_LANG=$LANG_SEL
+  [ -z "$FOCUS" ] && [ "$LANG_PICKED" = no ] && HINT_LANG=$LANG_ROT
+  paint_hint "$(locale_hint)"
 
   flush_grid
 }
+
+# ── THE ATTRACT LOOP ──────────────────────────────────────────────────────
+# Until somebody chooses, the guide line cycles through every language on a
+# four-second beat: English, then Español, then Français, and round again.
+# Four rather than two — the line is a full sentence, and someone who has
+# just walked up to the machine needs to finish reading it in a language
+# they do not speak before deciding it is not theirs.
+#
+# It is there for the person who cannot read the line as it stands. A static
+# English sentence is useless to them and, worse, gives no sign that it will
+# ever be anything else — the screen looks like an English-only machine. A
+# line that visibly changes language is self-explanatory in a way no single
+# language can be: wait a moment and your own turns up.
+#
+# It stops the instant a language is chosen, and never restarts. Motion on a
+# screen is a request for attention, so it has to stop being a request the
+# moment it has been answered — an installer that keeps flickering after you
+# have told it what you speak is just noise.
+#
+# Only the LINE rotates. The list and the tile titles hold still, because
+# they are the thing being chosen and a menu that rewrites itself while you
+# are reading it cannot be used.
+LANG_ROT=0
+LANG_PICKED=no
+ROT_SECONDS=4
 
 # ══ CANNED DATA ══════════════════════════════════════════════════════════
 
@@ -751,7 +1045,8 @@ EOF
 
 # ══ SCAFFOLDING ══════════════════════════════════════════════════════════
 
-profile=acer; dump=no; FOCUS=""; scroll=0
+profile=acer; dump=no; FOCUS=""; scroll=0; SCREEN=census
+LANG_SEL=0; KB_SEL=0; TILE_FOCUS=A
 COLS=$(tput cols 2>/dev/null || echo 120)
 ROWS=$(tput lines 2>/dev/null || echo 34)
 
@@ -761,6 +1056,11 @@ while [ $# -gt 0 ]; do
     --focus)      FOCUS="${2:?}"; shift 2 ;;
     --dump)       dump=yes; shift ;;
     --scroll)     scroll="${2:?}"; shift 2 ;;
+    --screen)     SCREEN="${2:?}"; shift 2 ;;
+    --lang)       LANG_SEL="${2:?}"; LANG_PICKED=yes; shift 2 ;;
+    --kb)         KB_SEL="${2:?}"; KB_AUTO=no; shift 2 ;;
+    --tile)       TILE_FOCUS="${2:?}"; shift 2 ;;
+    --rot)        LANG_ROT="${2:?}"; shift 2 ;;   # which language the attract line is on
     --cols)       COLS="${2:?}"; shift 2 ;;
     --rows)       ROWS="${2:?}"; shift 2 ;;
     -h|--help)    sed -n '2,24p' "$0"; exit 0 ;;
@@ -805,6 +1105,34 @@ check_sections
 # driving the TUI by hand.
 TOP=$(( scroll > MAXTOP ? MAXTOP : scroll ))
 
+# One entry point, so the redraw loop never has to know which screen it is
+# painting — the installer is a sequence of these and the loop stays fixed.
+compose() {
+  case "$SCREEN" in
+    locale|language) compose_locale ;;
+    *)               compose_census ;;
+  esac
+}
+
+# THE BUTTON ROW IS FURNITURE. Three boxes in the same places on every
+# screen, and only the middle word changes:
+#   Reboot   always leaves, changing nothing. On every screen, so there is
+#            never a moment where the way out is somewhere else.
+#   <middle> the one thing this screen is for.
+#   Device   the same unfinished feature, told the same truth throughout.
+# Widths follow from the labels via the constant-padding rule in layout(),
+# so a longer middle word just makes a wider middle box with the label still
+# dead centre — nothing else on the row moves.
+screen_buttons() {
+  case "$SCREEN" in
+    locale|language) LABELS=(Reboot Next Device);    HINT_PRIMARY=Next ;;
+    *)               LABELS=(Reboot Install Device); HINT_PRIMARY=Install ;;
+  esac
+  layout
+}
+screen_buttons
+
+lang_changed        # --lang alone should carry the keyboard with it
 if [ "$dump" = yes ]; then compose; exit 0; fi
 
 # TWO independent tracks, because they answer different questions.
@@ -838,8 +1166,64 @@ while :; do
   # compose takes, which is exactly the blink.
   printf '%s' "$esc[H"
   compose
-  IFS= read -rsn1 key
+  # A TIMED read only while the attract loop is running, so the rest of the
+  # installer keeps the blocking one it had. read returns non-zero on the
+  # timeout, and that is the whole clock: no background job, no sleep, no
+  # second process to kill on the way out.
+  if [ "$SCREEN" = locale ] && [ "$LANG_PICKED" = no ] && [ -z "$FOCUS" ]; then
+    IFS= read -rsn1 -t "$ROT_SECONDS" key; rc=$?
+    # read fails BOTH on timeout and on end-of-input, and they mean opposite
+    # things: one is the beat, the other is no keyboard at all. Bash returns
+    # >128 for a timeout, so tell them apart — otherwise a run with stdin
+    # closed spins the rotation at full speed instead of stopping.
+    if (( rc > 128 )); then
+      LANG_ROT=$(( (LANG_ROT + 1) % ${#LANG_CODE[@]} ))
+      continue
+    elif (( rc != 0 )); then
+      break
+    fi
+  else
+    IFS= read -rsn1 key || break
+  fi
   if [ "$key" = "$esc" ]; then IFS= read -rsn2 -t 0.01 rest || rest=""; key="$key$rest"; fi
+  # TWO TRACKS, as everywhere else in this installer: the arrows drive the
+  # tiles, SPACE drives the buttons, and neither waits for the other. Here
+  # both tiles hold a list, so left/right says which one the arrows aim at —
+  # the meaning the arrows had on the census screen, where there was only
+  # ever one answer and so no need to ask.
+  if [ "$SCREEN" = locale ] || [ "$SCREEN" = language ]; then
+    case "$key" in
+      "$esc[D") TILE_FOCUS=A ;;
+      "$esc[C") TILE_FOCUS=B ;;
+      "$esc[A")
+        if [ "$TILE_FOCUS" = A ]; then
+          (( LANG_SEL > 0 )) && { (( LANG_SEL-- )); LANG_PICKED=yes; lang_changed; }
+        else
+          (( KB_SEL > 0 )) && { (( KB_SEL-- )); KB_AUTO=no; }
+        fi ;;
+      "$esc[B")
+        if [ "$TILE_FOCUS" = A ]; then
+          (( LANG_SEL < ${#LANG_NAME[@]} - 1 )) && { (( LANG_SEL++ )); LANG_PICKED=yes; lang_changed; }
+        else
+          (( KB_SEL < ${#KB_NAME[@]} - 1 )) && { (( KB_SEL++ )); KB_AUTO=no; }
+        fi ;;
+      # A number printed beside an item is a promise that the key works. It
+      # reaches the language list from anywhere and pulls focus back to it,
+      # so the press is always visibly the thing that happened — a shortcut
+      # that changed something off-screen would be worse than no shortcut.
+      [1-9])
+        nsel=$(( key - 1 ))
+        if (( nsel < ${#LANG_NAME[@]} )); then
+          TILE_FOCUS=A; LANG_SEL=$nsel; LANG_PICKED=yes; lang_changed
+        fi ;;
+      $'\t'|' ') cycle 1 ;;
+      "$esc[Z")  cycle -1 ;;
+      "")        [ "$FOCUS" = Next ] && { SCREEN=census; FOCUS=""; screen_buttons; }
+                 [ "$FOCUS" = Reboot ] && break ;;
+      q|"$esc")  break ;;
+    esac
+    continue
+  fi
   case "$key" in
     $'\t'|' ') cycle 1 ;;
     "$esc[Z")  cycle -1 ;;

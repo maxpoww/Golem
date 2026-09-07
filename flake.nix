@@ -132,15 +132,54 @@
           inherit mkTarget;
           inherit (self.lib.golem) swapForHibernationMB;
         };
+
+        # The keyboard table (the installer's step 2, as data). One answer
+        # in, every setting an installed machine needs out — and the same
+        # table CI verifies against kbd + xkeyboard-config, so the surface
+        # cannot carry a name the packages do not know:
+        #   nix eval .#lib.golem.keyboards.derive --apply 'f: f "colemak"'
+        #   nix eval --raw .#lib.golem.keyboards.table
+        keyboards = import ./system/hardware/keyboards.nix {
+          lib = nixpkgs.lib;
+        };
+
+        # The timezone step. The ZONE LIST is not here — tzdata ships it and
+        # the medium carries it, so the surface reads it at runtime and
+        # there is no second copy to drift. What is here is the default a
+        # language implies, which is the only part needing a human.
+        timezones = import ./system/timezones.nix {
+          lib = nixpkgs.lib;
+        };
       };
 
       # The eval matrix (GolemInstall.md §8): every fact permutation — the
       # committed lab fixtures included — evaluates as a full golem-target
       # system with semantic assertions. `nix flake check`, or directly:
       # `nix build .#checks.x86_64-linux.facts-matrix`.
-      checks.${system}.facts-matrix = import ./system/hardware/matrix.nix {
-        lib = nixpkgs.lib;
-        inherit pkgs mkTarget;
+      checks.${system} = {
+        facts-matrix = import ./system/hardware/matrix.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs mkTarget;
+          inherit (self.lib.golem) keyboards;
+        };
+
+        # The keyboard table's names, against the packages that consume
+        # them. facts-matrix proves an evaluated config says what we meant;
+        # it cannot prove `console.keyMap = "gb"` is a keymap that exists.
+        # This can, and it runs in seconds rather than minutes.
+        keyboard-table = import ./system/hardware/keyboard-check.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs;
+          inherit (self.lib.golem) keyboards;
+        };
+
+        # Every language's default zone, against tzdata. Europe/Kiev was
+        # right for twenty years and is now Europe/Kyiv; only tzdata knows.
+        timezone-defaults = import ./system/timezone-check.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs;
+          inherit (self.lib.golem) timezones;
+        };
       };
 
       nixosConfigurations = {
@@ -150,6 +189,7 @@
             ./hosts/golem/hardware-configuration.nix
             ./hosts/golem/nvidia.nix
             ./hosts/golem/audio-keepalive.nix
+            ./hosts/golem/locale.nix
             { golem.flakeDir = "/home/max/Golem"; }
           ];
         };

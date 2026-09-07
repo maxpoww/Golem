@@ -1,0 +1,3334 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────────────
+# Golem installer — the CLI chat. Nothing here detects or installs yet.
+#
+# Replaces the TUI mockup (`census-mock`). Same guidelines, no grid: the
+# installer is a CONVERSATION that scrolls, not a screen that is painted.
+# Three rules, in this order (Max, 2026-09-05):
+#
+#   SIMPLE   one question on screen at a time; answered ones collapse to a
+#            single line and stay as the transcript. No boxes, no tiles, no
+#            layout(). The terminal does the wrapping, so there is no cell
+#            grid to be wrong about — which retires census-mock's KNOWN
+#            DEFECT (one cell per code point) rather than working around it.
+#   FASTER   the whole language step is ENTER, two or three letters, ENTER;
+#            the keyboard step is usually one ENTER, because step 1 already
+#            answered it. Typing during the invitation goes straight into
+#            the list, so nobody who knows what they want waits 5 s.
+#   COMPLETE both lists are the real ones — 61 languages, 72 layouts — and
+#            a step is not done when it has been ASKED, it is done when the
+#            answer produces every setting an installed machine needs. The
+#            keyboard step asks one question and derives the console keymap,
+#            the XKB layout/variant/options and Hyprland's own input block
+#            from it. Colemak, Dvorak, Neo, Bépo, US-International and
+#            Turkish-F are reachable; non-Latin scripts get a second Latin
+#            group and a toggle, without being asked. See `--dump settings`.
+#
+# The steps, in the order PLAN.md argues for:
+#
+#   1  language    the rotating invitation, then a filtered list
+#   2  keyboard    step 1's default, plus a live echo box to prove it
+#   3  evaluation  what the census found — next
+#
+#   ./install-cli                    run it
+#   ./install-cli --lang es          skip step 1 (records es, moves on)
+#   ./install-cli --kb latam         start step 2 on a different layout
+#   ./install-cli --form iso         what the shift probe would say
+#   ./install-cli --seconds 3        a different rotation beat
+#   ./install-cli --census 3         how long the census pretends to take
+#   ./install-cli --fake-disks       THE DEMO: the whole flow, faked end to
+#                                    end — canned disks, a canned census
+#                                    reveal, and a simulated install bar that
+#                                    runs to "restarting into Golem" without
+#                                    touching a disk
+#   ./install-cli --write FILE       write the keyboard+language nix module
+#   ./install-cli --out FILE         write the answers for golem-install
+#   ./install-cli --no-loadkeys      do not touch the console keymap
+#   GOLEM_KEYBOARDS=FILE ./install-cli   use a rendered layout table
+#   GOLEM_REHEARSE=1 ./install-cli       hand golem-install --rehearse: the
+#                                        whole flow, nothing written, a
+#                                        bundle left for the dev box (wins
+#                                        over GOLEM_LAB — see step_go)
+#   ./install-cli --ascii            Latin names only (see THE SHAPING NOTE)
+#
+#   dump modes, for looking at one state without a TTY:
+#   ./install-cli --dump invite   --rot 4
+#   ./install-cli --dump filter   --query esp
+#   ./install-cli --dump keyboard --lang de
+#   ./install-cli --dump layouts  --lang de --form iso
+#   ./install-cli --dump done     --lang de
+#   ./install-cli --dump settings --kb colemak   what gets written, in nix
+#   ./install-cli --check                        every language resolves to
+#                                                a real layout row
+#
+#   keys, step 1:  ENTER   opens the list, and takes the highlighted row
+#                  type    filters as you go
+#                  ↑ ↓     move through the matches
+#                  BACKSP  erase; on an empty query, back to the invitation
+#                  ESC     back to the invitation · q on the invitation quits
+#
+#   keys, step 2:  type    goes into the echo box, to compare with your keys
+#                  ENTER   the layout is right — take it and go on
+#                  ↓       it is not — open the list of layouts
+#                  BACKSP  erase a character · ESC empties the box
+# ─────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+
+# Endonyms are the whole point of this screen, so the script must be able to
+# count characters rather than bytes. If the medium has no UTF-8 locale the
+# filter still works — only the column alignment goes ragged.
+[[ ${LC_ALL:-} == *UTF-8* || ${LANG:-} == *UTF-8* ]] || export LC_ALL=C.UTF-8
+
+# ══ LOOK ═════════════════════════════════════════════════════════════════
+#
+# The palette is census-mock's, unchanged: a NEUTRAL RAMP plus ONE accent,
+# and the accent only ever appears where it means something — what has focus
+# and what a thing is called. Colour used for decoration is what makes a
+# terminal look amateur. Values are the brightest ink on screen because they
+# are the content; everything else is scaffolding pointing at them.
+esc=$'\e'
+NORM="$esc[0m"; BOLD="$esc[1m"
+fg() { printf '%s' "$esc[38;5;$1m"; }
+
+C_ASK=$(fg 252)         # the question — brightest, it is the content
+C_LABEL=$(fg 244)       # what an answered line is called
+C_VALUE=$(fg 252)       # what it was answered with
+C_DIM=$(fg 240)         # aliases, codes, "no match"
+C_ACCENT=$(fg 180)      # the one accent: what is highlighted right now
+C_ACCENT_TX="$(fg 223)$BOLD"
+C_TICK=$(fg 137)        # one step down the same accent ramp, never a hue
+
+# Two SEMANTIC hues, used only where meaning demands a colour of its own and
+# the single accent would blur two different messages into one. Kept muted
+# so they read as signal, not decoration — a neon red on a grey screen is
+# the amateur look the palette note warns about.
+C_RED=$(fg 174)         # SOMETHING IS WRONG OR IRREVERSIBLE — the two things
+                        # that stop you: the disk that will be erased, and a
+                        # field error like "the passwords didn't match". Both
+                        # are the same signal, "attention, this is not right",
+                        # so both are red. Nothing merely quiet ever is.
+C_YELLOW=$(fg 179)      # the recognition verdict — the drivers count. Its
+                        # own hue because it is the screen's headline number
+                        # and must not be mistaken for the amber "in focus".
+
+TICK='·'                # not a checkmark: this is a transcript, not a form
+CARET='›'
+
+hide_cursor() { [ "$TTY" = yes ] && printf '%s[?25l' "$esc"; }
+show_cursor() { [ "$TTY" = yes ] && printf '%s[?25h' "$esc"; }
+
+# ══ WIDTH ════════════════════════════════════════════════════════════════
+#
+# census-mock could not do this and said so: its grid wrote one cell per
+# code point, so हिन्दी (6 code points, 5 columns) shifted the right-hand
+# frame by a cell. Here the only thing that needs a width is the pad between
+# the endonym column and the one after it, so it is ~20 lines instead of a
+# rewrite of the renderer. Nonspacing marks count 0, CJK/Hangul count 2.
+dwidth() {
+  local s=$1 n=0 i c cp
+  for (( i = 0; i < ${#s}; i++ )); do
+    c=${s:i:1}
+    printf -v cp '%d' "'$c" 2>/dev/null || { n=$(( n + 1 )); continue; }
+    if   (( cp < 128 )); then n=$(( n + 1 ))
+    elif (( (cp >= 0x0300 && cp <= 0x036F) || (cp >= 0x0591 && cp <= 0x05BD) ||
+            (cp == 0x05BF) || (cp >= 0x05C1 && cp <= 0x05C2) ||
+            (cp >= 0x064B && cp <= 0x065F) || cp == 0x0670 ||
+            (cp >= 0x06D6 && cp <= 0x06ED) ||
+            (cp >= 0x0900 && cp <= 0x0902) || cp == 0x093A || cp == 0x093C ||
+            (cp >= 0x0941 && cp <= 0x0948) || cp == 0x094D ||
+            (cp >= 0x0951 && cp <= 0x0957) ||
+            cp == 0x09BC || (cp >= 0x09C1 && cp <= 0x09C4) || cp == 0x09CD ||
+            cp == 0x0BC0 || cp == 0x0BCD ||
+            (cp >= 0x0C3E && cp <= 0x0C40) || (cp >= 0x0C46 && cp <= 0x0C56) ||
+            cp == 0x0E31 || (cp >= 0x0E34 && cp <= 0x0E3A) ||
+            (cp >= 0x0E47 && cp <= 0x0E4E) )); then :
+    elif (( (cp >= 0x1100 && cp <= 0x115F) || (cp >= 0x2E80 && cp <= 0xA4CF) ||
+            (cp >= 0xAC00 && cp <= 0xD7A3) || (cp >= 0xF900 && cp <= 0xFAFF) ||
+            (cp >= 0xFE30 && cp <= 0xFE6F) || (cp >= 0xFF00 && cp <= 0xFF60) ||
+            (cp >= 0xFFE0 && cp <= 0xFFE6) || cp >= 0x20000 )); then n=$(( n + 2 ))
+    else n=$(( n + 1 ))
+    fi
+  done
+  printf '%d' "$n"
+}
+
+pad_to() {                       # $1 text, $2 columns
+  local w; w=$(dwidth "$1")
+  printf '%s' "$1"
+  (( $2 > w )) && printf '%*s' "$(( $2 - w ))" ''
+}
+
+# ══ THE LANGUAGES ════════════════════════════════════════════════════════
+#
+# THE ENDONYM RULE, kept from census-mock: each language is printed the way
+# its own speakers write it. No flags — a flag is a country, not a language,
+# and there is no flag for Spanish that is not wrong for most of the people
+# who speak it. No English names in the first column, because someone
+# looking for Deutsch is looking for "Deutsch".
+#
+# What the chat form adds, and the list form could not: the SEARCH column.
+# A stranger at this point is typing on an unknown keymap and cannot produce
+# their own script — nobody types 日本語 to find 日本語. So every row also
+# carries a Latin name, English aliases and its code, and the filter matches
+# all of them. Type "jap", "nihon", "ja" or "日本" and you land on the same
+# row. That is the whole reason the endonym can stay first.
+#
+#   code | endonym | latin | aliases | keymap | locale
+LANGUAGES=$(cat <<'EOF'
+en|English|English|english us uk|us|en_US.UTF-8
+es|Español|Espanol|spanish castellano|es|es_ES.UTF-8
+es-419|Español (Latinoamérica)|Espanol (Latinoamerica)|spanish latin america|latam|es_MX.UTF-8
+fr|Français|Francais|french|fr|fr_FR.UTF-8
+de|Deutsch|Deutsch|german|de|de_DE.UTF-8
+it|Italiano|Italiano|italian|it|it_IT.UTF-8
+pt|Português|Portugues|portuguese|pt|pt_PT.UTF-8
+pt-BR|Português (Brasil)|Portugues (Brasil)|brazilian brasil|br|pt_BR.UTF-8
+nl|Nederlands|Nederlands|dutch flemish|us|nl_NL.UTF-8
+pl|Polski|Polski|polish|pl|pl_PL.UTF-8
+sv|Svenska|Svenska|swedish|se|sv_SE.UTF-8
+da|Dansk|Dansk|danish|dk|da_DK.UTF-8
+nb|Norsk bokmål|Norsk bokmal|norwegian norsk|no|nb_NO.UTF-8
+fi|Suomi|Suomi|finnish|fi|fi_FI.UTF-8
+is|Íslenska|Islenska|icelandic|is|is_IS.UTF-8
+cs|Čeština|Cestina|czech|cz|cs_CZ.UTF-8
+sk|Slovenčina|Slovencina|slovak|sk|sk_SK.UTF-8
+sl|Slovenščina|Slovenscina|slovenian slovene|si|sl_SI.UTF-8
+hr|Hrvatski|Hrvatski|croatian|hr|hr_HR.UTF-8
+sr|Српски|Srpski|serbian|rs|sr_RS.UTF-8
+bs|Bosanski|Bosanski|bosnian|ba|bs_BA.UTF-8
+mk|Македонски|Makedonski|macedonian|mk|mk_MK.UTF-8
+sq|Shqip|Shqip|albanian|al|sq_AL.UTF-8
+hu|Magyar|Magyar|hungarian|hu|hu_HU.UTF-8
+ro|Română|Romana|romanian|ro|ro_RO.UTF-8
+bg|Български|Balgarski|bulgarian|bg|bg_BG.UTF-8
+el|Ελληνικά|Ellinika|greek|gr|el_GR.UTF-8
+ru|Русский|Russkiy|russian|ru|ru_RU.UTF-8
+uk|Українська|Ukrainska|ukrainian|ua|uk_UA.UTF-8
+be|Беларуская|Belaruskaya|belarusian|by|be_BY.UTF-8
+lt|Lietuvių|Lietuviu|lithuanian|lt|lt_LT.UTF-8
+lv|Latviešu|Latviesu|latvian|lv|lv_LV.UTF-8
+et|Eesti|Eesti|estonian|ee|et_EE.UTF-8
+tr|Türkçe|Turkce|turkish|tr|tr_TR.UTF-8
+ca|Català|Catala|catalan valencia|es|ca_ES.UTF-8
+eu|Euskara|Euskara|basque|es|eu_ES.UTF-8
+gl|Galego|Galego|galician|es|gl_ES.UTF-8
+ga|Gaeilge|Gaeilge|irish gaelic|ie|ga_IE.UTF-8
+cy|Cymraeg|Cymraeg|welsh|gb|cy_GB.UTF-8
+he|עברית|Ivrit|hebrew|il|he_IL.UTF-8
+ar|العربية|Arabiyya|arabic|ara|ar_SA.UTF-8
+fa|فارسی|Farsi|persian farsi|ir|fa_IR.UTF-8
+ur|اردو|Urdu|urdu|pk|ur_PK.UTF-8
+hi|हिन्दी|Hindi|hindi|in|hi_IN.UTF-8
+bn|বাংলা|Bangla|bengali bangla|bd|bn_BD.UTF-8
+pa|ਪੰਜਾਬੀ|Punjabi|punjabi|in|pa_IN.UTF-8
+mr|मराठी|Marathi|marathi|in|mr_IN.UTF-8
+ta|தமிழ்|Tamil|tamil|in|ta_IN.UTF-8
+te|తెలుగు|Telugu|telugu|in|te_IN.UTF-8
+zh-CN|简体中文|Zhongwen jianti|chinese simplified mandarin|us|zh_CN.UTF-8
+zh-TW|繁體中文|Zhongwen fanti|chinese traditional taiwan|us|zh_TW.UTF-8
+ja|日本語|Nihongo|japanese|jp|ja_JP.UTF-8
+ko|한국어|Hangugeo|korean|kr|ko_KR.UTF-8
+vi|Tiếng Việt|Tieng Viet|vietnamese|us|vi_VN.UTF-8
+th|ไทย|Thai|thai|th|th_TH.UTF-8
+id|Bahasa Indonesia|Bahasa Indonesia|indonesian|us|id_ID.UTF-8
+ms|Bahasa Melayu|Bahasa Melayu|malay malaysian|us|ms_MY.UTF-8
+fil|Filipino|Filipino|filipino tagalog|us|fil_PH.UTF-8
+sw|Kiswahili|Kiswahili|swahili|us|sw_KE.UTF-8
+af|Afrikaans|Afrikaans|afrikaans|us|af_ZA.UTF-8
+am|አማርኛ|Amarinya|amharic|us|am_ET.UTF-8
+EOF
+)
+
+# Split ONCE, at startup, into parallel arrays — including the lowercased
+# haystack the filter matches against. The first version re-split the table
+# inside filter(), which is five command substitutions per row per pass:
+# ~570 forks for one keystroke. That is imperceptible on the dev box and
+# would be visible lag on a 2015 laptop, which is the only kind of machine
+# this ever runs on. Parse once; the hot path forks nothing.
+CODE=() ENDONYM=() LATIN=() KEYMAP=() LOCALE=() HAY=()
+while IFS='|' read -r c e l a k lo; do
+  [ -n "$c" ] || continue
+  CODE+=("$c"); ENDONYM+=("$e"); LATIN+=("$l"); KEYMAP+=("$k"); LOCALE+=("$lo")
+  # Leading space so the filter can ask for "starts a word" with one glob;
+  # hyphens become spaces so "es 419" and "pt br" are word starts too.
+  h=" $e $l $a $c $lo"; h=${h,,}; HAY+=("${h//-/ }")
+done <<<"$LANGUAGES"
+NROWS=${#CODE[@]}
+
+f_code()    { printf '%s' "${CODE[$1]}"; }
+f_endonym() { printf '%s' "${ENDONYM[$1]}"; }
+f_latin()   { printf '%s' "${LATIN[$1]}"; }
+f_keymap()  { printf '%s' "${KEYMAP[$1]}"; }
+f_locale()  { printf '%s' "${LOCALE[$1]}"; }
+
+# THE SHAPING NOTE (census-mock's KNOWN DEFECT, restated honestly).
+# The Linux console has no text shaping: fbcon draws one glyph per code
+# point, so Devanagari matras and Arabic joining land as loose marks. On a
+# real MiniGolem boot that IS what a stranger sees. This does not break the
+# filter — they type "hindi" either way — but the endonym they are looking
+# for will not look like itself. So on the bare console the second column
+# leads instead. It is census-mock's "way out 1", applied only where the
+# terminal actually cannot cope rather than everywhere.
+#
+# dwidth() below handles the common Indic and Arabic nonspacing marks, not
+# every one of them — Tamil and Telugu still land a column out in a shaping
+# terminal. Left as is deliberately: the bare console, which is the only
+# place a stranger meets this, shows those rows in Latin anyway, so a full
+# Unicode width table would be code carried for a case that cannot occur.
+name_of() {
+  if [ "$ASCII" = yes ]; then f_latin "$1"; else f_endonym "$1"; fi
+}
+
+# ══ WHAT THE INSTALLER SAYS ══════════════════════════════════════════════
+#
+# Everything after step 1 is written in the language chosen in step 1 —
+# that is the entire reason language goes first. So no user-facing string
+# below this line is a literal: they all come through t().
+#
+# THE TABLE IS NOT COMPLETE AND SHOULD NOT PRETEND TO BE. Six languages are
+# translated here, the same six census-mock carried, because those are the
+# ones that can be written without guessing. The other 51 fall back to
+# English, which is a visible gap rather than a silent one — an installer
+# that ships a machine-translated Hungarian nobody checked is worse than one
+# that shows English and is honest about it. This table is the seam where
+# real localisation lands; nothing else needs to change when it does.
+#
+# A regional code falls back to its base before it falls back to English,
+# so pt-BR gets the Portuguese line and es-419 the Spanish one.
+UI=en
+declare -A S
+S[en:l_language]='language'
+S[en:l_keyboard]='keyboard'
+S[en:l_evaluation]='evaluation'
+S[en:pick_widen]='BACKSPACE to widen the search'
+S[en:pick_keys]='type to narrow  ·  ↑↓ move  ·  ENTER takes it'
+S[en:more]='more'
+S[en:next]='next'
+S[en:t_timezone]='Select your Timezone'
+S[en:t_keyboard]='Select your Keyboard'
+S[en:t_disk]='Select your Drive'
+S[en:l_timezone]='timezone'
+S[en:erased]='will be erased'
+S[en:l_disk]='drive'
+S[en:disk_warn]='everything on this drive will be erased'
+S[en:disk_none]='No drive found to install on.'
+S[en:kb_keys]='ENTER if they came out right  ·  ↓ for another layout'
+S[en:reading]='Reading this device'
+S[en:read_ok]='Device read'
+
+S[es:l_language]='idioma'
+S[es:l_keyboard]='teclado'
+S[es:l_evaluation]='evaluación'
+S[es:pick_widen]='BACKSPACE para ampliar la búsqueda'
+S[es:pick_keys]='escribe para filtrar  ·  ↑↓ mover  ·  ENTER elige'
+S[es:more]='más'
+S[es:next]='sigue'
+S[es:t_timezone]='Selecciona tu zona horaria'
+S[es:t_keyboard]='Selecciona tu teclado'
+S[es:t_disk]='Selecciona tu disco'
+S[es:l_timezone]='zona'
+S[es:erased]='se borrará'
+S[es:l_disk]='disco'
+S[es:disk_warn]='se borrará todo lo que hay en este disco'
+S[es:disk_none]='No se encontró ningún disco para instalar.'
+S[es:kb_keys]='ENTER si han salido bien  ·  ↓ para otra distribución'
+S[es:reading]='Leyendo este dispositivo'
+S[es:read_ok]='Dispositivo leído'
+
+S[fr:l_language]='langue'
+S[fr:l_keyboard]='clavier'
+S[fr:l_evaluation]='évaluation'
+S[fr:pick_widen]='BACKSPACE pour élargir la recherche'
+S[fr:pick_keys]='tapez pour filtrer  ·  ↑↓ déplacer  ·  ENTER choisit'
+S[fr:more]='de plus'
+S[fr:next]='ensuite'
+S[fr:t_timezone]='Sélectionnez votre fuseau horaire'
+S[fr:t_keyboard]='Sélectionnez votre clavier'
+S[fr:t_disk]='Sélectionnez votre disque'
+S[fr:l_timezone]='fuseau'
+S[fr:erased]='sera effacé'
+S[fr:l_disk]='disque'
+S[fr:disk_warn]='tout ce qui est sur ce disque sera effacé'
+S[fr:disk_none]='Aucun disque trouvé pour installer.'
+S[fr:kb_keys]='ENTER si elles sont sorties juste  ·  ↓ pour une autre disposition'
+S[fr:reading]='Lecture de cet appareil'
+S[fr:read_ok]='Appareil lu'
+
+S[de:l_language]='Sprache'
+S[de:l_keyboard]='Tastatur'
+S[de:l_evaluation]='Auswertung'
+S[de:pick_widen]='BACKSPACE um die Suche zu erweitern'
+S[de:pick_keys]='tippen zum Filtern  ·  ↑↓ bewegen  ·  ENTER wählt'
+S[de:more]='weitere'
+S[de:next]='weiter'
+S[de:t_timezone]='Wähle deine Zeitzone'
+S[de:t_keyboard]='Wähle deine Tastatur'
+S[de:t_disk]='Wähle deinen Datenträger'
+S[de:l_timezone]='Zeitzone'
+S[de:erased]='wird gelöscht'
+S[de:l_disk]='Datenträger'
+S[de:disk_warn]='alles auf diesem Datenträger wird gelöscht'
+S[de:disk_none]='Kein Datenträger zum Installieren gefunden.'
+S[de:kb_keys]='ENTER wenn sie richtig kamen  ·  ↓ für ein anderes Layout'
+S[de:reading]='Dieses Gerät wird gelesen'
+S[de:read_ok]='Gerät gelesen'
+
+S[it:l_language]='lingua'
+S[it:l_keyboard]='tastiera'
+S[it:l_evaluation]='valutazione'
+S[it:pick_widen]='BACKSPACE per allargare la ricerca'
+S[it:pick_keys]='scrivi per filtrare  ·  ↑↓ muovi  ·  ENTER sceglie'
+S[it:more]='altri'
+S[it:next]='avanti'
+S[it:t_timezone]='Seleziona il tuo fuso orario'
+S[it:t_keyboard]='Seleziona la tua tastiera'
+S[it:t_disk]='Seleziona il tuo disco'
+S[it:l_timezone]='fuso'
+S[it:erased]='verrà cancellato'
+S[it:l_disk]='disco'
+S[it:disk_warn]='tutto su questo disco verrà cancellato'
+S[it:disk_none]='Nessun disco trovato per installare.'
+S[it:kb_keys]='ENTER se sono usciti giusti  ·  ↓ per un altro layout'
+S[it:reading]='Lettura di questo dispositivo'
+S[it:read_ok]='Dispositivo letto'
+
+S[pt:l_language]='idioma'
+S[pt:l_keyboard]='teclado'
+S[pt:l_evaluation]='avaliação'
+S[pt:pick_widen]='BACKSPACE para alargar a pesquisa'
+S[pt:pick_keys]='escreva para filtrar  ·  ↑↓ mover  ·  ENTER escolhe'
+S[pt:more]='mais'
+S[pt:next]='segue'
+S[pt:t_timezone]='Selecione o seu fuso horário'
+S[pt:t_keyboard]='Selecione o seu teclado'
+S[pt:t_disk]='Selecione o seu disco'
+S[pt:l_timezone]='fuso'
+S[pt:erased]='será apagado'
+S[pt:l_disk]='disco'
+S[pt:disk_warn]='tudo neste disco será apagado'
+S[pt:disk_none]='Nenhum disco encontrado para instalar.'
+S[pt:kb_keys]='ENTER se saíram certas  ·  ↓ para outro esquema'
+S[pt:reading]='A ler este dispositivo'
+S[pt:read_ok]='Dispositivo lido'
+
+# ── step 5, the account ───────────────────────────────────────────────────
+#
+# THE FOOTERS ARE THE PRIVACY STORY AND THEY ARE TRUE. This is the only step
+# that asks for something about the PERSON rather than the machine, so it is
+# the only one where "where does this go?" is a fair question — and the
+# answer differs per field, which is exactly why each field says its own:
+#
+#   name      written to machine.nix on this disk. Nothing leaves.
+#   password  hashed the moment it is typed (mkpasswd, stdin — never an
+#             argv anyone can read from ps), and the plaintext is never
+#             written anywhere, including the answers file.
+#   hostname  THE ONE THING THAT LEAVES. DHCP and mDNS announce it to every
+#             network the machine joins, so it is the one field where the
+#             honest note is a warning rather than a reassurance — and why
+#             the default is "golem" rather than anything built from a name.
+#
+# There is no full-name question. GECOS is cosmetic, it sits in /etc/passwd
+# where every local process can read it, and the installer has never needed
+# it for anything. One less thing asked is one less thing to keep.
+S[en:l_name]='user'
+S[en:l_host]='device'
+S[en:t_name]='User Name'
+S[en:t_pass]='%s'\''s Password'
+S[en:t_host]='Name this Device'
+S[en:p_name]='This stays on this device.'
+S[en:t_cpass]='Confirm Password'
+S[en:e_cpass]='The passwords didn’t match, try again.'
+S[en:p_pass]='Stored hashed, never as text.'
+S[en:p_host]='Other devices on your network will see this name.'
+S[en:key_back]='ESC back'
+S[en:t_go]='Install Golem?'
+S[en:drv_line]='%h of %t (%p%) drivers will be installed.'
+S[en:drv_ing]='Identifying drivers…'
+S[en:drv_none]='Drivers ready'
+S[en:dev_title]='Developer install'
+S[en:dev_body]='This is for expert users. Anything you change here can break the system installation.'
+S[en:dev_away]='Take me away'
+S[en:dev_keys]='ENTER to go back'
+S[en:go_keys]='ENTER to install  ·  ESC back'
+S[en:go_ing]='installing'
+S[en:go_done]='Installed'
+S[en:go_fail]='The install stopped — the log is above.'
+S[en:f_keys]='ENTER to continue'
+S[en:e_name]='Letters and digits, starting with a letter.'
+S[en:e_pass]='Type a password.'
+S[en:luks_on]='on'
+S[en:luks_off]='off'
+S[en:adv_row]='Advanced'
+S[en:t_adv]='Advanced'
+S[en:adv_luks]='Full-Drive encryption'
+S[en:adv_part]='Install on a partition'
+S[en:adv_dual]='Dual-Boot'
+S[en:adv_back]='Back'
+S[en:adv_soon]='not in this release yet'
+S[en:t_luks]='Encrypt this Drive'
+S[en:luks_yes]='Yes — a passphrase will be asked at every start'
+S[en:luks_no]='No'
+S[en:t_lpass]='Drive passphrase'
+S[en:p_lpass]='If you forget this, the drive cannot be opened — there is no recovery.'
+S[en:e_lpass]='At least 8 characters.'
+S[en:l_luks]='encryption'
+S[en:e_host]='Letters, digits and dashes.'
+
+S[es:l_name]='nombre'
+S[es:l_host]='dispositivo'
+S[es:t_name]='Nombre de usuario'
+S[es:t_pass]='Contraseña de %s'
+S[es:t_host]='Nombra este dispositivo'
+S[es:p_name]='Esto se queda en este dispositivo.'
+S[es:t_cpass]='Confirma la contraseña'
+S[es:e_cpass]='Las contraseñas no coinciden, inténtalo de nuevo.'
+S[es:p_pass]='Se guarda cifrada, nunca como texto.'
+S[es:p_host]='Otros dispositivos de tu red verán este nombre.'
+S[es:key_back]='ESC volver'
+S[es:t_go]='¿Instalar Golem?'
+S[es:drv_line]='%h de %t (%p%) controladores se instalarán.'
+S[es:drv_ing]='Identificando controladores…'
+S[es:drv_none]='Controladores listos'
+S[es:dev_title]='Instalación para desarrolladores'
+S[es:dev_body]='Esto es para usuarios expertos. Cualquier cambio aquí puede dañar la instalación del sistema.'
+S[es:dev_away]='Sácame de aquí'
+S[es:dev_keys]='ENTER para volver'
+S[es:go_keys]='ENTER para instalar  ·  ESC volver'
+S[es:go_ing]='instalando'
+S[es:go_done]='Instalado'
+S[es:go_fail]='La instalación se detuvo — el registro está arriba.'
+S[es:f_keys]='ENTER para continuar'
+S[es:e_name]='Letras y números, empezando por una letra.'
+S[es:e_pass]='Escribe una contraseña.'
+S[es:luks_on]='activado'
+S[es:luks_off]='desactivado'
+S[es:adv_row]='Avanzado'
+S[es:t_adv]='Avanzado'
+S[es:adv_luks]='Cifrado del disco completo'
+S[es:adv_part]='Instalar en una partición'
+S[es:adv_dual]='Dual-Boot'
+S[es:adv_back]='Volver'
+S[es:adv_soon]='todavía no está en esta versión'
+S[es:t_luks]='Cifrar este disco'
+S[es:luks_yes]='Sí — se pedirá una frase de acceso en cada arranque'
+S[es:luks_no]='No'
+S[es:t_lpass]='Frase de acceso del disco'
+S[es:p_lpass]='Si la olvidas el disco no se puede abrir — no hay recuperación.'
+S[es:e_lpass]='Al menos 8 caracteres.'
+S[es:l_luks]='cifrado'
+S[es:e_host]='Letras, números y guiones.'
+
+S[fr:l_name]='nom'
+S[fr:l_host]='appareil'
+S[fr:t_name]='Nom d’utilisateur'
+S[fr:t_pass]='Mot de passe de %s'
+S[fr:t_host]='Nommez cet appareil'
+S[fr:p_name]='Ceci reste sur cet appareil.'
+S[fr:t_cpass]='Confirmez le mot de passe'
+S[fr:e_cpass]='Les mots de passe ne correspondent pas, réessayez.'
+S[fr:p_pass]='Stocké haché, jamais en clair.'
+S[fr:p_host]='Les autres appareils de votre réseau verront ce nom.'
+S[fr:key_back]='ESC retour'
+S[fr:t_go]='Installer Golem ?'
+S[fr:drv_line]='%h sur %t (%p%) pilotes seront installés.'
+S[fr:drv_ing]='Identification des pilotes…'
+S[fr:drv_none]='Pilotes prêts'
+S[fr:dev_title]='Installation pour développeurs'
+S[fr:dev_body]='Ceci est réservé aux utilisateurs experts. Toute modification ici peut casser l’installation du système.'
+S[fr:dev_away]='Ramenez-moi'
+S[fr:dev_keys]='ENTER pour revenir'
+S[fr:go_keys]='ENTER pour installer  ·  ESC retour'
+S[fr:go_ing]='installation'
+S[fr:go_done]='Installé'
+S[fr:go_fail]='L’installation s’est arrêtée — le journal est au-dessus.'
+S[fr:f_keys]='ENTER pour continuer'
+S[fr:e_name]='Lettres et chiffres, en commençant par une lettre.'
+S[fr:e_pass]='Saisissez un mot de passe.'
+S[fr:luks_on]='activé'
+S[fr:luks_off]='désactivé'
+S[fr:adv_row]='Avancé'
+S[fr:t_adv]='Avancé'
+S[fr:adv_luks]='Chiffrement du disque entier'
+S[fr:adv_part]='Installer sur une partition'
+S[fr:adv_dual]='Dual-Boot'
+S[fr:adv_back]='Retour'
+S[fr:adv_soon]='pas encore dans cette version'
+S[fr:t_luks]='Chiffrer ce disque'
+S[fr:luks_yes]='Oui — une phrase secrète sera demandée à chaque démarrage'
+S[fr:luks_no]='Non'
+S[fr:t_lpass]='Phrase secrète du disque'
+S[fr:p_lpass]='Si vous l`oubliez le disque ne peut plus être ouvert — aucune récupération.'
+S[fr:e_lpass]='Au moins 8 caractères.'
+S[fr:l_luks]='chiffrement'
+S[fr:e_host]='Lettres, chiffres et tirets.'
+
+S[de:l_name]='Name'
+S[de:l_host]='Gerät'
+S[de:t_name]='Benutzername'
+S[de:t_pass]='Passwort von %s'
+S[de:t_host]='Benenne dieses Gerät'
+S[de:p_name]='Das bleibt auf diesem Gerät.'
+S[de:t_cpass]='Passwort bestätigen'
+S[de:e_cpass]='Die Passwörter stimmen nicht überein, versuch es erneut.'
+S[de:p_pass]='Gehasht gespeichert, nie im Klartext.'
+S[de:p_host]='Andere Geräte in deinem Netzwerk sehen diesen Namen.'
+S[de:key_back]='ESC zurück'
+S[de:t_go]='Golem installieren?'
+S[de:drv_line]='%h von %t (%p%) Treiber werden installiert.'
+S[de:drv_ing]='Treiber werden erkannt…'
+S[de:drv_none]='Treiber bereit'
+S[de:dev_title]='Entwickler-Installation'
+S[de:dev_body]='Nur für erfahrene Benutzer. Änderungen hier können die Systeminstallation zerstören.'
+S[de:dev_away]='Bring mich weg'
+S[de:dev_keys]='ENTER zum Zurückgehen'
+S[de:go_keys]='ENTER zum Installieren  ·  ESC zurück'
+S[de:go_ing]='installiere'
+S[de:go_done]='Installiert'
+S[de:go_fail]='Die Installation hielt an — das Protokoll steht oben.'
+S[de:f_keys]='ENTER zum Fortfahren'
+S[de:e_name]='Buchstaben und Ziffern, beginnend mit einem Buchstaben.'
+S[de:e_pass]='Gib ein Passwort ein.'
+S[de:luks_on]='an'
+S[de:luks_off]='aus'
+S[de:adv_row]='Erweitert'
+S[de:t_adv]='Erweitert'
+S[de:adv_luks]='Vollverschlüsselung'
+S[de:adv_part]='Auf einer Partition installieren'
+S[de:adv_dual]='Dual-Boot'
+S[de:adv_back]='Zurück'
+S[de:adv_soon]='in dieser Version noch nicht'
+S[de:t_luks]='Diesen Datenträger verschlüsseln'
+S[de:luks_yes]='Ja — bei jedem Start wird eine Passphrase abgefragt'
+S[de:luks_no]='Nein'
+S[de:t_lpass]='Passphrase des Datenträgers'
+S[de:p_lpass]='Wenn du sie vergisst bleibt der Datenträger verschlossen — keine Wiederherstellung.'
+S[de:e_lpass]='Mindestens 8 Zeichen.'
+S[de:l_luks]='Verschlüsselung'
+S[de:e_host]='Buchstaben, Ziffern und Bindestriche.'
+
+S[it:l_name]='nome'
+S[it:l_host]='dispositivo'
+S[it:t_name]='Nome utente'
+S[it:t_pass]='Password di %s'
+S[it:t_host]='Dai un nome a questo dispositivo'
+S[it:p_name]='Questo resta su questo dispositivo.'
+S[it:t_cpass]='Conferma la password'
+S[it:e_cpass]='Le password non coincidono, riprova.'
+S[it:p_pass]='Salvata con hash, mai in chiaro.'
+S[it:p_host]='Gli altri dispositivi della tua rete vedranno questo nome.'
+S[it:key_back]='ESC indietro'
+S[it:t_go]='Installare Golem?'
+S[it:drv_line]='%h di %t (%p%) driver saranno installati.'
+S[it:drv_ing]='Identificazione dei driver…'
+S[it:drv_none]='Driver pronti'
+S[it:dev_title]='Installazione per sviluppatori'
+S[it:dev_body]='Solo per utenti esperti. Qualsiasi modifica qui può danneggiare l’installazione del sistema.'
+S[it:dev_away]='Portami via'
+S[it:dev_keys]='ENTER per tornare'
+S[it:go_keys]='ENTER per installare  ·  ESC indietro'
+S[it:go_ing]='installazione'
+S[it:go_done]='Installato'
+S[it:go_fail]='L’installazione si è fermata — il log è sopra.'
+S[it:f_keys]='ENTER per continuare'
+S[it:e_name]='Lettere e cifre, iniziando con una lettera.'
+S[it:e_pass]='Scrivi una password.'
+S[it:luks_on]='attiva'
+S[it:luks_off]='disattiva'
+S[it:adv_row]='Avanzate'
+S[it:t_adv]='Avanzate'
+S[it:adv_luks]='Cifratura del disco intero'
+S[it:adv_part]='Installa su una partizione'
+S[it:adv_dual]='Dual-Boot'
+S[it:adv_back]='Indietro'
+S[it:adv_soon]='non ancora in questa versione'
+S[it:t_luks]='Cifra questo disco'
+S[it:luks_yes]='Sì — a ogni avvio verrà chiesta una passphrase'
+S[it:luks_no]='No'
+S[it:t_lpass]='Passphrase del disco'
+S[it:p_lpass]='Se la dimentichi il disco non si può aprire — nessun recupero.'
+S[it:e_lpass]='Almeno 8 caratteri.'
+S[it:l_luks]='cifratura'
+S[it:e_host]='Lettere, cifre e trattini.'
+
+S[pt:l_name]='nome'
+S[pt:l_host]='dispositivo'
+S[pt:t_name]='Nome de utilizador'
+S[pt:t_pass]='Palavra-passe de %s'
+S[pt:t_host]='Dê um nome a este dispositivo'
+S[pt:p_name]='Isto fica neste dispositivo.'
+S[pt:t_cpass]='Confirme a palavra-passe'
+S[pt:e_cpass]='As palavras-passe não coincidem, tente novamente.'
+S[pt:p_pass]='Guardada com hash, nunca em texto.'
+S[pt:p_host]='Outros dispositivos na sua rede verão este nome.'
+S[pt:key_back]='ESC voltar'
+S[pt:t_go]='Instalar o Golem?'
+S[pt:drv_line]='%h de %t (%p%) controladores serão instalados.'
+S[pt:drv_ing]='A identificar controladores…'
+S[pt:drv_none]='Controladores prontos'
+S[pt:dev_title]='Instalação para programadores'
+S[pt:dev_body]='Isto é para utilizadores avançados. Qualquer alteração aqui pode danificar a instalação do sistema.'
+S[pt:dev_away]='Leve-me daqui'
+S[pt:dev_keys]='ENTER para voltar'
+S[pt:go_keys]='ENTER para instalar  ·  ESC voltar'
+S[pt:go_ing]='a instalar'
+S[pt:go_done]='Instalado'
+S[pt:go_fail]='A instalação parou — o registo está acima.'
+S[pt:f_keys]='ENTER para continuar'
+S[pt:e_name]='Letras e algarismos, começando por uma letra.'
+S[pt:e_pass]='Escreva uma palavra-passe.'
+S[pt:luks_on]='ativada'
+S[pt:luks_off]='desativada'
+S[pt:adv_row]='Avançado'
+S[pt:t_adv]='Avançado'
+S[pt:adv_luks]='Cifragem do disco completo'
+S[pt:adv_part]='Instalar numa partição'
+S[pt:adv_dual]='Dual-Boot'
+S[pt:adv_back]='Voltar'
+S[pt:adv_soon]='ainda não nesta versão'
+S[pt:t_luks]='Cifrar este disco'
+S[pt:luks_yes]='Sim — será pedida uma frase-passe em cada arranque'
+S[pt:luks_no]='Não'
+S[pt:t_lpass]='Frase-passe do disco'
+S[pt:p_lpass]='Se a esquecer o disco não pode ser aberto — não há recuperação.'
+S[pt:e_lpass]='Pelo menos 8 caracteres.'
+S[pt:l_luks]='cifragem'
+S[pt:e_host]='Letras, algarismos e hífenes.'
+
+t() {
+  local k=$1 v
+  v=${S[$UI:$k]-}
+  [ -n "$v" ] || v=${S[${UI%%-*}:$k]-}
+  [ -n "$v" ] || v=${S[en:$k]-}
+  printf '%s' "$v"
+}
+
+# ══ THE INVITATION ═══════════════════════════════════════════════════════
+#
+# THE ATTRACT LOOP, kept whole from census-mock and now doing more work.
+# Until somebody chooses, the invitation cycles through language after
+# language on a five-second beat. It is there for the person who cannot
+# read the line as it stands: a static English sentence is useless to them
+# and, worse, gives no sign it will ever be anything else — the machine
+# looks English-only. A line that visibly changes language explains itself
+# in a way no single language can. Wait a moment and yours turns up.
+#
+# Five seconds rather than two because the line is a whole sentence and
+# somebody who has just walked up to the machine needs time to finish
+# reading it in a language they do not speak before deciding it is not
+# theirs.
+#
+# It stops the instant a language is chosen and never restarts. Motion is a
+# request for attention, so it has to stop being one the moment it has been
+# answered.
+#
+# WHAT IS NEW: the rotation is no longer only an invitation, it is a
+# PRESELECTION. Press ENTER while your language is the one on screen and
+# the filter opens with that language already highlighted — a second ENTER
+# takes it. Waiting for your turn is now the fast path, not the patient
+# one, which is the difference between a decoration and a control.
+#
+# ENTER stays the literal word in every line. Census-mock's rule: the key
+# cap says ENTER on nearly every keyboard sold, so translating it would
+# make the one unambiguous token ambiguous.
+INVITE=(
+  "en|Press ENTER to select your language"
+  "es|Pulsa ENTER para elegir tu idioma"
+  "zh-CN|按 ENTER 选择您的语言"
+  "hi|Apni bhasha chunne ke liye ENTER dabayein"
+  "ar|اضغط ENTER لاختيار لغتك"
+  "pt-BR|Pressione ENTER para escolher o seu idioma"
+  "fr|Appuyez sur ENTER pour choisir votre langue"
+  "ru|Нажмите ENTER, чтобы выбрать язык"
+  "de|Drücke ENTER, um deine Sprache zu wählen"
+  "ja|ENTER を押して言語を選択"
+  "id|Tekan ENTER untuk memilih bahasa Anda"
+  "tr|Dilinizi seçmek için ENTER'a basın"
+  "it|Premi ENTER per scegliere la tua lingua"
+  "ko|ENTER를 눌러 언어를 선택하세요"
+  "pl|Naciśnij ENTER, aby wybrać swój język"
+  "vi|Nhấn ENTER để chọn ngôn ngữ của bạn"
+)
+
+index_of_code() {
+  local i
+  for (( i = 0; i < NROWS; i++ )); do
+    [ "$(f_code "$i")" = "$1" ] && { printf '%d' "$i"; return 0; }
+  done
+  printf '0'
+}
+
+# ══ THE FILTER ═══════════════════════════════════════════════════════════
+#
+# Ranked in two passes, and the order is the whole usability of the step:
+# things the query STARTS a word of come first, things it merely appears
+# inside come second. So "in" puts Indonesian and Hindi above Finnish,
+# where a plain substring search would bury them under every word with an
+# "in" in the middle. Within a pass the table's own order is kept, which is
+# why the table is ordered by how many people speak the language.
+#
+# The picker is GENERIC. Both steps that pick from a list — language here,
+# keyboard next — load the same four arrays and call the same code, so the
+# stranger learns one control once. Copying it per step is how a mockup ends
+# up 1238 lines long.
+PICK_NAME=()   # what is shown — the whole row
+PICK_HAY=()    # lowercased, space-led search text
+PICK_NOUN=''   # what the no-match line calls these things
+PICK_TITLE=''  # what this step is asking for
+PICK_TITLE_HOT=no
+
+# THERE IS NO SECOND COLUMN (Max, 2026-09-05: "we don't need the dimmed side
+# of the lists… we want minimalism"). Every list carried one — the language
+# code beside English, `us` beside English (US), the local time beside
+# America/New_York, the disk model beside /dev/sda — and every one of them
+# restated the row it sat next to. Somebody who reads "New York" does not
+# need to be told what time it is in New York; they picked it because they
+# live there.
+#
+# What the screen was actually missing is the opposite: it never SAID WHAT
+# IT WAS ASKING FOR. Four lists in a row, each one just a caret and some
+# names. PICK_TITLE is that line, and it costs the column the asides used to
+# waste.
+
+MATCH=()
+filter() {
+  local q=${1,,} i n=${#PICK_HAY[@]}
+  MATCH=()
+  if [ -z "$q" ]; then
+    for (( i = 0; i < n; i++ )); do MATCH+=("$i"); done
+    return
+  fi
+  q=${q//-/ }
+  for (( i = 0; i < n; i++ )); do
+    [[ ${PICK_HAY[$i]} == *" $q"* ]] && MATCH+=("$i")
+  done
+  for (( i = 0; i < n; i++ )); do
+    [[ ${PICK_HAY[$i]} == *"$q"* && ${PICK_HAY[$i]} != *" $q"* ]] && MATCH+=("$i")
+  done
+}
+
+# ══ THE TRANSCRIPT ═══════════════════════════════════════════════════════
+#
+# THE VOICE, kept from census-mock. Golem is spoken ABOUT, never as "I" —
+# the voice is its maker describing what it did, which stays warm without
+# the machine pretending to be a person. Golem acts on the device; WE act
+# on Golem, so an unfinished thing is our work and says so. Nothing is ever
+# done "for you": saying so out loud is flattery, and the work speaks
+# without being pointed at.
+#
+# An answered question collapses to ONE line and stays. That line is the
+# receipt: at the end of the install the whole transcript is on screen and
+# the summary screen the TUI needed a whole tile for is just what you
+# already read, still there.
+IND='  '
+
+# ONE STEP ON SCREEN, AND ONLY THE CURRENT ONE (Max, 2026-09-05). Each step
+# opens by clearing what came before it, so what a stranger is looking at is
+# always exactly the question being asked. The earlier draft kept a running
+# transcript of receipts down the screen; it read like a form being filled
+# in, and a form is a thing you scan for what you missed. A question you
+# cannot scan past is a question you answer.
+#
+# What is NOT lost: the current step still shows its own context — step 2
+# keeps the layout it is proposing and the census running behind it, because
+# those are what the question is ABOUT, not what came before it.
+#
+# The screen opens with nothing but air. There was a "golem" over the
+# invitation and it came off: this is the one screen that cannot assume it
+# is understood, and a brand name is a word in a language the reader may not
+# have — the exact thing the rotating line exists to avoid. The invitation
+# is the first thing on screen because it is the only thing worth reading.
+screen() {
+  [ "$TTY" = yes ] && printf '%s[2J%s[H' "$esc" "$esc"
+  printf '\n'
+}
+
+LABELW=13
+
+# Labels are Capitalised HERE, once, rather than in sixty strings across six
+# languages — ${1^} lifts the first letter, so "language"→"Language",
+# "idioma"→"Idioma", and already-capped tokens (GPU, Wi-Fi) are untouched.
+# The value keeps its own case: driver names (i915, iwlwifi) are real module
+# names and must stay exactly as the kernel spells them.
+#
+# $4 is a RED TAIL — text appended in the danger colour after the normal
+# value. Only the disk uses it, for "(will be erased)": the drive's name and
+# size read plainly, and just the consequence is red.
+answered() {                     # $1 label, $2 value, $3 value-colour, $4 red-tail
+  local vc=${3:-$C_VALUE}
+  printf '%s%s%s%s  %s%s%s' "$IND" "$C_TICK" "$TICK" "$NORM" "$C_LABEL" "$(pad_to "${1^}" "$LABELW")" "$NORM"
+  printf '%s%s%s' "$vc" "$2" "$NORM"
+  [ -n "${4:-}" ] && printf ' %s%s%s' "$C_RED" "$4" "$NORM"
+  printf '\n'
+}
+
+# ══ THE STACK ════════════════════════════════════════════════════════════
+#
+# AN ITEM IS A SETTLED CHOICE, AND NOTHING ELSE (Max, 2026-09-05). One item
+# per finished step, stacked at the top of every screen after it: the
+# keyboard step shows one — the language — and the step after it shows two.
+#
+# The earlier draft used the same row shape for things that were NOT settled
+# choices — the layout being proposed, the census running in the background —
+# and that is what made the screen unreadable. A row that looks like a
+# decision but is not one teaches the reader that the rows mean nothing.
+# So the shape is now reserved:
+#
+#   an item        a decision that has been made and will not be asked again
+#   the ask        the decision being made right now — never an item
+#   the footer     work happening on its own — never an item
+#
+# Items survive the per-step clear because they are re-printed from ITEMS,
+# not scrolled: the screen is rebuilt each step, so the stack is a fact about
+# state rather than about what happens to still be on the terminal.
+ITEMS=()
+# label|value|aside|colour. The aside is stored-but-unshown (kept for a
+# possible future column); the 4th field is the value's colour, which only
+# the disk uses — it is the one settled row that names something about to be
+# destroyed, so it is the one row that is red.
+settle() { ITEMS+=("$1|$2|${3-}|${4-}|${5-}"); }
+
+stack() {
+  local it l v a c rt
+  for it in "${ITEMS[@]}"; do
+    IFS='|' read -r l v a c rt <<<"$it"
+    answered "$l" "$v" "$c" "$rt"
+  done
+  (( ${#ITEMS[@]} )) && printf '\n'
+  return 0
+}
+
+# ══ KEYS ═════════════════════════════════════════════════════════════════
+KEY=''
+# Returns 0 with KEY set, or 2 on timeout. A TIMEOUT AND A CLOSED STDIN ARE
+# NOT THE SAME THING and read reports both as non-zero: >128 for the timeout,
+# 1 for end of input. Treating them alike is a spin — every waiting loop here
+# repaints and waits again, which on a dead stdin is a busy loop pinning a
+# core on a laptop that is meanwhile trying to run the census. There is no
+# recovery from stdin going away mid-install, so it leaves here.
+read_key() {                     # $1 timeout, or empty for none
+  local k rest args=(-rsn1) rc
+  [ -n "${1:-}" ] && args+=(-t "$1")
+  IFS= read "${args[@]}" k; rc=$?
+  if (( rc != 0 )); then
+    KEY=''
+    (( rc > 128 )) && return 2
+    show_cursor; printf '\n'; exit 0
+  fi
+  case $k in
+    '')       KEY=ENTER ;;
+    $'\e')    IFS= read -rsn2 -t 0.02 rest
+              case $rest in
+                '[A') KEY=UP ;; '[B') KEY=DOWN ;;
+                '[C'|'[D') KEY=SIDE ;;
+                '')   KEY=ESC ;;
+                *)    KEY=OTHER ;;
+              esac ;;
+    $'\177'|$'\b') KEY=BACK ;;
+    $'\t')    KEY=ENTER ;;
+    # Ctrl+D — byte 0x04 — is the HIDDEN door to the developer install, read
+    # only on the confirm screen and never announced. It replaced Ctrl+Tab,
+    # which is impossible: Tab IS Ctrl+I, so Ctrl+Tab sends the same byte as
+    # Tab and no terminal (least of all the target's console) can tell them
+    # apart. Ctrl+D is a distinct byte on every terminal, and "D for
+    # developer" is easier to remember than a combo nobody could type.
+    $'\x04')  KEY=DEV ;;
+    *)        KEY=$k ;;
+  esac
+  return 0
+}
+
+# ══ STEP 1 — LANGUAGE ════════════════════════════════════════════════════
+
+ROT=0                            # which invitation is on screen
+SEED=0                           # the row the filter opens highlighted on
+QUERY=''
+SEL=0
+VIEW=6                           # matches shown at once
+
+paint_invite() {
+  local line=${INVITE[$ROT]#*|}
+  printf '\r%s[2K%s%s%s%s' "$esc" "$IND" "$C_ASK" "$line" "$NORM"
+}
+
+# The filter block is a FIXED height — query, VIEW rows, blank, guide line.
+# Fixed because a block that changes height has to erase its own leftovers,
+# and every bug in a redrawing terminal UI lives in that erase. Nine lines
+# every time, cursor back up nine, done.
+#
+# The blank above the guide is load-bearing, not breathing room: without it
+# the guide reads as one more row of the list, and on a short match set it
+# reads as the LAST row — which is the one place a misread costs something,
+# because that row is what ENTER would take.
+# Title, blank, query, VIEW rows, blank, guide — or two lines shorter when
+# the step has no title, which is only ever the language step (a title there
+# would have to be written in a language nobody has chosen yet).
+pick_block() { if [ -n "$PICK_TITLE" ]; then echo $(( VIEW + 5 )); else echo $(( VIEW + 3 )); fi; }
+BLOCK=$(( VIEW + 3 ))
+
+paint_pick() {
+  local i idx r
+  if [ -n "$PICK_TITLE" ]; then
+    # PICK_TITLE_HOT is the disk step and nothing else. The title names the
+    # thing ("Select your disk") and then the consequence ("— everything on
+    # this disk will be erased"), and ONLY the consequence is red: the label
+    # is a normal question, the erase is the one irreversible thing in the
+    # whole installer. Splitting on " — " keeps the red on the danger and
+    # off the instruction.
+    if [ "$PICK_TITLE_HOT" = yes ]; then
+      printf '\r%s[2K%s%s%s%s — %s%s%s\n' "$esc" "$IND" \
+        "$C_ASK" "${PICK_TITLE%% — *}" "$NORM" \
+        "$C_RED" "${PICK_TITLE#* — }" "$NORM"
+    else
+      printf '\r%s[2K%s%s%s%s\n' "$esc" "$IND" "$C_ASK" "$PICK_TITLE" "$NORM"
+    fi
+    printf '\r%s[2K\n' "$esc"
+  fi
+  printf '\r%s[2K%s%s%s%s %s%s%s%s\n' "$esc" "$IND" "$C_ACCENT" "$CARET" "$NORM" \
+    "$C_ASK" "$QUERY" "$NORM" "$( [ "$TTY" = yes ] && printf '%s[7m %s[0m' "$esc" "$esc" )"
+
+  for (( i = 0; i < VIEW; i++ )); do
+    idx=$(( FIRST + i ))
+    printf '\r%s[2K' "$esc"
+    if (( idx < ${#MATCH[@]} )); then
+      r=${MATCH[$idx]}
+      if (( idx == SEL )); then
+        printf '%s  %s%s %s%s%s' "$IND" "$C_ACCENT" "$CARET" \
+          "$C_ACCENT_TX" "${PICK_NAME[$r]}" "$NORM"
+      else
+        printf '%s    %s%s%s' "$IND" "$C_VALUE" "${PICK_NAME[$r]}" "$NORM"
+      fi
+    elif (( ${#MATCH[@]} == 0 && i == 0 )); then
+      printf '%s    %sno %s matches "%s"%s' \
+        "$IND" "$C_DIM" "$PICK_NOUN" "$QUERY" "$NORM"
+    fi
+    printf '\n'
+  done
+
+  printf '\r%s[2K\n' "$esc"
+
+  # THE GUIDE LINE. census-mock kept one line that is the only place the
+  # installer speaks, and it survives the move: a function of state, never a
+  # caption. Here it tells you the one thing the screen cannot show, which
+  # is what the keys do.
+  # With nothing matched, ENTER does nothing — so the guide must not keep
+  # saying it takes something. It said so anyway until 2026-09-05, which
+  # left anyone who mistyped pressing the one key the screen recommended
+  # and watching it do nothing, with no way to know BACKSPACE was the exit.
+  if (( ${#MATCH[@]} == 0 )); then
+    printf '\r%s[2K%s%s%s  ·  %s%s\n' "$esc" "$IND" "$C_DIM" \
+      "$(t pick_widen)" "$(t key_back)" "$NORM"
+    printf '%s[%dA' "$esc" "$BLOCK"
+    return
+  fi
+  # ESC is on EVERY guide line, because a way back that is not written down
+  # is a way back nobody finds. It is last because it is the rarest of the
+  # three and the eye reads the line left to right.
+  printf '\r%s[2K%s%s%s  ·  %s%s\n' "$esc" "$IND" "$C_DIM" \
+    "$( (( ${#MATCH[@]} > VIEW )) \
+        && printf '%s  ·  %d %s' "$(t pick_keys)" "$(( ${#MATCH[@]} - VIEW ))" "$(t more)" \
+        || t pick_keys )" "$(t key_back)" "$NORM"
+  printf '%s[%dA' "$esc" "$BLOCK"
+}
+
+FIRST=0
+clamp() {
+  (( SEL < 0 )) && SEL=0
+  (( SEL >= ${#MATCH[@]} )) && SEL=$(( ${#MATCH[@]} - 1 ))
+  (( SEL < 0 )) && SEL=0
+  (( SEL < FIRST )) && FIRST=$SEL
+  (( SEL >= FIRST + VIEW )) && FIRST=$(( SEL - VIEW + 1 ))
+  (( FIRST < 0 )) && FIRST=0
+}
+
+# Opening the list on the row the caller nominates is what makes the
+# invitation a control rather than an ornament — see THE INVITATION.
+pick_seed() {
+  local i
+  filter "$QUERY"
+  SEL=0
+  for i in "${!MATCH[@]}"; do
+    [ "${MATCH[$i]}" = "$SEED" ] && { SEL=$i; break; }
+  done
+  FIRST=0; clamp
+}
+
+erase_block() {
+  local i
+  for (( i = 0; i < BLOCK; i++ )); do printf '%s[2K\n' "$esc"; done
+  printf '%s[%dA' "$esc" "$BLOCK"
+}
+
+# Returns 0 with PICKED set, or 1 if the user backed out of the list without
+# choosing (ESC, or BACKSPACE on an empty query). Backing out is not
+# cancelling: the caller decides what an empty answer means, and in both
+# steps it means "put the question back".
+PICKED=-1
+pick() {
+  PICKED=-1
+  # Fixed for the whole pick, so the erase always matches what was drawn.
+  BLOCK=$(pick_block)
+  pick_seed
+  while :; do
+    paint_pick
+    read_key || continue
+    case $KEY in
+      ENTER)
+        (( ${#MATCH[@]} == 0 )) && continue
+        PICKED=${MATCH[$SEL]}; erase_block; return 0 ;;
+      UP)    SEL=$(( SEL - 1 )); clamp ;;
+      DOWN)  SEL=$(( SEL + 1 )); clamp ;;
+      # BACKSPACE only ever erases a character. It used to fall out of the
+      # list on an empty query, which meant the key that undoes typing and
+      # the key that leaves the step were the same key — so clearing a
+      # filter one character too far silently threw the step away.
+      BACK)
+        [ -n "$QUERY" ] && { QUERY=${QUERY%?}; pick_seed; } ;;
+      # ESC is BACK, everywhere in the installer and nowhere else.
+      ESC)   erase_block; return 1 ;;
+      SIDE|OTHER) ;;
+      *)     QUERY="$QUERY$KEY"; filter "$QUERY"; SEL=0; FIRST=0; clamp ;;
+    esac
+  done
+}
+
+# ══ THE ORDER THE LIST OPENS IN ══════════════════════════════════════════
+#
+# Not the table's order, and not alphabetical. When the list opens, the six
+# rows on screen are built for the person standing there (Max, 2026-09-05):
+#
+#   1  English            always, and always first
+#   2  the invitation's   what the rotating line was showing when they hit
+#      language           ENTER — highlighted, so a second ENTER takes it
+#   3  its dialect        if it has one worth distinguishing
+#   4  the widest four    Español · Português · Français · Deutsch
+#   …  the other fifty
+#
+# WHY ENGLISH HOLDS THE TOP SLOT even though it is not what the invitation
+# was showing: it is the language the rest of this installer falls back to
+# when a translation is missing, so it is the one row that must never need
+# searching for. It sits at a fixed position for the same reason a keyboard
+# has home keys — it never moves, whatever the rotation was doing.
+#
+# WHY THE PRESET IS SECOND AND NOT FIRST. Position is not what makes it
+# takeable; the HIGHLIGHT is. It opens selected, so ENTER takes it from row
+# two exactly as fast as from row one, and English gets its fixed slot for
+# free. Waiting for your language and pressing ENTER twice is still the
+# whole interaction.
+#
+# WHY THE DIALECT IS THIRD. Somebody who waited for Español may actually
+# want Español (Latinoamérica) — that is the single most likely correction
+# on this screen, and putting it directly under the thing it corrects makes
+# it one ↓ away instead of a search. Same for the two Portugueses and the
+# two Chineses. The pairing runs BOTH ways: arrive on es-419 and es is the
+# neighbour offered.
+PRIORITY=(es pt fr de)
+declare -A DIALECT=(
+  [es]=es-419  [es-419]=es
+  [pt]=pt-BR   [pt-BR]=pt
+  [zh-CN]=zh-TW [zh-TW]=zh-CN
+)
+
+lang_order() {                   # $1 = the row the invitation was showing
+  local seed=$1 i c
+  local -A used=()
+  local out=()
+  _push() { [ -n "${used[$1]-}" ] && return 0; used[$1]=1; out+=("$1"); }
+
+  _push "$EN_ROW"
+  _push "$seed"
+  c=${DIALECT[${CODE[$seed]}]-}
+  [ -n "$c" ] && _push "$(index_of_code "$c")"
+  for c in "${PRIORITY[@]}"; do _push "$(index_of_code "$c")"; done
+  for (( i = 0; i < NROWS; i++ )); do _push "$i"; done
+  printf '%s\n' "${out[@]}"
+}
+
+# Load PICK_* from a language order. Both the live step and --dump filter go
+# through here so what a dump shows is what a boot shows.
+LANG_VIEW=()
+lang_view() {                    # $1 = seed row
+  local i
+  mapfile -t LANG_VIEW < <(lang_order "$1")
+  PICK_NAME=(); PICK_HAY=(); PICK_NOUN=$(t l_language); PICK_TITLE=''
+  for i in "${LANG_VIEW[@]}"; do
+    PICK_NAME+=("${DISPLAY[$i]}"); PICK_HAY+=("${HAY[$i]}")
+  done
+  SEED=0
+  for i in "${!LANG_VIEW[@]}"; do
+    [ "${LANG_VIEW[$i]}" = "$1" ] && { SEED=$i; break; }
+  done
+}
+
+# COMING BACK IS NOT STARTING OVER (Max, 2026-09-06). Esc from the timezone
+# must land on the language LIST with the language you chose still selected,
+# not on the rotating invitation — the invitation is how a stranger meets
+# the machine, and meeting it again is not what "back" means. Every step
+# below re-opens on its own last answer for the same reason.
+LANG_DONE=no
+KB_CHOSEN=''
+
+step_language() {
+  local seed_row
+  screen
+  hide_cursor
+
+  if [ "$LANG_DONE" = yes ]; then
+    QUERY=''
+    lang_view "$LANG_ROW"
+    # Nothing sits behind step 0, so Esc here just re-opens the list.
+    while ! pick; do QUERY=''; lang_view "$LANG_ROW"; done
+    LANG_ROW=${LANG_VIEW[$PICKED]}
+    show_cursor
+    UI=${CODE[$LANG_ROW]}
+    settle "$(t l_language)" "${DISPLAY[$LANG_ROW]}" "${LOCALE[$LANG_ROW]}"
+    return 0
+  fi
+
+  while :; do
+    # ── the invitation ──────────────────────────────────────────────────
+    QUERY=''
+    while :; do
+      paint_invite
+      if read_key "$SECONDS_PER"; then
+        seed_row=$(index_of_code "${INVITE[$ROT]%%|*}")
+        case $KEY in
+          ENTER|UP|DOWN)   break ;;
+          ESC|SIDE|OTHER)  ;;
+          q|Q)             printf '\r%s[2K' "$esc"; show_cursor; exit 0 ;;
+          BACK)            ;;
+          # A printable key is a head start, not a mistake: it opens the
+          # list already carrying that letter. Nobody who knows what they
+          # want should have to wait out a rotation first.
+          *)               QUERY=$KEY; break ;;
+        esac
+      else
+        ROT=$(( (ROT + 1) % ${#INVITE[@]} ))
+      fi
+    done
+
+    # ── the list ────────────────────────────────────────────────────────
+    printf '\r%s[2K' "$esc"
+    lang_view "$seed_row"
+    # Backing out hands the screen back to the invitation, which starts
+    # again from where it was. Nothing was chosen, so nothing is recorded.
+    pick && { LANG_ROW=${LANG_VIEW[$PICKED]}; break; }
+  done
+
+  PICK_TITLE_HOT=no
+  show_cursor
+  LANG_DONE=yes
+  UI=${CODE[$LANG_ROW]}          # everything after this line speaks it
+  settle "$(t l_language)" "${DISPLAY[$LANG_ROW]}" "${LOCALE[$LANG_ROW]}"
+}
+
+# ══ STEP 2 — TIMEZONE ════════════════════════════════════════════════════
+#
+# THE SAME WORKFLOW AS THE KEYBOARD STEP, on purpose: step 1 proposes an
+# answer, the screen shows the EVIDENCE that would prove it wrong, ENTER
+# takes it, ↓ opens the list. A stranger learns the shape once and every
+# step after it is already familiar.
+#
+# WHAT THE EVIDENCE IS. You cannot type a timezone the way you can type a
+# keyboard, so the confirmable thing is THE CLOCK. "Europe/Madrid — 14:32"
+# turns "do you know your IANA zone name" into "is that the time on your
+# wrist", which is the only version of the question a stranger can answer —
+# exactly the move the echo box makes for the keyboard.
+#
+# WHY IT IS SECOND, ahead of the keyboard (Max, 2026-09-05). It is the
+# cheapest question in the install and it is answered by looking at a clock,
+# so it belongs where attention is highest and where the census still has
+# work to do behind it. The keyboard step is longer and can absorb the
+# remaining census time.
+#
+# THE ZONE LIST COMES FROM tzdata AT RUNTIME. There are 506 of them and
+# they change with the world's politics — Kyiv renamed, Istanbul left DST.
+# Carrying a copy would mean keeping it in step; reading /etc/zoneinfo means
+# the list is whatever the medium actually has. Only the language→zone
+# DEFAULT is ours, and CI proves every one of those names still exists.
+TZDIR_CANDIDATES=(/etc/zoneinfo /usr/share/zoneinfo /usr/lib/zoneinfo)
+tz_dir() {
+  local d
+  [ -n "${TZDIR:-}" ] && [ -d "$TZDIR" ] && { printf '%s' "$TZDIR"; return; }
+  for d in "${TZDIR_CANDIDATES[@]}"; do
+    [ -d "$d" ] && { printf '%s' "$d"; return; }
+  done
+  return 1
+}
+
+# language → zone. Mirrors system/timezones.nix; the shipped installer
+# interpolates that file's `table` the way it will the keyboard one.
+TZ_TOP=$(cat <<'EOF'
+af|Africa/Johannesburg
+am|Africa/Addis_Ababa
+ar|Africa/Cairo,Asia/Riyadh,Asia/Dubai,Africa/Casablanca,Africa/Algiers,Asia/Baghdad,Africa/Khartoum,Asia/Amman,Asia/Damascus,Africa/Tunis
+be|Europe/Minsk
+bg|Europe/Sofia
+bn|Asia/Dhaka,Asia/Kolkata
+bs|Europe/Sarajevo
+ca|Europe/Madrid,Europe/Andorra
+cs|Europe/Prague
+cy|Europe/London
+da|Europe/Copenhagen
+de|Europe/Berlin,Europe/Vienna,Europe/Zurich
+el|Europe/Athens,Asia/Nicosia
+en|America/New_York,America/Chicago,America/Denver,America/Los_Angeles,Europe/London,America/Toronto,Australia/Sydney,Pacific/Auckland,Europe/Dublin,Africa/Johannesburg
+en-IN|Asia/Kolkata
+es|Europe/Madrid,America/Mexico_City,America/Bogota,America/Argentina/Buenos_Aires,America/Lima,America/Santiago,America/Caracas,America/Guatemala,America/Havana,America/Montevideo
+es-419|America/Mexico_City,America/Bogota,America/Argentina/Buenos_Aires,America/Lima,America/Santiago,America/Caracas,America/Guatemala,America/La_Paz,America/Montevideo,America/Asuncion
+et|Europe/Tallinn
+eu|Europe/Madrid
+fa|Asia/Tehran
+fi|Europe/Helsinki
+fil|Asia/Manila
+fr|Europe/Paris,America/Montreal,Europe/Brussels,Africa/Abidjan,Africa/Kinshasa,Africa/Dakar,Europe/Zurich,Indian/Antananarivo
+ga|Europe/Dublin
+gl|Europe/Madrid
+he|Asia/Jerusalem
+hi|Asia/Kolkata
+hr|Europe/Zagreb
+hu|Europe/Budapest
+id|Asia/Jakarta,Asia/Makassar,Asia/Jayapura
+is|Atlantic/Reykjavik
+it|Europe/Rome,Europe/Zurich
+ja|Asia/Tokyo
+ko|Asia/Seoul
+lt|Europe/Vilnius
+lv|Europe/Riga
+mk|Europe/Skopje
+mr|Asia/Kolkata
+ms|Asia/Kuala_Lumpur,Asia/Singapore,Asia/Brunei
+nb|Europe/Oslo
+nl|Europe/Amsterdam,Europe/Brussels
+pa|Asia/Kolkata
+pl|Europe/Warsaw
+pt|Europe/Lisbon,America/Sao_Paulo,Africa/Luanda,Africa/Maputo,Atlantic/Azores
+pt-BR|America/Sao_Paulo,America/Fortaleza,America/Manaus,America/Bahia,America/Cuiaba,Europe/Lisbon
+ro|Europe/Bucharest,Europe/Chisinau
+ru|Europe/Moscow,Asia/Yekaterinburg,Asia/Novosibirsk,Asia/Vladivostok,Europe/Kaliningrad,Asia/Almaty,Asia/Tashkent
+sk|Europe/Bratislava
+sl|Europe/Ljubljana
+sq|Europe/Tirane
+sr|Europe/Belgrade
+sv|Europe/Stockholm,Europe/Helsinki
+sw|Africa/Nairobi,Africa/Dar_es_Salaam,Africa/Kampala
+ta|Asia/Kolkata,Asia/Colombo,Asia/Singapore
+te|Asia/Kolkata
+th|Asia/Bangkok
+tr|Europe/Istanbul
+uk|Europe/Kyiv
+ur|Asia/Karachi
+vi|Asia/Ho_Chi_Minh
+zh-CN|Asia/Shanghai,Asia/Urumqi,Asia/Hong_Kong,Asia/Macau,Asia/Singapore
+zh-TW|Asia/Taipei,Asia/Hong_Kong
+EOF
+)
+
+tz_top_for() {                   # $1 language code → its zones, one per line
+  local want=$1 c z
+  while IFS='|' read -r c z; do
+    [ "$c" = "$want" ] && { printf '%s\n' "${z//,/$'\n'}"; return; }
+  done <<<"$TZ_TOP"
+  # A regional code falls back to its base, so a language mapped only
+  # generally still opens somewhere sensible.
+  [[ $want == *-* ]] && tz_top_for "${want%%-*}"
+  return 0
+}
+
+
+TZ_ZONES=()
+# The full list, ordered for the language: the zones its speakers live in
+# first, then every other zone tzdata has. The top block is what makes the
+# list an answer rather than a haystack — for Spanish it is Madrid, Mexico
+# City, Bogotá, Buenos Aires… before the alphabet takes over.
+tz_load() {
+  local d all=() topz=() seen z
+  d=$(tz_dir) || { TZ_ZONES=(UTC); return; }
+  TZ_ROOT=$d
+  mapfile -t all < <(
+    find -L "$d" -type f 2>/dev/null | sed "s|^$d/||" \
+      | grep -E '^[A-Z][A-Za-z_]+/' | grep -vE '^(Etc|SystemV)/' | sort -u)
+  (( ${#all[@]} )) || { TZ_ZONES=(UTC); return; }
+
+  mapfile -t topz < <(tz_top_for "${CODE[$LANG_ROW]}")
+  declare -A seen=()
+  TZ_ZONES=()
+  for z in "${topz[@]}"; do
+    [ -n "$z" ] || continue
+    # A zone the medium's tzdata does not have is skipped rather than
+    # offered: the list must never contain a row that cannot be chosen.
+    [[ " ${all[*]} " == *" $z "* ]] || continue
+    [ -n "${seen[$z]-}" ] && continue
+    seen[$z]=1; TZ_ZONES+=("$z")
+  done
+  for z in "${all[@]}"; do
+    [ -n "${seen[$z]-}" ] && continue
+    TZ_ZONES+=("$z")
+  done
+}
+
+# The clock in the proposed zone — the whole confirmable content of this
+# step. Printed HH:MM because seconds would make the line move and motion
+# is a request for attention this screen has no use for.
+#
+# TZDIR IS PASSED EXPLICITLY, and leaving it out was a real bug: glibc looks
+# in /usr/share/zoneinfo, which NixOS does not have, so every zone quietly
+# rendered the SAME time. A screen whose entire job is to show you a clock
+# showing you the wrong clock — and looking completely normal doing it.
+TZ_ROOT=''
+tz_clock() {
+  TZDIR="$TZ_ROOT" TZ="$1" date +%H:%M 2>/dev/null || printf '??:??'
+}
+
+TZ_ZONE=''
+
+# NO PROPOSED ZONE, AND NO CONFIRM SCREEN (Max, 2026-09-05). The keyboard
+# step's shape — guess, then ask "is this right?" — does not transfer here.
+# A keyboard has one right answer the machine can nearly always guess; a
+# language does not. Spanish is spoken across a dozen zones, so Madrid was
+# right for a tenth of its speakers and the confirm screen was a ritual to
+# get past for the other nine.
+#
+# The LIST is the step. It opens straight away, ordered so the zones of the
+# countries that speak the chosen language come first — Madrid, Mexico City,
+# Bogotá, Buenos Aires, Lima… — and the filter is right there for everyone
+# else. A wrong guess becomes a short list instead of a wrong answer.
+#
+# The clock stays as the aside, so the list is scannable by the thing a
+# stranger actually knows: you look for the row whose time is yours.
+step_timezone() {
+  tz_load
+  screen; stack
+  hide_cursor
+
+  local i
+  PICK_NAME=(); PICK_HAY=(); PICK_NOUN=$(t l_timezone); PICK_TITLE=$(t t_timezone)
+  for i in "${!TZ_ZONES[@]}"; do
+    PICK_NAME+=("${TZ_ZONES[$i]}")
+    PICK_HAY+=(" ${TZ_ZONES[$i],,}")
+  done
+  # Re-entering after Esc opens on the zone already chosen, not back at
+  # the top of the list.
+  SEED=0
+  for i in "${!TZ_ZONES[@]}"; do
+    [ "${TZ_ZONES[$i]}" = "$TZ_ZONE" ] && { SEED=$i; break; }
+  done
+  QUERY=''
+
+  # ESC leaves the step; the run loop takes it back to the language list.
+  pick || return 1
+
+  PICK_TITLE_HOT=no
+  show_cursor
+  TZ_ZONE=${TZ_ZONES[$PICKED]}
+  settle "$(t l_timezone)" "$TZ_ZONE" "$(tz_clock "$TZ_ZONE")"
+}
+
+# ══ STEP 3 — KEYBOARD ════════════════════════════════════════════════════
+#
+# WHY IT IS SECOND, and it is not habit (PLAN.md). Two reasons, both load-
+# bearing:
+#
+#   1. It overlaps the census. The probe is the one part of the install that
+#      takes real time and cannot be hurried, so it runs while the user does
+#      the one task that needs a human anyway. Nobody watches a spinner.
+#      The line must stay true on a fast machine where the audit finishes
+#      first, which is why it says the device is being read rather than
+#      "wait while Golem reads" — see census_line().
+#   2. It comes before the disk. With encryption on, the disk step wants a
+#      passphrase, and a passphrase typed under the wrong keymap locks the
+#      owner out of their own disk with NO RESCUE — worse than getting the
+#      account password wrong, which at least has single-user mode. Keyboard
+#      at 2 makes that impossible, and that is what lets the passphrase sit
+#      on the disk screen next to the encryption toggle.
+#
+# WHY IT IS NOT A LIST. Step 1 already answered it: every language row
+# carries a keymap and nine people in ten want the obvious pairing, so the
+# default is right before anyone is asked anything. Opening with a list of
+# forty layouts would make all ten do work that one of them needed.
+#
+# So the question is not "which layout" — it is PLAN.md's cheapest defence
+# against the lockout, the live echo box: turn "do you know your locale
+# code" into "does this match what is printed on your keys", which is the
+# only version of the question a stranger can actually answer. The list is
+# still there, one keypress down, for the tenth person.
+#
+#   id | name | aliases | xkb | variant | console | script | form | try
+#
+# THREE NAMESPACES, THREE COLUMNS. This used to be one `code` used as all of
+# them, which was wrong in a way that would have shipped broken installs:
+# console keymaps (kbd) and XKB layouts (xkeyboard-config) are different
+# vocabularies that agree on some names and not others. Every value below is
+# checked against kbd 2.9.0's keymap tree and xkeyboard-config 2.48's
+# evdev.lst, not written from memory. The ones that disagree:
+#
+#   UK        xkb gb      console uk
+#   Latin Am. xkb latam   console la-latin1
+#   Brasil    xkb br      console br-abnt2
+#   Japan     xkb jp      console jp106
+#   Turkey    xkb tr      console trq  (and `f` → trf)
+#   Hungary   xkb hu      console hu101
+#   Portugal  xkb pt      console pt-latin1
+#   Slovenia  xkb si      console slovene
+#   Croatia   xkb hr      console croat
+#   Serbia    xkb rs      console sr-cy
+#
+# AN EMPTY CONSOLE COLUMN IS A DELIBERATE ANSWER, NOT A HOLE. kbd ships no
+# keymap at all for Arabic, Persian, Thai, Korean or the Indic scripts, so
+# those rows leave it blank and console_of() falls back to `us`. That is the
+# right answer twice over: the TTY has no font for those scripts anyway, and
+# a rescue console you cannot type Latin on is a brick.
+#
+# VARIANTS ARE THEIR OWN ROWS. Colemak is not a layout, it is `us` with
+# variant `colemak` — but nobody searches for "us"; they search for
+# "colemak". So each variant that people actually name gets a row, and the
+# xkb/variant pair behind it does the real work.
+#
+# PICKING THE NAME IS WHAT CONFIGURES THE MACHINE. There is no test, no
+# confirmation and no "keys worth trying" column any more (Max, 2026-09-05:
+# "selecting english (US), or español (latinoamérica) — is that enough?").
+# It is: the row carries the xkb layout, its variant, the console keymap,
+# the script and the form factor, and everything an installed machine needs
+# falls out of those. See system/hardware/keyboards.nix for what the removed
+# column was and when it would come back.
+#
+# ══ THE TABLE COMES FROM NIX ══════════════════════════════════════════════
+#
+# system/hardware/keyboards.nix is the source, because that is what CI can
+# enforce: `.#checks.x86_64-linux.keyboard-table` validates every id,
+# variant, model, keymap, font and option against the real kbd and
+# xkeyboard-config packages — the only thing that catches a name which
+# evaluates fine and then fails silently at first boot.
+#
+# $GOLEM_KEYBOARDS points at the rendered table and WINS when it is set.
+# That is how the shipped installer runs: the medium carries
+# `lib.golem.keyboards.table` as a file, so the surface and CI read one
+# source and cannot drift. On the ISO the wrapper sets it; here you can too:
+#
+#   GOLEM_KEYBOARDS=<(nix eval --raw ../..#lib.golem.keyboards.table) ./install-cli
+#
+# The literal below is the DEV FALLBACK, for running this script straight
+# out of a checkout with no nix in the loop. It is rendered from the Nix
+# file, never hand-edited, and `--table` proves the two still agree:
+#
+#   diff <(./install-cli --table) <(nix eval --raw ../..#lib.golem.keyboards.table)
+KEYBOARDS=$(cat <<'EOF'
+us|English (US)|english us american qwerty|us||us|latin|ansi
+us-intl|English (US) — international|international intl deadkeys dead keys accents|us|intl|us-acentos|latin|ansi
+us-altgr|English (US) — AltGr international|altgr international nodeadkeys|us|altgr-intl||latin|ansi
+colemak|Colemak|colemak ergonomic|us|colemak|colemak|latin|ansi
+colemak-dh|Colemak-DH|colemak dh mod ergonomic|us|colemak_dh||latin|ansi
+dvorak|Dvorak|dvorak ergonomic|us|dvorak|dvorak|latin|ansi
+dvorak-prog|Dvorak (programmer)|dvorak programmer prog|us|dvp|dvorak-programmer|latin|ansi
+workman|Workman|workman ergonomic|us|workman||latin|ansi
+gb|English (UK)|english uk british|gb||uk|latin|iso
+gb-colemak|English (UK) — Colemak|colemak uk british|gb|colemak|colemak|latin|iso
+gb-dvorak|English (UK) — Dvorak|dvorak uk british|gb|dvorak|dvorak-uk|latin|iso
+ie|Gaeilge|irish ireland gaelic|ie||ie|latin|iso
+es|Español|spanish espanol espana|es||es|latin|iso
+es-dvorak|Español — Dvorak|dvorak spanish espanol|es|dvorak|dvorak-es|latin|iso
+latam|Español (Latinoamérica)|spanish latam latin america|latam||la-latin1|latin|iso
+latam-colemak|Español (Latinoamérica) — Colemak|colemak latam latin america|latam|colemak|colemak|latin|iso
+fr|Français|french azerty france|fr||fr-latin9|latin|iso
+fr-nodead|Français — sans accents morts|french nodeadkeys azerty|fr|nodeadkeys|fr-latin1|latin|iso
+bepo|Français — Bépo|bepo french ergonomic dvorak|fr|bepo|fr-bepo|latin|iso
+fr-dvorak|Français — Dvorak|dvorak french|fr|dvorak|dvorak-fr|latin|iso
+be|Français (Belgique)|french belgian belgique|be||be-latin1|latin|iso
+ca|Français (Canada)|french canadian quebec|ca||cf|latin|ansi
+de|Deutsch|german deutsch qwertz|de||de-latin1|latin|iso
+de-nodead|Deutsch — ohne Akzenttasten|german nodeadkeys qwertz|de|nodeadkeys|de-latin1-nodeadkeys|latin|iso
+neo|Deutsch — Neo|neo german ergonomic|de|neo|neo|latin|iso
+de-dvorak|Deutsch — Dvorak|dvorak german|de|dvorak|dvorak-de|latin|iso
+ch|Deutsch (Schweiz)|german swiss schweiz suisse|ch||sg-latin1|latin|iso
+it|Italiano|italian italia|it||it|latin|iso
+pt|Português|portuguese portugal|pt||pt-latin1|latin|iso
+br|Português (Brasil)|portuguese brazilian brasil abnt|br||br-abnt2|latin|abnt
+nl|Nederlands|dutch netherlands nederland|nl||nl|latin|iso
+pl|Polski|polish polska programisty|pl||pl|latin|ansi
+cz|Čeština|czech cesko ceska|cz||cz|latin|iso
+sk|Slovenčina|slovak slovensko|sk||sk-qwerty|latin|iso
+hu|Magyar|hungarian magyarorszag|hu||hu101|latin|iso
+ro|Română|romanian romania|ro||ro_std|latin|iso
+hr|Hrvatski|croatian hrvatska|hr||croat|latin|iso
+si|Slovenščina|slovenian slovenscina slovenija|si||slovene|latin|iso
+al|Shqip|albanian shqip shqiperi|al|||latin|iso
+ba|Bosanski|bosnian bosanski bosna|ba||croat|latin|iso
+dk|Dansk|danish danmark|dk||dk-latin1|latin|iso
+no|Norsk|norwegian norge norsk|no||no-latin1|latin|iso
+se|Svenska|swedish sverige|se||sv-latin1|latin|iso
+fi|Suomi|finnish suomi|fi||fi|latin|iso
+is|Íslenska|icelandic island|is||is-latin1|latin|iso
+ee|Eesti|estonian eesti|ee||et|latin|iso
+lv|Latviešu|latvian latvija|lv||lv|latin|iso
+lt|Lietuvių|lithuanian lietuva|lt||lt|latin|iso
+tr|Türkçe|turkish turkiye turkce q|tr||trq|latin|iso
+tr-f|Türkçe — F|turkish turkiye f klavye|tr|f|trf|latin|iso
+rs|Српски|serbian srpski srbija|rs||sr-cy|cyrillic|iso
+mk|Македонски|macedonian makedonski|mk||mk-utf|cyrillic|iso
+bg|Български|bulgarian balgarski|bg||bg_bds-utf8|cyrillic|iso
+bg-pho|Български — фонетична|bulgarian phonetic|bg|phonetic|bg_pho-utf8|cyrillic|iso
+ru|Русский|russian russkiy rossiya|ru||ru|cyrillic|iso
+ru-pho|Русский — фонетическая|russian phonetic|ru|phonetic|ru-yawerty|cyrillic|iso
+ua|Українська|ukrainian ukrainska|ua||ua-utf|cyrillic|iso
+by|Беларуская|belarusian belaruskaya|by||by|cyrillic|iso
+gr|Ελληνικά|greek ellinika ellada|gr||gr|greek|iso
+il|עברית|hebrew ivrit israel|il||il|hebrew|iso
+il-pho|עברית — פונטית|hebrew phonetic ivrit|il|phonetic|il-phonetic|hebrew|iso
+ara|العربية|arabic arabiyya|ara|||arabic|iso
+ir|فارسی|persian farsi iran|ir|||arabic|iso
+pk|اردو|urdu pakistan|pk|pak_urdu_phonetic||arabic|iso
+in|हिन्दी|indian india hindi devanagari|in|||indic|iso
+in-tam|தமிழ்|tamil india|in|tam||indic|iso
+in-tel|తెలుగు|telugu india|in|tel||indic|iso
+bd|বাংলা|bengali bangla bangladesh|bd|probhat||indic|iso
+th|ไทย|thai|th|||thai|iso
+jp|日本語|japanese nihongo jis kana|jp||jp106|latin|jis
+kr|한국어|korean hangul hangugeo|kr|kr104||latin|ansi
+EOF
+)
+
+# The rendered table wins when the medium provides one. Unreadable is a
+# hard error rather than a quiet fall back to the fallback: if something
+# went to the trouble of pointing at a table, using a different one behind
+# its back is exactly the drift this arrangement exists to prevent.
+if [ -n "${GOLEM_KEYBOARDS:-}" ]; then
+  [ -r "$GOLEM_KEYBOARDS" ] || {
+    echo "install-cli: GOLEM_KEYBOARDS=$GOLEM_KEYBOARDS is not readable" >&2; exit 2; }
+  KEYBOARDS=$(cat "$GOLEM_KEYBOARDS")
+fi
+
+
+# ── country → keyboard, from system/hardware/keyboards.nix ────────────
+#
+# The zone chosen in step 2 names a PLACE, and where the machine is
+# standing decides which keyboard is plugged into it. tzdata already
+# maps every zone to its ISO country in zone1970.tab, so the surface
+# reads that at runtime and only this half — country to layout — is
+# ours, and CI checks every entry names a real layout row.
+KB_COUNTRY=$(cat <<'EOF'
+AE|ara
+AL|al
+AR|latam
+AT|de
+AU|us
+BA|ba
+BD|bd
+BE|be
+BG|bg
+BO|latam
+BR|br
+BY|by
+CA|ca
+CH|ch
+CL|latam
+CN|us
+CO|latam
+CR|latam
+CU|latam
+CY|gr
+CZ|cz
+DE|de
+DK|dk
+DO|latam
+DZ|ara
+EC|latam
+EE|ee
+EG|ara
+ES|es
+ET|us
+FI|fi
+FR|fr
+GB|gb
+GR|gr
+GT|latam
+HK|us
+HN|latam
+HR|hr
+HU|hu
+ID|us
+IE|ie
+IL|il
+IN|in
+IQ|ara
+IR|ir
+IS|is
+IT|it
+JO|ara
+JP|jp
+KE|us
+KR|kr
+KW|ara
+KZ|ru
+LK|in
+LT|lt
+LU|fr
+LV|lv
+LY|ara
+MA|ara
+MD|ro
+MK|mk
+MX|latam
+MY|us
+NG|us
+NI|latam
+NL|nl
+NO|no
+NZ|us
+PA|latam
+PE|latam
+PH|us
+PK|pk
+PL|pl
+PR|latam
+PT|pt
+PY|latam
+QA|ara
+RO|ro
+RS|rs
+RU|ru
+SA|ara
+SE|se
+SG|us
+SI|si
+SK|sk
+SV|latam
+SY|ara
+TH|th
+TN|ara
+TR|tr
+TW|us
+UA|ua
+US|us
+UY|latam
+VE|latam
+VN|us
+ZA|us
+EOF
+)
+
+KB_ID=() KB_NAME=() KB_XKB=() KB_VAR=() KB_CON=() KB_SCRIPT=() KB_FORM=() KB_HAY=()
+while IFS='|' read -r id n a x v c s f; do
+  [ -n "$id" ] || continue
+  KB_ID+=("$id"); KB_NAME+=("$n"); KB_XKB+=("$x"); KB_VAR+=("$v")
+  KB_CON+=("$c"); KB_SCRIPT+=("$s"); KB_FORM+=("$f")
+  h=" $n $a $id $x $v"; h=${h,,}; KB_HAY+=("${h//-/ }")
+done <<<"$KEYBOARDS"
+NKB=${#KB_ID[@]}
+
+# The zone's country, from tzdata's own zone1970.tab. Several codes when a
+# zone spans borders (Europe/London is "GB,GG,IM,JE"); the first is the
+# principal country, which is the one whose keyboards are sold there.
+tz_country() {                   # $1 zone → ISO code, or empty
+  local d line
+  d=$(tz_dir) || return 0
+  [ -r "$d/zone1970.tab" ] || return 0
+  line=$(awk -F'\t' -v z="$1" '$0 !~ /^#/ && $3 == z { print $1; exit }' "$d/zone1970.tab")
+  printf '%s' "${line%%,*}"
+}
+
+kb_for_country() {               # $1 ISO code → layout id, or empty
+  local want=$1 c id
+  [ -n "$want" ] || return 0
+  while IFS='|' read -r c id; do
+    [ "$c" = "$want" ] && { printf '%s' "$id"; return; }
+  done <<<"$KB_COUNTRY"
+}
+
+kb_index() {                     # id → row, us if unknown
+  local i
+  for (( i = 0; i < NKB; i++ )); do
+    [ "${KB_ID[$i]}" = "$1" ] && { printf '%d' "$i"; return; }
+  done
+  printf '0'
+}
+
+# ── --verify: every value against the packages that consume them ─────────
+#
+# --check below proves the table is internally consistent. It cannot prove
+# the NAMES are real, and a wrong name is the expensive kind of wrong: an
+# unknown console keymap or XKB variant does not fail the install, it fails
+# quietly at first boot and leaves a stranger with a keyboard that does not
+# match their keys — the exact outcome this whole step exists to prevent.
+#
+# So --verify checks every id, variant, model, keymap, font and option
+# against kbd's keymap tree and xkeyboard-config's evdev.lst. It is how the
+# table was built and it is how it stays true; run it after any edit:
+#
+#   ./install-cli --verify "$(nix build --no-link --print-out-paths nixpkgs#kbd)" \
+#                          "$(nix build --no-link --print-out-paths nixpkgs#xkeyboard_config)"
+#
+# It has already earned its place twice: it caught `in`+`deva` (deva is the
+# DEFAULT group of the Indian layout, defined in symbols/in but deliberately
+# absent from the advertised variant list, so the correct spelling is a bare
+# `in`), and it is the only reason the gb/uk and latam/la-latin1 splits are
+# known to be right rather than believed to be.
+#
+# This wants to be a flake check next to facts-matrix, which needs the table
+# to live in nix rather than in this script — noted, not done.
+kb_verify() {                    # $1 kbd out path, $2 xkeyboard-config path
+  local kbd=$1 xkb=$2 lst=$2/share/X11/xkb/rules/evdev.lst bad=0 i o
+  [ -r "$lst" ] || { echo "install-cli: no evdev.lst under $xkb" >&2; return 2; }
+
+  local -A KM=() FONT=() XL=() XM=() XV=() XO=()
+  while read -r n; do KM[${n%.map.gz}]=1; done \
+    < <(find "$kbd/share/keymaps" -name '*.map.gz' -printf '%f\n')
+  # One -printf binds only to the LAST -o branch, so match once and strip
+  # after — the first draft of this silently reported every font missing.
+  while read -r n; do n=${n%.gz}; FONT[${n%.psfu}]=1; FONT[${n%.psf}]=1; done \
+    < <(find "$kbd/share/consolefonts" -name '*.gz' -printf '%f\n')
+  while read -r n; do XL[$n]=1; done \
+    < <(awk '/^! layout/,/^! variant/' "$lst" | awk 'NF>1 && $1!="!"{print $1}')
+  while read -r n; do XM[$n]=1; done \
+    < <(awk '/^! model/,/^! layout/' "$lst" | awk 'NF>1 && $1!="!"{print $1}')
+  while read -r n; do XV[$n]=1; done \
+    < <(awk '/^! variant/,/^! option/' "$lst" | awk 'NF>2 && $1!="!"{gsub(/:$/,"",$2); print $2"/"$1}')
+  while read -r n; do XO[$n]=1; done \
+    < <(awk '/^! option/,0' "$lst" | awk 'NF>1 && $1!="!"{print $1}')
+
+  for (( i = 0; i < NKB; i++ )); do
+    local id=${KB_ID[$i]}
+    [ -n "${XL[${KB_XKB[$i]}]-}" ] || { echo "$id: xkb layout '${KB_XKB[$i]}' does not exist" >&2; bad=1; }
+    [ -n "${KB_VAR[$i]}" ] && [ -z "${XV[${KB_XKB[$i]}/${KB_VAR[$i]}]-}" ] &&
+      { echo "$id: '${KB_VAR[$i]}' is not a variant of '${KB_XKB[$i]}'" >&2; bad=1; }
+    [ -n "${KB_CON[$i]}" ] && [ -z "${KM[${KB_CON[$i]}]-}" ] &&
+      { echo "$id: console keymap '${KB_CON[$i]}' does not exist" >&2; bad=1; }
+
+    kb_derive "$i"
+    [ -n "${XM[$KB_MODEL]-}" ] || { echo "$id: xkb model '$KB_MODEL' does not exist" >&2; bad=1; }
+    [ -n "${KM[$KB_CONSOLE]-}" ] || { echo "$id: derived keymap '$KB_CONSOLE' does not exist" >&2; bad=1; }
+    [ -n "$KB_FONT" ] && [ -z "${FONT[$KB_FONT]-}" ] &&
+      { echo "$id: console font '$KB_FONT' does not exist" >&2; bad=1; }
+    for o in ${KB_OPTIONS//,/ }; do
+      [ -n "${XO[$o]-}" ] || { echo "$id: xkb option '$o' does not exist" >&2; bad=1; }
+    done
+    # XKB reads variants positionally, so a two-group layout with one
+    # variant slot silently applies the wrong variant to the wrong group.
+    local -a L V
+    IFS=',' read -ra L <<<"$KB_LAYOUT"
+    IFS=',' read -ra V <<<"$KB_VARIANT,"
+    (( ${#L[@]} > 1 && ${#V[@]} < ${#L[@]} )) &&
+      { echo "$id: layout '$KB_LAYOUT' has ${#L[@]} groups, variant '$KB_VARIANT' has fewer" >&2; bad=1; }
+  done
+
+  (( bad )) && return 1
+  printf '%d layouts verified against kbd + xkeyboard-config\n' "$NKB"
+}
+
+# Every language's keymap column must name a real row. The fallback in
+# kb_index is a safety net for a corrupt table, NOT a place for a typo to
+# live: a language quietly resolving to `us` is exactly the failure this
+# whole step exists to prevent, and it would look completely normal on
+# screen. --check makes it loud instead.
+# Every string the code asks t() for must exist in English, because English
+# is the fallback every other language falls through to. A missing one is
+# not an error at runtime — t() returns empty and the screen simply draws a
+# BLANK LINE where a title or a guide should be, which is how the password
+# screen shipped with no title at all on 2026-09-05. It was invisible in a
+# review and invisible in a run; only a diff of two screenshots would have
+# caught it.
+#
+# The cause is worth knowing: two strings shared one line, a line-based edit
+# replaced the whole line, and the second string vanished. The table is now
+# one assignment per line, and this proves it stayed that way.
+str_check() {
+  local k bad=0 used
+  used=$(grep -oE '\$\(t [a-z_]+\)|\bt [a-z_]+;' "$0" \
+    | grep -oE '\bt [a-z_]+' | awk '{print $2}' | sort -u)
+  for k in $used; do
+    [ -n "${S[en:$k]-}" ] || { echo "install-cli: no S[en:$k] — t $k would draw a blank" >&2; bad=1; }
+  done
+  (( bad )) && return 1
+  printf '%d strings, every one the code asks for exists\n' "$(printf '%s\n' "$used" | wc -w)"
+}
+
+kb_check() {
+  local i want bad=0
+  for (( i = 0; i < NROWS; i++ )); do
+    want=${KEYMAP[$i]}
+    [ "$want" = us ] && continue
+    [ "$(kb_index "$want")" = 0 ] && {
+      printf 'install-cli: language %s wants keymap "%s" — no such layout row\n' \
+        "${CODE[$i]}" "$want" >&2; bad=1
+    }
+  done
+  for (( i = 0; i < NKB; i++ )); do
+    [ -n "${KB_XKB[$i]}" ] || {
+      printf 'install-cli: layout %s has no xkb layout\n' "${KB_ID[$i]}" >&2; bad=1
+    }
+  done
+  (( bad )) && return 1
+  printf '%d languages, %d layouts, every pairing resolves\n' "$NROWS" "$NKB"
+}
+
+# ══ WHAT ONE ANSWER TURNS INTO ═══════════════════════════════════════════
+#
+# The user is asked ONE thing — is this your keyboard — and Golem derives
+# every setting an installed machine needs from the row behind it. There are
+# four sinks and they are not interchangeable:
+#
+#   console.keyMap            the TTY, and every rescue shell
+#   services.xserver.xkb.*    X11 and XWayland clients
+#   Hyprland input.kb_*       THE DESKTOP. Hyprland does not read the NixOS
+#                             xkb option — it has its own input block, so
+#                             setting only the NixOS one leaves the actual
+#                             session on us. This is the sink that was
+#                             missing, and it is the one that matters most.
+#
+# THE SECOND LAYOUT IS NOT A LUXURY. A row whose script is not Latin gets
+# `us` appended as a second group plus a toggle. Without it a Russian, Greek,
+# Hebrew, Arabic, Thai or Indic user has no way to type a URL, a password or
+# a shell command — the machine is not merely inconvenient, it is unusable.
+# Alt+Shift is the toggle because it is the one every such user already has
+# muscle memory for from every other OS.
+#
+# Japanese and Korean are Latin-capable layouts (JIS and 2-beolsik both type
+# ASCII directly; the script comes from an IME, not the layout), so they are
+# marked latin and get no second group. Marking them otherwise would add a
+# toggle that does nothing.
+# The dim column beside a layout in the list and in its settled item. It is
+# the XKB pair, because that is the identity people recognise and check —
+# "us colemak" says more than "colemak" alone, and it is what the second
+# layout shows up in when one gets added.
+kb_aside() {
+  kb_derive "$1"
+  if [ -n "$KB_VARIANT" ] && [ "$KB_VARIANT" != , ]; then
+    printf '%s %s' "$KB_LAYOUT" "${KB_VARIANT%,}"
+  else
+    printf '%s' "$KB_LAYOUT"
+  fi
+}
+
+KB_LAYOUT='' KB_VARIANT='' KB_OPTIONS='' KB_CONSOLE='' KB_MODEL='' KB_FONT=''
+kb_derive() {                    # $1 row → sets the six values above
+  local r=$1
+  KB_LAYOUT=${KB_XKB[$r]}
+  KB_VARIANT=${KB_VAR[$r]}
+  KB_OPTIONS=''
+  # kbd has no keymap for some scripts; the TTY falls back to us on purpose.
+  KB_CONSOLE=${KB_CON[$r]:-us}
+
+  # THE PHYSICAL BOARD. XKB's model is not decoration: a JIS keyboard has
+  # henkan, muhenkan and katakana keys that pc104 has no keycodes for, and
+  # ABNT2 has the extra key beside the right shift. The form column already
+  # knows — it was being used only to sort the list, which was leaving a
+  # derivable setting on the floor.
+  case ${KB_FORM[$r]} in
+    jis)  KB_MODEL=jp106 ;;
+    abnt) KB_MODEL=abnt2 ;;
+    iso)  KB_MODEL=pc105 ;;
+    *)    KB_MODEL=pc104 ;;
+  esac
+
+  # THE CONSOLE FONT. Picking a Cyrillic keymap and leaving the kernel's
+  # built-in Latin font in place gives a TTY that types Russian and draws
+  # boxes — the keymap is right and the screen is unreadable. Only the three
+  # scripts that actually HAVE a console keymap need this; Arabic, Thai,
+  # Korean and Indic fell back to `us` above, so their console is Latin and
+  # the default font is correct for it.
+  case ${KB_SCRIPT[$r]} in
+    cyrillic|hebrew) KB_FONT=LatArCyrHeb-16 ;;
+    greek)           KB_FONT=iso07u-16 ;;
+    *)               KB_FONT='' ;;
+  esac
+
+  if [ "${KB_SCRIPT[$r]}" != latin ]; then
+    KB_LAYOUT="$KB_LAYOUT,us"
+    # XKB takes variants as a comma-separated list positionally, so the
+    # second group needs its empty slot even when the first has no variant.
+    KB_VARIANT="$KB_VARIANT,"
+    KB_OPTIONS='grp:alt_shift_toggle'
+  fi
+}
+
+# THE HANDOFF TO golem-install. These four flags are the whole contract
+# between this surface and the installer: the surface asks one question and
+# derives, `golem-install` writes golem.keyboard into machine.nix, and
+# system/configuration.nix + system/home/home.nix fan it out to the three
+# sinks. Printed by --dump settings so the derivation is inspectable
+# without touching a disk.
+kb_emit() {
+  local r=$1
+  kb_derive "$r"
+  printf '%s\n' "golem-install \\"
+  printf '  --kb-layout %q \\\n'  "$KB_LAYOUT"
+  printf '  --kb-variant %q \\\n' "$KB_VARIANT"
+  printf '  --kb-options %q \\\n' "$KB_OPTIONS"
+  printf '  --kb-model %q \\\n'   "$KB_MODEL"
+  printf '  --kb-console %q \\\n' "$KB_CONSOLE"
+  printf '  --kb-font %q\n'       "$KB_FONT"
+  printf '\n'
+  printf '%s\n' "# → machine.nix"
+  printf '  golem.keyboard = {\n'
+  printf '    layout = "%s";\n'        "$KB_LAYOUT"
+  printf '    variant = "%s";\n'       "$KB_VARIANT"
+  printf '    options = "%s";\n'       "$KB_OPTIONS"
+  printf '    model = "%s";\n'         "$KB_MODEL"
+  printf '    consoleKeyMap = "%s";\n' "$KB_CONSOLE"
+  if [ -n "$KB_FONT" ]; then
+    printf '    consoleFont = "%s";\n' "$KB_FONT"
+  fi
+  printf '  };\n'
+}
+
+# THE SHIFT PROBE — the seam, honestly marked.
+#
+# The kernel hands us keycodes regardless of the loaded keymap, so pressing
+# the key right of left Shift and the key left of right Shift reads the
+# PHYSICAL board: KEY_Z 44 → ANSI, KEY_102ND 86 → ISO; KEY_SLASH 53 →
+# ANSI/ISO, KEY_RO 89 → JIS. But that is the form FACTOR, not the language —
+# France, Germany, Spain, the UK, Italy and the Nordics are all ISO, so "it
+# is ISO" narrows forty layouts to thirty-nine. It sorts the list; it cannot
+# decide it (PLAN.md).
+#
+# Reading keycodes needs evdev or `kbd_mode -k`, and bash can do neither, so
+# this is the first piece of the installer that will need a helper binary.
+# Everything downstream of the value is built and works: set FORM and the
+# list re-sorts. When the helper lands it sets FORM and nothing else changes.
+FORM=''
+
+# ── THE ORDER THE LAYOUT LIST OPENS IN ────────────────────────────────────
+#
+# The same rule as the language list, and for the same reason (Max,
+# 2026-09-05: "if the user select chinese, chinese should be the top one,
+# second one if there is any dialect on the top language, and then the
+# normal ones"):
+#
+#   1  the layout the chosen language implies       — the likely answer
+#   2  its other variants                           — the likely correction
+#   3  us · es · pt · fr · de                       — the widest few
+#   …  every other layout
+#
+# Step 2's variants are step 1's dialects: a Spaniard's correction is
+# Español — Dvorak, an American's is US-International or Colemak. Putting
+# them directly under the row they correct makes the correction a keypress
+# instead of a search, which is exactly what the dialect rule does for
+# languages.
+#
+# FORM would refine this — the shift probe knows whether the board is ANSI,
+# ISO or JIS — but it is not measured yet, so it is not used to sort. When
+# the helper lands, this is where it comes back in.
+kb_order() {                     # $1 = the row the language implies
+  local seed=$1 i c
+  local -A used=()
+  local out=()
+  _kbpush() { [ -n "${used[$1]-}" ] && return 0; used[$1]=1; out+=("$1"); }
+
+  _kbpush "$seed"
+  # Its variants: same xkb layout, different variant.
+  for (( i = 0; i < NKB; i++ )); do
+    [ "${KB_XKB[$i]}" = "${KB_XKB[$seed]}" ] && _kbpush "$i"
+  done
+  for c in us es pt fr de; do _kbpush "$(kb_index "$c")"; done
+  for (( i = 0; i < NKB; i++ )); do _kbpush "$i"; done
+  printf '%s\n' "${out[@]}"
+}
+
+# THE APPLY SEAM. On the medium this runs `loadkeys` before the echo box, or
+# the box tests the layout the user is trying to replace and the whole step
+# is theatre. In the mockup the terminal's own keymap is whatever the dev
+# box has, so this is a no-op that says so.
+# APPLYING IS NOT OPTIONAL, and it used to be. This sat behind --loadkeys
+# and silently did nothing without it, which made the echo box theatre: the
+# user pressed ñ, saw ñ, and was reading the keymap the medium booted with
+# rather than the one being proposed. Now it TRIES BY DEFAULT and records
+# whether it succeeded, so the screen can tell the truth either way.
+#
+# It also has to hold for the rest of the install, not just this screen.
+# PLAN.md puts keyboard before disk because a passphrase typed under the
+# wrong keymap locks the owner out with no rescue — that only works if the
+# keymap the user just confirmed is the one still loaded when they type it.
+KB_APPLIED=no
+kb_apply() {
+  # The CONSOLE column, not the XKB one. The echo box runs on a TTY, so it
+  # must test the keymap the TTY will get — feeding it an XKB name was the
+  # bug that let the box "prove" a layout the machine was never going to
+  # have (`gb` is not a keymap; `uk` is).
+  kb_derive "$1"
+  KB_APPLIED=no
+  [ "$LOADKEYS" = no ] && return 0
+  command -v loadkeys >/dev/null 2>&1 || return 0
+  [ "$(id -u)" = 0 ] || return 0
+  loadkeys "$KB_CONSOLE" >/dev/null 2>&1 && KB_APPLIED=yes
+  return 0
+}
+
+# The census runs in the background from boot (audit.nix). This line reports
+# it and must be TRUE IN BOTH CASES — on a fast machine the audit finishes
+# before the user has typed anything, on the Acer it takes 21 s. So it
+# reports state, never asks anyone to wait.
+CENSUS_SECONDS=20
+census_line() {
+  local st
+  if [ -r /var/log/golem-audit/status ]; then
+    read -r st < /var/log/golem-audit/status
+    case $st in ok|done) t read_ok ;; *) t reading ;; esac
+  elif (( SECONDS >= CENSUS_SECONDS )); then t read_ok
+  else t reading
+  fi
+}
+
+
+# A LIST, LIKE EVERY OTHER STEP. No proposed layout, no confirmation, no
+# echo box — one shape everywhere: type at the top, the likely answers under
+# it, ENTER takes one.
+#
+# THE NAME IS THE WHOLE ANSWER. Picking "Español (Latinoamérica)" gives
+# Golem the xkb layout, its variant, the model, the console keymap and the
+# font — every setting an installed machine needs. There was a test here
+# that asked you to press ñ ¿ ç and compare them with your keycaps; it
+# configured nothing and only checked that the name was picked right, and
+# people know what keyboard they own. See system/hardware/keyboards.nix.
+step_keyboard() {
+  local seed i cc byplace
+  # THE TIMEZONE OUTRANKS THE LANGUAGE HERE, and it should: the language
+  # says what you speak, the zone says where you are, and a keyboard is a
+  # physical object in a place. Spanish is `es` in Madrid and `latam` in
+  # Buenos Aires; English is `us` in Chicago and `gb` in London. Only the
+  # zone can tell those apart, so it is asked first and the language is
+  # the fallback for a country we have no entry for.
+  cc=$(tz_country "$TZ_ZONE")
+  byplace=$(kb_for_country "$cc")
+  seed=$(kb_index "${byplace:-${KEYMAP[$LANG_ROW]}}")
+  screen; stack
+  hide_cursor
+
+  mapfile -t KB_VIEW < <(kb_order "$seed")
+  PICK_NAME=(); PICK_HAY=(); PICK_NOUN=$(t l_keyboard); PICK_TITLE=$(t t_keyboard)
+  for i in "${KB_VIEW[@]}"; do
+    PICK_NAME+=("${KB_NAME[$i]}")
+    PICK_HAY+=("${KB_HAY[$i]}")
+  done
+  # Re-entering after Esc opens on the layout already chosen; first time
+  # through, on the one the language and timezone imply.
+  SEED=0
+  if [ -n "$KB_CHOSEN" ]; then
+    for i in "${!KB_VIEW[@]}"; do
+      [ "${KB_ID[${KB_VIEW[$i]}]}" = "$KB_CHOSEN" ] && { SEED=$i; break; }
+    done
+  fi
+  QUERY=''
+
+  # ESC leaves the step; the run loop takes it back to the timezone.
+  pick || return 1
+
+  PICK_TITLE_HOT=no
+  show_cursor
+  KB_ROW=${KB_VIEW[$PICKED]}
+  KB_CHOSEN=${KB_ID[$KB_ROW]}
+  kb_apply "$KB_ROW"
+  settle "$(t l_keyboard)" "${KB_NAME[$KB_ROW]}" "$(kb_aside "$KB_ROW")"
+}
+
+# ══ STEP 4 — DISK ════════════════════════════════════════════════════════
+#
+# THE SAME WORKFLOW AGAIN — propose, show the evidence, ENTER or ↓ — but
+# this is the first step whose answer DESTROYS something, and that changes
+# two things about it.
+#
+# WHAT THE EVIDENCE IS. For the keyboard it was what your keys produce; for
+# the timezone, a clock. Here it is WHAT IS ON THE DISK RIGHT NOW — the
+# partitions and their labels. A stranger does not recognise a disk by
+# "/dev/sda"; they recognise it by "oh, that's the one with Windows on it".
+# Showing the contents is the only version of "is this the right disk" they
+# can actually answer, and it is also the only way they will notice that
+# the highlighted disk is the one they meant to keep.
+#
+# THE WARNING LIVES HERE AND NOWHERE ELSE (PLAN.md): "Install does NOT warn
+# about erasing. The disk step owns that warning." Saying it twice makes the
+# real one cheap; saying it early frightens somebody who has not chosen a
+# disk yet. So the footer of this screen carries it, in the accent rather
+# than the dim ramp, because it is the one line on any screen so far that
+# describes something irreversible.
+#
+# NOTHING IS ERASED BY THIS STEP. It records a target. The erase happens at
+# step 6, where the summary is confirmed — one screen for confirm, progress
+# and done, so the progress IS the confirmation being answered line by line.
+#
+# THE MEDIUM IS NOT IN THE LIST. The stick you booted from is a disk like
+# any other to lsblk, and offering it is offering to eat the installer
+# mid-install. Anything holding the live root is filtered out.
+DISK_DEV=() DISK_MODEL=() DISK_SIZE=() DISK_NOW=() DISK_RM=()
+
+# --fake-disks: a canned set, so this screen can be looked at on a machine
+# whose only disk is the one it booted from. On the dev box the real load
+# below correctly finds NOTHING — which is the filter working, and also
+# means the screen is otherwise unreviewable until a lab machine is in hand.
+disk_fake() {
+  DISK_DEV=(/dev/sda /dev/sdb /dev/nvme0n1)
+  DISK_MODEL=("WDC WD10JPVX-22JC3T0" "SanDisk Ultra" "Samsung SSD 970 EVO")
+  DISK_SIZE=("932G" "29G" "477G")
+  DISK_NOW=("3 partitions · Windows · Data" "1 partition, unlabelled" "empty")
+  DISK_RM=(0 1 0)
+}
+
+disk_load() {
+  DISK_DEV=(); DISK_MODEL=(); DISK_SIZE=(); DISK_NOW=(); DISK_RM=()
+  [ "$FAKE_DISKS" = yes ] && { disk_fake; return 0; }
+  command -v lsblk >/dev/null 2>&1 || return 0
+
+  # What the live system is running from — never a target.
+  local boot='' src
+  src=$(findmnt -no SOURCE / 2>/dev/null || true)
+  [ -n "$src" ] && boot=$(lsblk -no PKNAME "$src" 2>/dev/null | head -1 || true)
+
+  # --pairs, NOT plain columns. lsblk's list output simply OMITS an empty
+  # column, and virtio disks have no MODEL and no TRAN — so `read` shifted
+  # every later field left, TYPE landed in the wrong variable, and every
+  # disk in every VM was silently filtered out. The surface said "No disk
+  # found to install on" to a machine with a 40 GB disk attached; only
+  # booting the real medium caught it. KEY="VALUE" pairs cannot collapse.
+  # (Third find of this exact bug class in two days: keyboard-check's tab
+  # columns, the t()-string lines, now this. Delimited-column parsing in
+  # bash is guilty until proven framed.)
+  local pairs name size model tran rm type
+  while IFS= read -r pairs; do
+    name=''; size=''; model=''; tran=''; rm=''; type=''
+    eval "$(printf '%s' "$pairs" | sed -E 's/([A-Z]+)=/\L\1=/g')"
+    [ "$type" = disk ] || continue
+    [ "$name" = "$boot" ] && continue
+    # loop/zram/ram are not disks anyone installs to
+    case $name in loop*|zram*|ram*|sr*) continue ;; esac
+
+    DISK_DEV+=("/dev/$name")
+    # No model string on some USB bridges and most VM disks — the device
+    # name is the honest fallback, and it is what lsblk itself shows.
+    DISK_MODEL+=("${model:-$name}"); DISK_SIZE+=("$size")
+    DISK_RM+=("$rm")
+
+    # What is on it now, as a human would name it: the filesystems that
+    # carry a label, else just how many partitions there are.
+    local parts labels
+    parts=$(lsblk -no NAME "/dev/$name" 2>/dev/null | tail -n +2 | wc -l)
+    labels=$(lsblk -no LABEL "/dev/$name" 2>/dev/null | grep -v '^$' | paste -sd' · ' - || true)
+    if [ -n "$labels" ]; then
+      DISK_NOW+=("$parts partitions · $labels")
+    elif [ "$parts" -gt 0 ]; then
+      DISK_NOW+=("$parts partitions, unlabelled")
+    else
+      DISK_NOW+=("empty")
+    fi
+  done < <(lsblk -dP -o NAME,SIZE,MODEL,TRAN,RM,TYPE 2>/dev/null)
+}
+
+
+
+# Internal disks before removable ones. A USB stick is almost never the
+# thing somebody means to install onto, and the one they booted from is
+# already filtered out — but a second stick in the other port is not, and
+# it should not be sitting at the top of a list whose warning says
+# everything on it will be erased.
+DISK_VIEW=()
+disk_order() {
+  local i
+  DISK_VIEW=()
+  for i in "${!DISK_DEV[@]}"; do [ "${DISK_RM[$i]}" = 0 ] && DISK_VIEW+=("$i"); done
+  for i in "${!DISK_DEV[@]}"; do [ "${DISK_RM[$i]}" != 0 ] && DISK_VIEW+=("$i"); done
+}
+
+# ONE SHAPE, AND THIS STEP OBEYS IT TOO. It proposed and asked for a
+# confirmation like the old keyboard and timezone steps did; it is a list
+# now, ordered by importance — internal disks before removable ones,
+# largest first — because that is the order of how likely a disk is to be
+# the one somebody means to install on.
+#
+# THE WARNING SITS ABOVE THE LIST, not inside it. It is about the STEP, not
+# about any one row, and putting it in the picker would have meant a
+# different picker for one screen. It is the only line in the installer
+# printed in the accent, because it is the only one describing something
+# that cannot be undone.
+step_disk() {
+  disk_load
+  screen; stack
+  if (( ${#DISK_DEV[@]} == 0 )); then
+    # A machine with no usable target fails HERE, before anyone has typed a
+    # name or a password — which is the whole reason disk comes before you.
+    printf '%s%s%s%s\n\n' "$IND" "$C_ACCENT" "$(t disk_none)" "$NORM"
+    DISK_TARGET=''
+    return 1
+  fi
+  disk_order
+  local i n
+
+  # THE LAST ROW IS A DOOR, not a disk. Everything unusual about installing
+  # — encryption, one partition, dual boot — lives behind it, so the
+  # ordinary path stays exactly one keypress and nothing else has to be
+  # read to reach it.
+  while :; do
+    screen; stack
+    hide_cursor
+    PICK_NAME=(); PICK_HAY=(); PICK_NOUN=$(t l_disk)
+    PICK_TITLE="$(t t_disk) — $(t disk_warn)"; PICK_TITLE_HOT=yes
+    # NO /dev PATH IN THE LIST. It is a fact about the kernel, not about the
+    # disk somebody is looking at — nobody recognises their drive as sda.
+    # The model and the size are what is printed on the object itself, and
+    # they are what the answer file and golem-install's own plan still carry
+    # the path for. Two columns, so the sizes line up and the eye can
+    # compare them: model left, size right-aligned under each other.
+    local mw=0 sw=0 w
+    for i in "${DISK_VIEW[@]}"; do
+      w=$(dwidth "${DISK_MODEL[$i]}"); (( w > mw )) && mw=$w
+      w=$(dwidth "${DISK_SIZE[$i]}");  (( w > sw )) && sw=$w
+    done
+    for i in "${DISK_VIEW[@]}"; do
+      PICK_NAME+=("$(pad_to "${DISK_MODEL[$i]}" "$mw")   $(printf '%*s' "$sw" "${DISK_SIZE[$i]}")")
+      # The path stays searchable even though it is not shown: somebody who
+      # knows they want sdb can still type it.
+      PICK_HAY+=(" ${DISK_DEV[$i],,} ${DISK_MODEL[$i],,} ${DISK_SIZE[$i],,} ${DISK_NOW[$i],,}")
+    done
+    n=${#DISK_VIEW[@]}
+    PICK_NAME+=("$(t adv_row)")
+    PICK_HAY+=(" advanced avanzado avance erweitert avanzate luks encrypt cifrar dual partition")
+    # Re-entering after Esc opens on the disk already chosen.
+    SEED=0
+    for i in "${!DISK_VIEW[@]}"; do
+      [ "${DISK_DEV[${DISK_VIEW[$i]}]}" = "$DISK_TARGET" ] && { SEED=$i; break; }
+    done
+    QUERY=''
+
+    # ESC leaves the step; the run loop takes it back to the keyboard.
+    pick || return 1
+    PICK_TITLE_HOT=no
+    if (( PICKED == n )); then step_advanced; continue; fi
+    DISK_ROW=${DISK_VIEW[$PICKED]}
+    break
+  done
+
+  show_cursor
+  DISK_TARGET=${DISK_DEV[$DISK_ROW]}
+  # Capitalise the red tail's first letter here — "(Will be erased)" — the
+  # same descriptive-value rule as the census.
+  local e; e=$(t erased)
+  settle "$(t l_disk)" "${DISK_MODEL[$DISK_ROW]}  ${DISK_SIZE[$DISK_ROW]}" "" "" "(${e^})"
+  # Only worth a row of its own once it is on: "encryption off" on every
+  # install would be a line about a non-event.
+  [ "$LUKS" = yes ] && settle "$(t l_luks)" "$(t luks_on)"
+  return 0
+}
+
+# ══ STEP 5 — ENCRYPTION ══════════════════════════════════════════════════
+#
+# Straight after the disk, because it is a question ABOUT that disk and
+# because saying yes changes how the disk gets partitioned — the answer has
+# to be in hand before anything is written.
+#
+# WHY THE KEYBOARD IS THREE STEPS EARLIER, and this is the payoff PLAN.md
+# ordered the whole installer around: a passphrase typed under the wrong
+# keymap locks the owner out of their own disk with NO RESCUE. Not a wrong
+# password on an account, which single-user mode can fix — a container that
+# cannot be opened by anyone, ever. The layout is settled and loaded by the
+# time this screen appears, which is the only reason it is safe to ask.
+#
+# THE PASSPHRASE IS SHOWN IN THE CLEAR for the same reason the account
+# password is, only more so: this is the one secret in the install with no
+# recovery path, so being able to READ what you typed matters more here
+# than hiding it from a room you are alone in.
+#
+# THE DEFAULT IS NO, and that is now a DECISION rather than a placeholder
+# (Max, 2026-09-05). The default install is: no encryption, ext4, a swap
+# partition sized for hibernation, whole disk erased. Encryption is
+# something a person goes looking for behind Advanced, not something every
+# stranger is asked about — and this list opens on "No" to match.
+LUKS=no
+LUKS_KEYFILE=''
+
+valid_lpass() {
+  [ ${#FIELD_VALUE} -ge 8 ] && return 0
+  FIELD_ERR=$(t e_lpass); return 1
+}
+
+# ── the advanced menu, reached from the last row of the disk list ────────
+#
+# WHY IT IS BEHIND A DOOR (Max, 2026-09-05: "so the user can just select the
+# drive, but if he wants something else he can go to advanced"). Encryption,
+# installing onto one partition, and dual-booting are all real needs and all
+# rare. Putting them in the main flow would make every stranger read three
+# questions to answer none of them; putting them one row below the disks
+# costs the people who want them a single keypress and costs everyone else
+# nothing.
+#
+# IT IS A DETOUR, NOT A STEP. Turning encryption on here does not choose a
+# disk, so it comes straight back to the disk list — the thing this step
+# exists to settle is still unsettled until a disk is taken.
+#
+# UNFINISHED ENTRIES SAY SO. census-mock's rule, and it holds: "a button
+# that quietly does nothing costs more trust than one that says so." The
+# two that are not built are listed, selectable, and answer honestly.
+ADV_MSG=''
+step_advanced() {
+  while :; do
+    screen; stack
+    hide_cursor
+    local luks_row="$(t adv_luks)"
+    [ "$LUKS" = yes ] && luks_row="$luks_row — $(t luks_on)"
+    # Order per Max, 2026-09-05. Not by how finished they are — dual boot
+    # and partition installs are the two that are not built — but by how
+    # a person thinks about the disk: what else is on it, then which part
+    # of it, then what to do to it.
+    PICK_NAME=("$(t adv_dual)" "$(t adv_part)" "$luks_row" "$(t adv_back)")
+    # "Dual-Boot" is BORROWED, not translated, in every language here —
+    # Spanish, Portuguese and French speakers say dual-boot, and nobody
+    # says "arranque dual" outside a dictionary. The literal translations
+    # stay as SEARCH terms so somebody who reaches for one still lands on
+    # the row; they are just not what the row is called.
+    PICK_HAY=(" $(t adv_dual) dual boot arranque dual amorcage double amorçage arranque duplo doppio avvio"
+              " $(t adv_part) partition particion partizione partição"
+              " $(t adv_luks) luks encrypt encryption cifrar cifrado chiffrer verschl"
+              " $(t adv_back) back volver retour zuruck indietro voltar")
+    PICK_NOUN=$(t t_adv)
+    PICK_TITLE=$(t t_adv)
+    [ -n "$ADV_MSG" ] && PICK_TITLE="$PICK_TITLE — $ADV_MSG"
+    ADV_MSG=''
+    SEED=0; QUERY=''
+    pick || return 0             # backing out is the same as Back
+    case $PICKED in
+      0|1) ADV_MSG=$(t adv_soon) ;;   # dual boot, partition — not built
+      2)   step_luks ;;
+      3)   return 0 ;;
+    esac
+  done
+}
+
+step_luks() {
+  screen; stack
+  hide_cursor
+
+  PICK_NAME=("$(t luks_yes)" "$(t luks_no)")
+  PICK_HAY=(" yes si sí oui ja sim encrypt cifrar chiffrer verschl cifra"
+            " no non nein não")
+  PICK_NOUN=$(t l_luks); PICK_TITLE=$(t t_luks)
+  SEED=1                         # No — see the note above
+  QUERY=''
+  pick || return 1
+  [ "$PICKED" = 0 ] && LUKS=yes || LUKS=no
+
+  if [ "$LUKS" = yes ]; then
+    screen; stack
+    ask_field "$(t t_lpass)" "$(t p_lpass)" "" valid_lpass
+    # THE PASSPHRASE CANNOT BE HASHED — cryptsetup needs the real thing to
+    # format the container — so it cannot ride in the answers file either.
+    # It goes to a 0600 file in TMPDIR, which on the medium is a tmpfs and
+    # therefore RAM: it is never written to any disk, and golem-install
+    # shreds it the moment the container exists.
+    LUKS_KEYFILE=$(mktemp "${TMPDIR:-/tmp}/golem-luks.XXXXXX")
+    chmod 600 "$LUKS_KEYFILE"
+    printf '%s' "$FIELD_VALUE" > "$LUKS_KEYFILE"
+    FIELD_VALUE=''
+  fi
+
+  show_cursor
+  # No stack row from here. This is a detour off the disk step, and the
+  # stack records SETTLED STEPS — the disk step adds the encryption line
+  # itself once a disk has actually been taken. Settling here put
+  # "encryption on" above a disk that had not been chosen yet.
+}
+
+# ══ STEP 6 — YOU ═════════════════════════════════════════════════════════
+#
+# The first step that is not a list, because there is nothing to choose
+# from — you are the only source of these three answers. It keeps the shape
+# anyway: a title saying what is being asked, one line to type on, the guide
+# under it, and a footer.
+#
+# THE FOOTER IS NOT DECORATION HERE. Every other step's footer reported the
+# census; on this one it says where the answer goes, and it says something
+# DIFFERENT per field because the truth is different per field. Two of the
+# three never leave the machine; the hostname is broadcast to every network
+# it joins. Saying "we care about your privacy" three times would be
+# theatre. Saying which of the three is visible is useful.
+#
+# THE PASSWORD IS SHOWN IN THE CLEAR, and PLAN.md ranked that as the
+# CHEAPEST defence against the keymap lockout, ahead of the echo box that no
+# longer exists: masking defeats shoulder-surfing, which is not the threat
+# when one person is alone at their own machine during a one-time setup, and
+# it hides the exact typo that locks them out of their own disk. Being able
+# to read it is also why it is not asked for twice.
+FIELD_VALUE=''
+FIELD_SECRET=no
+FIELD_ERR=''
+# A ghost suggestion: shown dimmed while the field is empty, and taken on
+# ENTER if nothing was typed. Distinct from the INITIAL value (ask_field
+# arg 3), which is real text the user edits. The hostname step used to
+# pass its "Golem" default AS the initial value, so a printable keystroke
+# appended to it — typing "acer-lab" produced "Golemacer-lab" on the Acer
+# (2026-09-06). A placeholder is not a value.
+FIELD_SUGGEST=''
+FBLOCK=7                         # title · blank · input · blank · guide · blank · footer
+
+paint_field() {
+  printf '\r%s[2K%s%s%s%s\n' "$esc" "$IND" "$C_ASK" "$FIELD_TITLE" "$NORM"
+  printf '\r%s[2K\n' "$esc"
+  # Masked when the field is a secret. What that costs is the ability to
+  # READ a typo, which is why the password is asked twice — the defence
+  # against a mistyped password moved from "you can see it" to "you typed
+  # it twice", and one of the two has to be there.
+  local shown=$FIELD_VALUE vcolor=$C_VALUE
+  if [ "$FIELD_SECRET" = yes ]; then
+    shown=$(printf '%*s' "${#FIELD_VALUE}" '' | tr ' ' '*')
+  elif [ -z "$FIELD_VALUE" ] && [ -n "$FIELD_SUGGEST" ]; then
+    # Nothing typed yet: the suggestion stands in, dimmed so it reads as a
+    # placeholder rather than text already entered. The first keystroke
+    # fills the (empty) FIELD_VALUE and this branch stops firing.
+    shown=$FIELD_SUGGEST; vcolor=$C_DIM
+  fi
+  printf '\r%s[2K%s%s%s%s %s%s%s%s\n' "$esc" "$IND" "$C_ACCENT" "$CARET" "$NORM" \
+    "$vcolor" "$shown" "$NORM" \
+    "$( [ "$TTY" = yes ] && printf '%s[7m %s[0m' "$esc" "$esc" )"
+  printf '\r%s[2K\n' "$esc"
+  # The error replaces the guide rather than joining it: a line that says
+  # what to press is useless while the thing you typed cannot be accepted.
+  if [ -n "$FIELD_ERR" ]; then
+    printf '\r%s[2K%s%s%s%s\n' "$esc" "$IND" "$C_RED" "$FIELD_ERR" "$NORM"
+  else
+    printf '\r%s[2K%s%s%s  ·  %s%s\n' "$esc" "$IND" "$C_DIM" \
+      "$(t f_keys)" "$(t key_back)" "$NORM"
+  fi
+  printf '\r%s[2K\n' "$esc"
+  printf '\r%s[2K%s%s%s%s\n' "$esc" "$IND" "$C_DIM" "$FIELD_FOOT" "$NORM"
+  printf '%s[%dA' "$esc" "$FBLOCK"
+}
+
+FIELD_TITLE='' FIELD_FOOT=''
+# FIELD_ERR_INIT lets a caller open a field already showing a red error —
+# the password mismatch does this, so the field re-opens with "the passwords
+# didn't match" in red rather than the same message greyed into the footer.
+# It clears on the first keypress, as any field error does.
+FIELD_ERR_INIT=''
+ask_field() {                    # $1 title  $2 footer  $3 initial  $4 validator  $5 suggest
+  FIELD_TITLE=$1; FIELD_FOOT=$2; FIELD_VALUE=$3; FIELD_SUGGEST=${5:-}
+  FIELD_ERR=$FIELD_ERR_INIT; FIELD_ERR_INIT=''
+  local i rc=0
+  while :; do
+    paint_field
+    read_key || continue
+    case $KEY in
+      # ENTER on an untouched field takes the ghost suggestion: what the
+      # user saw dimmed IS the value they are accepting, so it validates as
+      # that rather than as empty. Typing replaced the ghost, so this only
+      # fires when they meant the default.
+      ENTER)  [ -z "$FIELD_VALUE" ] && [ -n "$FIELD_SUGGEST" ] && FIELD_VALUE=$FIELD_SUGGEST
+              "$4" && break; ;;
+      BACK)   FIELD_VALUE=${FIELD_VALUE%?}; FIELD_ERR='' ;;
+      # ESC leaves the field rather than clearing it — BACKSPACE already
+      # clears, and one key cannot mean both without the smaller mistake
+      # (a typo) and the larger one (wrong step) sharing a keystroke.
+      ESC)    rc=1; break ;;
+      UP|DOWN|SIDE|OTHER) ;;
+      *)      FIELD_VALUE="$FIELD_VALUE$KEY"; FIELD_ERR='' ;;
+    esac
+  done
+  for (( i = 0; i < FBLOCK; i++ )); do printf '%s[2K\n' "$esc"; done
+  printf '%s[%dA' "$esc" "$FBLOCK"
+  return $rc
+}
+
+# Linux account names: lowercase, start with a letter, 32 max. Enforced
+# here rather than at install time because a rejection three screens later
+# is a rejection nobody can act on.
+valid_name() {
+  [[ $FIELD_VALUE =~ ^[a-z][a-z0-9_-]{0,31}$ ]] && return 0
+  FIELD_ERR=$(t e_name); return 1
+}
+valid_pass() {
+  [ -n "$FIELD_VALUE" ] && return 0
+  FIELD_ERR=$(t e_pass); return 1
+}
+# RFC 1123: letters, digits and dashes, no dash at either end.
+valid_host() {
+  [[ $FIELD_VALUE =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$ ]] && return 0
+  FIELD_ERR=$(t e_host); return 1
+}
+
+OWNER='' HOSTNAME_V='' PASS_HASH=''
+
+# THE PLAINTEXT NEVER LEAVES THIS FUNCTION. mkpasswd reads it on stdin
+# rather than argv, because an argument is visible in `ps` to every user on
+# the machine for as long as the process lives — a detail nobody would ever
+# notice was wrong, on the one screen where being wrong about it matters.
+hash_password() {
+  local pw=$1
+  if command -v mkpasswd >/dev/null 2>&1; then
+    PASS_HASH=$(printf '%s' "$pw" | mkpasswd -m yescrypt -s 2>/dev/null) || PASS_HASH=''
+  fi
+  # No mkpasswd (the mockup on a bare box): record that a password was set
+  # without recording the password. golem-install hashes it on the medium,
+  # where mkpasswd is a runtime input.
+  [ -n "$PASS_HASH" ] || PASS_HASH='!unhashed'
+}
+
+# Device, then user, then the password twice (Max, 2026-09-05). The machine
+# is named before the person because the two are easy to confuse when they
+# arrive the other way round — "your name" followed by "name this device"
+# reads as one question asked twice.
+# FOUR FIELDS, AND ESC WALKS BACK THROUGH THEM ONE AT A TIME before it
+# leaves the step. Going straight out to the disk list because somebody
+# mistyped the last character of a password would be a worse answer than
+# no back button at all.
+#
+# Each field re-opens carrying what was typed before, so "I misspelled my
+# name" is Esc, fix the letter, ENTER — not Esc and type it all again. The
+# passwords are the exception: they come back empty, because a masked field
+# pre-filled with asterisks cannot be read or trusted.
+step_you() {
+  local f=0 ptitle foot pass1=''
+  foot=$(t p_pass)
+  while :; do
+    case $f in
+      0) screen; stack
+         # "Golem" is the GHOST (arg 5), not the initial value (arg 3):
+         # first time in, HOSTNAME_V is empty so "Golem" shows dimmed and
+         # ENTER takes it; on re-open after ESC, HOSTNAME_V holds what the
+         # user typed and is edited normally, no ghost. This is what stops
+         # a typed name appending to the default ("Golemacer-lab").
+         if ask_field "$(t t_host)" "$(t p_host)" "$HOSTNAME_V" valid_host Golem
+           then HOSTNAME_V=$FIELD_VALUE; f=1
+           else return 1                      # out of the step, to the disk
+         fi ;;
+      1) screen; stack
+         if ask_field "$(t t_name)" "$(t p_name)" "$OWNER" valid_name
+           then OWNER=$FIELD_VALUE; f=2
+           else f=0
+         fi ;;
+      # THE PASSWORD SCREEN IS ADDRESSED TO A PERSON, not to a field: once
+      # the account has a name the question is "ana's password", which is
+      # also the only cue that the thing being set belongs to the account
+      # just created rather than to the disk or the installer.
+      2) screen; stack
+         ptitle=$(t t_pass); ptitle=${ptitle/'%s'/$OWNER}
+         FIELD_SECRET=yes
+         if ask_field "$ptitle" "$foot" "" valid_pass
+           then pass1=$FIELD_VALUE; f=3
+           else FIELD_SECRET=no; f=1
+         fi ;;
+      3) screen; stack
+         FIELD_SECRET=yes
+         if ask_field "$(t t_cpass)" "$(t p_pass)" "" valid_pass; then
+           if [ "$FIELD_VALUE" = "$pass1" ]; then FIELD_SECRET=no; break; fi
+           # A mismatch sends you back to the FIRST field, not just this
+           # one. Retyping only the confirmation cannot help if it was the
+           # first that was mistyped, and there is no way to tell which.
+           # The message goes on the password screen because that is where
+           # it explains something; by the time you reach here again it is
+           # no longer news.
+           FIELD_ERR_INIT=$(t e_cpass); f=2
+         else f=2
+         fi ;;
+    esac
+  done
+  FIELD_SECRET=no
+
+  hash_password "$pass1"
+  pass1=''; FIELD_VALUE=''       # neither copy outlives this function
+
+  show_cursor
+  settle "$(t l_host)" "$HOSTNAME_V"
+  settle "$(t l_name)" "$OWNER"
+}
+
+# ══ STEP 7 — CONFIRM · PROGRESS · DONE, ONE SCREEN ═══════════════════════
+#
+# PLAN.md wrote this screen's law before there was a screen: "the summary
+# stays put and fills in as each part lands, so the progress IS the
+# confirmation being answered line by line." The stack has been the summary
+# all along — six items the person answered. Pressing ENTER after the
+# password REVEALS THE REST OF IT: everything Golem decided on its own
+# (Max, 2026-09-06: "all the things we are gonna install reveal as more
+# items"). The census rows land in the same dot-item shape as the answers,
+# because they are the same kind of thing — decisions, just not yours.
+#
+# The reveal reads /var/log/golem-audit/decision.json — the ordered list
+# decide.nix returns, written by the boot-time audit that has been running
+# since before the first question. The renderer stays deliberately dumb:
+# label = k, value = v, in the file's order. --fake-census supplies canned
+# rows so this screen exists on a dev box too.
+#
+# THEN ONE QUESTION, then the bar. The bar is fed by ##golem N/M markers
+# golem-install prints at real phase boundaries — measured progress, not
+# animation. 6/6 is printed only after nixos-install succeeds, and it is
+# the ONLY thing that triggers the reboot: a bar that ends because the
+# script ended would restart a machine that has no system on it.
+FAKE_CENSUS=no
+FAKE_INSTALL=no
+
+# The reveal has TWO halves that answer the two questions a burned Linux
+# user actually asks. The config half — "what did Golem set up" — comes from
+# decide.nix (or canned, faked). The hardware half — "did it even SEE my
+# wi-fi" — is read live off the machine, because that is the one a summary
+# from a file cannot fake convincingly. A GPU name pulled from lspci on the
+# same silicon the session is running is proof, not a promise.
+census_reveal() {
+  local k v
+  if [ "$FAKE_CENSUS" = yes ]; then
+    # Curated to the decisions worth showing next to the hardware — the
+    # ones the hardware block does not already imply (no `driver`, no
+    # `bluetooth on`: the GPU and Bluetooth rows below say those).
+    while IFS='|' read -r k v; do answered "$k" "${v^}"; done <<'EOF'
+zram|150% of RAM, zstd
+swap|6 GiB, for hibernation
+thermald|on
+lid|suspend-then-hibernate
+scheduler|bfq on rotating disks
+EOF
+  elif [ -r /var/log/golem-audit/decision.json ] && command -v jq >/dev/null 2>&1; then
+    # ${v^} capitalises the first letter of the DECISION values — these are
+    # descriptive ("suspend-then-hibernate" → "Suspend-then-hibernate"), not
+    # identifiers, so lifting the first letter is safe. A value that leads
+    # with a number ("6 GiB…") or is already a proper noun is unchanged.
+    while IFS=$'\t' read -r k v; do answered "$k" "${v^}"; done < <(
+      jq -r '.[] | .rows[] | select(.k=="zram" or .k=="swap" or .k=="thermald"
+             or .k=="lid" or .k=="scheduler") | [.k, .v] | @tsv' \
+             /var/log/golem-audit/decision.json 2>/dev/null)
+  fi
+  # A blank between "what Golem set up" and "what it found" — the two halves
+  # answer different questions and the gap says so.
+  printf '\n'
+  hardware_reveal
+  return 0
+}
+
+# ── the hardware, named, with the driver that runs it ─────────────────────
+#
+# Real off the machine: lspci -k names the GPU / Wi-Fi / audio controllers
+# and the kernel module bound to each; lsusb finds the Bluetooth radio and
+# the fingerprint reader; /proc/bus/input/devices finds the touchpad and a
+# touchscreen if there is one. Each row is "<what it is> · <what runs it>",
+# and a device that is not there gets no row — that is the "if available"
+# rule, and it is why the list is exactly as long as the hardware is real.
+#
+# Under --fake-disks the whole block is a canned laptop, so the LAYOUT can
+# be seen on a dev box that has no touchpad — but the driver COUNT below is
+# still read live (see driver_count), so the number never lies even in the
+# demo.
+# A hardware row: the DEVICE in the value colour, its DRIVER dim after a dim
+# "·". Reads name-first, driver-as-footnote — you see what you have, then
+# the proof it is handled, and the proof stays quiet.
+hw_row() {                       # $1 label, $2 "name · driver" (driver opt.)
+  [ -n "$2" ] || return 0
+  local nm=${2%% · *} drv=''
+  [ "$2" != "$nm" ] && drv=${2#* · }
+  printf '%s%s%s%s  %s%s%s' "$IND" "$C_TICK" "$TICK" "$NORM" \
+    "$C_LABEL" "$(pad_to "${1^}" "$LABELW")" "$NORM"
+  printf '%s%s%s' "$C_VALUE" "$nm" "$NORM"
+  [ -n "$drv" ] && printf ' %s· %s%s' "$C_DIM" "$drv" "$NORM"
+  printf '\n'
+}
+
+hardware_reveal() {
+  if [ "$FAKE_CENSUS" = yes ]; then
+    hw_row GPU         "Intel Iris Xe · i915"
+    hw_row Wi-Fi       "Intel AX211 · iwlwifi"
+    hw_row audio       "Realtek ALC287 · snd_hda_intel"
+    hw_row Bluetooth   "Intel AX211 · btintel"
+    hw_row fingerprint "Goodix · libfprint"
+    hw_row touchpad    "ELAN · i2c-hid"
+    return 0
+  fi
+
+  # lspci -k, one paragraph per device: the "Class:" line names it, a later
+  # "Kernel driver in use:" names the module. Pull the three classes that
+  # matter, each with its driver.
+  local pci; pci=$(lspci -k 2>/dev/null || true)
+  hw_row GPU       "$(hw_pci "$pci" 'VGA|3D|Display')"
+  hw_row Wi-Fi     "$(hw_pci "$pci" 'Network controller')"
+  hw_row audio     "$(hw_pci "$pci" 'Audio device|Multimedia audio')"
+  hw_row Bluetooth "$(hw_bt)"
+  hw_row fingerprint "$(hw_input_fp)"
+  hw_row touchpad    "$(hw_input 'ouchpad|rackpad')"
+  hw_row touchscreen "$(hw_input 'ouchscreen|ouch *[Ss]creen')"
+}
+
+# One device's "name · driver" from an lspci -k dump, FIRST match of $2.
+#
+# `lspci -k` puts NO blank line between devices — each device is a header
+# line (bus id + class + name) followed by indented Subsystem/Kernel lines,
+# then straight into the next header. The old parser looked for a blank
+# line to end a device and otherwise fell to END, so it only ever kept the
+# LAST device in the dump: on real hardware that meant Wi-Fi showed and the
+# GPU/audio (earlier in the list) vanished (round 1, Acer). It also stripped
+# the name with `^[^:]+: `, which the bus id's own colon (00:02.0) defeats —
+# so the survivor rendered as "03:00.0 Network controller: …".
+#
+# This captures the first device whose header matches, taking everything
+# after the FIRST ": " (colon-space — the bus id's colons have no space, so
+# they are skipped) as the name, and the module from "Kernel driver in
+# use:". The next header — or EOF — ends it. `exit` runs END, so END owns
+# the single print; printing in the header rule too would double it.
+hw_pci() {
+  printf '%s' "$1" | awk -v want="$2" '
+    /^[0-9a-f]+:[0-9a-f]+/ {
+      if (matched) exit
+      if ($0 ~ want) {
+        matched=1; line=$0; sub(/ \(rev [0-9a-f]+\)$/,"",line)
+        i=index(line,": "); out=substr(line,i+2)
+      }
+      next
+    }
+    matched && /Kernel driver in use:/ { out = out " \xc2\xb7 " $NF }
+    END { if (matched) print out }'
+}
+
+hw_usb() {  # lsusb line for $1, trimmed to the vendor-product description
+  lsusb 2>/dev/null | grep -m1 -i "$1" | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //' || true
+}
+
+# The Bluetooth radio, matched the way the CENSUS matches it: the sysfs
+# bluetooth class (hci*), not `lsusb | grep Bluetooth`. Combo cards never
+# say the word — the Acer's QCA9377 radio is a USB device lsusb labels only
+# "Foxconn / Hon Hai", so the old grep found nothing while the census
+# (sysfs ∨ rfkill ∨ USB class e0) correctly reported it present. The hci
+# class is the census's own first leg. Name from the USB device's strings
+# with an honest fallback; driver from the module bound to it (btusb).
+hw_bt() {
+  local hci real usbdev drv name
+  for hci in /sys/class/bluetooth/hci*; do
+    [ -e "$hci/device" ] || continue
+    drv=$(basename "$(readlink -f "$hci/device/driver" 2>/dev/null)" 2>/dev/null)
+    real=$(readlink -f "$hci/device" 2>/dev/null)
+    usbdev=$(dirname "$real" 2>/dev/null)
+    name=$(cat "$usbdev/product" 2>/dev/null)
+    [ -n "$name" ] || name=$(cat "$usbdev/manufacturer" 2>/dev/null)
+    [ -n "$name" ] || name="Bluetooth adapter"
+    printf '%s%s' "$name" "${drv:+ · $drv}"
+    return 0
+  done
+  return 0
+}
+
+hw_input() {  # a /proc input device whose Name matches $1
+  awk -F'"' -v want="$1" '/^N: Name=/ && $2 ~ want { print $2; exit }' \
+    /proc/bus/input/devices 2>/dev/null || true
+}
+
+# A fingerprint reader is a USB device by vendor id (the probe's own list).
+hw_input_fp() {
+  lsusb 2>/dev/null | grep -m1 -iE '138a:|06cb:|27c6:' \
+    | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //' || true
+}
+
+# ── the count, ALWAYS real ────────────────────────────────────────────────
+#
+# devices with a bound kernel driver, over all PCI+USB devices. Read live
+# even under --fake-disks: the demo shows a canned hardware LIST but a true
+# NUMBER, because a percentage nobody can check is the one thing on this
+# screen that would poison the trust it exists to build. On a fully
+# supported machine it reads "N of N (100%)"; on one with an oddball it
+# reads less, and names nothing it cannot back up.
+# THE DRIVER PROBE RUNS WHILE THE QUESTIONS ARE ANSWERED (Max, 2026-09-06).
+# Reading every device and matching a driver is real work; done at the
+# confirm screen it would either freeze for a beat or, worse, feel instant
+# and therefore fake. So it is kicked off at the START of the installer and
+# lands in a file — by the time anyone has typed a hostname and a password
+# it is long finished, and the reveal reads it with no wait. The census does
+# exactly this behind the keyboard step; this is the same trick for drivers.
+DRV_FILE=''
+PROBE_PID=''
+probe_compute() {                # the honest count — devices with a driver
+  local total have
+  if command -v lspci >/dev/null 2>&1; then
+    total=$(lspci 2>/dev/null | wc -l)
+    have=$(lspci -k 2>/dev/null | grep -c 'Kernel driver in use:')
+  fi
+  if [ -d /sys/bus/usb/devices ]; then
+    local u ut=0 uh=0
+    for u in /sys/bus/usb/devices/*/; do
+      case ${u##*/devices/} in *:*) continue ;; esac   # skip interfaces
+      [ -r "$u/idVendor" ] || continue
+      ut=$(( ut + 1 )); [ -e "$u/driver" ] && uh=$(( uh + 1 ))
+    done
+    total=$(( ${total:-0} + ut )); have=$(( ${have:-0} + uh ))
+  fi
+  [ "${total:-0}" -gt 0 ] || { t drv_none; return; }
+  t drv_line | sed -e "s/%h/$have/" -e "s/%t/$total/" -e "s/%p/$(( have * 100 / total ))/"
+}
+probe_start() {
+  DRV_FILE=$(mktemp "${TMPDIR:-/tmp}/golem-drv.XXXXXX")
+  {
+    # In the demo the real lspci is instant, so simulate the seconds the
+    # probe genuinely takes on a 2015 laptop — the point is that the work
+    # overlaps the questions, and a demo with zero delay would not show it.
+    [ "$FAKE_CENSUS" = yes ] && sleep "${GOLEM_PROBE_SLEEP:-3}"
+    probe_compute > "$DRV_FILE"
+  } &
+  PROBE_PID=$!
+}
+# Read the result; if the probe is somehow still running (a very fast
+# tester), block on it — the caller shows a word first so it is not a freeze.
+driver_count() {
+  [ -n "$PROBE_PID" ] && wait "$PROBE_PID" 2>/dev/null
+  cat "$DRV_FILE" 2>/dev/null || probe_compute
+}
+
+# One line, redrawn in place:
+#   ████████████░░░░░░░░░░░░░░░░  43%   Copying Golem
+#
+# Solid blocks in the accent for done, light shade in dim for the rest —
+# the same accent/dim ramp the whole surface uses, so the bar is not a
+# different visual language, just the one accent doing progress. A percent
+# reads more finished than "3/6" and does not make anyone do the fraction in
+# their head, and the phase name says what the wait is FOR — a bar with no
+# caption is a spinner, and a spinner is the thing this installer refuses to
+# make anyone watch. tr is byte-based and would mangle the multibyte blocks,
+# so the runs are built with a space-fill and a parameter-expansion swap.
+paint_bar() {                    # $1 cur  $2 max  $3 label
+  local w=28 fill f e pct
+  fill=$(( $1 * w / $2 )); pct=$(( $1 * 100 / $2 ))
+  f=$(printf "%${fill}s" ''); f=${f// /█}
+  e=$(printf "%$(( w - fill ))s" ''); e=${e// /░}
+  printf '\r%s[2K%s%s%s%s%s%s   %s%3d%%%s   %s%s%s' "$esc" "$IND" \
+    "$C_ACCENT" "$f" "$C_DIM" "$e" "$NORM" \
+    "$C_VALUE" "$pct" "$NORM" \
+    "$C_DIM" "${3^}" "$NORM"
+  return 0
+}
+
+# ── the developer install, behind a hidden Ctrl+D ────────────────────────
+#
+# Ctrl+D on the confirm screen opens THIS, and nothing advertises it — a
+# stranger never finds it, and someone who knows to reach for it is by
+# definition not a stranger. What lies past the disclaimer is not built yet;
+# this is only the gate, and the gate's whole job is to make sure a curious
+# tourist who pressed TAB by accident lands somewhere that says "not for
+# you" and offers one calm way back.
+#
+# The one option is a real selectable row (accent, highlighted) so the way
+# out is obvious and deliberate; ENTER on it and ESC both return. When the
+# actual developer flow is built, this list grows a second row above "Take
+# me away" and the return-value tells step_go which was chosen.
+dev_gate() {
+  screen
+  hide_cursor
+  printf '\n%s%s%s%s\n\n' "$IND" "$C_RED" "$(t dev_title)" "$NORM"
+  # Word-wrap the body at 64 columns so it breaks at spaces, not mid-word —
+  # the terminal's own wrap splits "installation" across a line boundary,
+  # which on a warning is the one place it must not look careless.
+  printf '%s\n' "$(t dev_body)" | fold -s -w 64 | while IFS= read -r l; do
+    printf '%s%s%s%s\n' "$IND" "$C_ASK" "$l" "$NORM"
+  done
+  printf '\n'
+  printf '%s  %s%s %s%s%s\n' "$IND" "$C_ACCENT" "$CARET" \
+    "$C_ACCENT_TX" "$(t dev_away)" "$NORM"
+  printf '\n%s%s%s%s\n' "$IND" "$C_DIM" "$(t dev_keys)" "$NORM"
+  while :; do
+    read_key || continue
+    case $KEY in
+      ENTER|ESC) break ;;   # only one option, so both leave
+      *) ;;
+    esac
+  done
+  return 0
+}
+
+step_go() {
+  # The answers are written BEFORE the question is asked: ENTER hands them
+  # straight to golem-install, and someone who backs out of the confirm
+  # still leaves a complete answers file behind — which is exactly what the
+  # lab's SSH-driven half wants to find.
+  [ -n "$OUT" ] && write_answers "$OUT"
+  [ -n "$WRITE" ] && write_module "$WRITE"
+  screen; stack
+  hide_cursor
+  # If the probe (started at launch) is still running, the person out-typed
+  # it — say what is happening rather than freeze, then wait. On any real
+  # boot this never fires; it is the fast-tester safety net.
+  if [ -n "$PROBE_PID" ] && kill -0 "$PROBE_PID" 2>/dev/null; then
+    printf '\n%s%s%s%s' "$IND" "$C_DIM" "$(t drv_ing)" "$NORM"
+    wait "$PROBE_PID" 2>/dev/null
+    screen; stack
+  fi
+  while :; do
+    screen; stack
+    census_reveal
+    # The verdict, in the accent — the one coloured line on the screen, so
+    # the eye lands on it last before the question. Blank above and below so
+    # it reads as its own beat, not another row of the list.
+    printf '\n%s%s%s%s\n' "$IND" "$C_YELLOW" "$(driver_count)" "$NORM"
+    printf '\n%s%s%s%s\n\n' "$IND" "$C_ASK" "$(t t_go)" "$NORM"
+    printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t go_keys)" "$NORM"
+    read_key || continue
+    case $KEY in
+      ENTER) break ;;
+      ESC)   return 1 ;;
+      # Ctrl+D is the hidden door — never on the guide line, never
+      # announced. It opens the developer disclaimer; whatever that returns,
+      # we come back to redraw the confirm and wait again.
+      DEV)   dev_gate ;;
+      *)     ;;
+    esac
+  done
+
+  # The question is answered; the guide line becomes the bar.
+  printf '%s[1A\r%s[2K' "$esc" "$esc"
+  local cmd line rest frac cur max label rc=0 done=no prepared=no
+  local rehearsed=no findings="" addr=""
+  if [ "$FAKE_INSTALL" = yes ]; then
+    cmd='for p in "1/6 formatting the drive" "2/6 filesystems" "3/6 copying Golem" "4/6 reading the device" "5/6 installing" "6/6 done"; do echo "##golem $p"; sleep 0.6; done'
+  else
+    # The surface runs as root on the medium (helpLine says sudo); the
+    # answers file already carries every choice, including the LUKS
+    # keyfile path when encryption was chosen in Advanced.
+    #
+    # THE MODE LADDER, one env line per rung (Max, 2026-09-06: test the
+    # whole process on the five laptops before wiring the real install):
+    #
+    #   GOLEM_REHEARSE=1  --rehearse: the same installer with the
+    #                     destructive verbs recorded instead of run. It
+    #                     leaves a bundle in /var/log/golem-rehearsal for
+    #                     the dev box to audit over SSH, and it WINS over
+    #                     GOLEM_LAB — while the lab rehearses, pressing
+    #                     ENTER on a lab machine must not be able to reach
+    #                     a disk.
+    #   GOLEM_LAB=1       --prepare-only: the real install's first half.
+    #                     A full run would build the 18.8 GiB closure into
+    #                     the medium's tmpfs store — RAM — which on the
+    #                     4 GB class this lab exists for is not slow, it
+    #                     is fatal; the closure is delivered from the dev
+    #                     box between the halves.
+    #   neither           the full install; deleting the env lines from
+    #                     setup.nix is the day the bar runs to 6/6 on a
+    #                     stranger's machine.
+    cmd="golem-install --answers ${OUT:-/tmp/golem-answers} --disk $DISK_TARGET --yes"
+    if [ "${GOLEM_REHEARSE:-0}" = 1 ]; then
+      cmd="$cmd --rehearse"
+    elif [ "${GOLEM_LAB:-0}" = 1 ]; then
+      cmd="$cmd --prepare-only"
+    fi
+  fi
+  while IFS= read -r line; do
+    case $line in
+      '##golem prepared')
+        prepared=yes ;;
+      # BEFORE the generic arm, load-bearing: "rehearsed 0" parsed as a
+      # fraction would read cur==max — the reboot trigger — and restart a
+      # machine with no system on it.
+      '##golem rehearsed'*)
+        rehearsed=yes
+        findings=${line#\#\#golem rehearsed}; findings=${findings# }
+        # Fill the bar to 100%. Rehearse emits up to 5/6 (83%) then this
+        # marker — never 6/6, which is the reboot trigger — so without this
+        # the bar sits at 83% and reads as stuck (round 1, Acer). The label
+        # says "rehearsed" so a full bar is not mistaken for an install.
+        paint_bar "${max:-1}" "${max:-1}" rehearsed ;;
+      '##golem '*)
+        # marker: "##golem <cur>/<max> <label…>" — the label is everything
+        # after the fraction, so it can be a phrase ("copying Golem").
+        rest=${line#\#\#golem }
+        frac=${rest%% *}; cur=${frac%%/*}; max=${frac##*/}; label=${rest#* }
+        # Done is cur==max, not a magic word — the final phase reads
+        # "Installed" in the owner's language, and this is the reboot trigger.
+        [ "$cur" = "$max" ] && { label=$(t go_done); done=yes; }
+        paint_bar "$cur" "$max" "$label" ;;
+      *) ;;                      # the log itself stays off the screen —
+                                 # it is on the terminal scrollback if a
+                                 # phase dies and someone needs it
+    esac
+  done < <(eval "$cmd" 2>&1) || rc=1
+
+  printf '\n'
+  if [ "$done" = yes ]; then
+    # No "restarting…" line: the full bar IS the signal, and the reboot is
+    # immediate at 100% (Max, 2026-09-06). The machine goes down mid-breath
+    # — the last thing on screen is a complete bar reading "Installed", and
+    # the next thing is Golem. A message announcing a reboot that happens
+    # the same instant is a message nobody finishes reading. The fake path
+    # has nothing to reboot, so it just leaves the full bar up.
+    show_cursor
+    [ "$FAKE_INSTALL" = yes ] || systemctl reboot
+    return 0
+  fi
+  if [ "$prepared" = yes ]; then
+    # The lab seam, not a failure: the disk is ready and waiting for the
+    # closure from the dev box. Lab-facing, so untranslated like handoff.
+    printf '%s%sprepared — deliver the closure, then:%s\n' "$IND" "$C_DIM" "$NORM"
+    printf '%s%ssudo golem-install --disk %s --owner %s --skip-prepare --system PATH%s\n' \
+      "$IND" "$C_VALUE" "$DISK_TARGET" "${OWNER:-max}" "$NORM"
+    show_cursor
+    return 0
+  fi
+  if [ "$rehearsed" = yes ]; then
+    # The rehearsal outcome: the whole flow ran, nothing touched the disk,
+    # and the machine is holding a bundle for the dev box to audit. Lab-
+    # facing like `prepared`, so untranslated. The IP is printed because
+    # the very next thing that happens is an SSH from across the room.
+    if [ "${findings:-0}" = 0 ]; then
+      printf '%s%srehearsed — nothing was written, no findings%s\n' "$IND" "$C_DIM" "$NORM"
+    else
+      printf '%s%srehearsed — nothing was written, %s finding(s)%s\n' "$IND" "$C_ACCENT" "$findings" "$NORM"
+    fi
+    printf '%s%sreport: /var/log/golem-rehearsal  (checks.txt first)%s\n' \
+      "$IND" "$C_VALUE" "$NORM"
+    if command -v ip >/dev/null 2>&1; then
+      addr=$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1)
+      [ -n "$addr" ] && printf '%s%sfrom the dev box: ssh root@%s%s\n' \
+        "$IND" "$C_DIM" "$addr" "$NORM"
+    fi
+    show_cursor
+    return 0
+  fi
+  printf '%s%s%s%s\n' "$IND" "$C_ACCENT" "$(t go_fail)" "$NORM"
+  show_cursor
+  return 0
+}
+
+# ══ THE ANSWERS, ON THEIR WAY OUT ════════════════════════════════════════
+#
+# Until now the derivation could only be LOOKED at (--dump settings). This
+# is how it leaves: a shell fragment the install flow sources, so the
+# surface and `golem-install` share one vocabulary instead of a shell
+# pipeline that reassembles flags by hand.
+#
+#   ./install-cli --out /tmp/answers
+#   . /tmp/answers
+#   golem-install --disk /dev/sda \
+#     --locale     "$GOLEM_LOCALE" \
+#     --kb-layout  "$GOLEM_KB_LAYOUT"  --kb-variant "$GOLEM_KB_VARIANT" \
+#     --kb-options "$GOLEM_KB_OPTIONS" --kb-model   "$GOLEM_KB_MODEL" \
+#     --kb-console "$GOLEM_KB_CONSOLE" --kb-font    "$GOLEM_KB_FONT"
+#
+# %q, not bare interpolation: `grp:alt_shift_toggle` is harmless but the
+# comma in "ru,us" and the lone "," variant are exactly the shapes that
+# turn into two words the first time somebody forgets a quote.
+# The keyboard, set up. Not described, not handed to somebody else to plumb
+# — written as the module the machine imports, the way you would have
+# written it by hand.
+write_module() {
+  local f=$1
+  kb_derive "$KB_ROW"
+  {
+    printf '# Written by the Golem installer.\n'
+    printf '{ ... }:\n{\n'
+    printf '  golem.locale.defaultLocale = "%s";\n' "${LOCALE[$LANG_ROW]}"
+    printf '  golem.locale.timeZone = "%s";\n\n' "$TZ_ZONE"
+    if [ -n "${OWNER:-}" ]; then
+      printf '  golem.owner = "%s";\n' "$OWNER"
+      printf '  networking.hostName = "%s";\n' "$HOSTNAME_V"
+      [ -n "${PASS_HASH:-}" ] && [ "$PASS_HASH" != '!unhashed' ] &&
+        printf '  users.users.%s.hashedPassword = "%s";\n' "$OWNER" "$PASS_HASH"
+      printf '\n'
+    fi
+    printf '  golem.keyboard = {\n'
+    printf '    layout = "%s";\n'        "$KB_LAYOUT"
+    printf '    variant = "%s";\n'       "$KB_VARIANT"
+    printf '    options = "%s";\n'       "$KB_OPTIONS"
+    printf '    model = "%s";\n'         "$KB_MODEL"
+    printf '    consoleKeyMap = "%s";\n' "$KB_CONSOLE"
+    [ -n "$KB_FONT" ] && printf '    consoleFont = "%s";\n' "$KB_FONT"
+    printf '  };\n}\n'
+  } > "$f"
+}
+
+write_answers() {
+  local f=$1
+  kb_derive "$KB_ROW"
+  {
+    printf '# written by install-cli — the installer surface answers\n'
+    printf 'GOLEM_LANG=%q\n'       "${CODE[$LANG_ROW]}"
+    printf 'GOLEM_LOCALE=%q\n'     "${LOCALE[$LANG_ROW]}"
+    printf 'GOLEM_TIMEZONE=%q\n'   "$TZ_ZONE"
+    printf 'GOLEM_DISK=%q\n'       "${DISK_TARGET:-}"
+    printf 'GOLEM_LUKS=%q\n'       "${LUKS:-no}"
+    # The PATH to the passphrase, never the passphrase. cryptsetup needs the
+    # real thing to format a container so it cannot be hashed like the
+    # account password — it lives in a 0600 file on tmpfs (RAM, never a
+    # disk) and golem-install shreds it as soon as the container exists.
+    printf 'GOLEM_LUKS_KEYFILE=%q\n' "${LUKS_KEYFILE:-}"
+    printf 'GOLEM_OWNER=%q\n'      "${OWNER:-}"
+    printf 'GOLEM_HOSTNAME=%q\n'   "${HOSTNAME_V:-}"
+    # The HASH, never the password. This file is written to a tmpfs on the
+    # medium and handed to golem-install; a plaintext password in it would
+    # outlive the screen that promised it would not be stored as text.
+    printf 'GOLEM_PASS_HASH=%q\n'  "${PASS_HASH:-}"
+    printf 'GOLEM_KB_ID=%q\n'      "${KB_ID[$KB_ROW]}"
+    printf 'GOLEM_KB_LAYOUT=%q\n'  "$KB_LAYOUT"
+    printf 'GOLEM_KB_VARIANT=%q\n' "$KB_VARIANT"
+    printf 'GOLEM_KB_OPTIONS=%q\n' "$KB_OPTIONS"
+    printf 'GOLEM_KB_MODEL=%q\n'   "$KB_MODEL"
+    printf 'GOLEM_KB_CONSOLE=%q\n' "$KB_CONSOLE"
+    printf 'GOLEM_KB_FONT=%q\n'    "$KB_FONT"
+    # Whether the keymap the user confirmed is actually loaded right now.
+    # The disk step needs to know: a passphrase typed under an unapplied
+    # keymap is the lockout PLAN.md orders these steps to prevent.
+    printf 'GOLEM_KB_APPLIED=%q\n' "$KB_APPLIED"
+  } > "$f"
+}
+
+# ══ WHERE THE MOCKUP STOPS ═══════════════════════════════════════════════
+#
+# Step 3 is EVALUATION — what Golem found and what it will build. It is the
+# census, which has been running since boot and by now is finished: the
+# ordered sections decide.nix already returns, printed as they come. When it
+# exists it will open with screen() like the other two and this goes away.
+#
+# Until then the run has to end somewhere, so it ends by naming the step it
+# would open and what the two answered steps settled. That is an EXIT REPORT
+# for whoever is driving the mockup, not a screen — no installer ever shows
+# it, which is why it is dim and sits under the fold rather than being drawn
+# like a step.
+handoff() {
+  screen; stack
+  printf '%s%s%s%s  %s%s%s\n\n' "$IND" "$C_DIM" "$(t next)" "$NORM" \
+    "$C_DIM" "$(t l_evaluation)" "$NORM"
+  # THE LAB JOIN. Until the evaluation+install screens exist, the surface's
+  # answers must not evaporate with the screen: when --out was given (the
+  # packaged golem-setup always gives it), say where the answers landed and
+  # print the exact command that consumes them. Untranslated on purpose —
+  # this is the seam where the built half of the flow hands over to the
+  # not-yet-built half, and it speaks to whoever is driving the lab, not to
+  # a stranger. It disappears when step 6 lands.
+  if [ -n "$OUT" ]; then
+    printf '%s%sanswers: %s%s\n' "$IND" "$C_DIM" "$OUT" "$NORM"
+    printf '%s%ssudo golem-install --answers %s --disk %s%s\n\n' \
+      "$IND" "$C_VALUE" "$OUT" "${DISK_TARGET:-<disk>}" "$NORM"
+  fi
+}
+
+# ══ RUN ══════════════════════════════════════════════════════════════════
+
+SECONDS_PER=5
+ASCII=no
+DUMP=''
+PRESET=''
+KB_PRESET=''
+LOADKEYS=try
+OUT=""
+DISK_TARGET=""
+FAKE_DISKS=no
+WRITE=""
+CHECK=no
+VERIFY_KBD='' VERIFY_XKB=''
+TTY=no
+KB_ROW=0
+# Gated on STDOUT only. Clearing the screen, hiding the cursor and drawing
+# the cursor block are all things done TO THE DISPLAY, so whether stdin
+# happens to be a pipe is none of their business — and gating on stdin too
+# meant the dump and key-driven runs could never exercise the clear.
+[ -t 1 ] && TTY=yes
+# fbcon cannot shape, so the console gets Latin names unless told otherwise
+[ "${TERM:-}" = linux ] && ASCII=yes
+
+while [ $# -gt 0 ]; do
+  case $1 in
+    --lang)     PRESET="${2:?}"; shift 2 ;;
+    --kb)       KB_PRESET="${2:?}"; shift 2 ;;
+    --tz)       TZ_ZONE="${2:?}"; shift 2 ;;
+    --form)     FORM="${2:?}"; shift 2 ;;
+    --seconds)  SECONDS_PER="${2:?}"; shift 2 ;;
+    --census)   CENSUS_SECONDS="${2:?}"; shift 2 ;;
+    --fake-disks) FAKE_DISKS=yes; shift ;;
+    --fake-census)  FAKE_CENSUS=yes; shift ;;
+    --fake-install) FAKE_INSTALL=yes; shift ;;
+    --no-loadkeys) LOADKEYS=no; shift ;;
+    --out)      OUT="${2:?}"; shift 2 ;;
+    --write)    WRITE="${2:?}"; shift 2 ;;
+    --ascii)    ASCII=yes; shift ;;
+    --endonym)  ASCII=no; shift ;;
+    --dump)     DUMP="${2:?}"; TTY=no; shift 2 ;;
+    --rot)      ROT="${2:?}"; shift 2 ;;
+    --query)    QUERY="${2-}"; shift 2 ;;
+    --check)    CHECK=yes; shift ;;
+    --table)    printf '%s\n' "$KEYBOARDS"; exit 0 ;;
+    --verify)   VERIFY_KBD="${2:?}"; VERIFY_XKB="${3:?}"; shift 3 ;;
+    -h|--help)  sed -n '2,40p' "$0"; exit 0 ;;
+    *)          echo "install-cli: unknown argument '$1'" >&2; exit 2 ;;
+  esac
+done
+
+# --fake-disks IS THE DEMO FLAG (Max, 2026-09-06: "we were designing it with
+# --fake-disks, I want to see the whole process, faked"). A machine with no
+# disk to install to also has no boot-audit census to reveal and no real
+# golem-install to drive the bar, so on a dev box it implies both fakes —
+# the whole flow, all the way to "restarting into Golem", off one flag.
+# Naming --fake-census or --fake-install explicitly still lets you mix; this
+# only fills the ones left at their default.
+if [ "$FAKE_DISKS" = yes ]; then
+  [ "$FAKE_CENSUS" = no ]  && FAKE_CENSUS=yes
+  [ "$FAKE_INSTALL" = no ] && FAKE_INSTALL=yes
+fi
+
+# Both settled once ASCII is known, so nothing on the hot path forks to work
+# out what a row is called.
+EN_ROW=$(index_of_code en)
+DISPLAY=()
+for (( i = 0; i < NROWS; i++ )); do DISPLAY+=("$(name_of "$i")"); done
+
+[ -n "$VERIFY_KBD" ] && { kb_verify "$VERIFY_KBD" "$VERIFY_XKB"; exit $?; }
+[ "$CHECK" = yes ] && { str_check && kb_check; exit $?; }
+
+LANG_ROW=$(index_of_code "${PRESET:-en}")
+take_language() {                # --lang: settle step 1 without asking
+  UI=${CODE[$LANG_ROW]}
+  settle "$(t l_language)" "${DISPLAY[$LANG_ROW]}" "${LOCALE[$LANG_ROW]}"
+}
+
+# A dump shows ONE step exactly as that step looks — stack included, since
+# the stack IS part of the screen. take_language settles step 1 so the later
+# dumps carry the item the real run would have put there.
+case "$DUMP" in
+  invite)
+    screen; paint_invite; printf '\n\n'; exit 0 ;;
+  filter)
+    screen
+    lang_view "$(index_of_code "${INVITE[$ROT]%%|*}")"
+    pick_seed; paint_pick; printf '%s[%dB\n' "$esc" "$BLOCK"; exit 0 ;;
+  keyboard|layouts)
+    take_language; screen; stack
+    # Same precedence as the live step: --kb wins, then the timezone's
+    # country, then the language.
+    kb_seed_id=${KB_PRESET:-$(kb_for_country "$(tz_country "$TZ_ZONE")")}
+    mapfile -t KB_VIEW < <(kb_order "$(kb_index "${kb_seed_id:-${KEYMAP[$LANG_ROW]}}")")
+    PICK_NAME=(); PICK_HAY=(); PICK_NOUN=$(t l_keyboard); PICK_TITLE=$(t t_keyboard)
+    for i in "${KB_VIEW[@]}"; do
+      PICK_NAME+=("${KB_NAME[$i]}"); PICK_HAY+=("${KB_HAY[$i]}")
+    done
+    SEED=0
+    pick_seed; paint_pick; printf '%s[%dB\n' "$esc" "$BLOCK"; exit 0 ;;
+  done)
+    take_language
+    KB_ROW=$(kb_index "${KB_PRESET:-${KEYMAP[$LANG_ROW]}}")
+    settle "$(t l_keyboard)" "${KB_NAME[$KB_ROW]}" "$(kb_aside "$KB_ROW")"
+    handoff; exit 0 ;;
+  settings)
+    KB_ROW=$(kb_index "${KB_PRESET:-${KEYMAP[$LANG_ROW]}}")
+    printf '# %s\n' "${KB_NAME[$KB_ROW]}"
+    kb_emit "$KB_ROW"; exit 0 ;;
+  '') ;;
+  *)  echo "install-cli: --dump wants invite | filter | keyboard | layouts | done | settings" >&2
+      exit 2 ;;
+esac
+
+trap 'show_cursor; printf "\n"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"' EXIT INT TERM
+
+# ── the step machine ─────────────────────────────────────────────────────
+#
+# A step returns 0 to go on and 1 to go BACK, and the loop below is the only
+# thing that knows which step follows which. Before running step i the stack
+# is truncated to the height it had when step i was first entered, so going
+# back does not just re-ask the question — it removes the answer, and the
+# stack stops claiming a thing that is about to be decided again.
+#
+# Step 0 cannot go back to anywhere, so a 1 from it simply re-runs it.
+STEPS=(step_language step_timezone step_keyboard step_disk step_you step_go)
+[ -n "$PRESET" ] && { take_language; STEPS=(step_timezone step_keyboard step_disk step_you step_go); }
+
+# The height BEFORE step 0 runs — not zero. With --lang, take_language has
+# already put the language on the stack, and starting the depths at 0 made
+# the loop truncate ITEMS to nothing on the very first iteration: the
+# language row vanished and every later screen was missing it. Nothing
+# failed; the stack was just quietly one line short.
+probe_start
+declare -a STEP_DEPTH=("${#ITEMS[@]}")
+si=0
+while (( si < ${#STEPS[@]} )); do
+  ITEMS=("${ITEMS[@]:0:${STEP_DEPTH[$si]}}")
+  if "${STEPS[$si]}"; then
+    si=$(( si + 1 ))
+    STEP_DEPTH[$si]=${#ITEMS[@]}
+  else
+    # step_disk returns 1 both for "go back" and for "this machine has no
+    # disk", and the second is fatal — it says so on screen and there is
+    # nothing behind it to fix.
+    [ "${STEPS[$si]}" = step_disk ] && [ -z "$DISK_TARGET" ] &&
+      (( ${#DISK_DEV[@]} == 0 )) && exit 1
+    (( si > 0 )) && si=$(( si - 1 ))
+  fi
+done
+# step_go is the last step and owns the ending — the reveal, the bar, the
+# reboot. There is nothing left to hand off to; the old `handoff` screen
+# (a stub that named the not-yet-built evaluation) is gone with it.
