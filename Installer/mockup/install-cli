@@ -3028,7 +3028,7 @@ hardware_reveal() {
     hw_row Ethernet    "Realtek RTL8111 · r8169"
     hw_row audio       "Realtek ALC287 · snd_hda_intel"
     hw_row Bluetooth   "Intel AX211 · btintel"
-    hw_row fingerprint "Goodix · libfprint"
+    hw_row fingerprint "Goodix Fingerprint Reader"
     hw_row touchpad    "ELAN · i2c-hid"
     return 0
   fi
@@ -3268,10 +3268,33 @@ hw_input() {  # a /proc input device whose Name matches $1 → "name · driver"
   if [ -n "${drv:-}" ]; then printf '%s · %s' "$name" "$drv"; else printf '%s' "$name"; fi
 }
 
-# A fingerprint reader is a USB device by vendor id (the probe's own list).
+# A fingerprint reader is a USB device by vendor id (the probe's own
+# list). Shown like every other row — "name · driver", NO verdict (Max,
+# round 3: "only show the name + the driver as the rest of the items").
+# Most readers are driven by libfprint in USERSPACE with no kernel driver
+# bound, so the driver half is usually absent and the row is name-only —
+# that is honest and consistent (the pre-R3-1 touchpad read the same way).
+# Walk sysfs for a bound kernel driver at the interface level (USB binds
+# there), skipping the generic usbfs/usbhid, same idea as R3-1's touchpad.
 hw_input_fp() {
-  lsusb 2>/dev/null | grep -m1 -iE '138a:|06cb:|27c6:' \
-    | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //' || true
+  local d vid name drv i
+  for d in /sys/bus/usb/devices/*; do
+    [ -r "$d/idVendor" ] || continue
+    vid=$(cat "$d/idVendor" 2>/dev/null)
+    case $vid in 138a|06cb|27c6) ;; *) continue ;; esac
+    name=$(cat "$d/product" 2>/dev/null)
+    [ -n "$name" ] || name=$(lsusb -d "$vid:$(cat "$d/idProduct" 2>/dev/null)" 2>/dev/null \
+      | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //')
+    [ -n "$name" ] || continue
+    drv=''
+    for i in "$d":*; do
+      [ -e "$i/driver" ] || continue
+      drv=$(basename "$(readlink "$i/driver")")
+      case $drv in usbfs|usbhid|'') drv='' ;; *) break ;; esac
+    done
+    [ -n "$drv" ] && printf '%s \xc2\xb7 %s' "$name" "$drv" || printf '%s' "$name"
+    return 0
+  done
 }
 
 # ── the count, ALWAYS real ────────────────────────────────────────────────

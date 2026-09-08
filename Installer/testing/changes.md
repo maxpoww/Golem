@@ -85,7 +85,20 @@ names as fallback — so the TrackPoint no longer shadows the pad.
   hw_input ordering).
 - **size:** small.
 
-### 29. Fingerprint reader missing from the reveal — and Max wants it shown "working" — [DECIDED direction (Max, round 3 HP) · round 4]
+### 29. Fingerprint reader on the reveal — [DECIDED (Max, round 4): plain name · driver row, NO verdict · APPLIED to source]
+**Max's final call (round 4):** drop the "working"/support verdict
+entirely — "only show the name + the driver as the rest of the items."
+That sidesteps the honesty gate: no claim, just the device and whatever
+kernel driver is bound, exactly like every other row.
+**Applied:** `hw_input_fp` now walks sysfs (vendor ids 138a/06cb/27c6),
+takes the name from `product`, and the bound kernel driver from the USB
+interface (skipping generic usbfs/usbhid). Most readers are libfprint-
+userspace with NO kernel driver → name-only (honest, like the pre-R3-1
+touchpad); a reader with a kernel driver shows "name · driver". Unit-
+tested both paths. FAKE row de-verbed to "Goodix Fingerprint Reader".
+Still needs a machine with an enumerating reader to see on metal (the
+HP's is BIOS-dark).
+Original direction kept below for the record:
 - **what (HP dm4, round 3):** the HP has a fingerprint reader; the
   reveal showed NO fingerprint row. **Investigated (RAM-swap reboot):
   the reader does NOT enumerate** — absent from lsusb, lsusb -t, PCI,
