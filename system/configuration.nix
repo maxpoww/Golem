@@ -284,7 +284,7 @@
     # priority made that a CONFLICTING DEFINITION — evaluation failed, so
     # every install that named its machine anything but "Golem" would have
     # died at nixos-install with a message about option priorities.
-    # Identical to the GECOS collision recorded in Installer/PLAN.md:
+    # Identical to the GECOS collision recorded in Installer/preinstall/PLAN.md:
     # a base value a per-machine file cannot override is not a default,
     # it is a decision.
     networking.hostName = lib.mkDefault "Golem";

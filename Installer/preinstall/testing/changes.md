@@ -91,7 +91,7 @@ still stripped, bus ids still lead. NOT on the round-4 stick.
 now holds the chip (`power/control=on`, never autosuspends) by default and
 only powers it off once the owner answers "off" through the new
 post-install ASK framework (`system/postinstall.nix` +
-`system/hardware/postinstall.nix` + `Installer/postinstall-questions.nix`
+`system/hardware/postinstall.nix` + `Installer/preinstall/postinstall-questions.nix`
 — full design and file map in postinstall/postinstall.md §7). Evaluated
 and unit-tested end to end on the dev box: the question fires on a
 synthetic failing-facts module and stays empty on the Lenovo's real
@@ -159,7 +159,7 @@ triggers #33.
 - **where:** `system/hardware/gpu-second.nix` (hold, not power-off) — DONE;
   the post-install prompt module + its apply path — DONE
   (`system/postinstall.nix`, `system/hardware/postinstall.nix`,
-  `Installer/postinstall-questions.nix`, `Installer/install.nix`); a
+  `Installer/preinstall/postinstall-questions.nix`, `Installer/preinstall/install.nix`); a
   "fails-on-resume vs dead" split in `hardware-detect.nix` — not done,
   not needed for #33 itself, left for if a second question ever wants it.
 - **size:** medium-large (the post-install ASK framework was the bulk) —
@@ -321,7 +321,7 @@ decision.json is ready; the decision.json branch now checks `-s` not
      / census_line for the keyboard step; the reveal reads decision.json
      directly and does not wait. Then distinguish "still running" (wait)
      from "failed" (the #22 audit_bad line, the ASUS case).
-- **where:** the audit unit (`Installer/audit.nix` console step),
+- **where:** the audit unit (`Installer/preinstall/audit.nix` console step),
   `mockup/install-cli` (reveal wait + the marker file).
 - **size:** medium. Frozen round-3 stick keeps the race.
 
@@ -717,7 +717,7 @@ build carries the /iso-based fix.
   has a by-id alias like real hardware — the frozen round-2 ISO works in
   the VM again. Flip the serial off once in round 3 to verify fix (a).
 - **where:** `install.nix` (the golem-install disk_byid line, ~494 in the
-  built script; + the trap), `Installer/run-vm.sh` (done).
+  built script; + the trap), `Installer/preinstall/run-vm.sh` (done).
 - **size:** (a) small; (b) small-medium, wants Max's nod on the shape.
 
 ### 18. English leaks in a translated run — [applied to source · round 3 — a, b, c, d AND e]
@@ -1132,7 +1132,7 @@ Original (round-1) framing below, kept for the record:
      medium's loaded set (harder to measure honestly from the medium).
   c. At minimum, stop the label promising "will be installed" about a
      present-tense medium measurement.
-- **where:** `Installer/iso.nix` (firmware on the medium) and/or
+- **where:** `Installer/preinstall/iso.nix` (firmware on the medium) and/or
   `mockup/install-cli` `probe_compute`/`drv_line`.
 - **size:** NEEDS-MAX — image-size vs honesty tradeoff.
 

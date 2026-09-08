@@ -8,7 +8,7 @@
 # keys the probe happened to emit), kept as a SEPARATE file because a
 # question's trigger is a fact condition whose ANSWER is deliberately not
 # decided here — that is the whole point of deferring it.
-# golem-postinstall-questions (Installer/postinstall-questions.nix) calls
+# golem-postinstall-questions (Installer/preinstall/postinstall-questions.nix) calls
 # this at install time with the probe's freshly written golem-hardware.nix;
 # golem-install drops the result into hosts/target/postinstall-questions.json
 # — the fourth dropped file, alongside golem-hardware.nix/

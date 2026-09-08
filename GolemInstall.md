@@ -70,7 +70,7 @@ The skeleton is standing; this spec grows it rather than inventing it.
 | `golem-hw-detect` probe (RAM, cores, GPU vendor by PCI id, intel-legacy; `-o` writes both per-machine files) | `system/hardware-detect.nix` | built, GPU-vendor-deep only |
 | Runtime sibling for the live ISO (per-boot libva i965/iHD pick, Broadcom wl quirk) | `system/hardware-runtime.nix` | built |
 | Fake-facts proof path | `hosts/vm.nix` (`gpu = "virtio"`) | built |
-| Installer medium: minimal console ISO, Start/Install menu (vendored `iso-image-golem.nix`), **Install boots with `golem.install` on the kernel cmdline** — the hook the flow rides | `Installer/` | built 2026-09-03 |
+| Installer medium: minimal console ISO, Start/Install menu (vendored `iso-image-golem.nix`), **Install boots with `golem.install` on the kernel cmdline** — the hook the flow rides | `Installer/preinstall/` | built 2026-09-03 |
 | Source on the medium for offline instantiation | `hosts/iso.nix:86` (`/etc/golem/src`) | built, with the honest caveat at `hosts/iso.nix:82` that source-on-medium ≠ offline eval |
 | Owner as an option (the installer's rename job) | `system/configuration.nix` (`golem.owner`), release-checklist §2.2 | built |
 | Hardened NVIDIA module: open kmod, modesetting, the suspend/hibernate `powerManagement` fix (kernel_gsp.c:1447 assert, fixed & metal-verified 2026-09-03), PRIME ids as the only per-host value | `system/hardware/gpu-nvidia.nix` — ported 2026-09-04, generation-gated (`nvidiaGen`: turing+ → open/stable, pre-turing → legacy_580, unknown → nouveau floor per §8) | built |
@@ -86,7 +86,7 @@ The skeleton is standing; this spec grows it rather than inventing it.
 Decision record (Max, 2026-09-03): installer surface = **Golem-native**
 (not calamares, not a CLI wizard); disk scope v1 = **whole-disk + LUKS
 toggle**; boot menu = Start/Install only, no timeout (shipped, see
-`Installer/iso.nix`).
+`Installer/preinstall/iso.nix`).
 
 Decision record (Max, 2026-09-05): the surface is a **CLI conversation**,
 not a TUI — one shape per step, a title saying what is being asked, a

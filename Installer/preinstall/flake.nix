@@ -1,9 +1,9 @@
 {
   # The installer medium, minimal cut: a console-only NixOS that boots to a
   # terminal and nothing else. This is the SECOND Golem ISO — the first
-  # (../hosts/iso.nix, `nix build ..#iso`) is the full live session; this one
-  # is the seed the guided installer will grow in (Max, 2026-09-03: "for now
-  # a terminal. simple, minimal").
+  # (../../hosts/iso.nix, `nix build ../..#iso`) is the full live session;
+  # this one is the seed the guided installer will grow in (Max,
+  # 2026-09-03: "for now a terminal. simple, minimal").
   #
   # It stays a SEPARATE medium (PLAN.md's separation rule) but is no longer
   # a separate island: the parent flake is an input, so the census, the
@@ -12,10 +12,11 @@
   description = "Golem installer ISO — minimal console cut";
 
   inputs = {
-    # The distro itself. A relative path input: MiniGolem lives in a
-    # subdirectory of the Golem repo and is built from there, so this
-    # resolves to the same git tree without hardcoding anyone's $HOME.
-    golem.url = "path:../";
+    # The distro itself. A relative path input: MiniGolem lives two levels
+    # down in the Golem repo (Installer/preinstall/) and is built from
+    # there, so this resolves to the same git tree without hardcoding
+    # anyone's $HOME.
+    golem.url = "path:../../";
 
     # Every input FOLLOWS the parent's lock. The old copy of the nixpkgs
     # rev in this file said "so the installer medium can never drift from
@@ -51,7 +52,7 @@
 
       # The pinning table the on-medium eval runs with. Names are the
       # input names AS THE PARENT FLAKE DECLARES THEM (the eval overrides
-      # ../flake.nix's inputs, not this file's), which is why the two
+      # ../../flake.nix's inputs, not this file's), which is why the two
       # waverunner sub-inputs use slash paths.
       inputOverrides = [
         { name = "nixpkgs"; path = nixpkgs; }
@@ -85,7 +86,7 @@
       # needs the DERIVATIONS, not a system profile — a systemd unit gets
       # an explicit PATH and cannot see /run/current-system/sw/bin.
       hw-detect = builtins.head
-        ((import ../system/hardware-detect.nix { inherit pkgs; })
+        ((import ../../system/hardware-detect.nix { inherit pkgs; })
           .environment.systemPackages);
       hw-evidence = builtins.head
         ((import ./evidence.nix { inherit pkgs; })

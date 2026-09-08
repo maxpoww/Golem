@@ -1705,13 +1705,13 @@ step_timezone() {
 # `lib.golem.keyboards.table` as a file, so the surface and CI read one
 # source and cannot drift. On the ISO the wrapper sets it; here you can too:
 #
-#   GOLEM_KEYBOARDS=<(nix eval --raw ../..#lib.golem.keyboards.table) ./install-cli
+#   GOLEM_KEYBOARDS=<(nix eval --raw ../../..#lib.golem.keyboards.table) ./install-cli
 #
 # The literal below is the DEV FALLBACK, for running this script straight
 # out of a checkout with no nix in the loop. It is rendered from the Nix
 # file, never hand-edited, and `--table` proves the two still agree:
 #
-#   diff <(./install-cli --table) <(nix eval --raw ../..#lib.golem.keyboards.table)
+#   diff <(./install-cli --table) <(nix eval --raw ../../..#lib.golem.keyboards.table)
 KEYBOARDS=$(cat <<'EOF'
 us|English (US)|english us american qwerty|us||us|latin|ansi
 us-intl|English (US) — international|international intl deadkeys dead keys accents|us|intl|us-acentos|latin|ansi

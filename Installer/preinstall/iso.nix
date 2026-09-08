@@ -35,7 +35,7 @@ in
     # The lab tools (PLAN.md): the census probe — shared with the full
     # system on purpose (same probe everywhere is reuse, not ISO-mixing) —
     # and the raw-evidence collector that feeds the fixture corpus.
-    ../system/hardware-detect.nix
+    ../../system/hardware-detect.nix
     ./evidence.nix
     # The machine audits itself at boot and leaves the verdict in
     # /var/log/golem-audit/ — this module also owns the getty helpLine,

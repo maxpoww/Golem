@@ -126,9 +126,9 @@ live desktop** — see the status line at the top.
   `decide.nix`. #33 is the one entry today; a second question is a second
   `lib.optional` block here and nothing else in this file.
 - **`flake.nix`** — exposes it as `lib.golem.postinstallQuestions`.
-- **`Installer/postinstall-questions.nix`** — `golem-postinstall-questions`,
+- **`Installer/preinstall/postinstall-questions.nix`** — `golem-postinstall-questions`,
   the on-medium binary (sibling of `golem-hw-decide`), always JSON.
-- **`Installer/install.nix`** — calls it right after `golem-hw-detect`
+- **`Installer/preinstall/install.nix`** — calls it right after `golem-hw-detect`
   and drops `hosts/target/postinstall-questions.json`, the FOURTH dropped
   file (§4's "fifth thing the install can leave behind" — the persisted
   format is exactly the question record shape from §3, as a JSON array).

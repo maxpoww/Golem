@@ -124,7 +124,7 @@ changes.md. Fixtures worth keeping → `../fixtures/<machine>/`.
   (14c/20t), 32 GB, UEFI, NVMe, Iris Xe + RTX 4050 hybrid, high-DPI.
   Joins at round 3. Rehearsal ONLY, driven at its own keyboard (testing
   it takes the dev box down); disk-untouched check mandatory every run.
-- **vm** — machine zero, not a laptop: qemu via `Installer/run-vm.sh`
+- **vm** — machine zero, not a laptop: qemu via `Installer/preinstall/run-vm.sh`
   (see [vm.md](vm.md)). Gates every new ISO before reflash; the one
   place a FULL install (disposable qcow2) is allowed every round.
 - **thinkpad** — ThinkPad E15 Gen 2: Ryzen 7 4700U (8c/8t, first AMD

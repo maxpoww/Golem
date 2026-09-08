@@ -1,6 +1,6 @@
 # VM — machine zero
 
-Not a laptop: qemu/KVM on the dev box, via `Installer/run-vm.sh`. Boots
+Not a laptop: qemu/KVM on the dev box, via `Installer/preinstall/run-vm.sh`. Boots
 every new ISO **first**, before any laptop time is spent on it. 4096 MB on
 purpose (the lab's tight-RAM class — testing at 8 GB would hide the memory
 pressure the low tier exists for), 4 vcpus, virtio disk/net/gpu.

@@ -1,5 +1,5 @@
 # The eval matrix — GolemInstall.md §8's first proof leg, and the replay
-# harness Installer/PLAN.md promised ("the laptops teach once; the repo
+# harness Installer/preinstall/PLAN.md promised ("the laptops teach once; the repo
 # remembers forever").
 #
 # Every gated fact permutation is evaluated as a FULL golem-target system
@@ -51,7 +51,7 @@ let
     }
     {
       name = "fixture-acer-e5-573"; # lab row 1, as detected on the metal
-      facts = ../../Installer/fixtures/acer-aspire-e5-573/facts.nix;
+      facts = ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix;
       expect = cfg: [
         (ex "Broadwell picks iHD" (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
         (ex "4GB tier: zram 150%" (cfg.zramSwap.memoryPercent == 150))
@@ -70,7 +70,7 @@ let
     }
     {
       name = "fixture-qemu-virtio"; # lab row 0
-      facts = ../../Installer/fixtures/qemu-virtio/facts.nix;
+      facts = ../../Installer/preinstall/fixtures/qemu-virtio/facts.nix;
       expect = cfg: [
         (ex "confident no-radio drops bluez" (!cfg.services.blueman.enable && !cfg.hardware.bluetooth.enable))
         (ex "unknown chassis: no laptop stack" (!cfg.services.power-profiles-daemon.enable))
