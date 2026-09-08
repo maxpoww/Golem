@@ -5,6 +5,13 @@ My working manual for running the five-laptop install lab. The RULES are in
 commands and the record format, so I don't re-derive them each session.
 When the two disagree, the constitution wins.
 
+**Driving from the phone (portable lab driver):** the same lab can be run
+from a Claude Code session on Max's Pixel — which is how the dev box
+itself gets tested (it can't drive its own test). One-time setup:
+[phone-lab-setup.md](phone-lab-setup.md); the phone-side playbook:
+[phone-lab-driver.md](phone-lab-driver.md). The repo remote is the sync
+channel between the two sessions — pull before driving, push when done.
+
 ## The discipline (do not break)
 
 - **One frozen ISO per round, across all five laptops.** No ISO change
