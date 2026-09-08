@@ -3237,8 +3237,16 @@ reveal_gpus() {
   [ "$g" != "$nm" ] && drv=${g#* · }
   short=$(gpu_short "$nm")
   hw_row GPU "$short${drv:+ · $drv} — $(t gpu_scr)"
+  # The reveal enumerates display controllers itself (live lspci), so it
+  # needs #26's same-slot rule too, independently of the census: an
+  # ancient GMA exposes 00:02.0 (VGA) AND 00:02.1 (a second display
+  # function of the SAME chip), and without this the Comodore showed a
+  # phantom "GPU 2" for its only GPU (round 4). Same PCI slot as the
+  # primary (function stripped) = same silicon → skip.
+  local pslot=${RB[$pi]%.*}
   for i in "${!RB[@]}"; do
     [ "$i" = "$pi" ] && continue
+    [ "${RB[$i]%.*}" = "$pslot" ] && continue
     n=$(( n + 1 ))
     g=${RG[$i]}; nm=${g%% · *}; drv=''
     [ "$g" != "$nm" ] && drv=${g#* · }

@@ -136,3 +136,27 @@ load on **1931 MB**.
 - **Verdict:** PASS with the round's most satisfying delta — the
   machine that couldn't survive its own rehearsal now finishes it in
   under a minute with an honest refusal. #26 queued.
+
+## Round 4 (rehearsal check) — 2026-09-08 — RAM refusal works · #26 census fixed · #26 reveal-half gap found & fixed
+
+- **ISO:** round-4 (`yz5nqhsv…`, pre-F1). BIOS, 1931 MB. Audit ok.
+- **#16 RAM refusal — clean, again:** all six screens walked, then
+  `FAIL ram: this machine has 1931 MB — installing Golem needs about
+  4 GB of RAM` + `note eval SKIPPED`, `findings: 1`, machine responsive
+  throughout (1384 MB free). The round's low-RAM guard holds.
+- **#26 census fixed:** `golem-hardware.nix` has NO gpu2 line — the GMA's
+  00:02.1 sibling of 00:02.0 is correctly excluded (round 3 had
+  `gpu2 = "intel"` + a phantom "working" verdict).
+- **#26 reveal-half GAP FOUND & FIXED:** the confirm screen STILL showed
+  `GPU 2 Intel Mobile 4 Series Chipset Graphics` — because reveal_gpus
+  enumerates display controllers live from lspci, independently of the
+  census fact, so the census fix didn't reach it. Added the same
+  same-slot exclusion to reveal_gpus (skip a non-primary display
+  controller sharing the primary's PCI slot). Source-only; ships in the
+  reburn. THIS run (old stick) still shows the phantom.
+- **Round-4 surface:** Scheduler `Bfq on hard disks, default on SSD/NVMe`,
+  audio correct (ICH9 at 00:1b.0), GlidePoint · psmouse, Ethernet row.
+- **Disk untouched:** ext4 "root" + swap (prior Linux) intact.
+- **Verdict:** PASS on substance (RAM refusal + census #26); the reveal
+  phantom-GPU2 was a real miss in the round-4 build, now fixed for the
+  reburn — the Comodore earns its keep every round.
