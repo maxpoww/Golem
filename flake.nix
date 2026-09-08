@@ -133,6 +133,16 @@
           inherit (self.lib.golem) swapForHibernationMB;
         };
 
+        # The post-install ASK surface (postinstall/postinstall.md): facts
+        # in, the list of questions THIS machine triggers out. golem-install
+        # calls this once, at install time, and drops the result into
+        # hosts/target/postinstall-questions.json — decide answers what
+        # Golem chose; this answers what Golem deliberately did NOT choose.
+        postinstallQuestions = import ./system/hardware/postinstall.nix {
+          lib = nixpkgs.lib;
+          inherit mkTarget;
+        };
+
         # The keyboard table (the installer's step 2, as data). One answer
         # in, every setting an installed machine needs out — and the same
         # table CI verifies against kbd + xkeyboard-config, so the surface

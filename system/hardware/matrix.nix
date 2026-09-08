@@ -149,6 +149,48 @@ let
       ];
     }
     {
+      name = "gpu2-failing-default-hold"; # changes.md #33: the ASUS shape, unanswered
+      facts.golem.hardware = {
+        gpu = "intel"; intelBusId = "PCI:0:2:0";
+        gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
+      };
+      expect = cfg: [
+        (ex "held, not powered off, until the owner answers"
+          (cfg.systemd.services ? golem-dgpu-hold && !(cfg.systemd.services ? golem-dgpu-off)))
+      ];
+    }
+    {
+      name = "gpu2-failing-answered-off"; # the owner answered the post-install question
+      facts = {
+        golem.hardware = {
+          gpu = "intel"; intelBusId = "PCI:0:2:0";
+          gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
+        };
+        golem.postinstall.answers."gpu2-failing-action" = "off";
+      };
+      expect = cfg: [
+        (ex "off wins once explicitly chosen"
+          (cfg.systemd.services ? golem-dgpu-off && !(cfg.systemd.services ? golem-dgpu-hold)))
+      ];
+    }
+    {
+      name = "gpu2-failing-unrecognized-answer"; # never a default pass to the destructive branch
+      facts = {
+        golem.hardware = {
+          gpu = "intel"; intelBusId = "PCI:0:2:0";
+          gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
+        };
+        # A stale id from an older question set, or hand-edited garbage —
+        # either way this must NOT read as "off" (that branch is a PCI
+        # remove; "hold" is the only safe interpretation of "not sure").
+        golem.postinstall.answers."gpu2-failing-action" = "garbage";
+      };
+      expect = cfg: [
+        (ex "unrecognized answer falls back to hold, never off"
+          (cfg.systemd.services ? golem-dgpu-hold && !(cfg.systemd.services ? golem-dgpu-off)))
+      ];
+    }
+    {
       name = "no-bluetooth";
       facts.golem.hardware = { hasBluetooth = false; };
       expect = cfg: [

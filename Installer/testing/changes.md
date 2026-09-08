@@ -86,7 +86,34 @@ still stripped, bus ids still lead. NOT on the round-4 stick.
 - **where:** `mockup/install-cli` hw_row / the lspci name parse.
 - **size:** small.
 
-### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [NEEDS-MAX · round 5]
+### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [APPLIED to source · postinstall/postinstall.md §7 · round-5 build · NOT yet live-verified]
+**Built (2026-09-08):** both implications below are done. `gpu-second.nix`
+now holds the chip (`power/control=on`, never autosuspends) by default and
+only powers it off once the owner answers "off" through the new
+post-install ASK framework (`system/postinstall.nix` +
+`system/hardware/postinstall.nix` + `Installer/postinstall-questions.nix`
+— full design and file map in postinstall/postinstall.md §7). Evaluated
+and unit-tested end to end on the dev box: the question fires on a
+synthetic failing-facts module and stays empty on the Lenovo's real
+(healthy) fixture, `mkTarget` produces `golem-dgpu-hold` by default,
+`golem-dgpu-off` once answered "off", and `golem-dgpu-hold` again for any
+unrecognized answer (never a default pass to the destructive branch); the
+apply script's jq validation drops an unknown question id or an unknown
+option id for a real question; both `golem-postinstall-ask` and
+`golem-postinstall-apply` build clean (writeShellApplication's shellcheck
+gate); the full `nixosConfigurations.golem` toplevel evaluates. **Caught
+in the same session:** an early draft picked the hold/off attrsets with a
+bare `if action == … then {A} else {B}` as `mkIf`'s content — that forces
+`action` (hence `golem.postinstall.answers`, this module's own place in
+the shared config fixpoint) just to discover the module's SHAPE, before
+`mkIf`'s laziness applies — real infinite recursion on every eval,
+caught by `nix eval` before touching a laptop. Fixed by declaring both
+services unconditionally and gating each at its own leaf instead
+(`systemd.services.NAME = lib.mkIf cond {…};`) — see gpu-second.nix's own
+comment. **NOT yet exercised on a live desktop** — no human has seen the
+`foot` prompt draw, and `golem-postinstall-apply` has never run a real
+`nixos-rebuild switch`; that is round 5's first laptop that actually
+triggers #33.
 - **what (ASUS, round 4; Max: "that is not possible, the 720m works"):**
   the health probe correctly reads the GF117M as `failing` — it throws
   PRIVRING faults on autosuspend→resume (proven: 3 faults at
@@ -129,10 +156,14 @@ still stripped, bus ids still lead. NOT on the round-4 stick.
      one-off.
   3. The reveal at install still says "didn't wake up" — accurate (it
      failed the wake test); it just no longer implies "gone."
-- **where:** `system/hardware/gpu-second.nix` (hold, not power-off),
-  a new post-install prompt module + its apply path, `hardware-detect.nix`
-  if a "fails-on-resume vs dead" split helps the wording.
-- **size:** medium-large (the post-install ASK framework is the bulk).
+- **where:** `system/hardware/gpu-second.nix` (hold, not power-off) — DONE;
+  the post-install prompt module + its apply path — DONE
+  (`system/postinstall.nix`, `system/hardware/postinstall.nix`,
+  `Installer/postinstall-questions.nix`, `Installer/install.nix`); a
+  "fails-on-resume vs dead" split in `hardware-detect.nix` — not done,
+  not needed for #33 itself, left for if a second question ever wants it.
+- **size:** medium-large (the post-install ASK framework was the bulk) —
+  built; what remains is verification on real hardware, not more code.
 
 ### 32. GPU verdict tail rendered undimmed in the failing case — [round-4 sweep finding · applied to source · round-5 build]
 - **what (HP, round 4):** the "tested, working · driving this screen"

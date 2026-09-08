@@ -96,6 +96,11 @@
         golemSrc = golem;
       };
 
+      hw-postinstall-questions = import ./postinstall-questions.nix {
+        inherit pkgs overrideArgs;
+        golemSrc = golem;
+      };
+
       install = import ./install.nix {
         inherit pkgs overrideArgs;
         golemSrc = golem;
@@ -114,7 +119,7 @@
         inherit system;
         # The medium carries the distro's source and everything the census
         # needs to evaluate it without a network (see iso.nix).
-        specialArgs = { inherit golem hw-decide hw-detect hw-evidence install setup offlineSeed; };
+        specialArgs = { inherit golem hw-decide hw-postinstall-questions hw-detect hw-evidence install setup offlineSeed; };
         modules = [
           "${nixpkgs}/nixos/modules/installer/cd-dvd/installation-cd-minimal.nix"
           ./iso.nix
@@ -128,7 +133,7 @@
         # The lab's fast path (PLAN.md): build a tool alone and `nix copy`
         # it to a live medium over SSH — the census iterates over the wire;
         # the stick is reflashed only for boot-level changes.
-        inherit hw-decide hw-detect hw-evidence offlineSeed;
+        inherit hw-decide hw-postinstall-questions hw-detect hw-evidence offlineSeed;
         golem-install = install;
         golem-setup = setup;
       };

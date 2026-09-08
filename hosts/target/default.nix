@@ -13,6 +13,11 @@
 #                               full name (users.users.<owner>.description),
 #                               networking.hostName if not "Golem"
 #
+# A fourth file, postinstall-questions.json (postinstall/postinstall.md,
+# changes.md #33), lands alongside these but is deliberately NOT imported
+# here — it is data for golem-postinstall-ask to read on the INSTALLED
+# system after first login, not a NixOS module for this eval to consume.
+#
 # Everything else — compositor, dock, OPTIONS, the hardware module library
 # waking on the facts — is the same flake every Golem machine ships. In
 # the repo as published none of the three files exist, so flake.nix only

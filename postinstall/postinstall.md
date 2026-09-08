@@ -7,8 +7,13 @@
 > (what the owner adds later); this is the third case — what the installer
 > deliberately REFUSES to decide, and hands to the owner instead.
 >
-> Status: SPEC. Nothing below is built. First real case is #33. Target:
-> round 5.
+> Status: BUILT (2026-09-08, same day as the spec — see §7). Evaluated and
+> unit-tested (fixture facts, synthetic answers, the jq validation, a full
+> `nixosConfigurations.golem` toplevel eval); NOT yet exercised on a live
+> desktop session — no foot window has actually been popped by a human,
+> and `golem-postinstall-apply` has never actually run a real
+> `nixos-rebuild switch`. Round 5's first laptop with a triggered question
+> is what closes that gap. First (and so far only) case is #33.
 
 ## 1. The idea
 
@@ -99,7 +104,70 @@ GPU away over that.
 
 ## 6. Not in scope (yet)
 
-The catalog of future questions, the exact first-boot host surface, and
-the persisted-answer format are all open. This doc is the concept and
-the first case; the framework gets designed for real when round 5 builds
-#33.
+The catalog of FUTURE questions (beyond #33) is still open — nothing
+about the framework limits it, but no second case exists yet to prove
+the "small framework, not a one-off" claim on. The open UX call §4 named
+(host = greeter card / first-run waverunner panel / one-shot
+notification) was RESOLVED during the build (§7) as a fourth option none
+of those three named: a per-user systemd service that pops a plain `foot`
+terminal, exactly like every other Golem surface (the installer itself is
+a console TUI) — no new toolkit, no dependency on waverunner internals
+this doc couldn't see into from here.
+
+## 7. Built (2026-09-08, round 5 source)
+
+The whole loop in §4 exists in source, evaluated and unit-tested (fixture
+facts, synthetic answers, the jq validation, a full
+`nixosConfigurations.golem` toplevel eval) but **not yet exercised on a
+live desktop** — see the status line at the top.
+
+- **`system/hardware/postinstall.nix`** — facts in, question list out
+  (the exact shape §3 describes), same one-rule/mkTarget-eval pattern as
+  `decide.nix`. #33 is the one entry today; a second question is a second
+  `lib.optional` block here and nothing else in this file.
+- **`flake.nix`** — exposes it as `lib.golem.postinstallQuestions`.
+- **`Installer/postinstall-questions.nix`** — `golem-postinstall-questions`,
+  the on-medium binary (sibling of `golem-hw-decide`), always JSON.
+- **`Installer/install.nix`** — calls it right after `golem-hw-detect`
+  and drops `hosts/target/postinstall-questions.json`, the FOURTH dropped
+  file (§4's "fifth thing the install can leave behind" — the persisted
+  format is exactly the question record shape from §3, as a JSON array).
+- **`system/postinstall.nix`** — the answer store
+  (`golem.postinstall.answers`, one generic id → chosen-option-id map,
+  `internal = true`) plus the two systemd services, mirroring
+  `waverunner-apply.nix`'s exact machinery per §4's instruction to reuse
+  it rather than invent a second one:
+  - `golem-postinstall-ask` (a per-user systemd service, fired on every
+    graphical session start via `graphical-session.target`) — reads the
+    dropped questions file, skips anything already in
+    `~/.config/golem/postinstall-shown.json` ("asked once", even if never
+    answered), and for anything new execs a `foot` window running itself
+    `--interactive` to actually draw the prompt. Nothing pending → exits
+    in milliseconds, no window ever created.
+  - `golem-postinstall-apply` (root, `systemd.path`-triggered on
+    `~/.config/golem/postinstall-answers.json` changing) — validates
+    every `(id, chosen option)` pair against the SHIPPED question set
+    (an unrecognized id or option is silently dropped, never evaluated),
+    regenerates `system/postinstall-generated.nix`, `git add`s it,
+    `nixos-rebuild switch --flake`, rolls back to last-good on failure.
+- **`system/hardware/gpu-second.nix`** — #33 itself: reads
+  `golem.postinstall.answers."gpu2-failing-action"`, defaulting (and
+  falling back on any unrecognized value) to `"hold"` — the failing chip
+  stays available with `power/control=on` forced, never autosuspending,
+  until the owner answers `"off"`. The one real correctness catch of the
+  build: an early draft picked between the hold/off attrsets with a bare
+  `if action == … then {A} else {B}` as `mkIf`'s content, which forces
+  `action` — and therefore `golem.postinstall.answers`, i.e. THIS
+  module's own place in the shared config fixpoint — just to discover
+  the module's shape, before `mkIf`'s laziness ever applies: real
+  infinite recursion, on every eval of the machine, caught by `nix eval`
+  before it ever reached a laptop. Fixed by declaring both services
+  unconditionally and gating each at its own leaf
+  (`systemd.services.NAME = lib.mkIf cond { … };`) instead.
+
+**Left for round 5's first live machine**, deliberately not claimed here:
+whether `foot --app-id golem-postinstall -e … --interactive` actually
+draws right on a real Hyprland session, whether `graphical-session.target`
+fires the user service at the right point in the uwsm startup sequence,
+and a real `nixos-rebuild switch` succeeding end to end from an answer
+typed at a keyboard.

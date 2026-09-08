@@ -9,10 +9,15 @@
 #      (lib.golem.swapForHibernationMB) rather than reimplementing it here
 #   2. partition GPT: ESP + swap + root, labelled ESP / swap / golem
 #   3. seed the flake checkout into the owner's home on the new root
-#   4. drop the three per-machine files into its hosts/target/:
-#        golem-hardware.nix          the probe's facts
-#        hardware-configuration.nix  nixos-generate-config's filesystems
-#        machine.nix                 the human choices
+#   4. drop the four per-machine files into its hosts/target/:
+#        golem-hardware.nix           the probe's facts
+#        hardware-configuration.nix   nixos-generate-config's filesystems
+#        machine.nix                  the human choices
+#        postinstall-questions.json   what Golem deliberately did NOT
+#                                      decide (postinstall/postinstall.md,
+#                                      changes.md #33), for the installed
+#                                      system's golem-postinstall-ask to
+#                                      read back after first login
 #   5. build (or accept) the toplevel and nixos-install it
 #
 # LUKS is a branch of step 2, exactly as this header predicted it would be
@@ -55,7 +60,7 @@ pkgs.writeShellApplication {
   name = "golem-install";
   runtimeInputs = with pkgs; [
     coreutils gptfdisk dosfstools e2fsprogs util-linux
-    nix nixos-install-tools gnused
+    nix nixos-install-tools gnused jq
     cryptsetup lvm2
     diffutils gnutar gzip
   ];
@@ -518,6 +523,16 @@ pkgs.writeShellApplication {
              <(grep -v '^# Generated' "$seed/hosts/target/golem-hardware.nix") >> "$CHK" || true
       fi
     fi
+
+    # The fourth dropped file: what Golem is deliberately NOT deciding for
+    # this machine (postinstall/postinstall.md). Computed from the SAME
+    # facts just written above, so a question's trigger and the census
+    # this install actually ran on can never disagree. An empty "[]" is the
+    # overwhelmingly common case — most machines trigger nothing — and is
+    # not a finding.
+    golem-postinstall-questions --facts "$seed/hosts/target/golem-hardware.nix" \
+      > "$seed/hosts/target/postinstall-questions.json"
+    note "postinstall questions: $(jq 'length' "$seed/hosts/target/postinstall-questions.json") pending"
 
     if [[ "$rehearse" == true ]]; then
       # The real install lets nixos-generate-config MEASURE the mounted

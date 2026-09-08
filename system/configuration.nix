@@ -23,6 +23,7 @@
     ./hardware-detect.nix
     ./hardware-runtime.nix
     ./waverunner-apply.nix
+    ./postinstall.nix
     # GolemModules.md's software module library: same pattern as the
     # hardware family above, gated on a user CHOICE instead of a hardware
     # fact. One file per category, permanently imported, off by default.

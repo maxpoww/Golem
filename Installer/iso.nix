@@ -1,4 +1,4 @@
-{ lib, pkgs, golem, hw-decide, install, setup, offlineSeed, ... }:
+{ lib, pkgs, golem, hw-decide, hw-postinstall-questions, install, setup, offlineSeed, ... }:
 
 let
   # ── Lab wifi, baked ───────────────────────────────────────────────────
@@ -66,7 +66,7 @@ in
   environment.etc."golem/inputs".source = offlineSeed;
   system.extraDependencies = [ offlineSeed ];
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  environment.systemPackages = [ hw-decide install setup ];
+  environment.systemPackages = [ hw-decide hw-postinstall-questions install setup ];
 
   # ── All-hardware firmware on the medium (Max, 2026-09-06: "all-in") ────
   # installation-cd-minimal ships almost no firmware to stay small, which
