@@ -1,0 +1,13 @@
+/sys/class/input/input0/name=AT Translated Set 2 keyboard
+/sys/class/input/input12/name=ELAN0001:00 04F3:3292 Mouse
+/sys/class/input/input14/name=ELAN0001:00 04F3:3292 Touchpad
+/sys/class/input/input15/name=GDIX0001:00 27C6:0123
+/sys/class/input/input16/name=GDIX0001:00 27C6:0123 UNKNOWN
+/sys/class/input/input17/name=Video Bus
+/sys/class/input/input18/name=Video Bus
+/sys/class/input/input1/name=Lid Switch
+/sys/class/input/input2/name=Power Button
+/sys/class/input/input3/name=Sleep Button
+/sys/class/input/input4/name=Intel HID events
+/sys/class/input/input5/name=Intel HID 5 button array
+/sys/class/input/input6/name=Ideapad extra buttons

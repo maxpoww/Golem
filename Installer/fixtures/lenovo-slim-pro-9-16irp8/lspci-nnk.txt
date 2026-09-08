@@ -1,0 +1,104 @@
+00:00.0 Host bridge [0600]: Intel Corporation Device [8086:a709]
+	Subsystem: Lenovo Device [17aa:3801]
+00:01.0 PCI bridge [0604]: Intel Corporation Raptor Lake PCI Express 5.0 Graphics Port (PEG010) [8086:a70d]
+	Subsystem: Lenovo Device [17aa:3802]
+	Kernel driver in use: pcieport
+00:02.0 VGA compatible controller [0300]: Intel Corporation Raptor Lake-P [Iris Xe Graphics] [8086:a7a0] (rev 04)
+	Subsystem: Lenovo Device [17aa:3b3e]
+	Kernel driver in use: i915
+	Kernel modules: i915, xe
+00:04.0 Signal processing controller [1180]: Intel Corporation Raptor Lake Dynamic Platform and Thermal Framework Processor Participant [8086:a71d]
+	Subsystem: Lenovo Device [17aa:3804]
+	Kernel driver in use: proc_thermal_pci
+	Kernel modules: processor_thermal_device_pci
+00:06.0 PCI bridge [0604]: Intel Corporation Raptor Lake PCI Express 4.0 Graphics Port [8086:a74d]
+	Subsystem: Lenovo Device [17aa:3805]
+	Kernel driver in use: pcieport
+00:07.0 PCI bridge [0604]: Intel Corporation Raptor Lake-P Thunderbolt 4 PCI Express Root Port #2 [8086:a72f]
+	Subsystem: Intel Corporation Device [8086:7270]
+	Kernel driver in use: pcieport
+00:08.0 System peripheral [0880]: Intel Corporation GNA Scoring Accelerator module [8086:a74f]
+	Subsystem: Lenovo Device [17aa:3806]
+00:0a.0 Signal processing controller [1180]: Intel Corporation Raptor Lake Crashlog and Telemetry [8086:a77d] (rev 01)
+	Subsystem: Lenovo Device [17aa:3808]
+	Kernel driver in use: intel_vsec
+	Kernel modules: intel_vsec
+00:0d.0 USB controller [0c03]: Intel Corporation Raptor Lake-P Thunderbolt 4 USB Controller [8086:a71e]
+	Subsystem: Lenovo Device [17aa:380c]
+	Kernel driver in use: xhci_hcd
+	Kernel modules: xhci_pci
+00:0d.3 USB controller [0c03]: Intel Corporation Raptor Lake-P Thunderbolt 4 NHI #1 [8086:a76d]
+	Subsystem: Lenovo Device [17aa:380b]
+	Kernel driver in use: thunderbolt
+	Kernel modules: thunderbolt
+00:10.0 Serial bus controller [0c80]: Intel Corporation Alder Lake-P Serial IO I2C Controller #2 [8086:51d8] (rev 01)
+	Subsystem: Intel Corporation Device [8086:7270]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:10.1 Serial bus controller [0c80]: Intel Corporation Alder Lake-P Serial IO I2C Controller #3 [8086:51d9] (rev 01)
+	Subsystem: Intel Corporation Device [8086:7270]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:12.0 Serial controller [0700]: Intel Corporation Alder Lake-P Integrated Sensor Hub [8086:51fc] (rev 01)
+	Subsystem: Intel Corporation Device [8086:7270]
+	Kernel driver in use: intel_ish_ipc
+	Kernel modules: 8250_pci, intel_ish_ipc
+00:14.0 USB controller [0c03]: Intel Corporation Alder Lake PCH USB 3.2 xHCI Host Controller [8086:51ed] (rev 01)
+	Subsystem: Lenovo Device [17aa:3856]
+	Kernel driver in use: xhci_hcd
+	Kernel modules: xhci_pci
+00:14.2 RAM memory [0500]: Intel Corporation Alder Lake PCH Shared SRAM [8086:51ef] (rev 01)
+	Subsystem: Lenovo Device [17aa:3858]
+00:14.3 Network controller [0280]: Intel Corporation Raptor Lake PCH CNVi WiFi [8086:51f1] (rev 01)
+	Subsystem: Intel Corporation Device [8086:0094]
+	Kernel driver in use: iwlwifi
+	Kernel modules: iwlwifi
+00:15.0 Serial bus controller [0c80]: Intel Corporation Alder Lake PCH Serial IO I2C Controller #0 [8086:51e8] (rev 01)
+	Subsystem: Lenovo Device [17aa:3852]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:15.1 Serial bus controller [0c80]: Intel Corporation Alder Lake PCH Serial IO I2C Controller #1 [8086:51e9] (rev 01)
+	Subsystem: Lenovo Device [17aa:3853]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:16.0 Communication controller [0780]: Intel Corporation Alder Lake PCH HECI Controller [8086:51e0] (rev 01)
+	Subsystem: Lenovo Device [17aa:384c]
+	Kernel driver in use: mei_me
+	Kernel modules: mei_me
+00:19.0 Serial bus controller [0c80]: Intel Corporation Alder Lake-P Serial IO I2C Controller #0 [8086:51c5] (rev 01)
+	Subsystem: Lenovo Device [17aa:3849]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:19.1 Serial bus controller [0c80]: Intel Corporation Alder Lake-P Serial IO I2C Controller #1 [8086:51c6] (rev 01)
+	Subsystem: Lenovo Device [17aa:384a]
+	Kernel driver in use: intel-lpss
+	Kernel modules: intel_lpss_pci
+00:1c.0 PCI bridge [0604]: Intel Corporation Alder Lake-P PCH PCIe Root Port #4 [8086:51bb] (rev 01)
+	Subsystem: Lenovo Device [17aa:3841]
+	Kernel driver in use: pcieport
+00:1f.0 ISA bridge [0601]: Intel Corporation Device [8086:519f] (rev 01)
+	Subsystem: Lenovo Device [17aa:382b]
+00:1f.3 Multimedia audio controller [0401]: Intel Corporation Device [8086:51cf] (rev 01)
+	Subsystem: Lenovo Device [17aa:3835]
+	Kernel driver in use: sof-audio-pci-intel-tgl
+	Kernel modules: snd_soc_avs, snd_sof_pci_intel_tgl, snd_hda_intel
+00:1f.4 SMBus [0c05]: Intel Corporation Alder Lake PCH-P SMBus Host Controller [8086:51a3] (rev 01)
+	Subsystem: Lenovo Device [17aa:3837]
+	Kernel driver in use: i801_smbus
+	Kernel modules: i2c_i801
+00:1f.5 Serial bus controller [0c80]: Intel Corporation Alder Lake-P PCH SPI Controller [8086:51a4] (rev 01)
+	Subsystem: Lenovo Device [17aa:3836]
+	Kernel driver in use: intel-spi
+	Kernel modules: spi_intel_pci
+01:00.0 VGA compatible controller [0300]: NVIDIA Corporation AD107M [GeForce RTX 4050 Max-Q / Mobile] [10de:28e1] (rev a1)
+	Subsystem: Lenovo Device [17aa:3fa0]
+	Kernel driver in use: nouveau
+	Kernel modules: nvidiafb, nouveau
+06:00.0 Non-Volatile memory controller [0108]: Samsung Electronics Co Ltd NVMe SSD Controller PM9A1/PM9A3/980PRO [144d:a80a]
+	Subsystem: Samsung Electronics Co Ltd SSD 980 PRO [144d:a801]
+	Kernel driver in use: nvme
+	Kernel modules: nvme
+31:00.0 Unassigned class [ff00]: Realtek Semiconductor Co., Ltd. RTS522A PCI Express Card Reader [10ec:522a] (rev 01)
+	Subsystem: Lenovo Device [17aa:38b9]
+	Kernel driver in use: rtsx_pci
+	Kernel modules: rtsx_pci

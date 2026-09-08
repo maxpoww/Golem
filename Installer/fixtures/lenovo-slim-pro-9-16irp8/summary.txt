@@ -1,0 +1,52 @@
+cpu
+  model       13th Gen Intel(R) Core(TM) i9-13905H
+  vendor      intel
+  cores       14
+  threads     20
+  microcode   intel
+
+ram
+  total            31816 MB
+  zram             active, zstd, priority 100
+  swappiness       10
+  cache pressure   10
+  dirty ratio      10% / 5% background
+  page cluster     0
+  swap             35 GiB, for hibernation
+  resume           /dev/disk/by-label/swap
+
+gpu
+  detected        intel
+  driver          nvidia
+  video decode    iHD
+  gpu 2           nvidia
+  gpu 2 health    working
+  generation      turing+
+  kernel module   open
+  prime offload   on, nvidia PCI:1:0:0 / intel PCI:0:2:0
+  suspend fix     on
+
+disk
+  scheduler   bfq on hard disks, default on SSD/NVMe
+  trim        weekly
+
+bluetooth
+  radio   yes
+  stack   bluez, blueman
+
+power
+  chassis           laptop
+  battery daemon    on
+  power profiles    on
+  thermald          on
+  lid               suspend-then-hibernate
+  hibernate after   120min
+
+panel
+  dpi     239
+  scale   1.60
+
+builds
+  parallel builds   auto
+  cores per build   0
+

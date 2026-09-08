@@ -108,7 +108,7 @@ record straight off the Fedora over SSH. Done.
 
 ---
 
-## Round 4 test — procedure for the Fedora driver (2026-09-08)
+## Round 4 test — procedure for the Fedora driver (2026-09-08) — DONE, see the round-4 record at the bottom
 
 Same handoff as round 3 above (Fedora drives, dev-box down, git is the
 channel — `git pull` first). What's DIFFERENT / what to verify:
@@ -384,3 +384,165 @@ over `golem-hw-evidence` and `golem-hw-decide`.
   promised reveal row seen on screen. #30 found and fixed as a
   side-effect. Neither ships until the round-4 build; the round-3 stick
   is untouched and still frozen.
+
+---
+
+## Round 4 (rehearsal check) — 2026-09-08 — R3-5 scale row + healthy-nvidia force-cold verdict BOTH PROVEN on metal · #28 exercised live · eval 7 s · one new finding (#34)
+
+Driven from the **Fedora ThinkPad** (192.168.1.167) over SSH, per the
+round-4 procedure above. The dev box sat on the medium the whole slot.
+
+- **ISO:** round-4 stick (`GOLEM_INST`, 14.4 GB, `/dev/sda`). The ISO's
+  own `yz5nqhsv…` hash is not visible from the booted system
+  (`/iso/version.txt` is empty), so identified by the markers the
+  procedure names: `golem-setup` `dgavg21k…` unwrapped contains
+  `wait_for_audit` (2 hits), the R3-5 `dl_scale` label + jq `scale`
+  select, the R3-4 `dv_bfq` wording; `golem-hw-detect` `3fniyyq2…`
+  carries the 15 s force-cold bound and the `dmesg --level` scoped
+  counter (#23/#23b/#30). Still "ESC back" on the language page and an
+  undimmed GPU-2 verdict — **expected**, round-5 source. `GOLEM_REHEARSE='1'`
+  + `GOLEM_LAB='1'` baked into the wrapper. Kernel 6.18.48.
+- **Boot:** UEFI · joined HOLA on its own (`iwlwifi`) · found at
+  192.168.1.152 by sweep · DMI `LENOVO` / `83C0` · `findmnt /iso` →
+  `/dev/sda`. `golem-audit.service` **16.96 s → 41.11 s** (24.1 s; round
+  3: 17.06 → 46.06). Three deliberate re-runs later took 17.7–18.0 s each.
+
+### ⚠️ The one rule: HELD (three snapshots, zero writes)
+
+`nvme0n1` snapshotted before the run, after the rehearsal, and again at
+the very end of the session (after three audit re-runs and a second
+rehearsal): GPT label-id + all three UUIDs/PARTUUIDs, `sfdisk -d`, first
+4 MiB SHA256 (`4a61ff63…`), last 4 MiB SHA256 (`194fb860…`) — `diff`
+**zero lines** all three times. Stronger than round 3's check:
+`/sys/block/nvme0n1/stat` **writes-completed = 0 for the entire boot**,
+and the disk was never mounted. Engine never ran without `--rehearse`;
+both transcripts all `would`.
+
+(The first-4-MiB hash differs from round 3's `a5082774…`. Expected, not
+a finding: the EFI partition starts at 2 MiB and the dev box booted its
+own system between the rounds — systemd-boot writes its random seed /
+entry state there. Last-4-MiB hash is identical to round 3. The rule is
+before-vs-after *within* a run, and that held.)
+
+### THE TWO THINGS ONLY THIS MACHINE CAN PROVE — both delivered
+
+1. **R3-5 panel scale row — SEEN.** `panelDpi = 239` → `scale 1.60` in
+   the census, and the confirm screen now shows **`Scale  1.60`** between
+   Lid and GPU. The only non-1.0 scale in the lab, rendered on the only
+   machine that has one; every other round-4 record correctly shows the
+   row absent.
+2. **Healthy-nvidia force-cold verdict from the BOOT audit — `working`,
+   no flap.** `golem-hardware.nix` written by the boot audit itself (not
+   a re-probe) carries `gpu2Health = "working"`; round 3's boot audit had
+   no key at all (`unknown`). `checks.txt`: **`ok facts: the probe now
+   matches the boot audit fact for fact`** — the #23 instrument that
+   warned in both directions on round 3 is silent. Everything that
+   convicted the chip in round 3 was present again this boot: nouveau's
+   GSP init 18.77 → 19.97 s *inside* the audit window, its 32 err-level
+   `ctrl cmd … failed` lines, and `i915 0000:00:02.0: [drm] *ERROR* Port
+   E/TC#2` at 14.2 s — the force-cold wait + scoped delta counter read
+   through all of it. Evidence the suspend was real: `power/runtime_
+   suspended_time` = 862 ms right after boot (0 would mean no suspend
+   ever happened), 4133 ms after the three re-runs — **`working` ×4**,
+   every audit this session.
+   Reveal: `GPU 2  NVIDIA GeForce RTX 4050 Max-Q · nouveau — tested,
+   working · apps can use it on demand` — from a real boot-audit verdict
+   this time, not the round-3 patched-facts demo. Target closure:
+   `nvidia-open-595.71.05-6.18.48`, `nvidia-offload`,
+   `nvidia-x11-595.71.05`, `nvidia-vaapi-driver-0.0.17`, and **no**
+   `golem-dgpu-off` — the healthy branch, evaluated from facts the boot
+   audit measured on metal.
+
+- **Census:** `status: ok`, every fact identical to round 3's (i9-13905H,
+  14c/20t, 31816 MB, uefi, laptop, BT, `gpu = intel` by boot_vga, `gpu2 =
+  nvidia` @ `0000:01:00.0`, `turing+`, both PRIME bus ids) plus the
+  `gpu2Health` key above. Nothing wrong, nothing uncertain.
+- **Surface (six screens):** English → Europe/Madrid → keyboard
+  **Español** (tz→country default, as round 3) → drive → `lenovo` (ghost
+  replaced cleanly) → `max` + password ×2 → confirm. Round-4 fixes on
+  this machine's own screen:
+  - **#20b FIXED here:** the drive list offers **only** the Samsung
+    (`SAMSUNG MZVL21T0HCLR-00BL2  953.9G` + Advanced). Round 3 showed
+    `USB 2.0 FD  14.4G` — the boot stick — under it. 2nd machine to
+    confirm the fix on metal.
+  - **R3-4:** `Scheduler  Bfq on hard disks, default on SSD/NVMe` (was
+    the vacuous "on rotational disks" this machine filed).
+  - **#27:** no driver-count line. GPU row `Intel Iris Xe Graphics · i915
+    — tested, working · driving this screen`, Wi-Fi `iwlwifi`, Bluetooth
+    `btusb`, Touchpad `ELAN0001:00 04F3:3292 Touchpad · hid-multitouch`.
+  - **Minor, new (R4-1):** Audio reads `Intel Corporation Device 51cf ·
+    sof-audio-pci-intel-tgl`. Upstream data, not a Golem bug: the stick's
+    pciutils 3.15.0 `pci.ids` (2026.04.01) has no `8086:51cf` entry, so
+    lspci itself says "Device 51cf" and the reveal passes it through. A
+    stranger sees a hex id where every other row has a name. Queued.
+- **Rehearsal:** `status: ok`, **no findings**, all six checks `ok`
+  (UEFI → systemd-boot, target ≠ medium `/dev/sda`, fit 940410 MiB root
+  for ~19 GiB, RAM, facts match, eval). **eval 7 s** →
+  `nixos-system-lenovo` — new lab record (round 3 here: 13 s). Transcript
+  addresses `/dev/nvme0n1` + `nvme0n1p1..p3` throughout (p-suffix right).
+  A second rehearsal later in the session (see #34): `ok`, eval 7 s again.
+- **#28 exercised LIVE, deliberately:** this box's audit is too fast to
+  race by accident (Dell caught the race by luck), so I restarted
+  `golem-audit.service` and burst all six screens' keys in 10 s. The
+  reveal **held on "Reading this device" for ~7 s** while the audit was
+  `activating`, then drew the full census intact (Scale row, GPU 2
+  verdict, all rows) the moment `status` turned `ok`. No "audit
+  incomplete", no tty1 dump. The other half checked directly: audit
+  restarted **with the owns-console marker present → no banner on tty1**
+  (banner count 1 → 1). Both halves of #28 work as built.
+- **Console quiet (#17a):** `loglevel=3`, printk `3 4 1 7`; **0 lines at
+  emerg/alert/crit**, 45 at err (the same 32 GSP + i915 set); not one new
+  kernel line after the boot audit for the rest of the session.
+
+### NEW FINDING — #34: Ctrl-C runs golem-setup's cleanup but does NOT exit
+
+Found by the harness (my own Ctrl-C to a tmux'd instance), then
+reproduced under control. `golem-setup` installs one handler for
+`EXIT INT TERM` (unwrapped line 3853; round-5 source
+`mockup/install-cli:3902` identical): show cursor, `kb_restore`, delete
+the keymap backup and the drv temp file, remove
+`/run/golem-setup.owns-console`. On INT bash runs the handler and
+**continues** — nothing in it exits. Measured on the confirm screen:
+before Ctrl-C → marker present, `/tmp/golem-drv.*` + `/tmp/golem-kb-orig.*`
+present, pid 5419; after Ctrl-C → **all three gone, pid 5419 still
+running, confirm screen still drawn and responsive.** ENTER then ran a
+full rehearsal successfully (`ok`, eval 7 s) — the install path survives.
+What does not survive:
+
+1. **The #28 marker is gone while the UI still owns the screen.** Seen
+   live this session before I understood it: Ctrl-C at 19:44:49, audit
+   restarted 19:44:51 (unrelated to the Ctrl-C), audit finished 19:45:08
+   → **its census banner landed on tty1** — the exact dump #28 exists to
+   stop. The guard itself is fine (proven above); the marker had been
+   deleted from under it.
+2. **The keymap backup is deleted**, so the real exit later has nothing
+   to restore — a stranger who taps Ctrl-C and then quits leaves the
+   console on the chosen keymap (#7's failure mode, via a side door).
+3. Cursor shown over a raw-mode UI (cosmetic).
+
+Fix is small: the INT/TERM handlers must exit after cleanup (or route to
+`cancel_install`, which round 5 already adds for F1 — Ctrl-C should mean
+the same thing). Queued as #34.
+
+- **Parallel keyboard session, noted for the record:** the journal shows
+  `nixos` on tty1 ran `sudo golem-setup` at 19:35:57 (the physical
+  keyboard — Max), typing until ~19:39; tty1 ended on a "rehearsed —
+  nothing was written, no findings" screen. The surviving bundle in
+  `/var/log/golem-rehearsal/` is the SSH-driven one (its `answers`,
+  including the randomly-salted password hash, is byte-identical to my
+  instance's `/tmp/golem-answers`). Both runs were rehearsals; the disk
+  saw zero writes. Harness note only: two instances share one rehearsal
+  directory, so the later writer wins — drive from one seat.
+- **Findings → changes.md:** **#34** (INT/TERM trap cleans up without
+  exiting — reopens the #28 tty1 race and #7's keymap leak; small),
+  **R4-1** (unresolved `Device 51cf` on the audio row — fall back to the
+  class name when pci.ids has no entry; small). #20b confirmed fixed on
+  a 2nd machine.
+- **Verdict:** **PASS.** Both round-4 items only this machine can prove
+  are proven on metal — the `Scale 1.60` row is on the screen, and the
+  boot audit itself now calls the RTX 4050 `working` with no flap, from
+  under the noisiest driver init in the lab. #28 held the reveal when
+  made to race, #20b/R3-4/#27 landed on this box's own screen, eval set a
+  new record at 7 s, and the NVMe that is the lab took zero writes. One
+  new small finding (#34), found the way round 3's were: by the rig
+  doing something a stranger would.

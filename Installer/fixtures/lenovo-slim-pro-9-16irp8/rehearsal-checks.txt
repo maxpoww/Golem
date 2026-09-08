@@ -1,0 +1,6 @@
+ok     firmware: booted UEFI — systemd-boot to the ESP
+ok     target: /dev/nvme0n1 is not the boot medium (/dev/sda)
+ok     fit: root gets 940410 MiB after boot+swap (the closure needs ~19 GiB)
+ok     ram: 31816 MB is enough to evaluate the system locally
+ok     facts: the probe now matches the boot audit fact for fact
+ok     eval: the target system instantiates in 7s → /nix/store/1yl1i40s2jr3js8gdsm6y3vkd73qiz39-nixos-system-lenovo-26.05.19700101.dirty.drv

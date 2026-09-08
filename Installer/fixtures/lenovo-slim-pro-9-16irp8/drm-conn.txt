@@ -1,0 +1,10 @@
+/sys/class/drm/card1-DP-1/status=disconnected
+/sys/class/drm/card1-DP-2/status=disconnected
+/sys/class/drm/card1-eDP-1/status=connected
+/sys/class/drm/card1-HDMI-A-1/status=disconnected
+/sys/class/drm/card1-HDMI-A-2/status=disconnected
+/sys/class/drm/card1-DP-1/modes=
+/sys/class/drm/card1-DP-2/modes=
+/sys/class/drm/card1-eDP-1/modes=3200x20003200x2000
+/sys/class/drm/card1-HDMI-A-1/modes=
+/sys/class/drm/card1-HDMI-A-2/modes=

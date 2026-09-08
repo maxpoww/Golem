@@ -1,0 +1,3 @@
+/sys/class/power_supply/ADP1/type=Mains
+/sys/class/power_supply/BAT1/type=Battery
+/sys/class/power_supply/ucsi-source-psy-USBC000:001/type=USB

@@ -1,0 +1,9 @@
+NAME          SIZE TYPE TRAN ROTA MODEL
+loop0         1.4G loop         1 
+sda          14.4G disk usb     1 USB 2.0 FD
+├─sda1        1.4G part         1 
+└─sda2          3M part         1 
+nvme0n1     953.9G disk nvme    0 SAMSUNG MZVL21T0HCLR-00BL2
+├─nvme0n1p1     1G part nvme    0 
+├─nvme0n1p2 918.7G part nvme    0 
+└─nvme0n1p3  34.2G part nvme    0 

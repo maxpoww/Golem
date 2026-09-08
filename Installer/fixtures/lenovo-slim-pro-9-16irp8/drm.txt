@@ -1,0 +1,9 @@
+/sys/class/drm/card1/device/vendor=0x8086
+/sys/class/drm/card1/device/device=0xa7a0
+/sys/class/drm/card1/device/class=0x030000
+/sys/class/drm/card1/device/uevent=DRIVER=i915PCI_CLASS=30000PCI_ID=8086:A7A0PCI_SUBSYS_ID=17AA:3B3EPCI_SLOT_NAME=0000:00:02.0MODALIAS=pci:v00008086d0000A7A0sv000017AAsd00003B3Ebc03sc00i00
+/sys/class/drm/card1-DP-1/device/uevent=MAJOR=226MINOR=1DEVNAME=dri/card1DEVTYPE=drm_minor
+/sys/class/drm/card1-DP-2/device/uevent=MAJOR=226MINOR=1DEVNAME=dri/card1DEVTYPE=drm_minor
+/sys/class/drm/card1-eDP-1/device/uevent=MAJOR=226MINOR=1DEVNAME=dri/card1DEVTYPE=drm_minor
+/sys/class/drm/card1-HDMI-A-1/device/uevent=MAJOR=226MINOR=1DEVNAME=dri/card1DEVTYPE=drm_minor
+/sys/class/drm/card1-HDMI-A-2/device/uevent=MAJOR=226MINOR=1DEVNAME=dri/card1DEVTYPE=drm_minor

@@ -32,6 +32,47 @@ the same Golem.
 > round-4 sweep; they are applied to SOURCE but ship only in the round-5
 > build, exactly as round-3 surface findings waited for round 4.
 
+### 34. Ctrl-C runs golem-setup's cleanup handler but does NOT exit — [round-4 finding (Lenovo) · round 5 · small]
+- **what (Lenovo, round 4 — found by the rig, reproduced under control):**
+  `golem-setup` installs ONE handler for `EXIT INT TERM` (`mockup/
+  install-cli:3902`): show cursor, `kb_restore`, `rm` the keymap backup
+  and the drv temp file, `rm /run/golem-setup.owns-console`. Nothing in
+  it exits, so on SIGINT bash runs it and **carries on** — the UI stays
+  up, responsive, and still installs (a rehearsal after Ctrl-C ran clean,
+  eval 7 s), but with its cleanup already spent:
+  1. the **#28 owns-console marker is gone** while the surface still owns
+     tty1. Observed live: Ctrl-C at 19:44:49, an audit finished at
+     19:45:08 → its census banner landed on tty1 — the dump #28 was built
+     to stop (the guard itself is fine; the marker was deleted from under
+     it). On a slow machine the ORIGINAL #28 race is simply back for
+     anyone who taps Ctrl-C.
+  2. the **keymap backup is deleted**, so the real exit later has nothing
+     to restore — #7's console-keymap leak, via a side door.
+  3. cursor shown over the raw-mode UI (cosmetic).
+- **fix:** split the traps. Keep the cleanup on EXIT only; make INT/TERM
+  exit after it — simplest is to route them to `cancel_install` (#31's
+  F1 path, which already `exit 0`s and so fires EXIT once, cleanly):
+  `trap cancel_install INT TERM`. Ctrl-C and F1 then mean the same thing,
+  which is what a stranger expects.
+- **where:** `mockup/install-cli` trap line (3902 in round-5 source).
+- **size:** small.
+
+### R4-1. Audio row shows a raw PCI id when pci.ids has no entry — [round-4 finding (Lenovo) · round 5 · small]
+- **what (Lenovo, round 4):** `Audio  Intel Corporation Device 51cf ·
+  sof-audio-pci-intel-tgl`. The stick's pciutils 3.15.0 `pci.ids`
+  (2026.04.01) has no `8086:51cf` (Raptor Lake-P/H cAVS), so lspci prints
+  "Device 51cf" and the reveal passes it through — the one row on the
+  screen with a hex id where every other row has a name. Upstream data,
+  not a census error (the driver half is right), but a stranger reads it
+  as "unknown thing".
+- **fix:** in the reveal's name pass, when lspci's device name matches
+  `^Device [0-9a-f]{4}$`, fall back to the PCI class name (here "Audio
+  device") — `Intel Corporation Audio device · sof-audio-pci-intel-tgl`
+  reads honestly and needs no pci.ids update. Same guard protects every
+  row (Wi-Fi, Ethernet) on any newer chip than the ids file.
+- **where:** `mockup/install-cli` hw_row / the lspci name parse.
+- **size:** small.
+
 ### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [NEEDS-MAX · round 5]
 - **what (ASUS, round 4; Max: "that is not possible, the 720m works"):**
   the health probe correctly reads the GF117M as `failing` — it throws
