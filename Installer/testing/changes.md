@@ -28,11 +28,18 @@ the same Golem.
 
 > **Discipline note (Max, round 4):** the round-4 stick (`yz5nqhsv…`) is
 > FROZEN and every round-4 machine meets it — no mid-round reburn. The
-> three findings below (#31, #32, #26-reveal) were surfaced DURING the
-> round-4 sweep; they are applied to SOURCE but ship only in the round-5
-> build, exactly as round-3 surface findings waited for round 4.
+> findings below (#31, #32, #26-reveal, #34, R4-1) were surfaced DURING
+> the round-4 sweep; they are applied to SOURCE but ship only in the
+> round-5 build, exactly as round-3 surface findings waited for round 4.
 
-### 34. Ctrl-C runs golem-setup's cleanup handler but does NOT exit — [round-4 finding (Lenovo) · round 5 · small]
+### 34. Ctrl-C runs golem-setup's cleanup handler but does NOT exit — [APPLIED to source · verified live on Lenovo · round-5 build]
+**Applied (2026-09-08):** the cleanup is a `cleanup` function on EXIT only;
+`trap cancel_install INT TERM` sends Ctrl-C down #31's F1 path (`exit 0`),
+so EXIT fires exactly once. Verified on the Lenovo under the frozen
+stick's own wrapper env: Ctrl-C on the confirm screen and on the language
+page both drop straight to the prompt with the marker and temp files gone
+and no instance left; a full rehearsal afterwards is `ok`, eval 7 s; the
+tty1 banner count stayed at 1. NOT on the round-4 stick.
 - **what (Lenovo, round 4 — found by the rig, reproduced under control):**
   `golem-setup` installs ONE handler for `EXIT INT TERM` (`mockup/
   install-cli:3902`): show cursor, `kb_restore`, `rm` the keymap backup
@@ -57,7 +64,13 @@ the same Golem.
 - **where:** `mockup/install-cli` trap line (3902 in round-5 source).
 - **size:** small.
 
-### R4-1. Audio row shows a raw PCI id when pci.ids has no entry — [round-4 finding (Lenovo) · round 5 · small]
+### R4-1. Audio row shows a raw PCI id when pci.ids has no entry — [APPLIED to source · verified live on Lenovo · round-5 build]
+**Applied (2026-09-08):** `hw_pci` and `hw_pci_all` replace a name ending
+in a bare `Device xxxx` with the PCI class from the same lspci header
+(minus " compatible"). Live on the Lenovo: `Audio  Intel Corporation
+Multimedia audio controller · sof-audio-pci-intel-tgl`. Unit-tested:
+`Device 51cf` / `Device 7af0` fall back, real names untouched, `(rev)`
+still stripped, bus ids still lead. NOT on the round-4 stick.
 - **what (Lenovo, round 4):** `Audio  Intel Corporation Device 51cf ·
   sof-audio-pci-intel-tgl`. The stick's pciutils 3.15.0 `pci.ids`
   (2026.04.01) has no `8086:51cf` (Raptor Lake-P/H cAVS), so lspci prints

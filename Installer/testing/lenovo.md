@@ -546,3 +546,63 @@ the same thing). Queued as #34.
   new record at 7 s, and the NVMe that is the lab took zero writes. One
   new small finding (#34), found the way round 3's were: by the rig
   doing something a stranger would.
+
+---
+
+## Round 4, live-fix phase — 2026-09-08 — #34 and R4-1 fixed in source and verified on the metal that found them
+
+Max: *"fix all in source and record the results."* Both round-4 findings
+from this box are applied to `mockup/install-cli` and verified on the
+Lenovo while it was still on the medium — the constitution's live-fix
+phase. The round-4 stick is untouched; nothing rebuilt; the fixes ship in
+the round-5 build with #31/#32.
+
+**How it was verified live (no nix on the Fedora driver):** the patched
+script was copied to `/root/install-cli-patched` on the booted medium
+(SHA256 `a279a391…` identical to the source), and the stick's own
+`golem-setup` wrapper was copied with its `exec` path pointed at it — so
+the test ran under the frozen build's exact env (`GOLEM_REHEARSE='1'`,
+`GOLEM_LAB='1'`, its closure PATH, its bash). `bash -n` clean under the
+stick's bash 5.3p9. RAM overlay only; gone on reboot.
+
+**#34 — Ctrl-C now exits, once, cleanly.** The single `EXIT INT TERM`
+handler became a `cleanup` function on EXIT only, plus
+`trap cancel_install INT TERM` — Ctrl-C takes #31's F1 path (`exit 0`),
+which fires EXIT exactly once. Measured on the box:
+
+| test | before (frozen stick) | after (patched) |
+|---|---|---|
+| Ctrl-C on the confirm screen | handler ran, **process kept running**, marker + `golem-drv.*` + `golem-kb-orig.*` deleted under the live UI | **prompt back**, no instance left (`ps`), marker gone, temp files gone |
+| Ctrl-C on the language page | (same) | prompt back, marker gone, exited |
+| full rehearsal after the change | — | `status: ok`, no findings, all checks ok, **eval 7 s**, marker cleared on exit |
+| tty1 banner count across the phase | 1 | still 1 — no new dump |
+
+**R4-1 — the audio row names the class when pci.ids has no name.** Both
+lspci parsers (`hw_pci`, `hw_pci_all`) now replace a name ending in a bare
+`Device xxxx` with the PCI class from the same header line (minus
+" compatible"). On the confirm screen, patched build, live:
+
+```
+·  Audio        Intel Corporation Multimedia audio controller · sof-audio-pci-intel-tgl
+```
+
+(was `Intel Corporation Device 51cf · …`). Unit-tested against a
+synthetic `lspci -k` dump too: `Device 51cf` (audio) and `Device 7af0`
+(Wi-Fi) fall back to their class names; every real name (Iris Xe, AD107M,
+RTL8111) passes through unchanged, `(rev xx)` still stripped, bus ids
+still lead in `hw_pci_all`. The rest of the reveal was identical to the
+frozen build's (Scale 1.60, both GPU verdicts, Wi-Fi, Touchpad).
+
+### ⚠️ The one rule: HELD through the live-fix phase too
+
+`nvme0n1` re-snapshotted after everything above (a fourth snapshot):
+`diff` against the pre-run snapshot **zero lines**, hashes `4a61ff63…` /
+`194fb860…` unchanged, `/sys/block/nvme0n1/stat` **writes-completed
+still 0** for the whole boot. Two rehearsals with the patched build, both
+`--rehearse`, both all `would`.
+
+- **Findings → changes.md:** #34 and R4-1 moved to **APPLIED to source ·
+  verified live on Lenovo · round-5 build**.
+- **Verdict:** both closed on the machine that filed them. Round-5 source
+  now carries #31, #32, #26-reveal, #34, R4-1; the round-4 stick stays
+  frozen.

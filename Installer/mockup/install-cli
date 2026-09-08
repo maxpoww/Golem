@@ -3119,6 +3119,14 @@ hardware_reveal() {
 # they are skipped) as the name, and the module from "Kernel driver in
 # use:". The next header — or EOF — ends it. `exit` runs END, so END owns
 # the single print; printing in the header rule too would double it.
+#
+# A chip newer than the medium's pci.ids has no name there and lspci
+# prints "Intel Corporation Device 51cf" — the one row on the screen with
+# a hex id where every other row has a name (Lenovo, round 4: the Raptor
+# Lake audio codec). When the name ends in a bare "Device xxxx", the PCI
+# class between the bus id and the colon stands in ("Intel Corporation
+# Multimedia audio controller") — honest, and needs no ids update (R4-1).
+# Same rule in hw_pci_all below, so every row is covered.
 hw_pci() {
   printf '%s' "$1" | awk -v want="$2" '
     /^[0-9a-f]+:[0-9a-f]+/ {
@@ -3126,6 +3134,10 @@ hw_pci() {
       if ($0 ~ want) {
         matched=1; line=$0; sub(/ \(rev [0-9a-f]+\)$/,"",line)
         i=index(line,": "); out=substr(line,i+2)
+        if (out ~ /Device [0-9a-f][0-9a-f][0-9a-f][0-9a-f]$/) {
+          cls=substr(line, length($1)+2, i-length($1)-2); sub(/ compatible/,"",cls)
+          sub(/Device [0-9a-f]+$/, cls, out)
+        }
       }
       next
     }
@@ -3148,6 +3160,10 @@ hw_pci_all() {
       if ($0 ~ want) {
         matched=1; line=$0; bus=$1; sub(/ \(rev [0-9a-f]+\)$/,"",line)
         i=index(line,": "); out=substr(line,i+2)
+        if (out ~ /Device [0-9a-f][0-9a-f][0-9a-f][0-9a-f]$/) {
+          cls=substr(line, length($1)+2, i-length($1)-2); sub(/ compatible/,"",cls)
+          sub(/Device [0-9a-f]+$/, cls, out)
+        }
       }
       next
     }
@@ -3898,8 +3914,24 @@ esac
 
 # Quitting before an install ran gives the tty its keymap back (#7);
 # once the engine has been launched the chosen keymap is the machine's.
+#
+# The cleanup hangs on EXIT ONLY. It used to be one handler for
+# `EXIT INT TERM`, and a trap handler does not exit by itself — on Ctrl-C
+# bash ran it and carried on, so the UI stayed up with its cleanup already
+# spent: the #28 console marker gone (an audit banner then landed on tty1,
+# live, Lenovo round 4), the keymap backup deleted so the real exit had
+# nothing to restore (#7 through a side door), cursor shown over raw
+# mode. Ctrl-C now means what F1 means: leave, once, cleanly (#34).
 INSTALL_LAUNCHED=no
-trap 'show_cursor; printf "\n"; [ "$INSTALL_LAUNCHED" = yes ] || kb_restore; [ -n "$KB_ORIG" ] && rm -f "$KB_ORIG"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"; rm -f /run/golem-setup.owns-console 2>/dev/null || true' EXIT INT TERM
+cleanup() {
+  show_cursor; printf "\n"
+  [ "$INSTALL_LAUNCHED" = yes ] || kb_restore
+  [ -n "$KB_ORIG" ] && rm -f "$KB_ORIG"
+  [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"
+  rm -f /run/golem-setup.owns-console 2>/dev/null || true
+}
+trap cleanup EXIT
+trap cancel_install INT TERM
 
 # The installer owns this screen now — but at the console's default
 # loglevel the kernel still paints err-level lines over the surface (the
