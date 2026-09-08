@@ -108,6 +108,37 @@ record straight off the Fedora over SSH. Done.
 
 ---
 
+## Round 4 test — procedure for the Fedora driver (2026-09-08)
+
+Same handoff as round 3 above (Fedora drives, dev-box down, git is the
+channel — `git pull` first). What's DIFFERENT / what to verify:
+
+- **The stick is the FROZEN round-4 build `yz5nqhsv…`** (identify by:
+  `golem-setup` unwrapped contains `wait_for_audit`; census has the R3-5
+  scale row wiring). Do NOT expect F1-cancel, dimmed GPU-2 verdict, or
+  the #26 reveal-half — those are round-5 source, deliberately NOT on
+  this stick. If you see the old "ESC back" on the language page and an
+  undimmed "apps can use it on demand", that is EXPECTED, not a finding.
+- **This machine is the ONLY metal proof of two round-4 things:**
+  1. **R3-5 panel scale row.** The Lenovo's 239-dpi panel → scale 1.60
+     is the only non-1.0 scale in the lab, so it is the only machine
+     where the confirm screen should show a `Scale 1.60` row. Every
+     other machine correctly shows none. Confirm it appears.
+  2. **Healthy-nvidia force-cold verdict.** Expect `gpu = intel`
+     (boot_vga), `gpu2 = nvidia`, `nvidiaGen = turing+`,
+     `gpu2Health = "working"` — and NO facts-match flap (round 3's
+     boot-audit false-negative must not recur now force-cold waits for
+     a real suspend before poking). Reveal: `GPU 2 … tested, working ·
+     apps can use it on demand`.
+- **#28 note:** on this fast machine the audit finishes quickly, but if
+  you start golem-setup mid-audit, wait_for_audit should hold the reveal
+  cleanly (no "audit incomplete", no tty1 dump).
+- **THE ONE RULE still absolute:** rehearsal only, nvme0n1 byte-untouched
+  before AND after (this NVMe is the lab). Never run the engine without
+  `--rehearse`.
+
+---
+
 ## Round 3 (machine 7 of the round — the dev box, last in) — 2026-09-08 — the healthy modern-nvidia path PROVEN ON METAL · NVMe first contact · a THIRD manifestation of #23
 
 - **ISO:** round-3 stick (14.4 GB, `GOLEM_INST`), `golem-setup`
