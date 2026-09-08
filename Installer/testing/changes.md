@@ -230,6 +230,9 @@ wait-before-retry; the HP's false positive proved passive isn't enough.
 The HP is the round-4 proof machine for the whole failing→powered-off
 path (gpu-second.nix has still never run from a real verdict on metal).
 Detail and evidence below.
+**Force-cold was TESTED on the Lenovo (round 3) and works — with 2 s of
+margin on the 10 s bound — but it is NOT sufficient on its own: see
+[23b](#23b), the false-negative manifestation.**
 - **what (ASUS, round 3 machine 1 — predicted by the round-2 preview,
   caught live by the facts-match check):** the boot audit ran the probe
   while the dGPU was still awake from init → vacuously clean poke →
@@ -276,6 +279,85 @@ Detail and evidence below.
   force-cold before poke 1).
 - **size:** small (logic), but load-bearing for #17c's whole promise.
 
+### 23b. The health probe's error counter is unscoped, and nothing waits for the driver to settle — [round 4, small · pairs with #23]
+**Third manifestation of the #23 probe, and a NEW direction: a FALSE
+NEGATIVE.** ASUS = flap (`working`→`failing`); HP = false positive
+(`working` on a chip that fails every resume); **Lenovo = `unknown` on a
+demonstrably healthy RTX 4050.** Same probe, three different lies.
+- **what (Lenovo, round 3 machine 7 — the dev box):** the boot audit
+  emitted **no `gpu2Health` at all** where the machine's entire purpose
+  was to prove `working`. Cause, established on the box:
+  `golem-audit.service` starts at **t = 17.06 s** while **nouveau's own
+  GSP init runs t = 14.6 → 20.4 s**, so the probe's 3-second dmesg
+  window landed on the driver's own boot chatter. The counter matches
+  **any line containing the dGPU's BDF**, so `nouveau 0000:01:00.0:
+  NVIDIA AD107`, `gsp: RM version: 570.144`, `drm: VRAM: 6141 MiB` and
+  ~40 benign GSP `ctrl cmd` lines all counted as convictions — **a
+  healthy chip convicted itself with its own successful
+  initialisation.** The retry then could not rescue it
+  (`power/control` was `on`, `runtime_enabled: forbidden`, so the wait
+  for `suspended` could never succeed → vacuous second poke → 0 →
+  *unspoken* → `unknown`).
+- **proof it was the window and nothing else:** the identical probe
+  logic replayed by hand on a quiet log, same machine, same boot →
+  `e1 = 0` → `working`. The install-time re-probe agreed
+  (`gpu2Health = "working"`), and `checks.txt` fired the #23 instrument
+  in the opposite direction from the ASUS:
+  `warn facts: … > gpu2Health = "working"`.
+- **#23's decided force-cold fix WAS tested here and DOES work — but
+  only just:** `control = auto` → `suspending` at t+7 s, `suspended` at
+  t+8 s of the 10 s bound; cold resume from a 12.6 s suspend → **0
+  errors, zero new kernel lines**. Correct verdict, **2 seconds of
+  margin on the fastest machine in the lab.** Consider widening the
+  bound.
+- **what force-cold still does NOT fix (this entry):**
+  a. **scope the counter to real errors on the real device.** Match the
+     device's own error-level records, not the bare BDF (init lines are
+     not faults), and not a bare `\*ERROR\*` from *any* device. This boot
+     carried `i915 0000:00:02.0: [drm] *ERROR* Port E/TC#2: timeout
+     waiting for PHY ready` at t = 15.2 s — it missed the audit window by
+     **1.9 s**. On a slightly slower boot the **Intel iGPU's** fault would
+     have condemned the **NVIDIA** chip.
+  b. **wait for the driver to settle before counting** — force-cold
+     implies it (a chip mid-init will not autosuspend), but the bound
+     must be generous enough to cover GSP init, which took ~6 s here.
+- **silver lining — the reveal degrades in the SAFE direction:** an
+  `unknown` health renders the row bare (`GPU 2  NVIDIA GeForce RTX 4050
+  Max-Q · nouveau`, no verdict clause), so the installer promises
+  nothing it cannot keep, while the target evaluated the re-probed
+  `working` facts and built the offload stack. Under-promised,
+  over-delivered — the reverse of the ASUS's skew.
+- **where:** `system/hardware-detect.nix` (the gpu2 health probe —
+  counter scoping + settle bound).
+- **size:** small.
+
+### R3-4. The scheduler row is vacuous on a machine with no rotational disk — [round 4, small]
+- **what (Lenovo, round 3):** the confirm screen reads `Scheduler  Bfq on
+  rotational disks` on an **NVMe-only** machine. True, and completely
+  uninformative — it describes a rule, not this disk. The first NVMe
+  target in the lab is the first machine where the row says nothing about
+  the hardware in front of the user.
+- **fix:** make the row target-aware — say what THIS disk gets (e.g.
+  `none (NVMe)` / `bfq (rotational)`), or drop the row when nothing
+  rotational is present.
+- **where:** the disk decision row (`mockup/install-cli` reveal /
+  `system/hardware/decide.nix`).
+- **size:** small.
+
+### R3-5. panelDpi / scale is decided but never revealed — [round 4, small]
+- **what (Lenovo, round 3 — first high-DPI panel on lab metal):** the
+  census decides `panelDpi = 239` → `scale 1.60` and shows it in
+  `summary.txt`, but **no panel or scale row appears on the confirm
+  screen**. On a high-DPI machine the scale is the single most visible
+  thing about the system after first boot, and it is the one decision the
+  reveal never mentions — a user who wants it different has no idea it
+  was chosen.
+- **fix:** add a panel/scale row to the reveal on machines where the
+  scale is not 1.0.
+- **where:** the reveal rows (`mockup/install-cli`) + `decide.nix` panel
+  section.
+- **size:** small.
+
 ### 20b. …and the round-3 fix has a SECOND failure mode — [round 4]
 - **what (ASUS, round 3 machine 1):** the #20 fix chases `/iso` — but a
   USB isohybrid mounts from the WHOLE DISK (`findmnt` says `/dev/sdb`,
@@ -290,6 +372,10 @@ Detail and evidence below.
 - **where:** `mockup/install-cli` `disk_load`.
 - **size:** small. Frozen round-3 stick keeps the flaw; the engine
   check guards the gap for the round.
+- **2nd on-metal instance (Lenovo, round 3 — first NVMe target):** the
+  list offered `USB 2.0 FD  14.4G` beneath the Samsung NVMe. The engine
+  backstop held on the new device shape:
+  `ok target: /dev/nvme0n1 is not the boot medium (/dev/sda)`.
 
 ### 20. The drive list offered the boot stick itself — [applied to source · round 3]
 **2nd on-metal instance (ThinkPad, round-2 first contact):** "USB 2.0
@@ -377,7 +463,7 @@ build carries the /iso-based fix.
   the rehearsed arm, string table), `install.nix:603`.
 - **size:** a–d small; e needs-Max.
 
-### 17. Muxless AMD hybrid — dGPU failing/spamming, census picks the wrong GPU — [DECIDED · b/c/wording applied to source, round 3 — verify on HP (failing path) + Lenovo (working path)]
+### 17. Muxless AMD hybrid — dGPU failing/spamming, census picks the wrong GPU — [DECIDED · b/c/wording applied to source, round 3 — **Lenovo (working path) VERIFIED ON METAL round 3**; HP (failing path) still round 4]
 **Round-3 close (2026-09-07):** all parts are now in source. b: census
 enumerates PCI display class (not drm — a driverless dGPU has no drm
 card), primary by `boot_vga`, second GPU emitted as `gpu2` +
