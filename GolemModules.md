@@ -63,7 +63,8 @@ not reconstructed per install the way a forum answer is.
 
 Confirmed categories (named directly): **Gaming, Virtualization, Video
 Editing, Office, Security, Image Editing, Artificial Intelligence, Local
-AI.** Below is a first pass at what each contains and, honestly, what's
+AI, Music Production** (the last one added and BUILT 2026-09-08, §4.9).
+Below is a first pass at what each contains and, honestly, what's
 known vs. still needs research — the same "unknown means the safe default,
 not a guess" ethos `GolemInstall.md` §7 applies to hardware applies here to
 software: a tool this doc hasn't actually verified stays a **candidate**,
@@ -159,11 +160,97 @@ actually supports it (nvidia CUDA / ROCm), and a plain "this will be slow
 on this machine" note rather than silence, matching the reveal-and-affirm
 posture already set for hardware.
 
-### 4.9 Proposed additions (not yet confirmed — flagging, not deciding)
+### 4.9 Music Production — BUILT (first real category, 2026-09-08)
+
+Max's request directly: "check all, one click, add" — no per-tool picks in
+v1, one switch (`golem.modules.music-production.enable`) turns on the whole
+kit. Live at `system/modules/music-production.nix`, imported in
+`system/configuration.nix`, evaluated clean against the golem host
+(`environment.systemPackages` resolved to real store paths, `nix eval`
+verified — see below). Not yet flipped on for Max's actual machine; that's
+his to enable and rebuild (§9).
+
+- **Low-latency audio:** `services.pipewire.extraConfig.pipewire` tuned to
+  48000/quantum 128 (min 32, max 2048) — the standard "feel every
+  keypress" studio recipe, layered on the `security.rtkit` + PipeWire/JACK
+  stack `system/audio.nix` already ships. **Not yet metered against real
+  hardware** — if the organ crackles, `max-quantum` is the first knob.
+- **No realtime-kernel toggle.** Originally planned as an advanced opt-in
+  (§7's "heavier, harder to undo" case); dropped because `nix eval`
+  against this flake's pinned nixpkgs rev shows `linuxPackages-rt` was
+  **removed upstream 2026-03-24** ("lack of maintenance"). Not a real
+  loss: PipeWire's rtkit-based scheduling is what modern setups actually
+  rely on; a patched kernel was the pre-PipeWire answer.
+- **DAWs, four shapes of the same job:** Ardour (multitrack record/mix/
+  master, open-source flagship), Reaper (proprietary, best plugin/hardware
+  compatibility on Linux — verified native, not Reaper-via-wine as an
+  earlier draft of this doc guessed), LMMS (loop/beat workstation — Max
+  asked directly why this was missing from the first pass; it was a real
+  gap, not a deliberate cut), Qtractor (lighter native alternative to
+  Ardour).
+- **Rhythm:** Hydrogen (drum-pattern programming), Giada (loop-based
+  live-performance sampler).
+- **Live looping:** SooperLooper — play a phrase, loop it, layer the next
+  on top hands-free. The direct answer to "record, produce, reproduce"
+  for someone playing an instrument live rather than tracking in a DAW.
+- **The organ, specifically:** setBfree — a Hammond/tonewheel organ +
+  Leslie speaker emulator. The one pick made for an electric organ rather
+  than music production in general.
+- **Softsynths:** Surge XT (attr is lowercase `surge-xt` — nixpkgs
+  renamed it, verified) and Odin2 (semi-modular) alongside ZynAddSubFX,
+  Yoshimi, Dexed, Helm — and **Vital**, arguably the single most popular
+  free wavetable synth today, missing from the first pass for no good
+  reason and added now.
+- **Sample/soundfont playback:** fluidsynth + a GM soundfont,
+  LinuxSampler.
+- **"Is it gonna make an audio interface?"** — doesn't need to: PipeWire+
+  ALSA already drive any class-compliant USB Audio interface (most
+  consumer gear, most electric organs' USB audio/MIDI included) with zero
+  extra software the instant it's plugged in. What Linux genuinely lacks a
+  UI for is a specific interface's onboard DSP mixer/loopback/gain — so
+  `alsa-scarlett-gui` ships for Focusrite Scarlett, the most common
+  consumer interface, as the one real gap worth closing by name.
+- **"Is it gonna make... a mixer?"** — not a bolted-on separate app:
+  Ardour's Mixer view already IS the real multi-channel console (channel
+  strips, EQ, sends, automation). `meterbridge` adds standalone always-
+  visible VU/peak meters for the "watch the levels" half. The classic
+  standalone JACK mixers (qjackctl/cadence/non-mixer) are gone from
+  nixpkgs — unmaintained upstream — and would be the wrong tool anyway:
+  PipeWire already IS the JACK-compatible server here.
+- **A synth?** Yes, six of them (above) — plus setBfree turns the machine
+  itself into one voiced specifically for the organ.
+- **Utility:** VMPK (virtual MIDI keyboard — test/trigger without the
+  organ plugged in), Audacity, MuseScore.
+- **Plugins:** Calf, LSP, x42, Guitarix.
+- **Routing:** Carla (plugin host), qpwgraph (visual PipeWire patchbay —
+  Helvum, the older pick, was checked and confirmed dropped from
+  nixpkgs). Flagged as the first thing to reach for if the organ's
+  class-compliant USB MIDI/audio doesn't auto-route into the DAW.
+
+**Considered and parked, not shipped** (apps.md's own convention — an
+omission stated, not silent): Rosegarden (notation+sequencing already
+covered by MuseScore+Ardour/LMMS), DrumGizmo and Sonic Visualiser (real,
+but heavier/more niche than this pass needs), AMS and Klystrack
+(modular/chiptune — a different audience). Revisit if Max wants them.
+
+Every package name above — including this expansion — was checked against
+this flake's pinned nixpkgs rev with `nix eval` before being written down.
+Two real bugs were caught this way, not guessed around: the `surge-xt`
+casing (nixpkgs renamed it from `surge-XT`) and the `linuxPackages-rt`
+removal.
+
+**To test (Max, on the real machine):** add
+`golem.modules.music-production.enable = true;` to the `golem` host's
+module list in `flake.nix` (next to `golem.flakeDir`), then
+`rebuild-golem`. Whatever the organ actually needs beyond "plug in a
+class-compliant USB MIDI/audio device" — it should just work via ALSA/
+PipeWire without extra udev rules, but this is exactly the sentence real
+hardware gets to overrule.
+
+### 4.10 Proposed additions (not yet confirmed — flagging, not deciding)
 Development toolchains (language runtimes + editors, likely overlaps
-existing dev habits from the ACTIONS research), Audio Production (Ardour,
-Reaper-via-wine candidates), 3D/CAD (Blender, FreeCAD). Left out of the
-confirmed list until Max says which of these earn a slot.
+existing dev habits from the ACTIONS research), 3D/CAD (Blender, FreeCAD).
+Left out of the confirmed list until Max says which of these earn a slot.
 
 ## 5. Naming & file layout
 
@@ -265,8 +352,11 @@ launcher checkout, consuming whatever catalog format §8 settles on.
   Claude, reviewed) wrote and committed, per §2. This is deliberately not
   as open-ended as a package manager; it's a curated set, same spirit as
   `apps.md`'s CURATE column.
-- **Open, Max's call:** build order (§4.6 Image Editing is the lowest-risk
-  first real category — no groups, no reboot, no hardware gate — good
-  proof-of-mechanism before Gaming/Virtualization's harder cases); the
-  §4.7 vs WEBAPP overlap question; whether §4.9's proposed categories ship
+- **Build order, settled:** Max picked Music Production first (§4.9) over
+  this doc's original "start cheap with Image Editing" suggestion — a
+  harder category (real audio-subsystem config, a physical instrument to
+  validate against), which makes it a better stress test of the mechanism
+  than a packages-only category would have been. Image Editing remains the
+  cheap fallback if a lower-risk category is ever needed. **Still open:** the
+  §4.7 vs WEBAPP overlap question; whether §4.10's proposed categories ship
   at all.

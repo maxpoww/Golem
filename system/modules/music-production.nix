@@ -10,8 +10,9 @@ let
 in
 {
   options.golem.modules.music-production.enable = lib.mkEnableOption ''
-    Music Production — the full studio in one switch: DAWs, synthesizers
-    (including a Hammond/tonewheel organ emulator), effect plugins, a
+    Music Production — the full studio in one switch: DAWs, a loop/beat
+    workstation, synthesizers (including a Hammond/tonewheel organ
+    emulator), a live looper, audio-interface control, effect plugins, a
     patchbay, sample/soundfont playback and low-latency audio tuning.
   '';
 
@@ -47,32 +48,87 @@ in
     # absorbed for all but extreme deterministic-latency use cases.
 
     environment.systemPackages = with pkgs; [
-      # DAWs — record, edit, produce. Ardour is the open-source flagship;
-      # Reaper is the widely-loved proprietary pick with the best plugin/
-      # hardware compatibility track record on Linux. Both ship so nothing
-      # forces a workflow before the organ's even plugged in.
+      # DAWs — record, edit, produce, each a different shape of the same
+      # job. Ardour is the open-source flagship (full multitrack record/
+      # mix/master, and — this IS the mixer answer, see below — a real
+      # multi-channel mixing console built in, not bolted on). Reaper is
+      # the widely-loved proprietary pick with the best plugin/hardware
+      # compatibility track record on Linux. LMMS is the loop/beat
+      # workstation — pattern-based, sample-driven, the one to reach for
+      # building a track around a riff rather than tracking a live take.
+      # Qtractor is a lighter native alternative when Ardour is more than
+      # the job needs. None forces a workflow before the organ's even
+      # plugged in.
       ardour
       reaper
+      lmms
+      qtractor
+
+      # Rhythm section. Hydrogen programs drum patterns/full kits; Giada
+      # is a loop-based live-performance sampler (trigger clips/loops from
+      # a grid, built for playing rather than arranging).
+      hydrogen
+      giada
+
+      # LIVE LOOPING — the organ-specific case "record, produce, reproduce"
+      # implies beyond a DAW: play a phrase, loop it, layer the next one on
+      # top, hands free, no mouse. SooperLooper is purpose-built for this.
+      sooperlooper
 
       # The organ, specifically: setBfree emulates a tonewheel (Hammond-
       # style) organ + spinning Leslie speaker — the one pick made FOR an
       # electric organ rather than music production in general.
       setbfree
 
-      # Softsynths, spread across synthesis styles (subtractive/analog-
-      # modeled, additive, FM, wavetable) so whatever the organ's MIDI out
-      # feeds has somewhere useful to go beyond its own voice.
+      # Softsynths, spread across synthesis styles so whatever the organ's
+      # MIDI out feeds has somewhere useful to go beyond its own voice:
+      # Surge XT and Odin2 (subtractive/wavetable/semi-modular — the two
+      # most-reached-for free synths right now), ZynAddSubFX and Yoshimi
+      # (additive/subtractive workstation-class engines), Dexed (FM, a
+      # DX7 clone), Helm (a lighter subtractive synth), Vital (wavetable —
+      # arguably the single most popular free synth today; leaving it out
+      # of the first pass was a real gap, not a deliberate cut).
       surge-xt
+      odin2
       zynaddsubfx
       yoshimi
       dexed
       helm
+      vital
 
-      # Sample/soundfont playback — General MIDI fallback (fluidsynth +
-      # a real soundfont) and a full softsampler for sample libraries.
+      # Sample/soundfont playback — General MIDI fallback (fluidsynth + a
+      # real soundfont) and a full softsampler for sample libraries.
       fluidsynth
       soundfont-fluid
       linuxsampler
+
+      # AUDIO INTERFACE, answered directly: Golem doesn't need to "become"
+      # one — PipeWire+ALSA already drive any class-compliant USB Audio
+      # interface (which covers the overwhelming majority of consumer
+      # gear, most electric organs' USB audio/MIDI included) with zero
+      # extra software the moment it's plugged in. alsa-scarlett-gui is
+      # the one addition worth naming: it's the control panel for
+      # Focusrite Scarlett interfaces specifically — the single most
+      # common consumer interface — reaching the onboard DSP mixer/
+      # loopback/gain controls Linux otherwise has no UI for at all.
+      alsa-scarlett-gui
+
+      # MIXER, answered directly: NOT a separate app bolted onto PipeWire —
+      # Ardour's Mixer window (above) is the real multi-channel console
+      # (channel strips, EQ, sends, automation) and is where mixing
+      # actually happens in this stack. meterbridge adds standalone,
+      # always-visible VU/peak meters across a session for the "watch the
+      # levels" half of that job. (qjackctl/cadence/non-mixer, the classic
+      # standalone JACK mixer apps, are gone from nixpkgs — unmaintained
+      # upstream — and would be the wrong tool here anyway: PipeWire IS
+      # the JACK-compatible server on this system, nothing needs to start
+      # a second one.)
+      meterbridge
+
+      # A keyboard when the organ isn't plugged in (testing, triggering a
+      # synth on its own, sanity-checking MIDI routing before blaming the
+      # hardware).
+      vmpk
 
       # Effect plugins (EQ, compression, reverb, amp/cab sims) — the
       # everyday toolkit a DAW reaches into while mixing.

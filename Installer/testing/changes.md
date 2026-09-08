@@ -26,6 +26,32 @@ the same Golem.
 
 ## Queued for the next ISO
 
+> **Discipline note (Max, round 4):** the round-4 stick (`yz5nqhsv…`) is
+> FROZEN and every round-4 machine meets it — no mid-round reburn. The
+> three findings below (#31, #32, #26-reveal) were surfaced DURING the
+> round-4 sweep; they are applied to SOURCE but ship only in the round-5
+> build, exactly as round-3 surface findings waited for round 4.
+
+### 32. GPU verdict tail rendered undimmed in the failing case — [round-4 sweep finding · applied to source · round-5 build]
+- **what (HP, round 4):** the "tested, working · driving this screen"
+  verdict was dim, but "tested, didn't wake up" rendered at full
+  brightness — hw_row dimmed only the " · driver" segment, and the
+  failing verdict has no driver so it fell into the name. Max: make both
+  dim.
+- **fix (applied):** hw_row splits the " — verdict" tail off first and
+  always dims it. Verified in a render test. NOT on the frozen round-4
+  stick — the HP's round-4 screen showed it undimmed.
+- **where:** `mockup/install-cli` hw_row.
+
+### 31. The installer had no way out; the language page advertised a dead "ESC back" — [round-4 finding (Max) · applied to source · round-5 build]
+- **what:** no cancel/quit anywhere, and the first (language) page showed
+  "ESC back" with nothing to go back to.
+- **fix (applied):** F1-to-cancel (read_key detects \eOP / \e[[A / \e[11~;
+  cancel_install exits cleanly); the language page shows "F1 cancel"
+  instead of "ESC back"; the confirm page appends "F1 cancel". key_cancel
+  in 6 languages. NOT on the frozen round-4 stick.
+- **where:** `mockup/install-cli` read_key, pick, step_go, string table.
+
 ### 22. decide.nix crashes on an nvidia machine on the iron-law floor — [fixed in round-3 source, pre-reflash · ASUS verifies on metal]
 - **what (ASUS X550LC, round-2 first contact — the audit's FIRST decide
   failure on metal):** with `gpu/gpu2 = nvidia` but `nvidiaGen =
@@ -181,11 +207,17 @@ decision.json is ready; the decision.json branch now checks `-s` not
 - **downstream:** #25 (IOMMU exclusion) and #10's wording caveat are
   now surface-moot — keep #25 only if the count ever surfaces again.
 
-### 26. A same-chip sibling function enumerates as a second GPU — [APPLIED to source · round-4 build 2026-09-08]
-**Applied:** the gpu2 pick in `hardware-detect.nix` now skips any
-display-class function sharing the primary's PCI slot (domain:bus:dev,
-function stripped) — the Comodore's 00:02.1 sibling of the 00:02.0 GMA
-no longer becomes a phantom gpu2. Comodore verifies on metal.
+### 26. A same-chip sibling function enumerates as a second GPU — [census half in round-4 build; reveal half is round-5]
+**Census half (in the frozen round-4 build):** the gpu2 pick in
+`hardware-detect.nix` skips any display-class function sharing the
+primary's PCI slot (domain:bus:dev, function stripped) — no phantom gpu2
+FACT. Confirmed on the Comodore's round-4 census (no gpu2 line).
+**Reveal half (round-4 sweep finding → round-5 build):** the confirm
+screen STILL showed a phantom "GPU 2" on the Comodore, because
+`reveal_gpus` enumerates display controllers live from lspci,
+independently of the census fact. Same same-slot rule added to
+reveal_gpus — applied to source, NOT on the frozen round-4 stick (the
+Comodore's round-4 screen still showed the phantom).
 - **what (Comodore, round 3):** the GMA 4500 exposes 00:02.0 (VGA,
   boot_vga) AND 00:02.1 (a second display-class function of the SAME
   chip). The census's PCI 0x03* enumeration reports it as
