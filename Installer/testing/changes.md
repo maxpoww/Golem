@@ -52,12 +52,33 @@ the same Golem.
 - **caveat:** couldn't confirm "works" directly — console-only rehearsal
   env, no compositor/GL/Vulkan, and nouveau has no Vulkan below Turing,
   so even a tooled test would only prove OpenGL. Needs a real desktop.
-- **NEEDS-MAX:** keep power-off-entirely as the safe default, or add the
-  "forced-PM-on, offered" path for fault-on-resume dGPUs? And if added,
-  chosen automatically or offered as a choice?
-- **where:** `system/hardware/gpu-second.nix` (the failing branch),
-  `system/hardware-detect.nix` (maybe a third verdict: fails-on-resume
-  vs dead).
+- **DECIDED (Max, round 4): keep it all, ask the user POST-INSTALL.**
+  Don't let the installer decide the dGPU's fate at all — keep the chip
+  available (do NOT power it off at install) and defer the choice to the
+  owner on the installed desktop, where they can actually test it. This
+  is the honest move: "failing" is a wake-test result, not a capability
+  verdict, and only the user in a real session can judge whether the
+  720M does what they need.
+- **what this implies for round 5:**
+  1. **Interim state (shipped default until the user answers):** keep the
+     dGPU usable but fault-free — runtime PM forced off
+     (`power/control=on`, never autosuspend), so it never hits the
+     resume fault and stays available for offload. gpu-second.nix's
+     unconditional power-off for `failing` is REPLACED by this hold.
+  2. **A post-install ASK mechanism — NEW SCOPE.** Golem has no
+     first-boot/settings prompt today (greetd → Hyprland → waverunner).
+     Round 5 needs one: on first desktop login, surface "your second GPU
+     (NVIDIA GT 720M) failed a sleep/wake test during setup — keep it
+     available (uses power), or power it off (saves battery)?" and apply
+     the answer. This is the first of what will likely be several
+     post-install questions, so build it as a small framework, not a
+     one-off.
+  3. The reveal at install still says "didn't wake up" — accurate (it
+     failed the wake test); it just no longer implies "gone."
+- **where:** `system/hardware/gpu-second.nix` (hold, not power-off),
+  a new post-install prompt module + its apply path, `hardware-detect.nix`
+  if a "fails-on-resume vs dead" split helps the wording.
+- **size:** medium-large (the post-install ASK framework is the bulk).
 
 ### 32. GPU verdict tail rendered undimmed in the failing case — [round-4 sweep finding · applied to source · round-5 build]
 - **what (HP, round 4):** the "tested, working · driving this screen"
