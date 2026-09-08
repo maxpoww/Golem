@@ -441,6 +441,7 @@ S[en:e_cpass]='The passwords didn’t match, try again.'
 S[en:p_pass]='Stored hashed, never as text.'
 S[en:p_host]='Other devices on your network will see this name.'
 S[en:key_back]='ESC back'
+S[en:key_cancel]='F1 cancel'
 S[en:t_go]='Install Golem?'
 S[en:drv_line]='%h of %t (%p%) drivers will be installed.'
 S[en:drv_ing]='Identifying drivers…'
@@ -521,6 +522,7 @@ S[es:e_cpass]='Las contraseñas no coinciden, inténtalo de nuevo.'
 S[es:p_pass]='Se guarda cifrada, nunca como texto.'
 S[es:p_host]='Otros dispositivos de tu red verán este nombre.'
 S[es:key_back]='ESC volver'
+S[es:key_cancel]='F1 cancelar'
 S[es:t_go]='¿Instalar Golem?'
 S[es:drv_line]='%h de %t (%p%) controladores se instalarán.'
 S[es:drv_ing]='Identificando controladores…'
@@ -592,6 +594,7 @@ S[fr:e_cpass]='Les mots de passe ne correspondent pas, réessayez.'
 S[fr:p_pass]='Stocké haché, jamais en clair.'
 S[fr:p_host]='Les autres appareils de votre réseau verront ce nom.'
 S[fr:key_back]='ESC retour'
+S[fr:key_cancel]='F1 annuler'
 S[fr:t_go]='Installer Golem ?'
 S[fr:drv_line]='%h sur %t (%p%) pilotes seront installés.'
 S[fr:drv_ing]='Identification des pilotes…'
@@ -663,6 +666,7 @@ S[de:e_cpass]='Die Passwörter stimmen nicht überein, versuch es erneut.'
 S[de:p_pass]='Gehasht gespeichert, nie im Klartext.'
 S[de:p_host]='Andere Geräte in deinem Netzwerk sehen diesen Namen.'
 S[de:key_back]='ESC zurück'
+S[de:key_cancel]='F1 abbrechen'
 S[de:t_go]='Golem installieren?'
 S[de:drv_line]='%h von %t (%p%) Treiber werden installiert.'
 S[de:drv_ing]='Treiber werden erkannt…'
@@ -734,6 +738,7 @@ S[it:e_cpass]='Le password non coincidono, riprova.'
 S[it:p_pass]='Salvata con hash, mai in chiaro.'
 S[it:p_host]='Gli altri dispositivi della tua rete vedranno questo nome.'
 S[it:key_back]='ESC indietro'
+S[it:key_cancel]='F1 annulla'
 S[it:t_go]='Installare Golem?'
 S[it:drv_line]='%h di %t (%p%) driver saranno installati.'
 S[it:drv_ing]='Identificazione dei driver…'
@@ -805,6 +810,7 @@ S[pt:e_cpass]='As palavras-passe não coincidem, tente novamente.'
 S[pt:p_pass]='Guardada com hash, nunca em texto.'
 S[pt:p_host]='Outros dispositivos na sua rede verão este nome.'
 S[pt:key_back]='ESC voltar'
+S[pt:key_cancel]='F1 cancelar'
 S[pt:t_go]='Instalar o Golem?'
 S[pt:drv_line]='%h de %t (%p%) controladores serão instalados.'
 S[pt:drv_ing]='A identificar controladores…'
@@ -1076,8 +1082,14 @@ KEY=''
 # repaints and waits again, which on a dead stdin is a busy loop pinning a
 # core on a laptop that is meanwhile trying to run the census. There is no
 # recovery from stdin going away mid-install, so it leaves here.
+# F1, wherever it is offered, abandons the install and drops back to the
+# shell. Nothing has been written — the disk is only touched after the
+# confirm's ENTER — so cancelling is always safe; the EXIT trap restores
+# the cursor, the keymap and the console marker.
+cancel_install() { exit 0; }
+
 read_key() {                     # $1 timeout, or empty for none
-  local k rest args=(-rsn1) rc
+  local k rest r2 args=(-rsn1) rc
   [ -n "${1:-}" ] && args+=(-t "$1")
   IFS= read "${args[@]}" k; rc=$?
   if (( rc != 0 )); then
@@ -1087,10 +1099,19 @@ read_key() {                     # $1 timeout, or empty for none
   fi
   case $k in
     '')       KEY=ENTER ;;
-    $'\e')    IFS= read -rsn2 -t 0.02 rest
+    $'\e')    IFS= read -rsn2 -t 0.05 rest
               case $rest in
                 '[A') KEY=UP ;; '[B') KEY=DOWN ;;
                 '[C'|'[D') KEY=SIDE ;;
+                # F1 has three forms in the wild: xterm/vt100 sends \eOP,
+                # the Linux fbcon console \e[[A, and some terminals \e[11~.
+                # The first two chars disambiguate; read the tail only for
+                # the two that need it, so arrow keys stay a 2-char match.
+                'OP') KEY=F1 ;;
+                '[[') IFS= read -rsn1 -t 0.05 r2
+                      [ "$r2" = A ] && KEY=F1 || KEY=OTHER ;;
+                '[1') IFS= read -rsn2 -t 0.05 r2
+                      [ "$r2" = '1~' ] && KEY=F1 || KEY=OTHER ;;
                 '')   KEY=ESC ;;
                 *)    KEY=OTHER ;;
               esac ;;
@@ -1185,9 +1206,15 @@ paint_pick() {
   # saying it takes something. It said so anyway until 2026-09-05, which
   # left anyone who mistyped pressing the one key the screen recommended
   # and watching it do nothing, with no way to know BACKSPACE was the exit.
+  # The language step is the only titleless pick (it is the "meet the
+  # machine" step — see THE INVITATION), and it is the FIRST page, with
+  # nothing to go back TO. There the exit key is "F1 cancel", not the
+  # "ESC back" that led nowhere (Max, round 4). Every other pick keeps
+  # ESC back — it has a real previous step.
+  local exitkey; exitkey=$([ -z "$PICK_TITLE" ] && t key_cancel || t key_back)
   if (( ${#MATCH[@]} == 0 )); then
     printf '\r%s[2K%s%s%s  ·  %s%s\n' "$esc" "$IND" "$C_DIM" \
-      "$(t pick_widen)" "$(t key_back)" "$NORM"
+      "$(t pick_widen)" "$exitkey" "$NORM"
     printf '%s[%dA' "$esc" "$BLOCK"
     return
   fi
@@ -1197,7 +1224,7 @@ paint_pick() {
   printf '\r%s[2K%s%s%s  ·  %s%s\n' "$esc" "$IND" "$C_DIM" \
     "$( (( ${#MATCH[@]} > VIEW )) \
         && printf '%s  ·  %d %s' "$(t pick_keys)" "$(( ${#MATCH[@]} - VIEW ))" "$(t more)" \
-        || t pick_keys )" "$(t key_back)" "$NORM"
+        || t pick_keys )" "$exitkey" "$NORM"
   printf '%s[%dA' "$esc" "$BLOCK"
 }
 
@@ -1256,6 +1283,9 @@ pick() {
         [ -n "$QUERY" ] && { QUERY=${QUERY%?}; pick_seed; } ;;
       # ESC is BACK, everywhere in the installer and nowhere else.
       ESC)   erase_block; return 1 ;;
+      # F1 abandons the whole install (offered on the language step, which
+      # has no "back" to go to; harmless elsewhere).
+      F1)    erase_block; cancel_install ;;
       SIDE|OTHER) ;;
       *)     QUERY="$QUERY$KEY"; filter "$QUERY"; SEL=0; FIRST=0; clamp ;;
     esac
@@ -3456,11 +3486,14 @@ step_go() {
     screen; stack
     census_reveal
     printf '\n%s%s%s%s\n\n' "$IND" "$C_ASK" "$(t t_go)" "$NORM"
-    printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t go_keys)" "$NORM"
+    # The last page: ENTER installs, ESC steps back, F1 abandons the whole
+    # thing (the round-4 escape hatch — Max: the installer had no way out).
+    printf '%s%s%s  ·  %s%s\n' "$IND" "$C_DIM" "$(t go_keys)" "$(t key_cancel)" "$NORM"
     read_key || continue
     case $KEY in
       ENTER) break ;;
       ESC)   return 1 ;;
+      F1)    cancel_install ;;
       # Ctrl+D is the hidden door — never on the guide line, never
       # announced. It opens the developer disclaimer; whatever that returns,
       # we come back to redraw the confirm and wait again.
