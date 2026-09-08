@@ -108,3 +108,25 @@ with a panelDpi fact on metal, and the first UEFI rehearsal on NVMe
   after #25 — honest beats clever.
 - **Verdict:** PASS, 0 findings — the machine that filed #11/#21a/#21b
   watched all three die on its own screen one round later.
+
+## Round 4 (rehearsal check) — 2026-09-08 — the round-4 build verified on AMD metal · 0 findings
+
+- **ISO:** round-4 (`yz5nqhsv…`); markers confirmed (wait_for_audit
+  present, audit tty1-banner marker guard present). Audit ok.
+- **The round-4 fixes, seen on this machine's own screen:**
+  - **#21c AUDIO FIXED — the headline for this machine:** row now reads
+    `AMD [AMD] Ryzen HD Audio Controller · snd_hda_intel` — the real
+    speakers. Round 2/3 showed "Renoir/Cezanne HDMI/DP Audio" (the wrong
+    HDMI function). The machine that filed #21a/#21c watched it land.
+  - **R3-4:** `Scheduler  Bfq on hard disks, default on SSD/NVMe` (was
+    "bfq on rotational disks" — vacuous on this NVMe box).
+  - #21b touchpad still correct (`Elantech Touchpad · psmouse`, not the
+    TrackPoint), lid value translated. No phantom gpu2, no count line.
+  - R3-5 scale row correctly ABSENT (panelDpi 143 → normal density, not
+    high-DPI; only the Lenovo's 239→1.60 surfaces one).
+- **Rehearsal:** `status: ok`, all checks green, **eval 22 s** (matches
+  its round-3 record pace), UEFI→systemd-boot. Windows on the NVMe
+  untouched — all four partition UUIDs identical.
+- **Verdict:** PASS — round-4 build confirmed on the AMD machine, its own
+  audio finding fixed on its own screen. First of the round-4 rehearsal
+  sweep (all PCs checked before the ASUS gets the first REAL install).

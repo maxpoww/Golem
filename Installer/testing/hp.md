@@ -228,3 +228,33 @@ to 4** so this boot still behaves like round 2.
   health verdict is a false positive on the one lab machine with a
   genuinely dead dGPU. The reveal is confidently wrong, which is worse
   than silent. Revised probe → round 4, and the HP is its proof.
+
+## Round 4 (rehearsal check) — 2026-09-08 — the failing-dGPU path PROVEN end to end · #17c closed
+
+The machine that exposed every step of the hybrid-GPU problem now proves
+the whole chain, on its own metal:
+
+- **ISO:** round-4 (`yz5nqhsv…`, pre-F1). BIOS. Audit ok.
+- **THE HEADLINE — force-cold convicts the dead radeon:** boot audit
+  `gpu2Health = "failing"`. Round 3's passive probe gave a FALSE POSITIVE
+  ("working") here; round 4's force-cold-before-every-poke (#23/#23b)
+  correctly reads the Evergreen's resume failure at boot. First time the
+  audit itself calls it failing.
+- **Reveal — the exact approved wording, from a real verdict:**
+  `GPU   Intel Core Processor Graphics · i915 — tested, working · driving this screen`
+  `GPU 2 AMD/ATI Radeon HD 6370M — tested, didn't wake up`
+  No driver name on GPU 2 (nothing drives a sleeping chip — the #17
+  decision), gpu_short trims the name to fit.
+- **The target POWERS IT OFF — first from a real verdict on metal:** the
+  evaluated toplevel closure contains the `golem-dgpu-off` service
+  (gpu-second.nix). Until now the failing branch was proven only by
+  fixture eval; here it evaluated from facts measured on the machine
+  whose radeon actually fails. The installed HP would cut the chip's
+  power (vgaswitcheroo OFF + PCI remove) — no spam, no wake-drain.
+- **Console quiet:** 0 radeon/GART lines on tty1 (#17a holds at loglevel 3).
+- **Rehearsal:** `status: ok`, all green — BIOS→GRUB, `ok ram: 3718 MB`,
+  facts match, **eval 44 s**. Disk untouched (ext4 "root" + swap intact).
+- **Verdict:** PASS — and the completion of #17c ("we can not have Golem
+  leaving all dedicated GPUs out"): census → force-cold verdict → honest
+  reveal wording → target power-off, the full health-gated design proven
+  on the machine that taught us every piece of it.

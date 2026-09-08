@@ -183,3 +183,26 @@ UEFI-check catch WITH a completed eval and a real target.
 - **Verdict:** PASS, 0 findings — the BIOS/GRUB branch and the console
   quiet both hold; the machine whose ME is dead, EC storms, and RTC is
   a decade off still sails through.
+
+## Round 4 (rehearsal check) — 2026-09-08 — round-4 build verified on BIOS metal · 0 findings · a live #28 near-miss
+
+- **ISO:** round-4 (`yz5nqhsv…`, pre-F1 — the F1 change is batched for the
+  pre-ASUS reburn). wait_for_audit marker present. BIOS.
+- **Live #28 sighting:** first SSH read caught the audit status EMPTY —
+  still running (~18 s more) on the slow Sandy Bridge. This is exactly
+  the race #28's wait_for_audit bridges: a fast user reaching golem-setup
+  here would now be held until the audit is done instead of seeing "audit
+  incomplete" + a tty1 dump. (Driven after it finished, so moot for the
+  result.)
+- **Round-4 fixes on screen:** Scheduler `Bfq on hard disks, default on
+  SSD/NVMe` (R3-4). Audio `6 Series/C200 … HD Audio · snd_hda_intel` —
+  the real chipset HDA (00:1b.0); the #21c topology filter leaves the
+  already-correct single-audio case untouched. GPU verdict row,
+  GlidePoint · psmouse, Ethernet row, no phantom gpu2, no count line.
+- **Rehearsal:** `status: ok`, all green — BIOS→GRUB to sdb, target≠medium,
+  fit, `ok ram: 5809 MB`, facts match, **eval 173 s** (Sandy Bridge +
+  Hitachi, consistent with round 2/3's 171 s). mei console spam: **0 on
+  tty1** (#17a still holds). Disk untouched — sdb xfs `492cfb55…` + ext4
+  "home" `bd0c3e05…`, identical.
+- **Verdict:** PASS — round-4 build clean on the BIOS/dead-keyboard box,
+  and a real-world glimpse of the #28 race the build now handles.

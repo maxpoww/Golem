@@ -180,3 +180,22 @@ built). Keyfile kept (rehearsal opened nothing), then shredded.
   Windows partitions intact).
 - **Verdict:** PASS — row 1 confirms round 3 on the UEFI/Intel/iHD
   path; one cosmetic refinement queued.
+
+## Round 4 (rehearsal check) — 2026-09-08 — round-4 build verified · 0 findings · #21c fixed here too
+
+- **ISO:** round-4 (`yz5nqhsv…`, pre-F1). UEFI, 3833 MB. Audit ok.
+- **#21c AUDIO FIXED on the Acer:** row now reads `Intel Wildcat Point-LP
+  High Definition Audio Controller · snd_hda_intel` — the real PCH codec
+  (00:1b.0). Round 3 showed "Broadwell-U Audio Controller" (00:03.0, the
+  iGPU display-audio the old filter missed). The Intel-00:03-beside-00:02
+  rule catches it.
+- **Other round-4 fixes:** Scheduler `Bfq on hard disks, default on
+  SSD/NVMe` (R3-4); GPU verdict row; QCA9377 · ath10k_pci + Bluetooth
+  (triangulation); touchpad `· hid-multitouch` (R3-1). No phantom gpu2
+  (single GPU), no count line.
+- **RAM boundary pass again:** `ok ram: 3833 MB` — the closest pass to
+  the 3300 cutoff, holding.
+- **Rehearsal:** `status: ok`, all green, **eval 30 s** (matches round 3),
+  UEFI→systemd-boot. Disk untouched — ESP + NTFS "Acer" + WinRE intact.
+- **Verdict:** PASS — round-4 build clean; the Acer's audio row joins the
+  ThinkPad's in being fixed by #21c on its own screen.

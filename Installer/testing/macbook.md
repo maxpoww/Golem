@@ -197,3 +197,27 @@ things, one root cause, plus a third separate one:
   has; watch if wl-class closures need a higher cutoff.
 - **The count line** in the photo ("18 of 20 (90%)") is already
   removed at source (#27); the frozen stick still shows it.
+
+## Round 4 (rehearsal check) — 2026-09-08 — round-4 build verified · wl closure holds · #21c fixed here too
+
+- **ISO:** round-4 (`yz5nqhsv…`, frozen). Apple EFI (UEFI), 3858 MB.
+  Audit ok. Via the USB-ethernet dongle (internal BCM4360 dark on the
+  medium, as always).
+- **#21c AUDIO FIXED:** row reads `Intel 8 Series HD Audio Controller ·
+  snd_hda_intel` — the real PCH codec (00:1b.0). Round 3 showed
+  "Haswell-ULT HD Audio Controller" (00:03.0 display audio); the Intel
+  00:03-beside-00:02 rule catches it.
+- **wl STILL in the target closure:** 6 broadcom store paths (broadcom-wl
+  + the auth patch) — census `broadcomWifi = true` → broadcom-wifi.nix →
+  wl, unchanged through the round-4 build. Wi-Fi row honestly names the
+  BCM4360 · bcma-pci-bridge (present-not-functional on the medium).
+- **Other round-4 fixes:** Scheduler wording, GPU verdict row, Apple
+  trackpad · apple, no count line. i965 legacy decode (Haswell).
+- **Rehearsal:** `status: ok`, all green, `ok ram: 3858 MB`, **eval 93 s**
+  (memory-pressured — the wl-carrying closure is heavy on 3.8 GB, but it
+  completed clean this time, single-threaded). **Disk SAFE:** blkid -L
+  golem = none (no golem fs created), sda2 ext4 "root" (the MacBook's own
+  prior Linux) intact.
+- **Verdict:** PASS — the boss fight's wl path survives the round-4 build,
+  audio fixed, disk safe. wl live-up proof still awaits the first REAL
+  install (round 4's install phase).

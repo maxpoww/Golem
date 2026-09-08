@@ -32,6 +32,33 @@ the same Golem.
 > round-4 sweep; they are applied to SOURCE but ship only in the round-5
 > build, exactly as round-3 surface findings waited for round 4.
 
+### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [NEEDS-MAX · round 5]
+- **what (ASUS, round 4; Max: "that is not possible, the 720m works"):**
+  the health probe correctly reads the GF117M as `failing` — it throws
+  PRIVRING faults on autosuspend→resume (proven: 3 faults at
+  14/22.7/33.3 s, and the cross-machine force-cold check calls it broken
+  where it keeps the Lenovo's RTX healthy). But "failing" specifically
+  means "does not survive being autosuspended and woken," NOT "cannot do
+  work once up." Max is very plausibly right that the 720M works in
+  ordinary use. gpu-second.nix currently powers it OFF entirely ("kept
+  quiet") — the safe response to what the probe can prove, but possibly
+  leaving usable GPU on the table.
+- **the option (from the other session):** instead of powering off, offer
+  a fault-on-resume dGPU with **runtime PM forced off**
+  (`power/control = on`, never autosuspend). The fault only happens on
+  resume-from-suspend; never suspending it dodges the fault and keeps it
+  available for render-offload. Cost: it never sleeps (battery/heat) — so
+  this is a real trade, arguably a per-user call, not an obvious default.
+- **caveat:** couldn't confirm "works" directly — console-only rehearsal
+  env, no compositor/GL/Vulkan, and nouveau has no Vulkan below Turing,
+  so even a tooled test would only prove OpenGL. Needs a real desktop.
+- **NEEDS-MAX:** keep power-off-entirely as the safe default, or add the
+  "forced-PM-on, offered" path for fault-on-resume dGPUs? And if added,
+  chosen automatically or offered as a choice?
+- **where:** `system/hardware/gpu-second.nix` (the failing branch),
+  `system/hardware-detect.nix` (maybe a third verdict: fails-on-resume
+  vs dead).
+
 ### 32. GPU verdict tail rendered undimmed in the failing case — [round-4 sweep finding · applied to source · round-5 build]
 - **what (HP, round 4):** the "tested, working · driving this screen"
   verdict was dim, but "tested, didn't wake up" rendered at full
