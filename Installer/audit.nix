@@ -107,7 +107,14 @@
       # laptop wants; the rest is a `cat` away. Taking a slice rather than
       # naming sections means the banner follows the report instead of
       # having its own opinion about what matters.
-      if [ -w /dev/tty1 ] && [ -s "$out/decision.json" ]; then
+      # …unless golem-setup already owns the console. On a slow machine
+      # the audit can finish AFTER a fast user has started the installer,
+      # and this dump then lands on top of the confirm screen, staircased
+      # by the raw-mode tty (#28, MacBook round 3). golem-setup drops this
+      # marker while it holds tty1; the audit's files are always there to
+      # cat, so skipping the banner costs nothing.
+      if [ -w /dev/tty1 ] && [ -s "$out/decision.json" ] \
+         && [ ! -e /run/golem-setup.owns-console ]; then
         {
           echo
           echo "-------- Golem census: this machine --------"

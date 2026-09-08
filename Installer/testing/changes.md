@@ -118,7 +118,14 @@ names as fallback — so the TrackPoint no longer shadows the pad.
   verdict, libfprint-support gated).
 - **size:** small–medium; wording needs-Max.
 
-### 28. The boot audit dumps its census to tty1 and RACES golem-setup — [round 4, important]
+### 28. The boot audit dumps its census to tty1 and RACES golem-setup — [APPLIED to source · round-4 build 2026-09-08]
+**Applied both halves:** (1) `audit.nix` skips its tty1 banner when
+`/run/golem-setup.owns-console` exists; golem-setup drops that marker at
+startup and clears it in the EXIT trap. (2) `census_reveal` calls
+`wait_for_audit` first — a bounded (45 s) poll of the audit status
+(empty = running, non-empty = terminal), so the reveal draws only once
+decision.json is ready; the decision.json branch now checks `-s` not
+`-r` so a failed audit's empty json falls through to the audit_bad line.
 - **what (MacBook, round 3, Max's photo):** on a slow machine the boot
   audit takes ~60 s (this boot: 26.8→86.9 s on 3.8 GB). `golem-audit-
   start` prints its full census table to `/dev/tty1` when it FINISHES
@@ -161,7 +168,11 @@ names as fallback — so the TrackPoint no longer shadows the pad.
 - **downstream:** #25 (IOMMU exclusion) and #10's wording caveat are
   now surface-moot — keep #25 only if the count ever surfaces again.
 
-### 26. A same-chip sibling function enumerates as a second GPU — [round 4, concrete]
+### 26. A same-chip sibling function enumerates as a second GPU — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** the gpu2 pick in `hardware-detect.nix` now skips any
+display-class function sharing the primary's PCI slot (domain:bus:dev,
+function stripped) — the Comodore's 00:02.1 sibling of the 00:02.0 GMA
+no longer becomes a phantom gpu2. Comodore verifies on metal.
 - **what (Comodore, round 3):** the GMA 4500 exposes 00:02.0 (VGA,
   boot_vga) AND 00:02.1 (a second display-class function of the SAME
   chip). The census's PCI 0x03* enumeration reports it as
@@ -177,7 +188,11 @@ names as fallback — so the TrackPoint no longer shadows the pad.
   `mockup/install-cli` reveal follows the facts.
 - **size:** small.
 
-### 25. The driver count still holds one phantom class: the IOMMU — [round 4, small]
+### 25. The driver count still holds one phantom class: the IOMMU — [MOOT — the count line is gone (#27)]
+Superseded: #27 removed the driver-count line from the surface entirely,
+so there is no count left to make honest. Kept only as a note in case
+the count ever returns to the AUDIT bundle (not the stranger's screen),
+where excluding class 0806 (IOMMU) like the 06xx bridges would apply.
 - **what (ThinkPad round 3, chased on a dedicated boot after Max asked
   why 89%):** the 2 driverless of 19 are (a) `00:00.2` the AMD IOMMU
   function (class 0806) — which NEVER shows "Kernel driver in use" on
@@ -192,7 +207,12 @@ names as fallback — so the TrackPoint no longer shadows the pad.
   missing one by class); 94% honest beats 100% clever.
 - **where:** `mockup/install-cli` `probe_compute` (the class filter).
 
-### 21c. The audio row's HDMI filter misses Intel's naming — [round 4, concrete]
+### 21c. The audio row's HDMI filter misses Intel's naming — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** `audio_row` now uses two filters — the HDMI/DP name filter
+(splits an AMD APU's HDMI function 04:00.1 from its real speakers 04:00.6,
+which share the GPU's slot so topology can't) PLUS the Intel rule (drop
+00:03 when a display device sits at 00:02). Unit-tested on ASUS/ThinkPad/
+Comodore/Dell layouts — all pick the real speakers.
 - **what (Acer round 3; ASUS retroactively):** #21a excludes audio
   devices with "HDMI" in the name — but Intel's GPU-audio functions are
   named "Broadwell-U Audio Controller" / "Haswell-ULT HD Audio
@@ -409,7 +429,11 @@ Both changes are needed; only one of them is sufficient.
 - **size:** small (one line) — but it is the second instance of a class
   the lab has now been bitten by twice.
 
-### R3-4. The scheduler row is vacuous on a machine with no rotational disk — [round 4, small]
+### R3-4. The scheduler row is vacuous on a machine with no rotational disk — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** reworded (not gated — storage.nix is deliberately fact-free)
+to state the whole policy: `bfq on hard disks, default on SSD/NVMe`
+(decide.nix fallback + dv_bfq in all 6 languages). Now informative on the
+NVMe-only Lenovo instead of describing half a rule.
 - **what (Lenovo, round 3):** the confirm screen reads `Scheduler  Bfq on
   rotational disks` on an **NVMe-only** machine. True, and completely
   uninformative — it describes a rule, not this disk. The first NVMe
@@ -422,7 +446,12 @@ Both changes are needed; only one of them is sufficient.
   `system/hardware/decide.nix`).
 - **size:** small.
 
-### R3-5. panelDpi / scale is decided but never revealed — [round 4, small]
+### R3-5. panelDpi / scale is decided but never revealed — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** the reveal now surfaces the `scale` row from decision.json
+(added to the jq select + a `dl_scale` label in 6 languages), shown only
+when it is not 1.0 (decide.nix writes "none (normal density)" there,
+which the reveal skips). The Lenovo's 1.60 now appears on the confirm
+screen; ordinary-density machines stay quiet.
 - **what (Lenovo, round 3 — first high-DPI panel on lab metal):** the
   census decides `panelDpi = 239` → `scale 1.60` and shows it in
   `summary.txt`, but **no panel or scale row appears on the confirm
@@ -436,7 +465,12 @@ Both changes are needed; only one of them is sufficient.
   section.
 - **size:** small.
 
-### 20b. …and the round-3 fix has a SECOND failure mode — [round 4]
+### 20b. …and the round-3 fix has a SECOND failure mode — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** `disk_load` takes the first NON-empty PKNAME
+(`grep -m1 .`), and when there is none (a USB isohybrid mounts the whole
+disk, no partition) uses the source node itself (`boot=${src##*/}`) —
+the engine target≠medium check's exact recipe. The stick is no longer
+offered in the drive list.
 - **what (ASUS, round 3 machine 1):** the #20 fix chases `/iso` — but a
   USB isohybrid mounts from the WHOLE DISK (`findmnt` says `/dev/sdb`,
   no partition), whose own PKNAME row is EMPTY, and `head -1` grabs that

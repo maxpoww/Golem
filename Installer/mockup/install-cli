@@ -504,10 +504,11 @@ S[en:dv_swap]='%1 GiB, for hibernation'
 S[en:dv_on]='on'
 S[en:dv_off]='off'
 S[en:dv_lid_sth]='suspend, then hibernate'
-S[en:dv_bfq]='bfq on rotational disks'
+S[en:dv_bfq]='bfq on hard disks, default on SSD/NVMe'
 S[en:dv_kdef]='kernel default'
 S[en:dl_lid]='lid'
 S[en:dl_sched]='scheduler'
+S[en:dl_scale]='scale'
 
 S[es:l_name]='nombre'
 S[es:l_host]='dispositivo'
@@ -574,10 +575,11 @@ S[es:dv_swap]='%1 GiB, para hibernar'
 S[es:dv_on]='activado'
 S[es:dv_off]='desactivado'
 S[es:dv_lid_sth]='suspender, luego hibernar'
-S[es:dv_bfq]='bfq en discos rotacionales'
+S[es:dv_bfq]='bfq en discos duros, predeterminado en SSD/NVMe'
 S[es:dv_kdef]='predeterminado del núcleo'
 S[es:dl_lid]='tapa'
 S[es:dl_sched]='planificador'
+S[es:dl_scale]='escala'
 
 S[fr:l_name]='nom'
 S[fr:l_host]='appareil'
@@ -644,10 +646,11 @@ S[fr:dv_swap]='%1 GiB, pour l’hibernation'
 S[fr:dv_on]='activé'
 S[fr:dv_off]='désactivé'
 S[fr:dv_lid_sth]='veille, puis hibernation'
-S[fr:dv_bfq]='bfq sur les disques rotatifs'
+S[fr:dv_bfq]='bfq sur disques durs, défaut sur SSD/NVMe'
 S[fr:dv_kdef]='défaut du noyau'
 S[fr:dl_lid]='capot'
 S[fr:dl_sched]='ordonnanceur'
+S[fr:dl_scale]='échelle'
 
 S[de:l_name]='Name'
 S[de:l_host]='Gerät'
@@ -714,10 +717,11 @@ S[de:dv_swap]='%1 GiB, für den Ruhezustand'
 S[de:dv_on]='an'
 S[de:dv_off]='aus'
 S[de:dv_lid_sth]='Standby, dann Ruhezustand'
-S[de:dv_bfq]='bfq auf rotierenden Platten'
+S[de:dv_bfq]='bfq auf Festplatten, Standard bei SSD/NVMe'
 S[de:dv_kdef]='Kernel-Standard'
 S[de:dl_lid]='Deckel'
 S[de:dl_sched]='Scheduler'
+S[de:dl_scale]='Skalierung'
 
 S[it:l_name]='nome'
 S[it:l_host]='dispositivo'
@@ -784,10 +788,11 @@ S[it:dv_swap]='%1 GiB, per l’ibernazione'
 S[it:dv_on]='attivato'
 S[it:dv_off]='disattivato'
 S[it:dv_lid_sth]='sospensione, poi ibernazione'
-S[it:dv_bfq]='bfq sui dischi rotazionali'
+S[it:dv_bfq]='bfq sui dischi rigidi, predefinito su SSD/NVMe'
 S[it:dv_kdef]='predefinito del kernel'
 S[it:dl_lid]='coperchio'
 S[it:dl_sched]='scheduler'
+S[it:dl_scale]='scala'
 
 S[pt:l_name]='nome'
 S[pt:l_host]='dispositivo'
@@ -854,10 +859,11 @@ S[pt:dv_swap]='%1 GiB, para hibernação'
 S[pt:dv_on]='ativado'
 S[pt:dv_off]='desativado'
 S[pt:dv_lid_sth]='suspender, depois hibernar'
-S[pt:dv_bfq]='bfq em discos rotativos'
+S[pt:dv_bfq]='bfq em discos rígidos, padrão em SSD/NVMe'
 S[pt:dv_kdef]='padrão do kernel'
 S[pt:dl_lid]='tampa'
 S[pt:dl_sched]='escalonador'
+S[pt:dl_scale]='escala'
 
 t() {
   local k=$1 v
@@ -2356,7 +2362,16 @@ disk_load() {
   # fallback, where the root really is a disk.
   local boot='' src
   src=$(findmnt -no SOURCE /iso 2>/dev/null) || src=$(findmnt -no SOURCE / 2>/dev/null || true)
-  [ -n "$src" ] && boot=$(lsblk -no PKNAME "$src" 2>/dev/null | head -1 || true)
+  if [ -n "$src" ]; then
+    # A USB isohybrid mounts /iso from the WHOLE DISK (/dev/sdb), not a
+    # partition — so its PKNAME row is EMPTY and `head -1` grabbed the
+    # blank line, leaving boot='' and offering the stick anyway (#20b,
+    # ASUS round 3). Take the first NON-empty PKNAME; if there is none,
+    # the source already IS the whole disk, so strip /dev/ off it — the
+    # exact recipe the engine's target≠medium check uses.
+    boot=$(lsblk -no PKNAME "$src" 2>/dev/null | grep -m1 . || true)
+    [ -n "$boot" ] || boot=${src##*/}
+  fi
 
   # --pairs, NOT plain columns. lsblk's list output simply OMITS an empty
   # column, and virtio disks have no MODEL and no TRAN — so `read` shifted
@@ -2886,8 +2901,28 @@ FAKE_INSTALL=no
 # wi-fi" — is read live off the machine, because that is the one a summary
 # from a file cannot fake convincingly. A GPU name pulled from lspci on the
 # same silicon the session is running is proof, not a promise.
+# #28: hold the reveal until the boot audit has finished. audit.nix
+# creates status EMPTY at the start and writes "ok"/"FAILED …" only when
+# it ends — so a non-empty status is terminal, an empty one is still
+# running. A fast user on a slow machine (MacBook: 60 s audit) reached
+# this screen mid-audit: the rows read "audit incomplete", then the
+# audit's own tty1 banner landed on top (the owns-console marker now
+# stops that half). Bounded; if there is no status file at all there is
+# no audit to wait for (dev box / demo).
+wait_for_audit() {
+  local i
+  [ -e /var/log/golem-audit/status ] || return 0
+  [ -s /var/log/golem-audit/status ] && return 0
+  printf '\n%s%s%s%s' "$IND" "$C_DIM" "$(t reading)" "$NORM"
+  for i in $(seq 1 45); do
+    [ -s /var/log/golem-audit/status ] && break
+    sleep 1
+  done
+}
+
 census_reveal() {
   local k v
+  [ "$FAKE_CENSUS" = yes ] || wait_for_audit
   if [ "$FAKE_CENSUS" = yes ]; then
     # Curated to the decisions worth showing next to the hardware — the
     # ones the hardware block does not already imply (no `driver`, no
@@ -2899,7 +2934,7 @@ thermald|on
 lid|suspend-then-hibernate
 scheduler|bfq on rotating disks
 EOF
-  elif [ -r /var/log/golem-audit/decision.json ] && command -v jq >/dev/null 2>&1; then
+  elif [ -s /var/log/golem-audit/decision.json ] && command -v jq >/dev/null 2>&1; then
     # ${val^} capitalises the first letter of the DECISION values — these
     # are descriptive, not identifiers, so lifting the first letter is
     # safe. A value that leads with a number ("6 GiB…") is unchanged.
@@ -2929,11 +2964,18 @@ EOF
       case $k in
         lid)       lbl=$(t dl_lid) ;;
         scheduler) lbl=$(t dl_sched) ;;
+        scale)     lbl=$(t dl_scale)
+                   # R3-5: the scale is the most visible thing about a
+                   # high-DPI machine after first boot, and the reveal
+                   # never mentioned it. Show it — but only when it is
+                   # NOT 1.0 (decide.nix writes "none (normal density)"
+                   # there), so ordinary-density machines stay quiet.
+                   case $val in none*) continue ;; esac ;;
       esac
       answered "$lbl" "${val^}"
     done < <(
       jq -r '.[] | .rows[] | select(.k=="zram" or .k=="swap" or .k=="thermald"
-             or .k=="lid" or .k=="scheduler")
+             or .k=="lid" or .k=="scheduler" or .k=="scale")
              | [.k, (.key // ""), ((.args // []) | join("\u001e")), .v] | join("\u001f")' \
              /var/log/golem-audit/decision.json 2>/dev/null)
   elif [ -r /var/log/golem-audit/status ]; then
@@ -3075,15 +3117,32 @@ hw_pci_all() {
     END { flush() }'
 }
 
-# The audio row must name the SPEAKERS, not the HDMI audio function: AMD
-# APUs (and most modern GPUs) expose an HDMI/DP audio device that
-# enumerates FIRST, so first-match showed "Renoir/Cezanne HDMI/DP Audio"
-# to a ThinkPad owner whose actual sound device is the Family 17h HD
-# Audio (#21a). Prefer the non-HDMI device; fall back to whatever exists.
+# The audio row must name the SPEAKERS, not a GPU's display-audio
+# function. Two different traps, so two filters (validated on the ASUS
+# fixture + the ThinkPad):
+#   - AMD APUs put the GPU, its HDMI/DP audio AND the real HD Audio all
+#     on ONE slot (Renoir: 04:00.0 / .1 / .6), so a same-slot rule would
+#     drop the speakers too — only the NAME splits them (#21a).
+#   - Intel's integrated display audio sits at 00:03 beside the iGPU at
+#     00:02 and is named plainly "…HD Audio Controller" (no "HDMI"), so
+#     the name filter misses it and the row showed "Haswell-ULT HD
+#     Audio" instead of the PCH codec at 00:1b (#21c, ASUS/Acer).
 audio_row() {
-  local all preferred
+  local all disp_slots bus rest slot preferred=''
   all=$(hw_pci_all "$1" 'Audio device|Multimedia audio')
-  preferred=$(printf '%s\n' "$all" | grep -iv 'HDMI' | head -1)
+  # bus:dev of every display controller (function stripped)
+  disp_slots=$(hw_pci_all "$1" 'VGA|3D|Display' | sed 's/\..*//')
+  while IFS='|' read -r bus rest; do
+    [ -n "$bus" ] || continue
+    slot=${bus%.*}
+    case $rest in *HDMI*|*DisplayPort*|*'DP Audio'*) continue ;; esac
+    if [ "$slot" = "00:03" ] && printf '%s\n' "$disp_slots" | grep -qx "00:02"; then
+      continue
+    fi
+    preferred="$bus|$rest"; break
+  done <<EOF
+$all
+EOF
   [ -n "$preferred" ] || preferred=$(printf '%s\n' "$all" | head -1)
   printf '%s' "${preferred#*|}"
 }
@@ -3760,10 +3819,15 @@ case "$DUMP" in
       exit 2 ;;
 esac
 
+# Claim the console so the boot audit's completion banner does not dump
+# on top of this UI on a slow machine (#28). The marker is best-effort:
+# on a demo/dev box it may be unwritable and there is no audit anyway.
+: > /run/golem-setup.owns-console 2>/dev/null || true
+
 # Quitting before an install ran gives the tty its keymap back (#7);
 # once the engine has been launched the chosen keymap is the machine's.
 INSTALL_LAUNCHED=no
-trap 'show_cursor; printf "\n"; [ "$INSTALL_LAUNCHED" = yes ] || kb_restore; [ -n "$KB_ORIG" ] && rm -f "$KB_ORIG"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"' EXIT INT TERM
+trap 'show_cursor; printf "\n"; [ "$INSTALL_LAUNCHED" = yes ] || kb_restore; [ -n "$KB_ORIG" ] && rm -f "$KB_ORIG"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"; rm -f /run/golem-setup.owns-console 2>/dev/null || true' EXIT INT TERM
 
 # The installer owns this screen now — but at the console's default
 # loglevel the kernel still paints err-level lines over the surface (the

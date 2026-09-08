@@ -163,7 +163,12 @@ lib.filter (s: s != null) [
     (rowT "scheduler"
       (if lib.elem "bfq" cfg.boot.kernelModules then "bfq" else "kernel_default") [ ]
       (if lib.elem "bfq" cfg.boot.kernelModules
-      then "bfq on rotational disks" else "kernel default"))
+      # R3-4: state the whole policy, not just half of it — the udev rule
+      # (storage.nix) applies bfq ONLY to rotational disks and leaves
+      # SSD/NVMe on their default, so "bfq on rotational disks" read as
+      # vacuous on the NVMe-only Lenovo. This is deliberately fact-free
+      # (no per-target gating), so the row describes the rule completely.
+      then "bfq on hard disks, default on SSD/NVMe" else "kernel default"))
     (row "trim" (if cfg.services.fstrim.enable then "weekly" else "off"))
   ])
 

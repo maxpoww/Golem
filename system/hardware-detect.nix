@@ -163,10 +163,22 @@
         fi
         # The SECOND display device (a hybrid): named, never silently
         # dropped — the sticker on the lid stays honest (#17b).
+        primary_slot=""
+        if [[ -n "$primary_dir" ]]; then
+          pb=''${primary_dir##*/}; primary_slot=''${pb%.*}
+        fi
         for d in "''${gpu_dirs[@]}"; do
           [[ "$d" == "$primary_dir" ]] && continue
+          # A sibling FUNCTION of the primary's own chip is not a second
+          # GPU: ancient GMA parts expose 00:02.0 (VGA) AND 00:02.1 (a
+          # second display function of the SAME silicon), and the .1 was
+          # promoted to gpu2 with a phantom "working" verdict on the
+          # Comodore's only GPU (#26, round 3). Same PCI slot
+          # (domain:bus:dev, function stripped) = same chip → skip.
+          db=''${d##*/}
+          [[ -n "$primary_slot" && "''${db%.*}" == "$primary_slot" ]] && continue
           gpu2=$(vendor_word "$(tr -d '[:space:]' < "$d/vendor")")
-          gpu2_bdf=''${d##*/}
+          gpu2_bdf=$db
           gpu2_dir="$d"
           break
         done
