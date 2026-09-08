@@ -3039,14 +3039,22 @@ EOF
 # A hardware row: the DEVICE in the value colour, its DRIVER dim after a dim
 # "·". Reads name-first, driver-as-footnote — you see what you have, then
 # the proof it is handled, and the proof stays quiet.
-hw_row() {                       # $1 label, $2 "name · driver" (driver opt.)
+hw_row() {                       # $1 label, $2 "name · driver — verdict"
   [ -n "$2" ] || return 0
-  local nm=${2%% · *} drv=''
-  [ "$2" != "$nm" ] && drv=${2#* · }
+  local rest=$2 verdict='' nm drv=''
+  # A GPU row carries a " — verdict" tail (tested, working · driving this
+  # screen / tested, didn't wake up). Split it off FIRST and always dim
+  # it: the working verdict used to ride inside the dimmed driver segment
+  # while the failing one — which has no driver, so no " · " to split on —
+  # fell into the NAME and rendered undimmed (Max, round 4). Both dim now.
+  case $rest in *" — "*) verdict=${rest#* — }; rest=${rest%% — *} ;; esac
+  nm=${rest%% · *}
+  [ "$rest" != "$nm" ] && drv=${rest#* · }
   printf '%s%s%s%s  %s%s%s' "$IND" "$C_TICK" "$TICK" "$NORM" \
     "$C_LABEL" "$(pad_to "${1^}" "$LABELW")" "$NORM"
   printf '%s%s%s' "$C_VALUE" "$nm" "$NORM"
   [ -n "$drv" ] && printf ' %s· %s%s' "$C_DIM" "$drv" "$NORM"
+  [ -n "$verdict" ] && printf ' %s— %s%s' "$C_DIM" "$verdict" "$NORM"
   printf '\n'
 }
 
