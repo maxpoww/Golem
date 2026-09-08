@@ -466,20 +466,48 @@ S[en:adv_dual]='Dual-Boot'
 S[en:adv_back]='Back'
 S[en:adv_soon]='not in this release yet'
 S[en:t_luks]='Encrypt this Drive'
-S[en:luks_yes]='Yes — a passphrase will be asked at every start'
+S[en:luks_yes]='Yes — a password will be asked at every start'
 S[en:luks_no]='No'
-S[en:t_lpass]='Drive passphrase'
+S[en:t_lpass]='Drive password'
 S[en:p_lpass]='If you forget this, the drive cannot be opened — there is no recovery.'
 S[en:e_lpass]='At least 8 characters.'
-S[en:t_lcpass]='Type the passphrase again'
-S[en:e_lcpass]='The passphrases do not match — type both again.'
+S[en:t_lcpass]='Type the password again'
+S[en:e_lcpass]='The passwords do not match — type both again.'
 S[en:erased_enc]='will be erased and encrypted'
 # The scare, deliberately (Max, round 2): a stranger who turns this on
 # without knowing what it means can lose everything. Say the cost plainly.
-S[en:luks_warn]='You will be asked for this passphrase EVERY time this device starts. There is no reset and no recovery — if you forget it, everything on the drive is lost forever. Only turn this on if you understand that.'
+S[en:luks_warn]='You will be asked for this password EVERY time this device starts. There is no reset and no recovery — if you forget it, everything on the drive is lost forever. Only turn this on if you understand that.'
 S[en:luks_ack]='ENTER — I understand · ESC — turn encryption off'
 S[en:l_luks]='encryption'
 S[en:e_host]='Letters, digits and dashes.'
+# The engine's phase markers carry KEYS (##golem 1/6 format …); these are
+# the labels the bar renders for them, in the chosen language (#18b).
+S[en:ph_format]='formatting the drive'
+S[en:ph_fs]='filesystems'
+S[en:ph_seed]='copying Golem'
+S[en:ph_probe]='reading the device'
+S[en:ph_eval]='evaluating the system'
+S[en:audit_bad]='audit incomplete — the decisions could not be shown'
+S[en:reh_bar]='rehearsed'
+S[en:reh_none]='rehearsed — nothing was written, no findings'
+S[en:reh_find]='rehearsed — nothing was written, %s finding(s)'
+# GPU verdicts (#17): observation + what it means, never a judgment of
+# the silicon and never a prohibition. Asymmetric on purpose (Max): good
+# news gets the promise clause, bad news gets brevity — and no driver
+# name next to "didn’t wake up", nothing drives a sleeping chip.
+S[en:gpu_scr]='tested, working · driving this screen'
+S[en:gpu_use]='tested, working · apps can use it on demand'
+S[en:gpu_dead]='tested, didn’t wake up'
+# Decision-row values, rendered from the audit's key+args (#18e).
+S[en:dv_zram]='active, %1, priority %2'
+S[en:dv_swap]='%1 GiB, for hibernation'
+S[en:dv_on]='on'
+S[en:dv_off]='off'
+S[en:dv_lid_sth]='suspend, then hibernate'
+S[en:dv_bfq]='bfq on rotational disks'
+S[en:dv_kdef]='kernel default'
+S[en:dl_lid]='lid'
+S[en:dl_sched]='scheduler'
 
 S[es:l_name]='nombre'
 S[es:l_host]='dispositivo'
@@ -517,13 +545,39 @@ S[es:adv_dual]='Dual-Boot'
 S[es:adv_back]='Volver'
 S[es:adv_soon]='todavía no está en esta versión'
 S[es:t_luks]='Cifrar este disco'
-S[es:luks_yes]='Sí — se pedirá una frase de acceso en cada arranque'
+S[es:luks_yes]='Sí — se pedirá una contraseña en cada arranque'
 S[es:luks_no]='No'
-S[es:t_lpass]='Frase de acceso del disco'
+S[es:t_lpass]='Contraseña del disco'
 S[es:p_lpass]='Si la olvidas el disco no se puede abrir — no hay recuperación.'
 S[es:e_lpass]='Al menos 8 caracteres.'
 S[es:l_luks]='cifrado'
 S[es:e_host]='Letras, números y guiones.'
+S[es:ph_format]='formateando el disco'
+S[es:ph_fs]='sistemas de archivos'
+S[es:ph_seed]='copiando Golem'
+S[es:ph_probe]='leyendo el dispositivo'
+S[es:ph_eval]='evaluando el sistema'
+S[es:audit_bad]='auditoría incompleta — no se pudieron mostrar las decisiones'
+S[es:reh_bar]='ensayado'
+S[es:reh_none]='ensayado — no se escribió nada, sin hallazgos'
+S[es:reh_find]='ensayado — no se escribió nada, %s hallazgo(s)'
+S[es:t_lcpass]='Escribe la contraseña otra vez'
+S[es:e_lcpass]='Las contraseñas no coinciden — escribe ambas de nuevo.'
+S[es:erased_enc]='se borrará y se cifrará'
+S[es:luks_warn]='Se te pedirá esta contraseña CADA vez que este dispositivo arranque. No hay restablecimiento ni recuperación — si la olvidas, todo lo que hay en el disco se pierde para siempre. Actívalo solo si entiendes eso.'
+S[es:luks_ack]='ENTER — lo entiendo · ESC — desactivar el cifrado'
+S[es:gpu_scr]='probada, funciona · muestra esta pantalla'
+S[es:gpu_use]='probada, funciona · las aplicaciones pueden usarla'
+S[es:gpu_dead]='probada, no despertó'
+S[es:dv_zram]='activo, %1, prioridad %2'
+S[es:dv_swap]='%1 GiB, para hibernar'
+S[es:dv_on]='activado'
+S[es:dv_off]='desactivado'
+S[es:dv_lid_sth]='suspender, luego hibernar'
+S[es:dv_bfq]='bfq en discos rotacionales'
+S[es:dv_kdef]='predeterminado del núcleo'
+S[es:dl_lid]='tapa'
+S[es:dl_sched]='planificador'
 
 S[fr:l_name]='nom'
 S[fr:l_host]='appareil'
@@ -561,13 +615,39 @@ S[fr:adv_dual]='Dual-Boot'
 S[fr:adv_back]='Retour'
 S[fr:adv_soon]='pas encore dans cette version'
 S[fr:t_luks]='Chiffrer ce disque'
-S[fr:luks_yes]='Oui — une phrase secrète sera demandée à chaque démarrage'
+S[fr:luks_yes]='Oui — un mot de passe sera demandé à chaque démarrage'
 S[fr:luks_no]='Non'
-S[fr:t_lpass]='Phrase secrète du disque'
-S[fr:p_lpass]='Si vous l`oubliez le disque ne peut plus être ouvert — aucune récupération.'
+S[fr:t_lpass]='Mot de passe du disque'
+S[fr:p_lpass]='Si vous l’oubliez le disque ne peut plus être ouvert — aucune récupération.'
 S[fr:e_lpass]='Au moins 8 caractères.'
 S[fr:l_luks]='chiffrement'
 S[fr:e_host]='Lettres, chiffres et tirets.'
+S[fr:ph_format]='formatage du disque'
+S[fr:ph_fs]='systèmes de fichiers'
+S[fr:ph_seed]='copie de Golem'
+S[fr:ph_probe]='lecture de l’appareil'
+S[fr:ph_eval]='évaluation du système'
+S[fr:audit_bad]='audit incomplet — les décisions n’ont pas pu être affichées'
+S[fr:reh_bar]='répété'
+S[fr:reh_none]='répété — rien n’a été écrit, aucun constat'
+S[fr:reh_find]='répété — rien n’a été écrit, %s constat(s)'
+S[fr:t_lcpass]='Saisissez le mot de passe à nouveau'
+S[fr:e_lcpass]='Les mots de passe ne correspondent pas — saisissez les deux à nouveau.'
+S[fr:erased_enc]='sera effacé et chiffré'
+S[fr:luks_warn]='Ce mot de passe vous sera demandé À CHAQUE démarrage de cet appareil. Il n’y a ni réinitialisation ni récupération — si vous l’oubliez, tout le contenu du disque est perdu pour toujours. N’activez ceci que si vous comprenez cela.'
+S[fr:luks_ack]='ENTER — je comprends · ESC — désactiver le chiffrement'
+S[fr:gpu_scr]='testée, fonctionne · affiche cet écran'
+S[fr:gpu_use]='testée, fonctionne · disponible pour les applications'
+S[fr:gpu_dead]='testée, ne s’est pas réveillée'
+S[fr:dv_zram]='actif, %1, priorité %2'
+S[fr:dv_swap]='%1 GiB, pour l’hibernation'
+S[fr:dv_on]='activé'
+S[fr:dv_off]='désactivé'
+S[fr:dv_lid_sth]='veille, puis hibernation'
+S[fr:dv_bfq]='bfq sur les disques rotatifs'
+S[fr:dv_kdef]='défaut du noyau'
+S[fr:dl_lid]='capot'
+S[fr:dl_sched]='ordonnanceur'
 
 S[de:l_name]='Name'
 S[de:l_host]='Gerät'
@@ -605,13 +685,39 @@ S[de:adv_dual]='Dual-Boot'
 S[de:adv_back]='Zurück'
 S[de:adv_soon]='in dieser Version noch nicht'
 S[de:t_luks]='Diesen Datenträger verschlüsseln'
-S[de:luks_yes]='Ja — bei jedem Start wird eine Passphrase abgefragt'
+S[de:luks_yes]='Ja — bei jedem Start wird ein Passwort abgefragt'
 S[de:luks_no]='Nein'
-S[de:t_lpass]='Passphrase des Datenträgers'
-S[de:p_lpass]='Wenn du sie vergisst bleibt der Datenträger verschlossen — keine Wiederherstellung.'
+S[de:t_lpass]='Passwort des Datenträgers'
+S[de:p_lpass]='Wenn du es vergisst bleibt der Datenträger verschlossen — keine Wiederherstellung.'
 S[de:e_lpass]='Mindestens 8 Zeichen.'
 S[de:l_luks]='Verschlüsselung'
 S[de:e_host]='Buchstaben, Ziffern und Bindestriche.'
+S[de:ph_format]='Laufwerk formatieren'
+S[de:ph_fs]='Dateisysteme'
+S[de:ph_seed]='Golem kopieren'
+S[de:ph_probe]='Gerät lesen'
+S[de:ph_eval]='System auswerten'
+S[de:audit_bad]='Prüfung unvollständig — die Entscheidungen konnten nicht angezeigt werden'
+S[de:reh_bar]='geprobt'
+S[de:reh_none]='geprobt — nichts wurde geschrieben, keine Befunde'
+S[de:reh_find]='geprobt — nichts wurde geschrieben, %s Befund(e)'
+S[de:t_lcpass]='Passwort erneut eingeben'
+S[de:e_lcpass]='Die Passwörter stimmen nicht überein — beide erneut eingeben.'
+S[de:erased_enc]='wird gelöscht und verschlüsselt'
+S[de:luks_warn]='Dieses Passwort wird bei JEDEM Start dieses Geräts abgefragt. Es gibt kein Zurücksetzen und keine Wiederherstellung — wer es vergisst, verliert alles auf dem Laufwerk für immer. Nur einschalten, wenn das klar ist.'
+S[de:luks_ack]='ENTER — verstanden · ESC — Verschlüsselung ausschalten'
+S[de:gpu_scr]='getestet, funktioniert · zeigt diesen Bildschirm'
+S[de:gpu_use]='getestet, funktioniert · Apps können sie nutzen'
+S[de:gpu_dead]='getestet, wachte nicht auf'
+S[de:dv_zram]='aktiv, %1, Priorität %2'
+S[de:dv_swap]='%1 GiB, für den Ruhezustand'
+S[de:dv_on]='an'
+S[de:dv_off]='aus'
+S[de:dv_lid_sth]='Standby, dann Ruhezustand'
+S[de:dv_bfq]='bfq auf rotierenden Platten'
+S[de:dv_kdef]='Kernel-Standard'
+S[de:dl_lid]='Deckel'
+S[de:dl_sched]='Scheduler'
 
 S[it:l_name]='nome'
 S[it:l_host]='dispositivo'
@@ -649,13 +755,39 @@ S[it:adv_dual]='Dual-Boot'
 S[it:adv_back]='Indietro'
 S[it:adv_soon]='non ancora in questa versione'
 S[it:t_luks]='Cifra questo disco'
-S[it:luks_yes]='Sì — a ogni avvio verrà chiesta una passphrase'
+S[it:luks_yes]='Sì — a ogni avvio verrà chiesta una password'
 S[it:luks_no]='No'
-S[it:t_lpass]='Passphrase del disco'
+S[it:t_lpass]='Password del disco'
 S[it:p_lpass]='Se la dimentichi il disco non si può aprire — nessun recupero.'
 S[it:e_lpass]='Almeno 8 caratteri.'
 S[it:l_luks]='cifratura'
 S[it:e_host]='Lettere, cifre e trattini.'
+S[it:ph_format]='formattazione del disco'
+S[it:ph_fs]='file system'
+S[it:ph_seed]='copia di Golem'
+S[it:ph_probe]='lettura del dispositivo'
+S[it:ph_eval]='valutazione del sistema'
+S[it:audit_bad]='verifica incompleta — impossibile mostrare le decisioni'
+S[it:reh_bar]='provato'
+S[it:reh_none]='provato — non è stato scritto nulla, nessun rilievo'
+S[it:reh_find]='provato — non è stato scritto nulla, %s rilievi'
+S[it:t_lcpass]='Digita di nuovo la password'
+S[it:e_lcpass]='Le password non coincidono — digitale entrambe di nuovo.'
+S[it:erased_enc]='sarà cancellato e cifrato'
+S[it:luks_warn]='Questa password ti sarà chiesta OGNI volta che questo dispositivo si avvia. Non c’è reset né recupero — se la dimentichi, tutto ciò che è sul disco è perso per sempre. Attivalo solo se hai capito questo.'
+S[it:luks_ack]='ENTER — ho capito · ESC — disattiva la cifratura'
+S[it:gpu_scr]='testata, funziona · mostra questo schermo'
+S[it:gpu_use]='testata, funziona · le app possono usarla'
+S[it:gpu_dead]='testata, non si è svegliata'
+S[it:dv_zram]='attivo, %1, priorità %2'
+S[it:dv_swap]='%1 GiB, per l’ibernazione'
+S[it:dv_on]='attivato'
+S[it:dv_off]='disattivato'
+S[it:dv_lid_sth]='sospensione, poi ibernazione'
+S[it:dv_bfq]='bfq sui dischi rotazionali'
+S[it:dv_kdef]='predefinito del kernel'
+S[it:dl_lid]='coperchio'
+S[it:dl_sched]='scheduler'
 
 S[pt:l_name]='nome'
 S[pt:l_host]='dispositivo'
@@ -693,13 +825,39 @@ S[pt:adv_dual]='Dual-Boot'
 S[pt:adv_back]='Voltar'
 S[pt:adv_soon]='ainda não nesta versão'
 S[pt:t_luks]='Cifrar este disco'
-S[pt:luks_yes]='Sim — será pedida uma frase-passe em cada arranque'
+S[pt:luks_yes]='Sim — será pedida uma palavra-passe em cada arranque'
 S[pt:luks_no]='Não'
-S[pt:t_lpass]='Frase-passe do disco'
+S[pt:t_lpass]='Palavra-passe do disco'
 S[pt:p_lpass]='Se a esquecer o disco não pode ser aberto — não há recuperação.'
 S[pt:e_lpass]='Pelo menos 8 caracteres.'
 S[pt:l_luks]='cifragem'
 S[pt:e_host]='Letras, algarismos e hífenes.'
+S[pt:ph_format]='a formatar o disco'
+S[pt:ph_fs]='sistemas de ficheiros'
+S[pt:ph_seed]='a copiar o Golem'
+S[pt:ph_probe]='a ler o dispositivo'
+S[pt:ph_eval]='a avaliar o sistema'
+S[pt:audit_bad]='auditoria incompleta — não foi possível mostrar as decisões'
+S[pt:reh_bar]='ensaiado'
+S[pt:reh_none]='ensaiado — nada foi escrito, sem achados'
+S[pt:reh_find]='ensaiado — nada foi escrito, %s achado(s)'
+S[pt:t_lcpass]='Escreva a palavra-passe outra vez'
+S[pt:e_lcpass]='As palavras-passe não coincidem — escreva ambas de novo.'
+S[pt:erased_enc]='será apagado e cifrado'
+S[pt:luks_warn]='Esta palavra-passe será pedida SEMPRE que este dispositivo arrancar. Não há reposição nem recuperação — se a esquecer, tudo o que está no disco perde-se para sempre. Ative isto apenas se compreender isso.'
+S[pt:luks_ack]='ENTER — compreendo · ESC — desativar a cifragem'
+S[pt:gpu_scr]='testada, funciona · mostra este ecrã'
+S[pt:gpu_use]='testada, funciona · as aplicações podem usá-la'
+S[pt:gpu_dead]='testada, não acordou'
+S[pt:dv_zram]='ativo, %1, prioridade %2'
+S[pt:dv_swap]='%1 GiB, para hibernação'
+S[pt:dv_on]='ativado'
+S[pt:dv_off]='desativado'
+S[pt:dv_lid_sth]='suspender, depois hibernar'
+S[pt:dv_bfq]='bfq em discos rotativos'
+S[pt:dv_kdef]='padrão do kernel'
+S[pt:dl_lid]='tampa'
+S[pt:dl_sched]='escalonador'
 
 t() {
   local k=$1 v
@@ -2044,6 +2202,7 @@ kb_order() {                     # $1 = the row the language implies
 # wrong keymap locks the owner out with no rescue — that only works if the
 # keymap the user just confirmed is the one still loaded when they type it.
 KB_APPLIED=no
+KB_ORIG=''
 kb_apply() {
   # The CONSOLE column, not the XKB one. The echo box runs on a TTY, so it
   # must test the keymap the TTY will get — feeding it an XKB name was the
@@ -2054,7 +2213,23 @@ kb_apply() {
   [ "$LOADKEYS" = no ] && return 0
   command -v loadkeys >/dev/null 2>&1 || return 0
   [ "$(id -u)" = 0 ] || return 0
+  # Before the FIRST load, save the keymap the machine arrived with — a
+  # full dump, since the running keymap has no queryable name. Backing
+  # out of the step or quitting before an install restores it (#7: test
+  # runs left the bare tty "stuck in Spanish"). A completed install
+  # keeps the chosen map; the machine reboots into it anyway.
+  if [ -z "$KB_ORIG" ] && command -v dumpkeys >/dev/null 2>&1; then
+    KB_ORIG=$(mktemp "${TMPDIR:-/tmp}/golem-kb-orig.XXXXXX")
+    dumpkeys > "$KB_ORIG" 2>/dev/null || { rm -f "$KB_ORIG"; KB_ORIG=''; }
+  fi
   loadkeys "$KB_CONSOLE" >/dev/null 2>&1 && KB_APPLIED=yes
+  return 0
+}
+kb_restore() {
+  [ "$KB_APPLIED" = yes ] || return 0
+  [ -n "$KB_ORIG" ] && [ -r "$KB_ORIG" ] || return 0
+  loadkeys "$KB_ORIG" >/dev/null 2>&1 || true
+  KB_APPLIED=no
   return 0
 }
 
@@ -2114,8 +2289,9 @@ step_keyboard() {
   fi
   QUERY=''
 
-  # ESC leaves the step; the run loop takes it back to the timezone.
-  pick || return 1
+  # ESC leaves the step; the run loop takes it back to the timezone — and
+  # takes back the keymap a previous pass through this step applied (#7).
+  pick || { kb_restore; return 1; }
 
   PICK_TITLE_HOT=no
   show_cursor
@@ -2172,9 +2348,14 @@ disk_load() {
   [ "$FAKE_DISKS" = yes ] && { disk_fake; return 0; }
   command -v lsblk >/dev/null 2>&1 || return 0
 
-  # What the live system is running from — never a target.
+  # What the live system is running from — never a target. On the medium
+  # the live root is a TMPFS, so chasing / finds no disk and filters
+  # nothing — the Dell's round-2 drive list offered the very stick it
+  # booted from (#20). The stick is the disk behind /iso, same source the
+  # engine's own target≠medium check reads; / stays as the dev-box
+  # fallback, where the root really is a disk.
   local boot='' src
-  src=$(findmnt -no SOURCE / 2>/dev/null || true)
+  src=$(findmnt -no SOURCE /iso 2>/dev/null) || src=$(findmnt -no SOURCE / 2>/dev/null || true)
   [ -n "$src" ] && boot=$(lsblk -no PKNAME "$src" 2>/dev/null | head -1 || true)
 
   # --pairs, NOT plain columns. lsblk's list output simply OMITS an empty
@@ -2719,14 +2900,49 @@ lid|suspend-then-hibernate
 scheduler|bfq on rotating disks
 EOF
   elif [ -r /var/log/golem-audit/decision.json ] && command -v jq >/dev/null 2>&1; then
-    # ${v^} capitalises the first letter of the DECISION values — these are
-    # descriptive ("suspend-then-hibernate" → "Suspend-then-hibernate"), not
-    # identifiers, so lifting the first letter is safe. A value that leads
-    # with a number ("6 GiB…") or is already a proper noun is unchanged.
-    while IFS=$'\t' read -r k v; do answered "$k" "${v^}"; done < <(
+    # ${val^} capitalises the first letter of the DECISION values — these
+    # are descriptive, not identifiers, so lifting the first letter is
+    # safe. A value that leads with a number ("6 GiB…") is unchanged.
+    #
+    # The audit writes v in English at boot, before any language exists —
+    # so each surfaced row also carries a stable `key` + `args`, and the
+    # sentence is rendered HERE, in the chosen language (#18e). An empty
+    # or unknown key falls back to v, so an older audit file still shows
+    # something true.
+    # Field separator \x1f, record separator \x1e for args — NOT @tsv:
+    # tab is IFS *whitespace*, so an empty middle field (the lid row's
+    # key) collapsed and shifted every later field left (VM gate,
+    # round-3 close — "Tapa" rendered valueless).
+    local k key args v lbl val a1 a2
+    while IFS=$'\x1f' read -r k key args v; do
+      lbl=$k; val=$v
+      IFS=$'\x1e' read -r a1 a2 _ <<<"$args"
+      case $key in
+        zram)           val=$(t dv_zram | sed -e "s/%1/$a1/" -e "s/%2/$a2/") ;;
+        swap_hib)       val=$(t dv_swap | sed -e "s/%1/$a1/") ;;
+        on)             val=$(t dv_on) ;;
+        off)            val=$(t dv_off) ;;
+        lid_sth)        val=$(t dv_lid_sth) ;;
+        bfq)            val=$(t dv_bfq) ;;
+        kernel_default) val=$(t dv_kdef) ;;
+      esac
+      case $k in
+        lid)       lbl=$(t dl_lid) ;;
+        scheduler) lbl=$(t dl_sched) ;;
+      esac
+      answered "$lbl" "${val^}"
+    done < <(
       jq -r '.[] | .rows[] | select(.k=="zram" or .k=="swap" or .k=="thermald"
-             or .k=="lid" or .k=="scheduler") | [.k, .v] | @tsv' \
+             or .k=="lid" or .k=="scheduler")
+             | [.k, (.key // ""), ((.args // []) | join("\u001e")), .v] | join("\u001f")' \
              /var/log/golem-audit/decision.json 2>/dev/null)
+  elif [ -r /var/log/golem-audit/status ]; then
+    # The audit RAN (only the medium writes a status) but its decision
+    # half is unreadable — decide crashed, or jq is missing. Silence here
+    # read as "nothing to decide" on the ASUS (#22); one honest dim line
+    # instead. The install itself is unaffected (the target eval never
+    # reads the decision surface — proven the same day it broke).
+    printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t audit_bad)" "$NORM"
   fi
   # A blank between "what Golem set up" and "what it found" — the two halves
   # answer different questions and the gap says so.
@@ -2764,8 +2980,8 @@ hw_row() {                       # $1 label, $2 "name · driver" (driver opt.)
 
 hardware_reveal() {
   if [ "$FAKE_CENSUS" = yes ]; then
-    hw_row GPU         "Intel Iris Xe · i915"
-    hw_row GPU         "AMD Radeon RX 6600M · amdgpu"
+    hw_row GPU         "Intel Iris Xe Graphics · i915 — $(t gpu_scr)"
+    hw_row "GPU 2"     "NVIDIA GeForce RTX 4050 Max-Q · nvidia — $(t gpu_use)"
     hw_row Wi-Fi       "Intel AX211 · iwlwifi"
     hw_row Ethernet    "Realtek RTL8111 · r8169"
     hw_row audio       "Realtek ALC287 · snd_hda_intel"
@@ -2779,17 +2995,17 @@ hardware_reveal() {
   # "Kernel driver in use:" names the module. Pull the three classes that
   # matter, each with its driver.
   local pci; pci=$(lspci -k 2>/dev/null || true)
-  # One GPU row per display controller (see hw_pci_all): a hybrid shows both
-  # its Intel iGPU and its AMD/nvidia dGPU, matching what is on the case.
-  while IFS= read -r g; do [ -n "$g" ] && hw_row GPU "$g"; done \
-    < <(hw_pci_all "$pci" 'VGA|3D|Display')
+  # One GPU row per display controller (see reveal_gpus): a hybrid shows
+  # both its Intel iGPU and its AMD/nvidia dGPU, matching what is on the
+  # case — primary first, each with its tested verdict (#17).
+  reveal_gpus "$pci"
   hw_row Wi-Fi     "$(hw_pci "$pci" 'Network controller')"
   # Ethernet too, or a wired-only machine shows NO networking at all — the
   # Comodore has only a Marvell NIC and its whole network row was blank
   # (2026-09-06). "Network controller" is the PCI class for wireless; wired
   # is "Ethernet controller", a separate class.
   hw_row Ethernet  "$(hw_pci "$pci" 'Ethernet controller')"
-  hw_row audio     "$(hw_pci "$pci" 'Audio device|Multimedia audio')"
+  hw_row audio     "$(audio_row "$pci")"
   hw_row Bluetooth "$(hw_bt)"
   hw_row fingerprint "$(hw_input_fp)"
   # Touchpads are named by vendor, not by the word "touchpad": ALPS ships
@@ -2797,7 +3013,13 @@ hardware_reveal() {
   # pad entirely (2026-09-06). Match the common vendor names too. (A
   # capability probe — the input device with ABS axes + BTN_TOOL_FINGER —
   # would be fully robust; noted, not done.)
-  hw_row touchpad    "$(hw_input '[Tt]ouch[Pp]ad|[Tt]rackpad|GlidePoint|Synaptics|ALPS|Elan|Cypress')"
+  # TWO TIERS (#21b): explicit pad names first — a ThinkPad carries an
+  # "Elantech TrackPoint" AND an "Elantech Touchpad", and the vendor
+  # pattern alone took whichever /proc listed first (the stick).
+  local tp
+  tp=$(hw_input '[Tt]ouch[Pp]ad|[Tt]rackpad|GlidePoint')
+  [ -n "$tp" ] || tp=$(hw_input 'Synaptics|ALPS|Elan|Cypress')
+  hw_row touchpad    "$tp"
   hw_row touchscreen "$(hw_input 'ouchscreen|ouch *[Ss]creen')"
 }
 
@@ -2835,20 +3057,101 @@ hw_pci() {
 # row, because a switchable-graphics laptop has two and showing only the
 # first (the Intel iGPU) while the lid wears a big red "AMD Radeon" sticker
 # reads as "we don't know your hardware" (Max, round 2). One flush() per
-# device boundary, so each match is emitted with its own driver.
+# device boundary, so each match is emitted with its own driver. Each line
+# leads with the bus id ("00:02.0|name · driver") so the caller can ask
+# sysfs which card is boot_vga — the one driving the screen (#17).
 hw_pci_all() {
   printf '%s' "$1" | awk -v want="$2" '
-    function flush() { if (matched && out != "") print out; matched=0; out="" }
+    function flush() { if (matched && out != "") print bus "|" out; matched=0; out="" }
     /^[0-9a-f]+:[0-9a-f]+/ {
       flush()
       if ($0 ~ want) {
-        matched=1; line=$0; sub(/ \(rev [0-9a-f]+\)$/,"",line)
+        matched=1; line=$0; bus=$1; sub(/ \(rev [0-9a-f]+\)$/,"",line)
         i=index(line,": "); out=substr(line,i+2)
       }
       next
     }
     matched && /Kernel driver in use:/ { out = out " \xc2\xb7 " $NF }
     END { flush() }'
+}
+
+# The audio row must name the SPEAKERS, not the HDMI audio function: AMD
+# APUs (and most modern GPUs) expose an HDMI/DP audio device that
+# enumerates FIRST, so first-match showed "Renoir/Cezanne HDMI/DP Audio"
+# to a ThinkPad owner whose actual sound device is the Family 17h HD
+# Audio (#21a). Prefer the non-HDMI device; fall back to whatever exists.
+audio_row() {
+  local all preferred
+  all=$(hw_pci_all "$1" 'Audio device|Multimedia audio')
+  preferred=$(printf '%s\n' "$all" | grep -iv 'HDMI' | head -1)
+  [ -n "$preferred" ] || preferred=$(printf '%s\n' "$all" | head -1)
+  printf '%s' "${preferred#*|}"
+}
+
+# Long lspci names ("Intel Corporation Core Processor Integrated Graphics
+# Controller", 55 chars) push the GPU verdict off an 80-col console — the
+# verdict must always fit the line (#17 implementation note). Vendor word +
+# the last [bracketed] product name, alternatives dropped; without brackets,
+# the corporate noise words go.
+gpu_short() {
+  local n=$1 vend='' dev=''
+  case $n in
+    Intel*)    vend='Intel' ;;
+    NVIDIA*)   vend='NVIDIA' ;;
+    *AMD/ATI*) vend='AMD/ATI' ;;
+  esac
+  dev=$(printf '%s' "$n" | grep -o '\[[^][]*\]' | tail -1 | tr -d '[]' || true)
+  [ "$dev" = 'AMD/ATI' ] && dev=''
+  if [ -n "$dev" ]; then
+    dev=${dev% / *}                                        # "… Max-Q / Mobile" → "… Max-Q"
+    dev=$(printf '%s' "$dev" | sed -E 's|/[0-9][0-9A-Za-z-]*$||')  # "6370M/7370M" → "6370M"
+  else
+    dev=$(printf '%s' "$n" | sed -E \
+      's/^(Intel|NVIDIA) Corporation //; s/^Advanced Micro Devices, Inc\. //; s/ Integrated / /; s/ Controller$//')
+  fi
+  if [ -n "$vend" ] && [ -n "$dev" ] && [ "${dev#"$vend"}" = "$dev" ]; then
+    printf '%s %s' "$vend" "$dev"
+  elif [ -n "$dev" ]; then printf '%s' "$dev"
+  else printf '%s' "$n"; fi
+}
+
+# The GPU rows, with verdicts (#17, wording FINAL per Max 2026-09-07):
+# the PRIMARY (boot_vga) card leads and reads "tested, working · driving
+# this screen" — the strongest proof there is, you are reading its output.
+# A second GPU shows by the audit's health verdict: working → the promise
+# clause; failing → terse, and NO driver name (nothing drives a sleeping
+# chip); unknown/ambiguous → the row says nothing beyond name · driver.
+reveal_gpus() {
+  local pci=$1 facts=/var/log/golem-audit/golem-hardware.nix
+  local h='' bus g bv i pi=-1 n=1 short nm drv
+  local -a RB=() RG=()
+  [ -r "$facts" ] && h=$(grep -oE 'gpu2Health = "[a-z]+"' "$facts" 2>/dev/null | cut -d'"' -f2 || true)
+  while IFS='|' read -r bus g; do
+    [ -n "$g" ] || continue
+    RB+=("$bus"); RG+=("$g")
+  done < <(hw_pci_all "$pci" 'VGA|3D|Display')
+  [ "${#RB[@]}" -gt 0 ] || return 0
+  for i in "${!RB[@]}"; do
+    bv=$(cat "/sys/bus/pci/devices/0000:${RB[$i]}/boot_vga" 2>/dev/null) || bv=''
+    [ "$bv" = 1 ] && { pi=$i; break; }
+  done
+  [ "$pi" -lt 0 ] && pi=0
+  g=${RG[$pi]}; nm=${g%% · *}; drv=''
+  [ "$g" != "$nm" ] && drv=${g#* · }
+  short=$(gpu_short "$nm")
+  hw_row GPU "$short${drv:+ · $drv} — $(t gpu_scr)"
+  for i in "${!RB[@]}"; do
+    [ "$i" = "$pi" ] && continue
+    n=$(( n + 1 ))
+    g=${RG[$i]}; nm=${g%% · *}; drv=''
+    [ "$g" != "$nm" ] && drv=${g#* · }
+    short=$(gpu_short "$nm")
+    case $h in
+      working) hw_row "GPU $n" "$short${drv:+ · $drv} — $(t gpu_use)" ;;
+      failing) hw_row "GPU $n" "$short — $(t gpu_dead)" ;;
+      *)       hw_row "GPU $n" "$short${drv:+ · $drv}" ;;
+    esac
+  done
 }
 
 hw_usb() {  # lsusb line for $1, trimmed to the vendor-product description
@@ -2930,6 +3233,11 @@ hw_input_fp() {
 DRV_FILE=''
 PROBE_PID=''
 probe_compute() {                # the honest count — devices with a driver
+  # Emits NUMBERS ("have total"), never a sentence: this runs at startup,
+  # while UI is still the English default, and a sentence rendered here is
+  # baked in before any language is chosen — the Spanish run's one English
+  # line (round 2, HP photo; #18a). render_drv turns the numbers into the
+  # translated sentence at display time.
   local total have
   if command -v lspci >/dev/null 2>&1; then
     # Count PERIPHERALS, not chipset glue. PCI bridge-class devices (class
@@ -2955,7 +3263,11 @@ probe_compute() {                # the honest count — devices with a driver
     done
     total=$(( ${total:-0} + ut )); have=$(( ${have:-0} + uh ))
   fi
-  [ "${total:-0}" -gt 0 ] || { t drv_none; return; }
+  printf '%s %s\n' "${have:-0}" "${total:-0}"
+}
+render_drv() {                   # numbers → the sentence, in the CURRENT language
+  local have=${1:-0} total=${2:-0}
+  [ "$total" -gt 0 ] || { t drv_none; return; }
   t drv_line | sed -e "s/%h/$have/" -e "s/%t/$total/" -e "s/%p/$(( have * 100 / total ))/"
 }
 probe_start() {
@@ -2973,7 +3285,12 @@ probe_start() {
 # tester), block on it — the caller shows a word first so it is not a freeze.
 driver_count() {
   [ -n "$PROBE_PID" ] && wait "$PROBE_PID" 2>/dev/null
-  cat "$DRV_FILE" 2>/dev/null || probe_compute
+  local nums
+  nums=$(cat "$DRV_FILE" 2>/dev/null) || nums=''
+  [ -n "$nums" ] || nums=$(probe_compute)
+  # word-splitting the two cached numbers is the point here
+  # shellcheck disable=SC2086
+  render_drv $nums
 }
 
 # One line, redrawn in place:
@@ -3045,21 +3362,17 @@ step_go() {
   [ -n "$WRITE" ] && write_module "$WRITE"
   screen; stack
   hide_cursor
-  # If the probe (started at launch) is still running, the person out-typed
-  # it — say what is happening rather than freeze, then wait. On any real
-  # boot this never fires; it is the fast-tester safety net.
-  if [ -n "$PROBE_PID" ] && kill -0 "$PROBE_PID" 2>/dev/null; then
-    printf '\n%s%s%s%s' "$IND" "$C_DIM" "$(t drv_ing)" "$NORM"
-    wait "$PROBE_PID" 2>/dev/null
-    screen; stack
-  fi
+  # THE COUNT LINE IS GONE (Max, round 3, on the Comodore's "25 of 26"):
+  # every sub-100% the lab ever chased was phantom or dormant silicon
+  # (IOMMU, a declining ACP, a dead sibling display function) — the score
+  # graded a test whose missing points don't exist as hardware, and its
+  # only products were anxiety and a Google query ("i need that one to
+  # be complete!"). The hardware ROWS are the proof; Golem does not
+  # grade itself. The probe still runs at launch — its numbers sit in
+  # $DRV_FILE for a lab hand over SSH, never on the stranger's screen.
   while :; do
     screen; stack
     census_reveal
-    # The verdict, in the accent — the one coloured line on the screen, so
-    # the eye lands on it last before the question. Blank above and below so
-    # it reads as its own beat, not another row of the list.
-    printf '\n%s%s%s%s\n' "$IND" "$C_YELLOW" "$(driver_count)" "$NORM"
     printf '\n%s%s%s%s\n\n' "$IND" "$C_ASK" "$(t t_go)" "$NORM"
     printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t go_keys)" "$NORM"
     read_key || continue
@@ -3079,7 +3392,7 @@ step_go() {
   local cmd line rest frac cur max label rc=0 done=no prepared=no
   local rehearsed=no findings="" addr=""
   if [ "$FAKE_INSTALL" = yes ]; then
-    cmd='for p in "1/6 formatting the drive" "2/6 filesystems" "3/6 copying Golem" "4/6 reading the device" "5/6 installing" "6/6 done"; do echo "##golem $p"; sleep 0.6; done'
+    cmd='for p in "1/6 format" "2/6 fs" "3/6 seed" "4/6 probe" "5/6 install" "6/6 done"; do echo "##golem $p"; sleep 0.6; done'
   else
     # The surface runs as root on the medium (helpLine says sudo); the
     # answers file already carries every choice, including the LUKS
@@ -3111,6 +3424,7 @@ step_go() {
       cmd="$cmd --prepare-only"
     fi
   fi
+  INSTALL_LAUNCHED=yes
   while IFS= read -r line; do
     case $line in
       '##golem prepared')
@@ -3124,13 +3438,26 @@ step_go() {
         # Fill the bar to 100%. Rehearse emits up to 5/6 (83%) then this
         # marker — never 6/6, which is the reboot trigger — so without this
         # the bar sits at 83% and reads as stuck (round 1, Acer). The label
-        # says "rehearsed" so a full bar is not mistaken for an install.
-        paint_bar "${max:-1}" "${max:-1}" rehearsed ;;
+        # says "rehearsed" — translated (#18: it read English over an
+        # otherwise fully-Spanish bar) — so a full bar is not mistaken
+        # for an install.
+        paint_bar "${max:-1}" "${max:-1}" "$(t reh_bar)" ;;
       '##golem '*)
-        # marker: "##golem <cur>/<max> <label…>" — the label is everything
-        # after the fraction, so it can be a phrase ("copying Golem").
+        # marker: "##golem <cur>/<max> <key>" — the engine sends a phase
+        # KEY, and the surface renders it in the chosen language (#18b:
+        # literal label text in the protocol painted English onto a
+        # Spanish run). Unknown text passes through untouched, so an old
+        # engine or a phrase-style marker still draws something.
         rest=${line#\#\#golem }
         frac=${rest%% *}; cur=${frac%%/*}; max=${frac##*/}; label=${rest#* }
+        case $label in
+          format)  label=$(t ph_format) ;;
+          fs)      label=$(t ph_fs) ;;
+          seed)    label=$(t ph_seed) ;;
+          probe)   label=$(t ph_probe) ;;
+          eval)    label=$(t ph_eval) ;;
+          install) label=$(t go_ing) ;;
+        esac
         # Done is cur==max, not a magic word — the final phase reads
         # "Installed" in the owner's language, and this is the reboot trigger.
         [ "$cur" = "$max" ] && { label=$(t go_done); done=yes; }
@@ -3164,13 +3491,16 @@ step_go() {
   fi
   if [ "$rehearsed" = yes ]; then
     # The rehearsal outcome: the whole flow ran, nothing touched the disk,
-    # and the machine is holding a bundle for the dev box to audit. Lab-
-    # facing like `prepared`, so untranslated. The IP is printed because
-    # the very next thing that happens is an SSH from across the room.
+    # and the machine is holding a bundle for the dev box to audit. The
+    # outcome line is TRANSLATED (#18c — it rendered English on a Spanish
+    # run, and a rehearsal is exactly the run a curious stranger tries);
+    # the report path and ssh line below stay lab-facing and literal.
+    # The IP is printed because the very next thing that happens is an
+    # SSH from across the room.
     if [ "${findings:-0}" = 0 ]; then
-      printf '%s%srehearsed — nothing was written, no findings%s\n' "$IND" "$C_DIM" "$NORM"
+      printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t reh_none)" "$NORM"
     else
-      printf '%s%srehearsed — nothing was written, %s finding(s)%s\n' "$IND" "$C_ACCENT" "$findings" "$NORM"
+      printf '%s%s%s%s\n' "$IND" "$C_ACCENT" "$(t reh_find | sed "s/%s/$findings/")" "$NORM"
     fi
     printf '%s%sreport: /var/log/golem-rehearsal  (checks.txt first)%s\n' \
       "$IND" "$C_VALUE" "$NORM"
@@ -3430,7 +3760,19 @@ case "$DUMP" in
       exit 2 ;;
 esac
 
-trap 'show_cursor; printf "\n"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"' EXIT INT TERM
+# Quitting before an install ran gives the tty its keymap back (#7);
+# once the engine has been launched the chosen keymap is the machine's.
+INSTALL_LAUNCHED=no
+trap 'show_cursor; printf "\n"; [ "$INSTALL_LAUNCHED" = yes ] || kb_restore; [ -n "$KB_ORIG" ] && rm -f "$KB_ORIG"; [ -n "$DRV_FILE" ] && rm -f "$DRV_FILE"' EXIT INT TERM
+
+# The installer owns this screen now — but at the console's default
+# loglevel the kernel still paints err-level lines over the surface (the
+# HP's sleeping Radeon fails every runtime resume and says so, in red,
+# mid-reveal). Crit-and-worse only; dmesg and the journal keep the rest.
+# Root on a real VT only, so demo runs in a terminal stay hands-off.
+case $(tty 2>/dev/null) in
+  /dev/tty[0-9]*) [ "$(id -u)" = 0 ] && dmesg -n 3 || : ;;
+esac
 
 # ── the step machine ─────────────────────────────────────────────────────
 #

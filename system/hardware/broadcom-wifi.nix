@@ -4,19 +4,19 @@
 # their wifi has to work out of the box.
 #
 # TWO drivers can claim these cards and they do not coexist:
-#   - brcmfmac  in-tree, needs redistributable firmware (every Golem carries
-#               it via enableAllFirmware) — the clean default for most parts,
-#               incl. the BCM4360, and what the installer MEDIUM rides on.
-#   - broadcom_sta (wl)  the UNFREE out-of-tree module — historically the
-#               reliable driver for the BCM4360 on MacBooks, where brcmfmac
-#               has been flaky across revisions.
+#   - brcmfmac  in-tree, needs redistributable firmware — the clean default
+#               for the parts whose firmware upstream actually SHIPS. The
+#               BCM4360 is NOT one of them: Broadcom never released its
+#               brcmfmac firmware, and round 2 proved it dark on the medium
+#               (no interface, brcmfmac never bound — bcma held the card).
+#   - broadcom_sta (wl)  the UNFREE out-of-tree module — the ONLY working
+#               driver for the BCM4360, and the reliable one on MacBooks.
 #
 # We enable wl on the INSTALLED system (Max: "auto-enable unfree"): its
 # modprobe rules blacklist the in-tree SoftMAC drivers (b43/brcmsmac/bcma/
-# ssb) so wl wins the card. The medium stays on brcmfmac+firmware — round 2
-# tests whether that alone lights up the MacBook (no dongle); round 4 tests
-# wl on the installed system. If brcmfmac proves solid on the metal, this is
-# where we would reconsider dropping the unfree module.
+# ssb) so wl wins the card. The medium stays on brcmfmac+firmware — fine,
+# because the install is OFFLINE and the medium never needs MacBook wifi;
+# round 4's first real install is the wl live proof.
 { config, lib, ... }:
 
 {

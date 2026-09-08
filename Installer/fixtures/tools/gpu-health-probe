@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Prototype for changes.md #17b/c — hybrid GPU primary pick + dGPU health test.
+# Read-only except power/control (written and restored). Root required for
+# the wake test; without root it reports state and skips the poke.
+set -u
+
+declare -a gpus=()
+primary=""
+for d in /sys/bus/pci/devices/*; do
+  case $(cat "$d/class") in 0x03*) ;; *) continue ;; esac
+  bdf=${d##*/}
+  gpus+=("$bdf")
+  [ "$(cat "$d/boot_vga" 2>/dev/null)" = "1" ] && primary=$bdf
+done
+if [ -z "$primary" ]; then           # no boot_vga anywhere: first enabled card
+  for b in "${gpus[@]}"; do
+    [ "$(cat "/sys/bus/pci/devices/$b/enable")" -gt 0 ] && { primary=$b; break; }
+  done
+fi
+
+drv() { basename "$(readlink "/sys/bus/pci/devices/$1/driver" 2>/dev/null)" 2>/dev/null; }
+
+echo "primary: $primary · $(drv "$primary")"
+
+for b in "${gpus[@]}"; do
+  [ "$b" = "$primary" ] && continue
+  d=/sys/bus/pci/devices/$b
+  s0=$(cat "$d/power/runtime_status" 2>/dev/null)
+  echo "dgpu:    $b · $(drv "$b") · enable=$(cat "$d/enable") · runtime=$s0"
+
+  if [ "$(id -u)" != 0 ]; then
+    echo "verdict: (no root — wake test skipped; state above only)"
+    continue
+  fi
+
+  before=$(dmesg | wc -l)
+  ctl0=$(cat "$d/power/control")
+  echo on > "$d/power/control"       # force a runtime resume
+  sleep 3
+  s1=$(cat "$d/power/runtime_status")
+  errs=$(dmesg | tail -n +"$((before + 1))" | grep -c -e "$b" -e '\*ERROR\*')
+  echo "$ctl0" > "$d/power/control"  # put it back the way it was
+
+  echo "wake:    runtime $s0 -> $s1 · new kernel errors: $errs"
+  if [ "$s1" = "active" ] && [ "$errs" -eq 0 ]; then
+    echo "verdict: HEALTHY — usable second GPU, configure for offload"
+  else
+    echo "verdict: FAILING — power it off on the installed system"
+  fi
+done

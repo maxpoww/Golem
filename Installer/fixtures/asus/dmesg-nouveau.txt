@@ -1,0 +1,16 @@
+[   14.960634] nouveau 0000:04:00.0: NVIDIA GF117 (0d7000a2)
+[   15.001326] nouveau 0000:04:00.0: bios: version 75.17.56.00.08
+[   15.085120] nouveau 0000:04:00.0: fb: 2048 MiB DDR3
+[   15.137360] nouveau 0000:04:00.0: drm: VRAM: 2048 MiB
+[   15.137364] nouveau 0000:04:00.0: drm: GART: 1048576 MiB
+[   15.137367] nouveau 0000:04:00.0: drm: Pointer to TMDS table not found
+[   15.139331] nouveau 0000:04:00.0: drm: failed to create ce channel, -22
+[   15.139578] nouveau 0000:04:00.0: bus: MMIO write of 00007f1f FAULT at 6013d4 [ PRIVRING ]
+[   15.179750] nouveau 0000:04:00.0: drm: MM: using M2MF for buffer copies
+[   15.180132] [drm] Initialized nouveau 1.4.0 for 0000:04:00.0 on minor 0
+[   15.180329] nouveau 0000:04:00.0: [drm] No compatible format found
+[   15.180333] nouveau 0000:04:00.0: [drm] Cannot find any crtc or sizes
+[   93.334741] nouveau 0000:04:00.0: Enabling HDA controller
+[   93.436905] nouveau 0000:04:00.0: bus: MMIO write of 0000001f FAULT at 6013d4 [ PRIVRING ]
+[  133.376015] nouveau 0000:04:00.0: Enabling HDA controller
+[  133.478242] nouveau 0000:04:00.0: bus: MMIO write of ffff891f FAULT at 6013d4 [ PRIVRING ]

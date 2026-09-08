@@ -64,6 +64,13 @@ let
   yesno = b: if b then "yes" else "no";
   onoff = b: if b then "on" else "off";
   row = k: v: { inherit k v; };
+  # A row the installer SURFACE shows to a stranger carries, alongside the
+  # English v, a stable key + args so the surface can render the value in
+  # the chosen language (changes.md #18e — v is composed here at audit
+  # time, before any language exists, so translating v itself is
+  # impossible). Consumers that only read k/v are unchanged; an empty key
+  # means "no translation, show v".
+  rowT = k: key: args: v: { inherit k key args v; };
   section = name: rows: { inherit name; rows = lib.filter (r: r != null) rows; };
   when = c: r: if c then r else null;
 
@@ -90,7 +97,10 @@ lib.filter (s: s != null) [
 
   (section "ram" [
     (row "total" "${toString facts.ramMB} MB")
-    (row "zram"
+    (rowT "zram"
+      (if cfg.zramSwap.enable then "zram" else "off")
+      (lib.optionals cfg.zramSwap.enable
+        [ cfg.zramSwap.algorithm (toString cfg.zramSwap.priority) ])
       (if cfg.zramSwap.enable
       # Just "active" — no percentage, no size (Max, round 2). Any number
       # here is misread: "50% of 8 GB" reads as "am I losing half my RAM?"
@@ -103,26 +113,56 @@ lib.filter (s: s != null) [
     (row "cache pressure" (toString sysctl."vm.vfs_cache_pressure"))
     (row "dirty ratio" "${toString sysctl."vm.dirty_ratio"}% / ${toString sysctl."vm.dirty_background_ratio"}% background")
     (row "page cluster" (toString (sysctl."vm.page-cluster" or 3)))
-    (row "swap" "${toString (swapMB / 1024)} GiB, for hibernation")
+    (rowT "swap" "swap_hib" [ (toString (swapMB / 1024)) ]
+      "${toString (swapMB / 1024)} GiB, for hibernation")
     (row "resume" (if cfg.boot.resumeDevice == "" then "none" else cfg.boot.resumeDevice))
   ])
 
   (section "gpu" ([
     (row "detected" facts.gpu)
     (row "driver" (lib.concatStringsSep ", " cfg.services.xserver.videoDrivers))
-    (row "video decode" (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "none"))
-  ] ++ lib.optionals (facts.gpu == "nvidia") [
-    (row "generation" facts.nvidiaGen)
-    (row "kernel module" (if nv.open == true then "open" else "proprietary"))
-    (row "prime offload"
-      (if nv.prime.offload.enable
-      then "on, nvidia ${toString nv.prime.nvidiaBusId} / intel ${toString nv.prime.intelBusId}"
-      else "off"))
-    (row "suspend fix" (onoff nv.powerManagement.enable))
-  ]))
+    # Not only the Intel driver names: mesa's radeonsi VA driver rides the
+    # default stack for AMD and the proprietary driver brings NVDEC — the
+    # old `or "none"` told an AMD owner they get no decode (#11, HP).
+    (row "video decode"
+      (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME
+        or (if facts.gpu == "amd" then "vaapi, mesa radeonsi"
+            # NVDEC comes from the proprietary driver — on the iron-law
+            # floor (unknown generation, driver inactive) there is none.
+            else if facts.gpu == "nvidia"
+                    && lib.elem "nvidia" cfg.services.xserver.videoDrivers
+                 then "nvdec, nvidia"
+            else "none")))
+  ] ++ lib.optionals (facts.gpu2 != "none") [
+    # The hybrid's second GPU: named with its health verdict, so the audit
+    # table tells the same story the reveal does (#17b/c). "unknown" is
+    # the deliberate gray zone — conservative config, no claim either way.
+    (row "gpu 2" facts.gpu2)
+    (row "gpu 2 health" facts.gpu2Health)
+    (when (facts.gpu2Health == "failing") (row "gpu 2 action" "powered off, kept quiet"))
+  ] ++ lib.optionals (facts.gpu == "nvidia" || facts.gpu2 == "nvidia") (
+    [ (row "generation" facts.nvidiaGen) ]
+    ++ (if lib.elem "nvidia" cfg.services.xserver.videoDrivers then [
+      (row "kernel module" (if nv.open == true then "open" else "proprietary"))
+      (row "prime offload"
+        (if nv.prime.offload.enable
+        then "on, nvidia ${toString nv.prime.nvidiaBusId} / intel ${toString nv.prime.intelBusId}"
+        else "off"))
+      (row "suspend fix" (onoff nv.powerManagement.enable))
+    ] else [
+      # The iron law's row. When the driver is NOT active (unknown
+      # generation, or an unhealthy dGPU), hardware.nvidia.* must not
+      # even be READ: with nvidia absent from videoDrivers the upstream
+      # module's internal package is null and evaluating options like
+      # `open` crashes the whole surface — the audit's first decide
+      # failure on metal (ASUS X550LC GF117M, round 2, changes.md #22).
+      (row "kernel module" "none — open floor (modesetting/nouveau)")
+    ]))))
 
   (section "disk" [
-    (row "scheduler" (if lib.elem "bfq" cfg.boot.kernelModules
+    (rowT "scheduler"
+      (if lib.elem "bfq" cfg.boot.kernelModules then "bfq" else "kernel_default") [ ]
+      (if lib.elem "bfq" cfg.boot.kernelModules
       then "bfq on rotational disks" else "kernel default"))
     (row "trim" (if cfg.services.fstrim.enable then "weekly" else "off"))
   ])
@@ -136,8 +176,12 @@ lib.filter (s: s != null) [
     (row "chassis" facts.chassis)
     (row "battery daemon" (onoff cfg.services.upower.enable))
     (row "power profiles" (onoff cfg.services.power-profiles-daemon.enable))
-    (row "thermald" (onoff cfg.services.thermald.enable))
-    (row "lid" (cfg.services.logind.settings.Login.HandleLidSwitch or "systemd default"))
+    (rowT "thermald" (onoff cfg.services.thermald.enable) [ ]
+      (onoff cfg.services.thermald.enable))
+    (rowT "lid"
+      (if (cfg.services.logind.settings.Login.HandleLidSwitch or "") == "suspend-then-hibernate"
+       then "lid_sth" else "") [ ]
+      (cfg.services.logind.settings.Login.HandleLidSwitch or "systemd default"))
     (row "hibernate after" (cfg.systemd.sleep.settings.Sleep.HibernateDelaySec or "systemd default"))
   ])
 

@@ -45,8 +45,12 @@ until sshd is up — retry with a few seconds' delay, don't conclude "down".
 stick lives in the dev box; a laptop may be on an older image):
 
 ```
-grep -c 'valid_host Golem' "$(command -v golem-setup)"   # 1 = hostname fix present
+# command -v golem-setup is a thin wrapper (env/PATH + exec) — grep the
+# REAL script it execs, in libexec:
+grep -c 'valid_host Golem' /nix/store/*-golem-setup/libexec/golem-setup-unwrapped
+                                                         # 1 = hostname fix present
 grep cores /var/log/golem-audit/golem-hardware.nix       # sysfs cores fix → right count
+grep firmware /var/log/golem-audit/golem-hardware.nix    # fact exists = round-2+ ISO
 ```
 
 **Drive `golem-setup` over SSH** in tmux (no system tmux; build one):
@@ -109,3 +113,19 @@ changes.md. Fixtures worth keeping → `../fixtures/<machine>/`.
 - **macbook** — the boss fight: Broadcom `wl` wifi (may not join HOLA
   natively; USB ethernet dongle is the fallback), Apple EFI.
 - **dell / hp / comodore** — TBD; fill in on first contact.
+- **lenovo** — the dev box itself (Slim Pro 9 16IRP8): i9-13905H
+  (14c/20t), 32 GB, UEFI, NVMe, Iris Xe + RTX 4050 hybrid, high-DPI.
+  Joins at round 3. Rehearsal ONLY, driven at its own keyboard (testing
+  it takes the dev box down); disk-untouched check mandatory every run.
+- **vm** — machine zero, not a laptop: qemu via `Installer/run-vm.sh`
+  (see [vm.md](vm.md)). Gates every new ISO before reflash; the one
+  place a FULL install (disposable qcow2) is allowed every round.
+- **thinkpad** — ThinkPad E15 Gen 2: Ryzen 7 4700U (8c/8t, first AMD
+  CPU), Renoir Vega iGPU · amdgpu, UEFI, 238 GB NVMe (Windows on it —
+  guarded), 7159 MB, panelDpi 143. Wifi works in-tree (RTL8822CE).
+  Joined 2026-09-07; fastest metal eval (22 s).
+- **asus** — ASUS X550LC: i5-4200U Haswell (2c/4t), **muxless nvidia
+  hybrid** (Intel iGPU + GF117M "GT 720M" · nouveau, nvidiaGen unknown
+  → iron-law floor), UEFI, 298 GB HDD (existing Linux — guarded),
+  8012 MB, no Bluetooth. Joined 2026-09-07; its first contact caught
+  the decide/nvidia-null crash (#22) before the round-3 reflash.

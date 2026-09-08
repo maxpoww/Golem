@@ -207,6 +207,32 @@ pkgs.writeShellApplication {
       fi
     }
 
+    # ── The never-silent-death trap ───────────────────────────────────
+    # Under errexit any failing command kills this script; before this
+    # trap existed the TUI could only say "the installation stopped — the
+    # log is above" over a log that said NOTHING (round 2, VM: the by-id
+    # loop died exactly that way, one line before its own fallback). The
+    # trap names the line and the command on stderr AND in the transcript,
+    # and leaves a status file, so every future death is diagnosable from
+    # the bundle alone. errtrace extends it into functions.
+    set -o errtrace
+    on_err() {
+      err_status=$1; err_line=$2; err_cmd=$3
+      echo "golem-install: died at line $err_line (exit $err_status): $err_cmd" >&2
+      printf '%s\n' "died   line $err_line (exit $err_status): $err_cmd" >> "$TR"
+      echo "error: line $err_line: $err_cmd (exit $err_status)" > "$logdir/status"
+    }
+    trap 'on_err "$?" "$LINENO" "$BASH_COMMAND"' ERR
+    # Fallback for deaths ERR cannot see (nounset, plain exit n): any
+    # nonzero exit that left no status gets a generic one.
+    on_exit() {
+      exit_status=$?
+      if (( exit_status != 0 )) && [[ ! -f "$logdir/status" ]]; then
+        echo "error: exit $exit_status (see transcript)" > "$logdir/status"
+      fi
+    }
+    trap on_exit EXIT
+
     # ── 1. The swap size, from the flake's rule ───────────────────────
     ram_mb=$(( $(grep -m1 MemTotal /proc/meminfo | grep -oE '[0-9]+') / 1024 ))
     swap_mb=$(nix eval --offline --no-write-lock-file --raw \
@@ -305,10 +331,29 @@ pkgs.writeShellApplication {
       check_fail "fit: root would get $root_mb MiB of $disk_mb — the system closure alone is ~19 GiB"
     fi
 
+    # Below a 4 GB machine the local eval/build cannot complete — it
+    # thrashes the box into a swap spiral instead of failing (Comodore at
+    # 1931 MB, Dell at 1790 MB, rounds 1-2). A sticker-4 GB machine
+    # reports ~3700-3850 MB to the kernel after reserved memory, so the
+    # cutoff sits at 3300: above every sticker-2/3 GB box, below the
+    # lowest proven pass (3718 MB — evals 31-171 s). The message speaks
+    # sticker language (Max, 2026-09-07). A rehearsal records the FAIL
+    # and later SKIPS the eval so the machine stays responsive and the
+    # rest of the flow still gets exercised; a real install refuses here
+    # (check_fail exits in real mode). Prebuilt-closure delivery for
+    # these machines is the round-4 question.
+    ram_ok=true
+    if (( ram_mb < 3300 )); then
+      ram_ok=false
+      check_fail "ram: this machine has $ram_mb MB — installing Golem needs about 4 GB of RAM"
+    else
+      check_ok "ram: $ram_mb MB is enough to evaluate the system locally"
+    fi
+
     if [[ "$assume_yes" != true && "$skip_prepare" != true && "$rehearse" != true ]]; then
       echo "This ERASES $disk completely. Type ERASE to continue:"
       read -r reply
-      [[ "$reply" == "ERASE" ]] || { echo "aborted"; exit 1; }
+      [[ "$reply" == "ERASE" ]] || { echo "aborted"; echo "aborted" > "$logdir/status"; exit 1; }
     fi
 
     # ── 2. Partition ──────────────────────────────────────────────────
@@ -328,7 +373,10 @@ pkgs.writeShellApplication {
       echo "resuming: /mnt mounted, seed present — install step only"
     else
 
-    echo "##golem 1/6 formatting the drive"
+    # Phase markers carry a KEY, not label text: the surface maps the key
+    # to a translated string at display time (changes.md #18b — literal
+    # English here painted "Evaluating the system" onto a Spanish run).
+    echo "##golem 1/6 format"
     run swapoff -a || true
     run cryptsetup close golem 2>/dev/null || true
     run umount -R /mnt 2>/dev/null || true
@@ -423,7 +471,7 @@ pkgs.writeShellApplication {
     # would do, or it can never be diffed against a real run's transcript
     # (the first VM calibration recorded the shadow path here, which is a
     # transcript lying about the install it rehearses).
-    echo "##golem 2/6 filesystems"
+    echo "##golem 2/6 fs"
     run mount /dev/disk/by-label/golem /mnt
     # The ESP is mounted only on UEFI (plain or LUKS). On BIOS there is no
     # ESP: /boot lives on the root fs GRUB already reads, so nothing to mount.
@@ -441,14 +489,14 @@ pkgs.writeShellApplication {
     # Real work in both modes: the rehearsal copies into its shadow tree,
     # which is what lets step 5 evaluate the seed exactly as the real
     # install would.
-    echo "##golem 3/6 copying Golem"
+    echo "##golem 3/6 seed"
     mkdir -p "$seed"
     cp -a "$src"/. "$seed"/
     chmod -R u+w "$seed"
     note "seed: $(du -sm "$seed" | cut -f1) MiB at $seed"
 
     # ── 4. The three dropped files ────────────────────────────────────
-    echo "##golem 4/6 reading the device"
+    echo "##golem 4/6 probe"
     mkdir -p "$seed/hosts/target"
     golem-hw-detect > "$seed/hosts/target/golem-hardware.nix"
 
@@ -541,7 +589,19 @@ pkgs.writeShellApplication {
       # (the config default is a placeholder). This names the real target
       # disk — the by-id path, stable across reboots where /dev/sda is not.
       if [[ "$firmware" == bios ]]; then
-        disk_byid=$(for l in /dev/disk/by-id/*; do [[ "$(readlink -f "$l")" == "$disk" ]] && { echo "$l"; break; }; done)
+        # errexit-safe on purpose: the round-2 form ended in a bare
+        # `[[ ]] && { }` whose false guard returned 1 out of the command
+        # substitution, and errexit killed the engine mid-file — on the
+        # first disk with no by-id alias (VM, changes.md #19). An `if`
+        # never leaks the guard's status; -e covers the unmatched-glob
+        # literal.
+        disk_byid=""
+        for l in /dev/disk/by-id/*; do
+          if [[ -e "$l" && "$(readlink -f "$l")" == "$disk" ]]; then
+            disk_byid="$l"
+            break
+          fi
+        done
         [[ -n "$disk_byid" ]] || disk_byid="$disk"
         echo
         echo "  # BIOS/legacy boot: GRUB embeds into this disk's BIOS-boot"
@@ -600,7 +660,13 @@ pkgs.writeShellApplication {
       # measurement: a machine that cannot evaluate its own system cannot
       # run a product install's build step either, and that is worth
       # knowing before any disk is touched.
-      echo "##golem 5/6 evaluating the system"
+      echo "##golem 5/6 eval"
+      if [[ "$ram_ok" != true ]]; then
+        # The ram check above already FAILed; running the eval anyway
+        # would thrash the machine into the exact swap spiral the check
+        # exists to prevent — and bury findings 2..n with it.
+        note "eval SKIPPED: $ram_mb MB cannot evaluate the target without thrashing (see the ram check)"
+      else
       t0=$SECONDS
       if drv=$(nix eval --offline --no-write-lock-file --raw \
           ${overrideArgs} \
@@ -614,6 +680,7 @@ pkgs.writeShellApplication {
         rm -f "$logdir/eval.err"
       else
         check_fail "eval: the target system does NOT evaluate — eval.err has the trace"
+      fi
       fi
       note "would nixos-install --root /mnt --system <built toplevel> --no-root-password --no-channel-copy"
       note "would chown the seed to $owner, then reboot on the 6/6 marker"
@@ -644,7 +711,7 @@ pkgs.writeShellApplication {
       exit 0
     fi
 
-    echo "##golem 5/6 installing"
+    echo "##golem 5/6 install"
     if [[ -z "$system" ]]; then
       echo "building golem-target (this is the long part)…"
       system=$(nix build --offline --no-write-lock-file --no-link --print-out-paths \

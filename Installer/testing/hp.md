@@ -117,3 +117,114 @@ flood. Display fine, machine not broken. → changes.md #17 (recommend:
 Intel primary + dGPU off/quiet; quiet the installer console). Also
 corrects the reveal — "AMD · radeon" is bound but not functional here, and
 census gpu=amd should have been intel (the enabled GPU).
+
+### Round 2, third follow-up — the Spanish run, driven end to end (2026-09-07)
+
+Fresh boot of the frozen round-2 stick; drove the full Spanish flow over
+SSH (192.168.1.150, HOLA auto-join) to chase the photo's oddity: a Spanish
+screen with an ENGLISH driver-count line. Reproduced it exactly, and the
+diagnosis closed same-day.
+
+- **ISO:** round-2 confirmed by the `firmware = "bios"` census fact and by
+  the unwrapped script (`valid_host Golem` = 1, `S[es:drv_line]` = 1 —
+  **the Spanish translation IS on the stick**). Note: the playbook's
+  `grep … "$(command -v golem-setup)"` now greps the WRAPPER (which only
+  sets env/PATH and execs); the real script is
+  `…-golem-setup/libexec/golem-setup-unwrapped` — CLAUDE.md updated.
+  The wrapper's PATH carries pciutils+usbutils — fix #3 visible on metal.
+- **Census:** ok; same facts as round 2 (gpu=amd still — #17b pending).
+- **Surface, the finding — three English leaks in a Spanish run** (the
+  substance is fine: every label, prompt, key-legend line and "(Se
+  borrará)" render Spanish; ghost fix held — typed `hp`, row read
+  `Dispositivo hp`):
+  1. **`23 of 31 (74%) drivers will be installed.`** — the photo's line.
+     NOT a missing translation: `probe_start` backgrounds
+     `probe_compute > $DRV_FILE` at startup, and probe_compute renders
+     `t drv_line` THEN — while `UI` is still the English default. The
+     confirm screen just cats the pre-rendered cache. Language chosen
+     later never touches it.
+  2. **`83% Evaluating the system`** — the label travels as literal text
+     in the engine's protocol line (`##golem 5/6 evaluating the system`,
+     install.nix:603); the TUI prints what it's handed, no key to
+     translate.
+  3. **`rehearsed — nothing was written, no findings`** — hardcoded
+     printf (install-cli:3171/3173), not in the string table at all.
+  - Also of the same family, noted not queued: the decision-row VALUES
+    (`Zram 150% of ram…`, `Lid Suspend-then-hibernate`) are audit-time
+    English strings; and the new R3-3 LUKS strings (luks_warn, luks_ack,
+    erased_enc, e_lcpass, t_lcpass) exist ONLY in English — the scare
+    screen wouldn't scare a Spanish stranger. All → changes.md #18.
+- **Rehearsal:** status ok, **0 findings**, bar to 100%. checks.txt all
+  green — BIOS/GRUB line ok, target sda ≠ medium sdb, fit, facts, **eval
+  43 s → `nixos-system-hp`**. machine.nix carries the Spanish answers
+  properly: `hostName "hp"`, `es_ES.UTF-8`, `Europe/Madrid`. **`/dev/sda`
+  untouched** — ext4 "root" `b0f3d418…` + swap `568830cc…`, identical
+  UUIDs before and after.
+- **Radeon (#17), quantified this boot:** only 2 resume failures in
+  ~18 min — both timestamped during my golem-setup run. The installer's
+  own lspci probes are among the runtime-PM pokes that wake the dead
+  dGPU. vgaswitcheroo unchanged: `IGD:+:Pwr` / `DIS: :DynOff`.
+- **Verdict:** PASS on substance — the Spanish run produces a correct
+  Spanish target and a clean rehearsal; the three English leaks are
+  surface, queued as #18.
+
+### Round 2, fourth follow-up — dGPU health test prototyped on this metal (2026-09-07)
+
+Max decided #17: health-gated, not blanket ("we can not have Golem
+leaving all dedicated GPUs out"). Prototype
+(`fixtures/tools/gpu-health-probe`) ran here same day: primary pick by
+`boot_vga` → i915; forced runtime resume of the radeon dGPU →
+**2 kernel errors → FAILING** (power it off on the installed system).
+Notable: after the failed resume the HP's `runtime_status` read
+`active` — the power state claims success while the driver failed, so
+the dmesg scan is the real signal. Control run on the dev laptop's
+RTX 4050 (same script): wake from suspended, 0 errors, **HEALTHY** —
+both verdict paths proven. Details + design facts in changes.md #17.
+
+### Round 2, fifth follow-up — console-quiet (#17a) A/B-proven here (2026-09-07)
+
+The photo's error-spam fix, demonstrated on this metal using the radeon
+as the error generator and `/dev/vcs1` as the eyes on tty1: at the
+medium's default console loglevel (4), a poked resume failure painted
+onto the physical screen; at loglevel 3 the same poke logged to dmesg
+and tty1 stayed clean. Fix applied to SOURCE (iso.nix
+`boot.consoleLogLevel = 3` + install-cli `dmesg -n 3` on a root VT),
+ships round 3; the stick is frozen and the HP's loglevel was **restored
+to 4** so this boot still behaves like round 2.
+
+## Round 3 — 2026-09-08 — rehearsal PASS · console quiet at last · the health probe's FALSE POSITIVE exposed (#23 sharpened)
+
+- **ISO:** round-3 `p5ylp6q6…`, SSH at 192.168.1.150. BIOS.
+- **RAM saga:** first booted at **1833 MB** (Max had pulled a stick) —
+  would have tested the #16 refusal on a BIOS machine; Max reinstalled
+  RAM → **3718 MB** (round-2 level), and the real round-3 run is below.
+- **Fingerprint reader (Max's priority — #29):** the dm4's reader does
+  NOT enumerate (absent from lsusb / -t / PCI, no kernel trace, no
+  failed-enum error). Present physically, dark to the OS — BIOS-disabled
+  or dead. Reveal correctly shows no row (nothing to detect). Flagged as
+  a BAD "working"-demo machine anyway: dm4 readers are old Validity VFS,
+  poorly supported by libfprint — the machine that would PROVE #29's
+  honesty gate, not the happy path.
+- **#17b working:** `gpu = intel` (boot_vga), `gpu2 = amd` (Evergreen)
+  + address. **#17a WORKING AT LAST:** loglevel 3; 7 radeon faults in
+  dmesg this boot, **ZERO on the physical console** (round 2's photo
+  showed them painting the screen — the whole point of #17a, delivered).
+- **THE HEADLINE — health probe FALSE POSITIVE:** boot audit AND
+  rehearsal reprobe both read `gpu2Health = working` for the radeon we
+  PROVED failing. facts-match `ok` (no flap, falsely reassuring); reveal
+  said "GPU 2 AMD/ATI Radeon HD 6370M · radeon — tested, working · apps
+  can use it on demand". Proven wrong SAME BOOT: forced to a genuine
+  suspended state then cold-resumed → `No VRAM object for PCIE GART` +
+  `evergreen startup failed on resume`, 2 errors — the round-2
+  signature exactly. The probe missed it because its poke didn't force
+  a COLD resume. → changes.md #23 revised: FORCE suspend before every
+  poke, not passive-wait. The HP is the machine the failing→powered-off
+  path (gpu-second.nix) has still never run on from a real verdict.
+- **Rehearsal:** `status: ok`, checks green — BIOS→GRUB, target≠medium,
+  fit, `ok ram: 3718 MB`, facts match, **eval 43 s** (round 2: 43 s —
+  consistent). Disk untouched (ext4 "root" + swap, the HP's prior Linux).
+- **Verdict:** PASS on substance (install path clean, console finally
+  quiet) — but the round's most important negative finding: #17c's
+  health verdict is a false positive on the one lab machine with a
+  genuinely dead dGPU. The reveal is confidently wrong, which is worse
+  than silent. Revised probe → round 4, and the HP is its proof.

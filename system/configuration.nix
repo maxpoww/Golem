@@ -15,6 +15,7 @@
     ./hardware/broadcom-wifi.nix
     ./hardware/fingerprint.nix
     ./hardware/gpu-nvidia.nix
+    ./hardware/gpu-second.nix
     ./hardware/memory.nix
     ./hardware/power-laptop.nix
     ./hardware/storage.nix

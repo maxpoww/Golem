@@ -83,7 +83,14 @@ if [ -n "$DISK" ]; then
     echo "creating target disk $file ($size)" >&2
     nix shell nixpkgs#qemu --command qemu-img create -f qcow2 "$file" "$size" >&2
   fi
-  args+=(-drive "file=$file,if=virtio,format=qcow2")
+  # The serial gives the disk a /dev/disk/by-id alias, like every real
+  # disk. Without one the BIOS install branch found no by-id path and the
+  # round-2 engine died resolving it (changes.md #19) — the rig should
+  # look like hardware, but keep the no-serial case in mind when #19's
+  # engine fix needs verifying. (qemu removed -drive serial=; it lives on
+  # the -device now.)
+  args+=(-drive "file=$file,if=none,id=target,format=qcow2"
+         -device "virtio-blk-pci,drive=target,serial=golemtarget")
 fi
 
 if [ "$HEADLESS" = true ]; then

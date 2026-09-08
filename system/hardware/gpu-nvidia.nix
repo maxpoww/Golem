@@ -38,9 +38,17 @@
 let
   cfg = config.golem.hardware;
   hybrid = cfg.nvidiaBusId != null && cfg.intelBusId != null;
+  # The census picks the PRIMARY gpu by boot_vga (round 3, #17b), so on an
+  # offload laptop the nvidia chip arrives as gpu2 — this module now wakes
+  # for that too, but ONLY on a health-tested "working" verdict: a dGPU
+  # that failed its wake test (#17c) gets powered off by gpu-second.nix,
+  # not a driver. gpu == "nvidia" (boot_vga nvidia — a desktop, or a muxed
+  # laptop) keeps its unconditional path: it is driving the screen.
+  nvidiaPresent = cfg.gpu == "nvidia"
+    || (cfg.gpu2 == "nvidia" && cfg.gpu2Health == "working");
 in
 {
-  config = lib.mkIf (cfg.gpu == "nvidia") (lib.mkMerge [
+  config = lib.mkIf nvidiaPresent (lib.mkMerge [
 
     # ── Common to every classified generation ─────────────────────────
     (lib.mkIf (cfg.nvidiaGen != "unknown") {

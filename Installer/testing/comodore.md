@@ -103,3 +103,36 @@ load on **1931 MB**.
 - **Verdict:** the two Comodore round-2 census fixes are confirmed on
   metal; the machine itself is below the install's RAM floor — a finding,
   not a Golem bug.
+
+## Round 3 — 2026-09-07 — the RAM refusal works: findings: 1 in ~50 s on the box round 2 left comatose · 1 new census finding (#26)
+
+- **ISO:** round-3 `p5ylp6q6…`, SSH at 192.168.1.129.
+- **THE #16 PROOF — this machine's whole reason to run round 3:** all
+  six screens walked normally, ENTER, and ~50 s later:
+  `FAIL ram: this machine has 1931 MB — installing Golem needs about
+  4 GB of RAM` + `note eval SKIPPED: … cannot evaluate the target
+  without thrashing`. Bar to 100% "Rehearsed", "1 finding(s)", every
+  other check green (BIOS→GRUB, target≠medium, fit, facts match), the
+  machine RESPONSIVE throughout (1.4 GB available after). Round 2: the
+  same ENTER produced an unresponsive swap spiral. Also: the engine's
+  early swap-rule eval passed quickly at 1931 MB — the round-2 thrash
+  was the target eval's doing; no check reorder needed.
+- **Census:** ramMB 1931, gpu=intel, intelLegacy=true (the #12 GMA
+  range holding), BIOS — and **NEW FINDING #26:** `gpu2 = "intel"` at
+  `00:02.1` — the GMA chipset's SECOND FUNCTION of the same chip,
+  enumerated as a second GPU. The reveal then fibs: "GPU 2 Intel
+  Mobile 4 Series Chipset Graphics — tested, working · apps can use it
+  on demand" — a driverless dead sibling function of the ONLY GPU,
+  wearing the offload promise. Config impact zero (intel+working
+  activates nothing); surface honesty impact real. Fix: exclude
+  same-slot functions from gpu2 (the HDMI-audio sibling rule, applied
+  to display class). Health probe on the sibling read "working" both
+  boots — stable, at least.
+- **Reveal otherwise:** GlidePoint `· psmouse` (#14 + R3-1), the
+  Ethernet-only row (#15), audio CORRECT here (ICH9 at 00:1b.0 — GMA
+  silicon has no HDMI-audio sibling, so first-match is right), zram
+  Active, 4 GiB swap tier, **25 of 26 (96%)**.
+- **Disk untouched** (prior Linux ext4 + swap intact).
+- **Verdict:** PASS with the round's most satisfying delta — the
+  machine that couldn't survive its own rehearsal now finishes it in
+  under a minute with an honest refusal. #26 queued.

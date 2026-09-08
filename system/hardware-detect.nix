@@ -62,16 +62,26 @@
         ram_kb=$(grep -m1 MemTotal /proc/meminfo | grep -oE '[0-9]+')
         ram_mb=$(( ram_kb / 1024 ))
 
-        # ── GPU vendor, from the PCI vendor id of each DRM card ───────────
-        # Priority nvidia > amd > intel > virtio: on a hybrid laptop the
-        # discrete nvidia is the one that needs the non-default driver, and
-        # a machine with both an iGPU and a dGPU should pick the dGPU here.
+        # ── GPUs, from the PCI display class (0x03xx) ─────────────────────
+        # PCI and not /sys/class/drm: a drm card exists only once a driver
+        # binds, so enumerating drm silently loses exactly the dGPU the
+        # medium carries no driver for (#17b).
+        #
+        # PRIMARY is the boot_vga card — the one driving the display. The
+        # old vendor priority (nvidia > amd > intel) picked the DISCRETE
+        # chip on a muxless hybrid where the enabled, display-driving GPU
+        # is the iGPU, so the census installed for the wrong screen (HP
+        # dm4, round 2). boot_vga is the only signal that held on both
+        # prototyped hybrids — a healthy offload dGPU also reads enable=1,
+        # so enable cannot pick (changes.md #17, gpu-health-probe).
         gpu="auto"
-        have_intel=0
+        gpu2="none"; gpu2_bdf=""; gpu2_dir=""; gpu2_health=""
         intel_legacy=false
         nv_dev=""
         nv_slot=""
         intel_slot=""
+        primary_dir=""
+        declare -a gpu_dirs=()
         # sysfs uevent → "PCI:bus:dev:fn" as X11 BusID wants it — DECIMAL,
         # while PCI_SLOT_NAME (0000:01:00.0) is hex. printf %d converts.
         slot_of() {
@@ -81,19 +91,28 @@
           s=''${s#*:}
           printf 'PCI:%d:%d:%d' "0x''${s%%:*}" "0x$(cut -d: -f2 <<<"$s" | cut -d. -f1)" "0x''${s##*.}"
         }
-        for v in /sys/class/drm/card[0-9]*/device/vendor; do
-          [[ -r "$v" ]] || continue
-          id=$(tr -d '[:space:]' < "$v")
+        vendor_word() {
+          case "$1" in
+            0x10de) echo nvidia ;;
+            0x1002) echo amd ;;
+            0x8086) echo intel ;;
+            0x1af4|0x1234|0x15ad) echo virtio ;;
+            *) echo other ;;
+          esac
+        }
+        for d in /sys/bus/pci/devices/*; do
+          [[ -r "$d/class" && -r "$d/vendor" ]] || continue
+          case "$(cat "$d/class")" in 0x03*) ;; *) continue ;; esac
+          gpu_dirs+=("$d")
+          [[ "$(cat "$d/boot_vga" 2>/dev/null)" == "1" ]] && primary_dir="$d"
+          id=$(tr -d '[:space:]' < "$d/vendor")
           case "$id" in
             0x10de)
-              gpu="nvidia"
-              nv_dev=$(tr -d '[:space:]' < "$(dirname "$v")/device" 2>/dev/null || true)
-              nv_slot=$(slot_of "$(dirname "$v")")
+              nv_dev=$(tr -d '[:space:]' < "$d/device" 2>/dev/null || true)
+              nv_slot=$(slot_of "$d")
               ;;
-            0x1002) [[ "$gpu" == "nvidia" ]] || gpu="amd" ;;
             0x8086)
-              have_intel=1
-              intel_slot=$(slot_of "$(dirname "$v")")
+              intel_slot=$(slot_of "$d")
               # iHD (intel-media-driver) does hardware video decode only on
               # Broadwell+ (Gen8+); older parts need the LEGACY i965 driver,
               # or iHD silently gives no decode — which is why a 2013 HD 5000
@@ -112,17 +131,88 @@
               # iHD-capable, and sits below 0x2500, so it is correctly not
               # caught.) Display is unaffected either way — the kernel i915
               # driver handles all of these.
-              dev=$(tr -d '[:space:]' < "$(dirname "$v")/device" 2>/dev/null || true)
+              dev=$(tr -d '[:space:]' < "$d/device" 2>/dev/null || true)
               if [[ -n "$dev" ]] && { (( dev < 0x1600 )) \
                    || { (( dev >= 0x2500 )) && (( dev <= 0x2e99 )); }; }; then
                 intel_legacy=true
               fi
               ;;
-            0x1af4|0x1234|0x15ad) [[ "$gpu" == "auto" ]] && gpu="virtio" ;;
           esac
         done
-        if [[ "$gpu" == "auto" && "$have_intel" == 1 ]]; then
-          gpu="intel"
+        if [[ -z "$primary_dir" ]]; then
+          # No boot_vga flag anywhere: fall back to the first enabled card,
+          # then to the first display device at all.
+          for d in "''${gpu_dirs[@]}"; do
+            [[ "$(cat "$d/enable" 2>/dev/null || echo 0)" -gt 0 ]] && { primary_dir="$d"; break; }
+          done
+        fi
+        if [[ -z "$primary_dir" && ''${#gpu_dirs[@]} -gt 0 ]]; then
+          primary_dir="''${gpu_dirs[0]}"
+        fi
+        if [[ -n "$primary_dir" ]]; then
+          gpu=$(vendor_word "$(tr -d '[:space:]' < "$primary_dir/vendor")")
+          [[ "$gpu" == "other" ]] && gpu="auto"
+        fi
+        # The SECOND display device (a hybrid): named, never silently
+        # dropped — the sticker on the lid stays honest (#17b).
+        for d in "''${gpu_dirs[@]}"; do
+          [[ "$d" == "$primary_dir" ]] && continue
+          gpu2=$(vendor_word "$(tr -d '[:space:]' < "$d/vendor")")
+          gpu2_bdf=''${d##*/}
+          gpu2_dir="$d"
+          break
+        done
+
+        # ── The dGPU health test (#17c) ──────────────────────────────────
+        # Actively wake the second GPU (forced runtime resume) and scan the
+        # kernel log at its own PCI address. The polite signals LIE — the
+        # HP's runtime_status read "active" after its radeon resume had
+        # failed — so only the error log convicts (changes.md #17, proven
+        # both ways: HP radeon FAILING, RTX 4050 HEALTHY). Verdicts:
+        #   0 errors            → working  (offload-worthy second GPU)
+        #   errors, twice       → failing  (power it off, keep it quiet)
+        #   anything in between → unspoken (facts stay silent; the config
+        #                         keeps the conservative default stack)
+        # Worst case the test adds one more of the errors the chip already
+        # prints. Root only; the boot audit and the engine both run as root.
+        if [[ "$gpu2" != "none" && -n "$gpu2_dir" && "$(id -u)" == "0" ]]; then
+          gpu2_probe() {
+            local before ctl0 errs
+            before=$(dmesg 2>/dev/null | wc -l)
+            ctl0=$(cat "$gpu2_dir/power/control" 2>/dev/null || echo auto)
+            if ! echo on > "$gpu2_dir/power/control" 2>/dev/null; then
+              echo -1; return 0
+            fi
+            sleep 3
+            errs=$(dmesg 2>/dev/null | tail -n +"$((before + 1))" \
+              | grep -c -e "$gpu2_bdf" -e '\*ERROR\*' || true)
+            echo "$ctl0" > "$gpu2_dir/power/control" 2>/dev/null || true
+            echo "''${errs:-0}"
+          }
+          e1=$(gpu2_probe)
+          if [[ "$e1" == "0" ]]; then
+            gpu2_health="working"
+          elif [[ "$e1" != "-1" ]]; then
+            # A reproducing retry, or no conviction: a single flake stays
+            # unspoken rather than condemning a chip (verdict discipline).
+            #
+            # The retry is only REAL if the chip re-suspended first — the
+            # ASUS preview showed back-to-back pokes find it still awake
+            # and read a vacuous 0 (round 2). Bounded wait: drivers
+            # autosuspend in ~5 s; a chip still awake after 10 keeps the
+            # single-flake silence rather than stalling the audit.
+            # if-guarded, not `[[ ]] && break`: under errexit a false
+            # guard on the LAST iteration fails the whole loop (#19a's
+            # exact footgun).
+            for _ in 1 2 3 4 5 6 7 8 9 10; do
+              if [[ "$(cat "$gpu2_dir/power/runtime_status" 2>/dev/null)" == "suspended" ]]; then
+                break
+              fi
+              sleep 1
+            done
+            e2=$(gpu2_probe)
+            [[ "$e2" == "0" || "$e2" == "-1" ]] || gpu2_health="failing"
+          fi
         fi
 
         # ── NVIDIA generation, by device-id range (the iron law, spec §8) ─
@@ -134,7 +224,7 @@
         # gpu-nvidia.nix leaves the machine on the nouveau/modesetting
         # floor: uncertain detection must land safe, never black-screen.
         nvidia_gen="unknown"
-        if [[ "$gpu" == "nvidia" && -n "$nv_dev" ]]; then
+        if [[ -n "$nv_dev" ]]; then
           if (( nv_dev >= 0x1e00 )); then
             nvidia_gen="turing+"
           elif (( nv_dev >= 0x1340 )); then
@@ -267,12 +357,17 @@
             intelLegacy = $intel_legacy;
             firmware = "$firmware";
         EOF
-          if [[ "$gpu" == "nvidia" ]]; then
+          if [[ "$gpu" == "nvidia" || "$gpu2" == "nvidia" ]]; then
             echo "    nvidiaGen = \"$nvidia_gen\";"
             if [[ -n "$nv_slot" && -n "$intel_slot" ]]; then
               echo "    nvidiaBusId = \"$nv_slot\";"
               echo "    intelBusId = \"$intel_slot\";"
             fi
+          fi
+          if [[ "$gpu2" != "none" ]]; then
+            echo "    gpu2 = \"$gpu2\";"
+            echo "    gpu2BusAddr = \"$gpu2_bdf\";"
+            [[ -n "$gpu2_health" ]] && echo "    gpu2Health = \"$gpu2_health\";"
           fi
           [[ "$vm_guest" != "none" ]] && echo "    vmGuest = \"$vm_guest\";"
           [[ "$has_fp" == true ]] && echo "    fingerprint = true;"

@@ -104,6 +104,37 @@ in
       example = "PCI:0:2:0";
       description = "iGPU bus id for PRIME offload (null = no offload).";
     };
+    gpu2 = lib.mkOption {
+      type = lib.types.enum [ "none" "intel" "amd" "nvidia" "virtio" "other" ];
+      default = "none";
+      description = ''
+        The SECOND display device on a hybrid machine, by PCI vendor. The
+        primary `gpu` is the boot_vga card driving the screen; this one is
+        named so it is never silently dropped (changes.md #17b — the
+        sticker on the lid stays honest). What Golem does with it is
+        decided by gpu2Health below.
+      '';
+    };
+    gpu2Health = lib.mkOption {
+      type = lib.types.enum [ "unknown" "working" "failing" ];
+      default = "unknown";
+      description = ''
+        The boot audit's wake test on the second GPU (changes.md #17c):
+        force a runtime resume, scan the kernel log at the device's own
+        PCI address — the polite signals lie (the HP's runtime_status read
+        "active" after a failed resume), only the error log convicts.
+        "working" configures a usable second GPU (nvidia: PRIME offload);
+        "failing" powers it off and keeps it quiet (gpu-second.nix);
+        "unknown" — ambiguous evidence — changes nothing: the
+        conservative default stack, silence on the surface.
+      '';
+    };
+    gpu2BusAddr = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "0000:01:00.0";
+      description = "PCI address of the second GPU (for the power-off path).";
+    };
     hasBluetooth = lib.mkOption {
       type = lib.types.bool;
       default = true;

@@ -153,3 +153,30 @@ built). Keyfile kept (rehearsal opened nothing), then shredded.
   renders in golem-setup.
 - **Verdict:** LUKS engine PASS on metal; encryption is now deliberately
   hard to enable by accident, which is the point.
+
+## Round 3 — 2026-09-07 — PASS · 0 findings on substance · 1 new reveal refinement (#21c)
+
+- **ISO:** round-3 `p5ylp6q6…`. Driven over SSH at 192.168.1.99.
+- **Audit ok.** Census: gpu=intel, **intelLegacy=false → `video decode:
+  iHD`** (Broadwell HD 5500 is iHD-capable — the legacy split's
+  above-the-line case, correct), ramMB 3833, UEFI, bluetooth true.
+- **The RAM boundary machine:** `ok ram: 3833 MB is enough` — the
+  closest pass to the 3300 cutoff in the lab. The sticker-4GB /
+  usable-3.7-3.8GB reasoning holds on its narrowest case.
+- **Reveal:** `Intel HD Graphics 5500 · i915 — tested, working ·
+  driving this screen` (verdict row, clean short name), QCA9377 ·
+  ath10k_pci, Bluetooth row present (the round-1 triangulation machine),
+  touchpad `· hid-multitouch` baked (R3-1 was live-verified here — now
+  on the stick), zram `Active`, **18 of 18 (100%)**.
+- **NEW FINDING → #21c:** the Audio row names "Broadwell-U Audio
+  Controller" — the iGPU's HDMI audio function (00:03.0), not the
+  speakers (Wildcat Point-LP HD Audio, 00:1b.0). Intel puts no "HDMI"
+  in the name, so #21a's name filter passes it. Same story spotted
+  retroactively on the ASUS ("Haswell-ULT HD Audio", 00:03.0). Round 4:
+  filter by topology (audio functions adjacent to display devices), not
+  names.
+- **Rehearsal:** `status: ok`, all checks green, **eval 30 s** (round 1:
+  31 s — consistent), UEFI→systemd-boot, disk untouched (the WDC's
+  Windows partitions intact).
+- **Verdict:** PASS — row 1 confirms round 3 on the UEFI/Intel/iHD
+  path; one cosmetic refinement queued.

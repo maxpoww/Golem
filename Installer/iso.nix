@@ -163,6 +163,20 @@ in
     boot.kernelParams = [ "golem.install" ];
   };
 
+  # The kernel's default console loglevel (4) lets err-level lines paint
+  # over the installer surface — the HP's sleeping Radeon fails every
+  # runtime resume and says so in red, mid-reveal (changes.md #17a). Only
+  # crit-and-worse may reach the screen; dmesg and the journal keep
+  # everything.
+  boot.consoleLogLevel = 3;
+
+  # English-on-fresh-boot as a GUARANTEE, not an accident (#6): without
+  # the pin the tty is English only because the kernel default happens to
+  # be us — systemd-vconsole-setup logs "Configuration of first virtual
+  # console was skipped", so vconsole.conf was never actively applied.
+  # mkDefault so golem-setup's loadkeys (the keyboard step) still wins.
+  console.keyMap = lib.mkDefault "us";
+
   # The minimal profile adds a Memtest86+ row; Start/Install is the whole
   # menu.
   boot.loader.grub.memtest86.enable = lib.mkForce false;
