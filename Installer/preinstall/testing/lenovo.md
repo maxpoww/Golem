@@ -139,6 +139,63 @@ channel — `git pull` first). What's DIFFERENT / what to verify:
 
 ---
 
+## Round 5 test — procedure for the Fedora driver (2026-09-08)
+
+Same handoff as rounds 3–4 above (Fedora drives, dev-box down, `git pull`
+first — this round's ISO was cut and flashed straight from the dev-box
+session, so the very latest commit is the one to pull). What's DIFFERENT /
+what to verify:
+
+- **The stick is the round-5 build, ISO `4qyiiazybywxnpzskyf4d2pmsihkqfvj…`**,
+  built from `f92d6f7` (the preinstall/installing split — no functional
+  change) on top of `7659227` (#33, the postinstall ASK framework).
+  Identify it by: `golem-setup` unwrapped hashes `kmvcmr1r…` (round 4 was
+  `dgavg21k…`); **`golem-postinstall-questions` exists on the medium at
+  all** — round 4 had no such binary, so its mere presence is the cleanest
+  single tell. `golem-hw-detect` is unchanged from round 4
+  (`3fniyyq2…`) — the probe itself did not move this round, only the
+  surface and the postinstall wiring did.
+- **What's new since round 4, all applied to source per changes.md:**
+  - **#33 — the postinstall ASK subsystem exists for the first time.**
+    `golem-install` now calls `golem-postinstall-questions` right after
+    the probe and drops a FOURTH file into the rehearsal bundle's
+    `target/`: `postinstall-questions.json`. On THIS machine, expect it
+    to be an **empty array** — the question only fires for a *failing*
+    second GPU, and the Lenovo's RTX 4050 is the lab's one healthy dGPU
+    (`gpu2Health = "working"`). A non-empty array here would be a
+    regression worth flagging loudly.
+  - **#34 — Ctrl-C now exits, once, cleanly.** `cleanup` runs on EXIT
+    only; `cancel_install` (the F1 path) owns INT/TERM. Worth a deliberate
+    Ctrl-C on the confirm screen: expect the prompt back, no leftover
+    `golem-setup` process, the `#28` console marker and keymap backup both
+    gone (not leaked, per round 4's finding on this exact machine).
+  - **R4-1 — the audio row should now name the class, not a hex id.**
+    THIS machine is the one that filed it: round 4 showed `Intel
+    Corporation Device 51cf · sof-audio-pci-intel-tgl`; expect `Intel
+    Corporation Multimedia audio controller · sof-audio-pci-intel-tgl`
+    this round. The direct verification, on the hardware that found the
+    bug.
+  - **#31/#32/#26-reveal** (round-4-sweep findings, round-5 source): F1 on
+    the language page should now actually cancel (dead "ESC back" is
+    gone); a failing-GPU verdict tail (not applicable here — healthy chip)
+    should render dimmed if it ever shows; no same-chip-sibling
+    double-counted as a second GPU.
+- **Everything round 4 already proved on this machine should still hold,
+  unchanged — this round is a regression check for it, not a re-discovery:**
+  `Scale 1.60` row present, `gpu2Health = "working"` from the boot audit
+  itself with no facts-match flap, #28's wait_for_audit still holding the
+  reveal cleanly.
+- **THE ONE RULE still absolute:** rehearsal only, nvme0n1 byte-untouched
+  before AND after. Never run the engine without `--rehearse`.
+
+### Handoff back
+
+After the rehearsal (and the deliberate Ctrl-C check), commit this file on
+the Fedora session and push. Max reboots the dev box to normal; the
+dev-box Claude pulls the record over SSH/git and continues from there.
+
+---
+
 ## Round 3 (machine 7 of the round — the dev box, last in) — 2026-09-08 — the healthy modern-nvidia path PROVEN ON METAL · NVMe first contact · a THIRD manifestation of #23
 
 - **ISO:** round-3 stick (14.4 GB, `GOLEM_INST`), `golem-setup`
