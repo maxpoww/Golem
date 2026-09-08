@@ -279,7 +279,7 @@ margin on the 10 s bound — but it is NOT sufficient on its own: see
   force-cold before poke 1).
 - **size:** small (logic), but load-bearing for #17c's whole promise.
 
-### 23b. The health probe's error counter is unscoped, and nothing waits for the driver to settle — [round 4, small · pairs with #23]
+### 23b. The health probe's error counter is unscoped, and nothing waits for the driver to settle — [**APPLIED TO SOURCE · VALIDATED LIVE ON THE LENOVO 2026-09-08** · ships in the round-4 build]
 **Third manifestation of the #23 probe, and a NEW direction: a FALSE
 NEGATIVE.** ASUS = flap (`working`→`failing`); HP = false positive
 (`working` on a chip that fails every resume); **Lenovo = `unknown` on a
@@ -310,17 +310,67 @@ demonstrably healthy RTX 4050.** Same probe, three different lies.
   errors, zero new kernel lines**. Correct verdict, **2 seconds of
   margin on the fastest machine in the lab.** Consider widening the
   bound.
-- **what force-cold still does NOT fix (this entry):**
-  a. **scope the counter to real errors on the real device.** Match the
-     device's own error-level records, not the bare BDF (init lines are
-     not faults), and not a bare `\*ERROR\*` from *any* device. This boot
-     carried `i915 0000:00:02.0: [drm] *ERROR* Port E/TC#2: timeout
-     waiting for PHY ready` at t = 15.2 s — it missed the audit window by
-     **1.9 s**. On a slightly slower boot the **Intel iGPU's** fault would
-     have condemned the **NVIDIA** chip.
-  b. **wait for the driver to settle before counting** — force-cold
-     implies it (a chip mid-init will not autosuspend), but the bound
-     must be generous enough to cover GSP init, which took ~6 s here.
+### CORRECTION to this entry's first draft (measured on the box, same session)
+
+The first write-up said the missing piece was scoping the counter. **That
+is wrong on its own, and the live test says so:** the 32 nouveau GSP
+`ctrl cmd … failed` lines ARE at `KERN_ERR` **and** carry the dGPU's BDF,
+so a level+BDF-scoped counter would still have counted all 32 in the boot
+window and still returned the false negative. Measured breakdown of the
+BDF lines this boot: **32 err · 29 info · 15 warn.** Scoping removes the
+44 info/warn lines and the cross-attribution, **but force-cold is the
+load-bearing fix** — it is what guarantees the counting window opens
+after init, because a chip still initialising will not autosuspend.
+Both changes are needed; only one of them is sufficient.
+
+- **the fix, as applied** (`system/hardware-detect.nix`):
+  a. **force cold before EVERY poke** — `control=auto`, bounded wait for
+     a real `suspended`, then wake. Doubles as the settle wait.
+  b. **bound widened 10 s → 15 s.** The RTX 4050 measured a rock-steady
+     **7 s** to go cold (three samples, zero spread). Seven seconds after
+     this boot's init ends is ~t=27.4 s, and a 10 s bound opened when the
+     audit starts (t=17.06 s) expires at t=27.0 s — **0.4 s too early, on
+     the fastest machine in the lab.**
+  c. **count only error-level records that NAME the device** — a
+     before/after delta over
+     `dmesg --level=emerg,alert,crit,err | grep -F "$gpu2_bdf"`
+     (a filtered log cannot be indexed by line number the way the old
+     `tail -n +N` did). `dmesg` is util-linux's, already declared in
+     `runtimeInputs`, so `--level` resolves inside the tool's own
+     closure — verified by resolving it with `env -i` against only the
+     declared store paths.
+
+- **VALIDATED LIVE, on the metal, before shipping:**
+  - **3 × force-cold cycles on the healthy RTX 4050 → `working`,
+    `working`, `working`.** Each a genuine cold resume (7 s to suspend,
+    13–15 s cold, **0 device errors**, not one new kernel line).
+  - **still convicts.** The real recorded failing signatures injected at
+    `KERN_ERR` via `/dev/kmsg`: the HP's
+    `radeon 0000:01:00.0: No VRAM object for PCIE GART` and the ASUS's
+    `nouveau …: bus: MMIO write … FAULT … [ PRIVRING ]` → **delta 2**,
+    conviction intact.
+  - **cross-attribution gone.** `i915 0000:00:02.0: [drm] *ERROR* Port
+    E/TC#2` injected during an NVIDIA probe: **old counter 1** (charged
+    to the dGPU), **new counter 0**.
+  - **one documented miss, accepted:**
+    `[drm:evergreen_resume] *ERROR* evergreen startup failed on resume`
+    carries **no BDF**, so the scoped counter skips it. Harmless here —
+    its companion `No VRAM object for PCIE GART` names the device and
+    convicts — but a chip whose ONLY fault line is a bare `[drm:…]
+    *ERROR*` would escape. Revisit if a machine ever shows that shape
+    alone.
+  - **safety property holds.** Bound starved to 2 s (chip needs 7):
+    `poke1 → -1` → **`unknown`**. Never a default "working".
+  - **end to end, in the tool's own closure** (`env -i`, nothing
+    ambient): the patched detector emits
+    `gpu2Health = "working"` in 12 s, zero stderr.
+  - **the visual, confirmed on the confirm screen:**
+    `GPU 2  NVIDIA GeForce RTX 4050 Max-Q · nouveau — tested, working ·
+    apps can use it on demand` — the exact row #17c promised, rendered on
+    real metal for the first time.
+  - **shellcheck 0.11.0 clean** (the `writeShellApplication` build gate)
+    and `bash -n` clean.
+  - Disk re-verified byte-untouched after all of it.
 - **silver lining — the reveal degrades in the SAFE direction:** an
   `unknown` health renders the row bare (`GPU 2  NVIDIA GeForce RTX 4050
   Max-Q · nouveau`, no verdict clause), so the installer promises
@@ -330,6 +380,34 @@ demonstrably healthy RTX 4050.** Same probe, three different lies.
 - **where:** `system/hardware-detect.nix` (the gpu2 health probe —
   counter scoping + settle bound).
 - **size:** small.
+
+### 30. golem-hw-detect reaches outside its closure for `sed` — the awk bug, one field over — [APPLIED TO SOURCE · caught live on the Lenovo, round 3]
+- **what:** `cpu_model` trims with `sed`, but **`pkgs.gnused` was never in
+  `runtimeInputs`.** `writeShellApplication` appends `:$PATH` to the
+  closure PATH it builds, so the undeclared `sed` silently resolves from
+  whatever the caller happens to carry — and it works today **only**
+  because the `golem-audit` unit's `Environment=PATH` happens to include
+  `gnused-4.10/bin`.
+- **why it stayed invisible:** the call is wrapped in `|| true` and
+  guarded by `[ -n "$cpu_model" ] || cpu_model="unknown"` — so a missing
+  `sed` does not crash, it just reports **`cpuModel = "unknown"`** in
+  silence. That is the cores=4 failure shape exactly: a pipeline that
+  collapses to a plausible-looking fallback, in the one context that
+  feeds the census.
+- **caught how (Lenovo, round 3):** running the detect body under **only
+  the tool's own declared store paths** (`env -i PATH=<closure>`) →
+  `sed: command not found`, `cpuModel = "unknown"`. With `gnused` added:
+  full facts, zero stderr. The file's own header comment warns about
+  precisely this — "a tool must not reach outside its own closure for
+  something this basic" — and a second instance was sitting four lines
+  below it.
+- **fix (applied):** `pkgs.gnused` added to `runtimeInputs`, with the
+  reasoning recorded next to it.
+- **worth a sweep in round 4:** the same `env -i` closure test over
+  `golem-hw-evidence` and `golem-hw-decide`, which were not checked.
+- **where:** `system/hardware-detect.nix` `runtimeInputs`.
+- **size:** small (one line) — but it is the second instance of a class
+  the lab has now been bitten by twice.
 
 ### R3-4. The scheduler row is vacuous on a machine with no rotational disk — [round 4, small]
 - **what (Lenovo, round 3):** the confirm screen reads `Scheduler  Bfq on

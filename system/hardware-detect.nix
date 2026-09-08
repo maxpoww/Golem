@@ -20,6 +20,14 @@
         pkgs.gnugrep
         pkgs.nixos-install-tools
         pkgs.util-linux # rfkill — one leg of the bluetooth triangulation
+        # gnused — cpuModel's trim. Was UNDECLARED and resolved only from
+        # the ambient PATH (writeShellApplication appends `:$PATH`), so it
+        # worked purely because the golem-audit unit's PATH happens to
+        # carry gnused. Caught live on the Lenovo, round 3: run under this
+        # tool's OWN closure and the trim collapses, the `|| true` swallows
+        # it, and the guard below reports `cpuModel = "unknown"` in
+        # silence — the awk bug's exact shape, one field over.
+        pkgs.gnused
       ];
       text = ''
         outdir=""
@@ -164,30 +172,88 @@
         done
 
         # ── The dGPU health test (#17c) ──────────────────────────────────
-        # Actively wake the second GPU (forced runtime resume) and scan the
-        # kernel log at its own PCI address. The polite signals LIE — the
-        # HP's runtime_status read "active" after its radeon resume had
-        # failed — so only the error log convicts (changes.md #17, proven
-        # both ways: HP radeon FAILING, RTX 4050 HEALTHY). Verdicts:
+        # Actively wake the second GPU and scan the kernel log at its own
+        # PCI address. The polite signals LIE — the HP's runtime_status
+        # read "active" after its radeon resume had failed — so only the
+        # error log convicts. The lab has now broken this probe three
+        # different ways (changes.md #17, #23, #23b): the HP read a FALSE
+        # POSITIVE, the ASUS FLAPPED across boots, and the Lenovo read a
+        # FALSE NEGATIVE. All three are the same two root causes.
+        #
+        # (1) FORCE COLD before every poke. Set control=auto, wait
+        # (bounded) for a real suspend, THEN wake it. A poke at a chip
+        # that is already awake is vacuous — it reads a clean 0 and
+        # latches "working" for a chip that fails every real resume (the
+        # HP). Forcing cold also doubles as a SETTLE WAIT: a chip still
+        # initialising will not autosuspend, so the driver's own boot
+        # chatter can never land inside the counting window. That was the
+        # Lenovo's false negative — the audit starts at t=17.0 s while
+        # nouveau's GSP init runs to t=20.4 s, so the old probe counted
+        # ~40 lines of a healthy chip announcing itself. If it will not
+        # go cold inside the bound the cold-resume path is untestable →
+        # -1 → unspoken, NEVER a default "working".
+        #
+        # The bound is 15 s, not 10. Measured on the Lenovo's RTX 4050: a
+        # rock-steady 7 s to go cold (three samples, no spread). Seven
+        # seconds after that boot's init ends is ~t=27.4 s, so a 10 s
+        # bound opened when the audit starts expires 0.4 s too early — on
+        # the FASTEST machine in the lab. 15 s buys the margin back.
+        #
+        # (2) COUNT ONLY ERROR-LEVEL RECORDS THAT NAME THE DEVICE. The
+        # old counter matched any line carrying the BDF, so ordinary init
+        # lines ("NVIDIA AD107", "gsp: RM version", "drm: VRAM: 6141
+        # MiB") convicted a healthy chip; and it matched a bare *ERROR*
+        # from ANY device, so one Intel iGPU fault would be charged to
+        # the NVIDIA chip — the Lenovo's boot carried exactly that line
+        # (`i915 0000:00:02.0: [drm] *ERROR* Port E/TC#2`) 1.9 s outside
+        # the window. Both filters verified live on the Lenovo: the HP's
+        # `radeon …: No VRAM object for PCIE GART` and the ASUS's
+        # `nouveau …: bus: MMIO write … [ PRIVRING ]` still convict, the
+        # i915 fault no longer does, and three force-cold cycles on the
+        # healthy RTX 4050 returned working/working/working.
+        #
+        # dmesg here is util-linux's (declared in runtimeInputs above, so
+        # --level resolves inside this tool's own closure — the awk
+        # lesson at the top of this file).
         #   0 errors            → working  (offload-worthy second GPU)
         #   errors, twice       → failing  (power it off, keep it quiet)
         #   anything in between → unspoken (facts stay silent; the config
         #                         keeps the conservative default stack)
-        # Worst case the test adds one more of the errors the chip already
-        # prints. Root only; the boot audit and the engine both run as root.
+        # Root only; the boot audit and the engine both run as root.
         if [[ "$gpu2" != "none" && -n "$gpu2_dir" && "$(id -u)" == "0" ]]; then
+          # Error-level records naming this device, counted as a delta
+          # across the resume — a filtered log cannot be indexed by line
+          # number the way the old `tail -n +N` did.
+          gpu2_dev_errs() {
+            dmesg --level=emerg,alert,crit,err 2>/dev/null \
+              | grep -c -F "$gpu2_bdf" || true
+          }
+          gpu2_cold() {  # 0 = the chip is genuinely suspended
+            [[ "$(cat "$gpu2_dir/power/runtime_status" 2>/dev/null)" == "suspended" ]]
+          }
           gpu2_probe() {
-            local before ctl0 errs
-            before=$(dmesg 2>/dev/null | wc -l)
+            local before after ctl0
             ctl0=$(cat "$gpu2_dir/power/control" 2>/dev/null || echo auto)
-            if ! echo on > "$gpu2_dir/power/control" 2>/dev/null; then
+            if ! echo auto > "$gpu2_dir/power/control" 2>/dev/null; then
               echo -1; return 0
             fi
+            # if-guarded, not `[[ ]] && break`: under errexit a false
+            # guard on the LAST iteration fails the whole loop (#19a's
+            # exact footgun).
+            for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+              if gpu2_cold; then break; fi
+              sleep 1
+            done
+            if ! gpu2_cold; then
+              echo "$ctl0" > "$gpu2_dir/power/control" 2>/dev/null || true
+              echo -1; return 0          # untestable, never a default pass
+            fi
+            before=$(gpu2_dev_errs)
+            echo on > "$gpu2_dir/power/control" 2>/dev/null || true
             sleep 3
-            errs=$(dmesg 2>/dev/null | tail -n +"$((before + 1))" \
-              | grep -c -e "$gpu2_bdf" -e '\*ERROR\*' || true)
+            after=$(gpu2_dev_errs)
             echo "$ctl0" > "$gpu2_dir/power/control" 2>/dev/null || true
-            echo "''${errs:-0}"
+            echo "$(( after - before ))"
           }
           e1=$(gpu2_probe)
           if [[ "$e1" == "0" ]]; then
@@ -195,21 +261,9 @@
           elif [[ "$e1" != "-1" ]]; then
             # A reproducing retry, or no conviction: a single flake stays
             # unspoken rather than condemning a chip (verdict discipline).
-            #
-            # The retry is only REAL if the chip re-suspended first — the
-            # ASUS preview showed back-to-back pokes find it still awake
-            # and read a vacuous 0 (round 2). Bounded wait: drivers
-            # autosuspend in ~5 s; a chip still awake after 10 keeps the
-            # single-flake silence rather than stalling the audit.
-            # if-guarded, not `[[ ]] && break`: under errexit a false
-            # guard on the LAST iteration fails the whole loop (#19a's
-            # exact footgun).
-            for _ in 1 2 3 4 5 6 7 8 9 10; do
-              if [[ "$(cat "$gpu2_dir/power/runtime_status" 2>/dev/null)" == "suspended" ]]; then
-                break
-              fi
-              sleep 1
-            done
+            # Both pokes force cold now, so the retry is always a REAL
+            # second cold resume — the passive wait that used to sit here
+            # could never fire on a chip whose control was already "on".
             e2=$(gpu2_probe)
             [[ "$e2" == "0" || "$e2" == "-1" ]] || gpu2_health="failing"
           fi

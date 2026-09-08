@@ -272,3 +272,84 @@ bound**, on the fastest machine in the lab.
   best placed to do: broke the health probe a third way, in the one
   direction the ASUS and HP could not show, and proved that the fix
   already decided for round 4 works here — with two seconds to spare.
+
+---
+
+## Round 3, follow-up session — 2026-09-08 — 23b fixed and validated on the metal that found it
+
+Max: *"make the live test on the dev box to see if its fixable."* Done,
+while the box was still on the medium. **Yes — fixed, applied to source,
+and proven on the machine that exposed it.** Disk re-verified
+byte-untouched after everything below.
+
+**First, a correction to the record above.** The initial 23b write-up
+blamed the unscoped counter. The live test says that is wrong on its own:
+the BDF lines this boot break down as **32 err · 29 info · 15 warn**, and
+the 32 nouveau GSP `ctrl cmd … failed` lines are **error-level AND carry
+the BDF** — so scoping alone would still have counted all 32 and still
+returned the false negative. **Force-cold is the load-bearing fix;**
+scoping fixes a different, latent bug. Both shipped.
+
+**The fix** (`system/hardware-detect.nix`): force cold before every poke
+(`control=auto` → bounded wait for a real `suspended` → wake), bound
+widened **10 s → 15 s**, and count only error-level records that name the
+device, as a before/after delta.
+
+**Why 15 s, measured not guessed:** this chip goes cold in a rock-steady
+**7 s** (three samples, zero spread). Seven seconds after this boot's init
+ends is ~t=27.4 s; a 10 s bound opened when the audit starts (t=17.06 s)
+expires at t=27.0 s — **0.4 s too early, on the fastest machine in the
+lab.**
+
+**What was verified live, in order:**
+
+| test | result |
+|---|---|
+| 3 × force-cold cycles, healthy RTX 4050 | `working`, `working`, `working` — each a real cold resume (7 s to suspend, 13–15 s cold, **0 errors**, no new kernel lines) |
+| still convicts (HP `No VRAM object` + ASUS `PRIVRING` FAULT, injected at KERN_ERR) | delta **2** — conviction intact |
+| cross-attribution (`i915 … *ERROR* Port E/TC#2` during an NVIDIA probe) | old counter **1**, new counter **0** |
+| safety: bound starved to 2 s (chip needs 7) | `poke1 → -1` → **`unknown`** — never a default pass |
+| `dmesg --level` inside the tool's own closure (`env -i`) | resolves to util-linux 2.42.2 — no new dependency |
+| patched detector end to end, `env -i`, nothing ambient | `gpu2Health = "working"`, 12 s, **zero stderr** |
+| shellcheck 0.11.0 (the `writeShellApplication` build gate) + `bash -n` | clean |
+
+**One documented miss, accepted:** `[drm:evergreen_resume] *ERROR*
+evergreen startup failed on resume` carries no BDF and is skipped. Its
+companion line names the device and convicts, so the HP is still caught —
+but a chip whose only fault line is a bare `[drm:…] *ERROR*` would
+escape. Noted in changes.md rather than papered over.
+
+### The visual, finally — the row #17c promised, on real metal
+
+With the patched facts installed and `golem-setup` re-driven through all
+six screens:
+
+```
+·  GPU    Intel Iris Xe Graphics · i915 — tested, working · driving this screen
+·  GPU 2  NVIDIA GeForce RTX 4050 Max-Q · nouveau — tested, working · apps can use it on demand
+```
+
+That is the exact wording the first-contact procedure predicted, rendered
+on physical metal for the first time in the lab's history. The facts were
+then restored to the as-booted census so this file's round record above
+still describes what the machine actually did on its own.
+
+### BONUS FINDING (#30) — the awk bug, one field over, found by the same test
+
+Running the detector under **only its own declared store paths** turned up
+`sed: command not found` → `cpuModel = "unknown"`. **`pkgs.gnused` was
+never in `runtimeInputs`.** `writeShellApplication` appends `:$PATH`, so
+the undeclared `sed` resolved from the ambient environment and worked
+purely because the `golem-audit` unit's PATH happens to carry gnused. The
+`|| true` and the `[ -n … ] || cpu_model="unknown"` guard meant it would
+have degraded **silently** — the cores=4 shape exactly. The file's own
+header warns "a tool must not reach outside its own closure for something
+this basic"; a second instance was sitting four lines below the warning.
+Fixed (one line), and round 4 should run the same `env -i` closure test
+over `golem-hw-evidence` and `golem-hw-decide`.
+
+- **Verdict:** 23b closed — force-cold + scoped counter, applied to
+  source, validated six ways on the metal that found it, with the
+  promised reveal row seen on screen. #30 found and fixed as a
+  side-effect. Neither ships until the round-4 build; the round-3 stick
+  is untouched and still frozen.
