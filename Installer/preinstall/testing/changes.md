@@ -409,6 +409,58 @@ error in the log).
 - **size:** medium; involves nix-worker concurrency — Max's renderer/worker
   code.
 
+### 45. The applier reads a LIVE build as dead and mis-attributes a foreign run's Done — the #43b overlap fix — [FIXED · waverunner b2d59f9 · Golem lock bumped]
+Root-caused from the ASUS journal after Max reported installs still
+failing; two applier bugs that only bite when rebuilds are slow enough to
+overlap — i.e. never on the dev box, always on 2013 metal.
+- **bug 1 — a running helper reads as dead.** `helper_active()` used
+  `systemctl is-active waverunner-apply.service`, but the helper is
+  `Type=oneshot`: while its ExecStart runs, systemd reports
+  `ActiveState=activating`, and `is-active` exits non-zero for that. So
+  EVERY live build looked like a corpse. **Proven on metal:** during a
+  real 36 s fritzing apply, `is-active` polled `activating` start to
+  finish while the daemon logged "stale apply status: phase 'building'
+  but the helper is not running" every 5 s (16:21:50–16:22:20 the same,
+  through the whole gen-31 build).
+- **the damage chain:** waiter thinks nothing is running → nudges
+  (rewrites the list; systemd DROPS path triggers while the unit is
+  activating, so the nudges do nothing) → START_TIMEOUT (120 s) → the
+  install returns false → `apply_install` **reverts the package list
+  while the build is still running**. The revert then rides the next
+  apply as a real UNINSTALL. That is how xcalc silently vanished from the
+  ASUS (installed 16:21, resolved "installed" 16:22, swept by a later
+  rebuild — binary gone, not in the list, no tile, no error shown).
+- **bug 2 — the #43b mis-attributed Done.** `wait_for_apply` and
+  `applied_since_list_write` accepted any terminal run with
+  `finished >= since` as covering our list write. But a run that STARTED
+  before the write read the OLD list — finishing after proves nothing.
+  That is precisely the lmms case in #43's UPDATE ("apply-status ok,
+  finished AFTER the list write" — yet the tile stayed stuck): the
+  overlapped install's waiter took the foreign run's Done, resolved
+  against a generation that didn't contain the package, and the real
+  completion had no waiter left.
+- **FIX (waverunner `b2d59f9`, `crates/daemon/src/applier.rs`):**
+  (1) `helper_active()` reads `systemctl show -p ActiveState` and treats
+  activating/active/reloading/deactivating as alive. (2) Coverage is
+  started-based everywhere: only a run with `started >= since` (it read
+  our write) terminates the wait; a foreign run landing just re-trips the
+  watch (the existing nudge) and the wait continues into the fresh run —
+  this IS the "(b) serialize" #43 asked for, without a queue: overlapped
+  installs each block until a run that provably contains them lands.
+  (3) START_TIMEOUT measures IDLE time, not wall time, so a >120 s
+  foreign build can't burn the pickup budget and false-fail the waiter
+  the moment it lands. (4) A corpse `building` status is nudged past
+  whether the dead run was ours or foreign (was: only foreign → a helper
+  killed mid-OUR-build hung the waiter for the full BUILD_TIMEOUT).
+  415 workspace tests + clippy clean. Golem `waverunner` lock bumped to
+  `b2d59f9`; ASUS seed lock updated + rebuilt from seed.
+- **casualty note:** xcalc was silently lost from the ASUS by the bug-1
+  revert path (Max installed it; no error was ever shown). Not silently
+  re-added — Max's call whether he still wants it.
+- **where:** `~/launcher` `crates/daemon/src/applier.rs`
+  (`helper_active`, `wait_for_apply`, `applied_since_list_write`).
+- **size:** landed.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):

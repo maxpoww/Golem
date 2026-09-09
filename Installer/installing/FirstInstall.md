@@ -356,6 +356,52 @@ ASUS is a working installed Golem. What Max's bet predicted holds: finding
 these here, once, means the installing rounds start from a dogfooded
 desktop, not a rehearsal that never logged in.
 
+## 2026-09-09 evening — #45: installs STILL failed; the applier couldn't see a live build
+
+Max: "we still have issues installing programs." The journal told the
+story. fritzing failed at 16:09 — the #44 exit-4, seven minutes BEFORE
+the #44 fix was deployed (pre-fix damage, not a live bug; re-installed
+fine at 17:02, 36 s, gen 34). But around it, two patterns that WERE live:
+"stale apply status: phase 'building' but the helper is not running"
+spamming every 5 s DURING real builds, and xcalc — installed, resolved
+"installed" at 16:22 — simply GONE: binary absent, not in packages.list,
+no tile, no error ever shown.
+
+**Root cause, proven on metal (#45, changes.md):** the apply helper is a
+`Type=oneshot` systemd service, and while its ExecStart runs systemd
+reports `ActiveState=activating` — which `systemctl is-active` (the
+daemon's liveness probe) treats as NOT active. So the daemon read every
+LIVE build as a corpse: polled `is-active` through a real 36 s fritzing
+apply → `activating` start to finish while the daemon logged "helper is
+not running". A waiter that can't see the build nudges into the void
+(systemd drops path triggers while the unit is activating), gives up at
+120 s, calls the install FAILED, and **reverts the package list while
+the build is still running** — the revert rides the next rebuild as a
+real uninstall. That's the xcalc loss, and the general "installing
+programs is broken" on any machine slow enough that rebuilds overlap —
+i.e. never the dev box, always the ASUS. A second hole compounds it:
+a run that merely FINISHED after our list write was accepted as covering
+it, though a run that STARTED earlier read the OLD list — the exact
+mis-attributed Done from #43's lmms UPDATE.
+
+**Fix (waverunner `b2d59f9`, committed + pushed):** liveness reads
+`ActiveState` properly (activating = alive); run coverage is
+started-based everywhere (only a run that started after our write
+terminates our wait — overlapped installs each block until a run that
+provably contains them lands, the #43b "serialize" without a queue);
+the start-timeout counts idle time, not wall time; and a corpse
+'building' status is nudged past whether the dead run was ours or
+foreign. Golem's waverunner lock bumped, ASUS seed updated, rebuilt from
+seed — same permanence pipeline as #41.
+
+Also cleared up from the same journal sweep (not bugs): gen 30's weird
+old-config build at 16:19 was the dev-box recovery session rebuilding
+with stale per-machine files (the fba74c5 cleanup); the F13 drift sweep
+then CORRECTLY restored the right config at 16:22 — that subsystem works.
+The Hyprland SIGABRT at 15:08 (coredump on disk) predates the current
+boot — from the #44-era churn; watch whether it recurs on a healthy
+applier.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine
