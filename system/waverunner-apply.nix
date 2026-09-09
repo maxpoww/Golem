@@ -105,8 +105,29 @@ let
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
+      #
+      # A switch that BUILT AND ACTIVATED the system but hit a per-user
+      # activation error still exits non-zero (switch-to-configuration-ng
+      # sets exit_code=4 if ANY user's reload fails, AFTER the system is
+      # already switched). Run as root from this service there is no root
+      # `systemd --user` manager, so root's per-user activation always fails
+      # ("Failed to remove jobs token" / "Connection is closed") — which
+      # wrongly failed every install and left tiles stuck "Installing…"
+      # (Golem #44/#43; the package was actually installed). So on a non-zero
+      # exit we check whether the SYSTEM generation actually changed: if it
+      # did, the package IS installed — a user-activation warning is not an
+      # install failure. Only a switch that did NOT change the system is a
+      # real failure to revert.
+      before=$(readlink -f /run/current-system 2>/dev/null || echo none)
       if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         cp -f "$gen" "$lastgood"
+        write_status "done" true null
+      elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
+        # System switched; only user activation (root, no user manager here)
+        # warned. The package is installed — treat as success, keep the list.
+        cp -f "$gen" "$lastgood"
+        echo "$err" | grep -qi "user activation" \
+          && echo "waverunner-apply: system switched; a user-activation warning was ignored (#44)" >&2
         write_status "done" true null
       else
         if [[ -f "$lastgood" ]]; then
