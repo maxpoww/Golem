@@ -292,7 +292,37 @@ error in the log).
   daemon (would need app-count/rebuild juggling); it is eliminated by
   construction.
 
-### 43. A live install can leave the tile stuck "Installing…" (unlaunchable) until a daemon restart — [FOUND on the ASUS 2026-09-09 · machine recovered · deeper fix pending]
+### 44. waverunner-apply's startup reconcile fails at activation — "Failed to get GID for root / login1/user/_0" — [FOUND on the ASUS 2026-09-09 · NEW · desktop still usable]
+- **what:** on boot, the daemon's startup reconcile ("installed packages
+  with no live app … forcing one apply") re-trips waverunner-apply, which
+  **builds golem-target fine from the seed** (proving #41 self-rebuild
+  works: the toplevel evaluated + built) but then **fails at
+  `switch-to-configuration switch`**: `Error: Failed to get GID for root /
+  Caused by: Unknown object '/org/freedesktop/login1/user/_0'` (via
+  `systemd-run … switch-to-configuration switch`, non-zero exit). It runs
+  as root at boot where logind has no session object for root (uid 0 →
+  `_0`), so nixos-rebuild-ng's user-unit reload throws.
+- **why it matters (bounded):** the reconcile can't activate at boot, so
+  the app-list self-heal doesn't complete. NOT a tight loop (one failure +
+  "leaving state for the next run"), the desktop is fully usable, the
+  daemon is healthy, and INTERACTIVE installs (when a logind session
+  exists) DID activate — darktable installed fine live earlier. So it's a
+  boot-context activation bug, not a general install breakage.
+- **surfaced by (harness note):** my deploy process built golem-target on
+  the DEV box, which carries the dev box's `waverunner-packages.nix` app
+  list — so each dev-deploy+reboot reset the ASUS's app set (darktable/
+  xterm/alacritty → the dev list), and the ASUS's own boot reconcile that
+  would restore them is what hit this GID error. A product machine that
+  only ever self-rebuilds wouldn't see the dev-list reset, but WOULD hit
+  the boot-reconcile activation error.
+- **where:** `~/launcher` `system/waverunner-apply.nix` (the
+  `nixos-rebuild switch --flake` invocation's root/logind context) —
+  likely needs `--no-reexec`/a proper session, or to run activation
+  outside the root-logind-session assumption.
+- **size:** medium; nixos-rebuild-ng + logind context. NEEDS-look, its own
+  session — deferred (fresh issue at the end of a long run).
+
+### 43. A live install can leave the tile stuck "Installing…" (unlaunchable) until a daemon restart — [FIXED · waverunner 8211981 · verified daemon runs it]
 - **what (Max):** installed darktable; it finished (binary present, its
   `.desktop` `org.darktable.darktable` scanned) but the grid tile stayed
   **"Installing…"** and clicking it did nothing — a dead placeholder, never
