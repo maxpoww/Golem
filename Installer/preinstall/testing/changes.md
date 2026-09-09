@@ -32,6 +32,25 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
+### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [round-5 finding · Lenovo · cosmetic]
+- **what (Lenovo, round 5, both deliberate #28 races):** when golem-setup
+  reaches the confirm screen mid-audit, `wait_for_audit` prints
+  `\n` + `Reading this device` with no trailing newline and returns
+  without erasing it once the audit finishes; `answered()` ends each row
+  with `\n`, so the first census row lands on the hold line's tail:
+  `Reading this device  ·  Zram         Active, zstd, priority 100`.
+  Only visible on the race path (the function prints nothing when the
+  audit is already done), i.e. exactly for the fast-typist-on-slow-audit
+  user #28 was built for. Reproduced on demand; capture in lenovo.md.
+- **fix:** after the wait loop, erase the hold line before returning —
+  `printf '\r%s[2K' "$esc"` (the row then draws where the hold text was)
+  — or print the hold text with its own newline and cursor-up before
+  returning. One line either way; the no-race path is unaffected because
+  it returns before printing.
+- **where:** `mockup/install-cli` `wait_for_audit()` (the `printf` + loop
+  tail), mirrored in the built `golem-setup`.
+- **size:** small.
+
 ### 34. Ctrl-C runs golem-setup's cleanup handler but does NOT exit — [APPLIED to source · verified live on Lenovo · round-5 build]
 **Applied (2026-09-08):** the cleanup is a `cleanup` function on EXIT only;
 `trap cancel_install INT TERM` sends Ctrl-C down #31's F1 path (`exit 0`),

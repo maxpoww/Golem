@@ -663,3 +663,177 @@ still 0** for the whole boot. Two rehearsals with the patched build, both
 - **Verdict:** both closed on the machine that filed them. Round-5 source
   now carries #31, #32, #26-reveal, #34, R4-1; the round-4 stick stays
   frozen.
+
+---
+
+## Round 5 (rehearsal check) — 2026-09-08 — #34, R4-1, #31 and #33's empty-array case ALL PROVEN on the metal that filed them · round-4 proofs hold unchanged · one new small finding (R5-1)
+
+Driven from the **Fedora ThinkPad** (192.168.1.167) over SSH, per the
+round-5 procedure above. The dev box sat on the medium the whole slot.
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sda`). `/iso/version.txt`
+  is empty as in round 4, so identified by the procedure's markers, all
+  three present: `golem-setup` **`kmvcmr1r…`** (unwrapped: 2 `wait_for_audit`
+  hits, 4 `cancel_install` hits, and exactly the two #34 trap lines —
+  `trap cleanup EXIT` / `trap cancel_install INT TERM` at 3933–3934),
+  `golem-hw-detect` **`3fniyyq2…`** unchanged from round 4, and
+  **`golem-postinstall-questions` (`n4q18b3x…`) present on the medium** —
+  the round-4-vs-5 tell. `GOLEM_REHEARSE='1'` + `GOLEM_LAB='1'` baked
+  into the wrapper. Kernel 6.18.48.
+- **Boot:** UEFI · joined HOLA on its own (`iwlwifi`) · found at
+  192.168.1.152 on the first sweep · DMI `LENOVO` / `83C0` · `findmnt /iso`
+  → `/dev/sda`. `golem-audit.service` **16.38 s → 40.64 s** (24.3 s;
+  round 4: 16.96 → 41.11). Two deliberate re-runs later: 17.6 s and
+  ~17.5 s.
+
+### ⚠️ The one rule: HELD (four snapshots, zero writes)
+
+`nvme0n1` snapshotted before anything ran, after the first rehearsal,
+after the second, and at the very end (after the two audit re-runs and
+the R5-1 reproduction): `lsblk` UUIDs/PARTUUIDs, GPT label-id, `sfdisk -d`,
+first-4-MiB SHA256 (`00191ba5…`), last-4-MiB SHA256 (`688972f9…`),
+nvme mounts (none) — `diff` against the first snapshot **zero lines, all
+three times**. `/sys/block/nvme0n1/stat` **writes-completed = 0 for the
+entire boot** (reads climbed 284 → 536 from the snapshots themselves).
+Engine ran twice, both `--rehearse` via the baked env, both transcripts
+all `would` (17 lines each, `/dev/nvme0n1` + `nvme0n1p1..p3` throughout).
+
+(Both edge hashes differ from round 4's `4a61ff63…` / `194fb860…`. The
+first-4-MiB change is the same expected cause as round 4 noted — the box
+booted its own system between rounds and systemd-boot touches the ESP.
+The last-4-MiB hash was taken this round with `dd bs=1M skip=$((size/1M-4))`
+from the Fedora driver's scripts, which may not be the exact window the
+dev-box session used in rounds 3–4, so the cross-round comparison of
+that one is not meaningful. The rule is before-vs-after within a run,
+and that held four ways.)
+
+### What round 5 added — every item on the procedure's list, verified here
+
+1. **#34 — Ctrl-C exits, once, cleanly. PROVEN on the frozen build.**
+   On the confirm screen: before → marker present, `golem-drv.8irBvS` +
+   `golem-kb-orig.Qs6MmI` present, pid 2170; Ctrl-C → **prompt back
+   immediately, no `golem-setup-unwrapped` instance, marker gone, both
+   temp files gone**, tty1 banner count 1 → 1. Round 4's leak (marker and
+   keymap backup deleted under a still-running UI) is closed on the
+   machine that found it. (`/tmp/golem-answers` + `/tmp/golem-machine.nix`
+   remain — those are the `--out`/`--write` products, not temp files, same
+   as round 4.)
+2. **R4-1 — the audio row names the class. PROVEN.** Raw lspci on this
+   boot still says `Multimedia audio controller [0401]: Intel Corporation
+   Device [8086:51cf]` (the stick's pci.ids has no entry, so the fallback
+   is genuinely exercised), and the reveal renders
+   `Audio  Intel Corporation Multimedia audio controller · sof-audio-pci-intel-tgl`.
+   Was `Device 51cf` in round 4. Fixed on the hardware that filed it.
+3. **#31 — F1 cancels from the language page AND the confirm screen.**
+   Language page footer now reads `… ENTER takes it · 55 more · F1 cancel`
+   (the dead "ESC back" is gone); `\eOP` → prompt back, marker gone,
+   temp file gone, no instance. Confirm footer: `ENTER to install · ESC
+   back · F1 cancel`; F1 there (used to leave the R5-1 reproduction) →
+   same clean exit.
+4. **#33 — the fourth bundle file exists and is the empty array this
+   machine predicts.** `target/` now holds `default.nix`,
+   `golem-hardware.nix`, `hardware-configuration.nix`, `machine.nix` **and
+   `postinstall-questions.json` = `[]`** (`jq length` 0); transcript
+   `note   postinstall questions: 0 pending`. Run directly against the
+   live boot-audit facts: `golem-postinstall-questions --facts …` → `[]`,
+   rc 0. The evaluated target's closure carries the framework —
+   `golem-postinstall-ask.service`, `golem-postinstall-apply` +
+   `.service` + `.path` — and **no** `golem-dgpu-hold` / `golem-dgpu-off`
+   (0 `dgpu` paths): healthy chip, nothing to hold, nothing to ask. Not a
+   regression; the question fires only for a failing second GPU, and
+   that proof belongs to the ASUS/HP.
+5. **#32 — both GPU verdict tails render dimmed** (`38;5;240`, same as
+   the driver clause) — checked with `capture-pane -e`. The failing case
+   itself is not testable here.
+6. **#26-reveal — no phantom second GPU**: exactly one `GPU` and one
+   `GPU 2` row.
+
+### Round 4's two unique proofs — held, unchanged (the regression check)
+
+- **`Scale  1.60`** row present between Lid and GPU (`panelDpi = 239`).
+- **`gpu2Health = "working"` from the boot audit itself, no flap:**
+  `checks.txt` `ok facts: the probe now matches the boot audit fact for
+  fact` on both rehearsals; `diff` of `target/golem-hardware.nix` vs
+  `/var/log/golem-audit/golem-hardware.nix` **identical**. `working` ×3
+  this session (boot audit + two re-runs). Same convicting noise present
+  again: nouveau init 13.93 → 19.42 s inside the audit window, 32
+  err-level GSP lines, `i915 … *ERROR* Port E/TC#2` at 13.7 s. Suspend
+  was real: `runtime_suspended_time` 716 ms after boot → 2448 ms after
+  the re-runs.
+- **#28 wait_for_audit** — raced deliberately again (audit restarted,
+  six screens burst in 9 s): reveal held on `Reading this device` for
+  ~7 s while the audit was `activating`, drew the full census the moment
+  it finished; audit restarted with the marker present → **no tty1
+  banner** (count 1 → 1 all session). Both halves hold — with the one
+  cosmetic wrinkle below.
+
+- **Census:** `status: ok`, every fact identical to round 4's (i9-13905H,
+  14c/20t, 31816 MB, uefi, laptop, BT, `gpu = intel` by boot_vga,
+  `gpu2 = nvidia` @ `0000:01:00.0`, `turing+`, both PRIME bus ids,
+  `gpu2Health = "working"`, `panelDpi = 239`). Nothing wrong.
+- **Surface (six screens):** English → Europe/Madrid → keyboard
+  **Español** (tz→country default) → drive (**only** the Samsung +
+  Advanced, #20b holds) → `lenovo` (ghost replaced) → `max` + password
+  ×2 → confirm. Rows: Zram, Swap 35 GiB, `Scheduler Bfq on hard disks,
+  default on SSD/NVMe`, Thermald, Lid, **Scale 1.60**, GPU (Iris Xe ·
+  i915 — tested, working · driving this screen), **GPU 2** (RTX 4050
+  Max-Q · nouveau — tested, working · apps can use it on demand), Wi-Fi
+  `Intel Corporation Raptor Lake PCH CNVi WiFi · iwlwifi`, **Audio (class
+  name)**, Bluetooth `btusb`, Touchpad `ELAN0001:00 04F3:3292 Touchpad ·
+  hid-multitouch`. Nothing a stranger would trip on.
+- **Rehearsal ×2:** both `status: ok`, **no findings**, all six checks
+  `ok` (UEFI → systemd-boot, target ≠ medium `/dev/sda`, fit 940410 MiB
+  root for ~19 GiB, RAM, facts match, eval). **eval 13 s** on the first
+  run (cold — first eval of this boot), **8 s** on the second (round 4:
+  7 s / 7 s). Two different toplevel drvs (`dcax7vsf…`, `mrgzwk9k…`) —
+  expected, the password hash is salted per run. Target closure:
+  `nvidia-open-595.71.05-6.18.48`, `nvidia-offload`,
+  `nvidia-x11-595.71.05`, `nvidia-vaapi-driver-0.0.17` — the healthy
+  branch again.
+- **Console quiet (#17a):** `loglevel=3`, printk `3 4 1 7`; **0 lines at
+  emerg/alert/crit**, 45 at err (32 nouveau GSP, 7 i801_smbus, 2
+  tas2781-hda, 2 ACPI, 1 lenovo_wmi_gamezone, 1 i915) — the same set as
+  round 4; **zero new kernel lines** after the boot audit for the rest of
+  the session (783 s uptime at the final check).
+
+### NEW FINDING — R5-1: the #28 hold line is never erased; the first census row is appended to it
+
+Seen in both deliberate #28 races this session (reproduced on demand):
+once the audit finishes, the confirm screen reads
+
+```
+  ·  User         max
+  Reading this device  ·  Zram         Active, zstd, priority 100
+  ·  Swap         35 GiB, for hibernation
+```
+
+The hold line and the Zram row share a line. Cause, in the shipped
+script and identical in source (`mockup/install-cli:2942`):
+`wait_for_audit` prints `'\n' + IND + "Reading this device"` with **no
+trailing newline** and nothing erases it after the wait loop; `answered()`
+prints each row and ends with `'\n'`, so the first row lands on the hold
+line's tail. Invisible when there is no race (the common case — the
+function returns before printing anything); visible to exactly the user
+#28 was built for, a fast typist on a slow-audit machine (MacBook, 60 s).
+Cosmetic, one line to fix: after the loop, `\r` + erase-line (or print
+the hold text with its own newline and move up). Queued as **R5-1**.
+
+- **Harness notes:** (1) tmux 3.6a `send-keys F1` over the `ssh -tt` pty
+  arrived in the app as the literal text `F1` (it filtered the language
+  list on "F1"); sending the raw bytes `-H 1b 4f 50` (`\eOP`) works and
+  is what the record above used. Not a Golem bug — the shipped key reader
+  handles all three F1 forms. (2) `pgrep -f golem-setup-unwrapped` from a
+  `bash -c` over ssh matches its own command line; filter it or trust
+  `pgrep -a`. (3) `ls marker 2>&1 | grep -c owns` counts the error text
+  — use `test -e`. All three fooled me once each; none fooled the record.
+- **Findings → changes.md:** **R5-1** (hold line not erased on the #28
+  race path — cosmetic, small). #34, R4-1, #31 verified live on the
+  round-5 build; #33's empty-array case verified here (its non-empty case
+  is still unverified — that needs a failing-dGPU machine).
+- **Verdict:** **PASS.** Every round-5 item the procedure named for this
+  machine is proven on the frozen build: Ctrl-C exits cleanly, the audio
+  row names its class, F1 cancels from both ends, the fourth bundle file
+  is the empty array a healthy dGPU predicts, and both round-4 proofs
+  (Scale 1.60, boot-audit `working` with no flap) hold unchanged. The
+  NVMe that is the lab took zero writes across four snapshots. One new
+  cosmetic finding, found the round-4 way: by racing the audit on purpose.
