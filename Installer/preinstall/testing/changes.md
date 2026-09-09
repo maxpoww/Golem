@@ -351,6 +351,25 @@ error in the log).
   clears `busy_ids`. 235 daemon tests pass. Serializing the nix worker
   (approach b) left as a deeper hardening if overlapping installs cause
   other trouble.
+- **UPDATE (lmms, 2026-09-09) — (a) is NOT enough under overlapping
+  installs; (b) is needed.** Max installed lmms while the #44 boot-reconcile
+  rebuild was still running. lmms finished (installed + scanned;
+  `is_installed(lmms)` verified TRUE — apply-status ok, finished AFTER the
+  list write) yet the live tile stayed stuck "Installing…" and the (a)
+  override did NOT resolve it live. A daemon restart recovered it cleanly
+  (#37 fired: "pending install lmms already installed; dropping stale
+  tile"). So (a) reliably recovers on RESTART but the LIVE resolve still
+  fails when two installs overlap. Root: one nix worker + a SHARED
+  `apply-status.json` — lmms's `apply_install` wait and the reconcile's
+  apply write the same status file concurrently, so lmms's `Done` is
+  lost/mis-attributed; and once its single deferred rescan (`rescan_fired`
+  latch) has fired, no later rescan re-runs resolve even after
+  `is_installed` turns true. **Robust fix (b): serialize installs (one
+  apply at a time, per-op status) so a Done can't be lost, and/or re-arm
+  the deferred rescan while a tile stays unresolved.** Compounded by #44
+  (its churn kept a second rebuild in flight). A nix-worker/status-file
+  concurrency rework — deferred (Max's code); #37 restart-recovery holds
+  meanwhile.
 - **harness lesson (my own, worth keeping):** while diagnosing this I ran
   the daemon by hand with `ls /nix/store/*waverunner-daemon*/bin/waverunner
   | tail -1` — and the ORIGINAL daemon's hash starts with `z` (`znzgcl…`),
