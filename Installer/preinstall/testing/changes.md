@@ -250,6 +250,38 @@ The single most important operational finding for the whole install story.
   his `~/launcher` WIP; committing them (or pointing the seed at a patched
   local launcher) is his call.
 - **size:** needs-Max (commit launcher + bump the Golem flake lock).
+- **DONE (2026-09-09):** launcher committed to `9ed17b1` and pushed to
+  `maxpoww/launcher`; Golem's `waverunner` input bumped
+  `2de760883 → 9ed17b1` (flake.lock, committed + pushed). golem-target now
+  builds the fixed waverunner. The ASUS's own seed flake.lock was updated
+  to match and it was rebuilt from the seed. **End-to-end persistence
+  proven:** installed xterm on the ASUS — the desktop stayed responsive
+  the WHOLE rebuild (`waverunner-ctl` = OK at every 10 s poll while
+  `rebuilding=yes`), the install completed, and the daemon stayed the
+  fixed build (`31s9c39p`) before/during/after — it did NOT revert to the
+  original `znzgcl`. #40 (no freeze) and #41 (no revert) both closed on
+  metal.
+
+### 42. App icons render as solid BLACK SQUARES on the GL backend — [FOUND on the ASUS 2026-09-09 · confirmed on the fixed build]
+- **what (Max):** the dock and box show app icons as solid black squares.
+  Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
+  the dock's app-icon slots (brave/alacritty/xterm pins) are black
+  squares, while built-in glyphs on the same surface (the trash icon, the
+  top-bar theme/search icons) render correctly.
+- **likely root:** app icons come from `.desktop` files rasterized to RGBA
+  textures with alpha; built-in glyphs do not. On the GL backend (Haswell,
+  no Vulkan) the surface fell back to `CompositeAlphaMode::Opaque`
+  (`premultiplied alpha unsupported` warning) — the app-icon texture
+  upload/sample path very likely mishandles alpha/format there, so the
+  icons draw as opaque black. A modern Vulkan GPU (dev box) uses
+  PreMultiplied and renders them fine, which is why this never showed
+  until an installed GL-backend machine. Separate from the throttle
+  (#40) — a rendering-correctness bug, not a loop bug.
+- **where:** `~/launcher` `crates/daemon/src/renderer.rs` (icon texture
+  format / alpha handling / the Opaque-alpha fallback path) +
+  `install.rs`/`notif_icons.rs` icon upload.
+- **size:** medium — a GL-backend renderer fix; needs the same iterate-on-
+  the-ASUS loop. NEXT bug after the install-freeze win.
 - **where:** `~/launcher` `crates/daemon/src/{install.rs,frame.rs,main.rs}`.
 - **size:** 37 = medium; 40-proper = needs-Max (event-loop architecture).
 

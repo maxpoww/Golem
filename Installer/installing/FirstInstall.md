@@ -294,6 +294,34 @@ then rebuild the machine from the updated seed. That is a Max call (his
 `~/launcher` WIP). Until then the ASUS is left on the fixed build but will
 revert on its next self-rebuild.
 
+## 2026-09-09 — the install-freeze fix, made PERMANENT + proven end-to-end
+
+Closed the loop on #40/#41. Committed the waverunner fixes (#37/#38/#40) to
+`maxpoww/launcher` `9ed17b1`, bumped Golem's `waverunner` input to it
+(flake.lock), updated the ASUS's own seed lock, and rebuilt it from the
+seed. Then the definitive test — **installed xterm on the ASUS for real:**
+
+- **No freeze:** `waverunner-ctl` responded at every poll *during* the
+  rebuild (`rebuilding=yes`) — the desktop stayed alive through the whole
+  install. (#40 throttle, on the shipped build.)
+- **No revert:** the daemon stayed the fixed build (`31s9c39p`)
+  before/during/after — it did NOT fall back to the original `znzgcl`. The
+  seed now builds the fixed waverunner, so the self-rebuild kept it. (#41.)
+
+So the install-freeze — the worst of the whole first dogfood — is fixed at
+the distro level: every future install builds the fixed waverunner, and
+installing an app no longer freezes the desktop. (Test residue: xterm is
+now installed on the ASUS; harmless.)
+
+### Still open — #42, the next one
+App icons render as **solid black squares** on the GL backend (confirmed
+on the clean fixed build: dock app-icon slots are black; built-in glyphs
+like the trash icon render fine). Almost certainly the GL `Opaque`-alpha
+fallback mishandling the RGBA icon textures — the same GL-backend alpha
+gap, now on the icon path. A rendering-correctness bug, separate from the
+throttle. It's the next thing to fix, via the same iterate-on-the-ASUS
+loop. changes.md #42.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine
