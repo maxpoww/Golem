@@ -221,3 +221,80 @@ things, one root cause, plus a third separate one:
 - **Verdict:** PASS — the boss fight's wl path survives the round-4 build,
   audio fixed, disk safe. wl live-up proof still awaits the first REAL
   install (round 4's install phase).
+
+## Round 5 (rehearsal check) — 2026-09-08 — #34, #31 and #33's empty-array (no-gpu2 case) all PROVEN · wl closure holds a 4th round · 0 findings
+
+Driven from the dev box, over the Realtek USB-ethernet dongle (internal
+BCM4360 still dark on the medium, as every round).
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
+  `golem-setup` unwrapped has 1 `valid_host Golem` hit and 4
+  `cancel_install` hits with the `#34` trap pair (`trap cleanup EXIT` /
+  `trap cancel_install INT TERM`) at 3933–3934; `golem-postinstall-questions`
+  (`n4q18b3x…`) present on the medium. Apple EFI (UEFI). `GOLEM_REHEARSE='1'`
+  baked into the wrapper.
+- **Boot:** DMI `MacBookAir6,2` / `Apple Inc.` confirmed. `golem-audit.service`
+  finished before driving started.
+- **Census:** every fact identical to every prior round — i5-4250U,
+  cores=2/threads=4, ram 3858, `gpu=intel`, `intelLegacy=true` → i965,
+  `firmware=uefi`, `broadcomWifi=true`, `panelDpi=126` (→ no scale row,
+  correct), `hasBluetooth=true`, laptop. Nothing wrong, nothing new.
+- **#34 — Ctrl-C exits, once, cleanly. PROVEN on this machine.** On the
+  confirm screen: before → marker + `golem-drv.9HJtCC` +
+  `golem-kb-orig.rCUXs9` present; Ctrl-C → prompt back immediately, no
+  `golem-setup-unwrapped` instance, marker gone, both temp files gone.
+- **#31 — F1 cancels from the language page AND the confirm screen.**
+  Exercised on both (the language-page case first, live, recovering from
+  a mistyped filter — a real F1 use, not a staged one): `\eOP` → prompt
+  back, marker gone, temp files gone, no instance, each time.
+- **#33 — the fourth bundle file is the empty array — the NO-gpu2 case,
+  a new angle on this proof.** `target/postinstall-questions.json` = `[]`,
+  transcript `note postinstall questions: 0 pending`. Unlike the Lenovo
+  (empty array because the one dGPU is healthy), this machine has no
+  `gpu2` fact at all — single GPU. Same empty result, different reason;
+  the ASK framework's "nothing to ask" path now proven from two distinct
+  facts-shapes.
+- **#32 / #26-reveal:** not applicable — no `GPU 2` row exists to dim or
+  double-count on a single-GPU machine; confirmed absent, as it should be.
+- **THE WL PROOF holds a 4th round:** `nix-store -qR` on the evaluated
+  toplevel drv finds 6 broadcom store paths — both `broadcom-wl` sources
+  (5.100.138, 6.30.163.46), the auth-revert patch, `broadcom-sta`, and
+  (new to note, always implied by `hasBluetooth` + Broadcom, not
+  previously called out by name) `broadcom-bt-firmware` ×2. census
+  `broadcomWifi=true` → `broadcom-wifi.nix` → wl, unchanged through five
+  ISO builds now.
+- **Surface (six screens):** English → America/Denver → English (US),
+  default from the top of the list → drive (**only** the Apple SSD + SD
+  reader + Advanced — `#20b` holds, the boot stick on `/dev/sdb` is not
+  offered) → `mbp` (ghost replaced cleanly) → `max` + password ×2 →
+  confirm. Rows: Zram, Swap 6 GiB, `Scheduler Bfq on hard disks, default
+  on SSD/NVMe`, Thermald On, Lid, GPU (`Intel Haswell-ULT Graphics · i915
+  — tested, working · driving this screen`), Wi-Fi (BCM4360 ·
+  bcma-pci-bridge, present-not-functional, honest), Audio (`8 Series HD
+  Audio Controller · snd_hda_intel` — the `#21c` PCH-codec fix still
+  holds), Bluetooth `btusb`, Touchpad `Apple Internal Keyboard / Trackpad
+  · apple`. No count line, no phantom rows.
+- **Disk verified untouched, before AND after:** `lsblk` UUIDs (ESP
+  `B710-0CB0`, root `9a6ac564…`, swap `a4340a48…`), `sfdisk -d`, and the
+  first-4-MiB SHA256 (`90bc2174…`) all identical pre/post; no `sda`
+  mounts; `/sys/block/sda/stat` **writes-completed = 0, sectors-written =
+  0** for the whole session. Transcript: 17 `would` lines, 0 `run` lines.
+- **Rehearsal:** `status: ok`, **no findings**, all six checks `ok`
+  (UEFI → systemd-boot, target `sda` ≠ medium `sdb`, fit 232716 MiB root
+  for ~19 GiB, `ok ram: 3858 MB`, facts match, **eval 97 s** →
+  `nixos-system-mbp`). In line with this box's known memory-pressured
+  range (round 1: 58 s cold, round 2: 94 s, round 4: 93 s) — still the
+  heaviest eval in the lab, still completes clean single-threaded.
+- **Console quiet (#17a):** `loglevel=3`, printk `3 4 1 7`; **0 lines at
+  emerg/alert/crit**, 3 at err; nothing new since the boot audit.
+- **Findings → changes.md:** none. `R5-1` (the `#28` hold-line fix,
+  already applied to source on the Lenovo) was not re-exercised here —
+  this run's audit had already finished before golem-setup started, so
+  the race path never triggered; not a gap in this machine's coverage,
+  just nothing to add to what the Lenovo already proved.
+- **Verdict:** **PASS.** Every round-5 item this machine can prove is
+  proven: Ctrl-C and F1 both exit clean from two different screens, the
+  ASK framework's empty-array case now has a second, structurally
+  different proof (no gpu2 vs. healthy gpu2), and the `wl` pipeline —
+  this machine's whole reason to be in the lab — survives a fifth ISO
+  unchanged. Zero writes to the Apple SSD across the whole session.
