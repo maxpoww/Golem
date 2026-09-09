@@ -110,7 +110,25 @@ still stripped, bus ids still lead. NOT on the round-4 stick.
 - **where:** `mockup/install-cli` hw_row / the lspci name parse.
 - **size:** small.
 
-### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [APPLIED to source · postinstall/postinstall.md §7 · round-5 build · NOT yet live-verified]
+### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [APPLIED to source · postinstall/postinstall.md §7 · round-5 build · rehearsal-proven on the ASUS · real-desktop still unverified]
+**Round-5 proof, non-empty case (ASUS, 2026-09-08):** the machine this
+whole finding is about finally ran the round-5 stick. `checks.txt` ok,
+0 findings, and `target/postinstall-questions.json` holds exactly one
+question — `id: "gpu2-failing-action"`, `default: "hold"`, the body text
+from postinstall.md §7 verbatim, two options (`hold` / `off`). The
+evaluated toplevel's closure carries `golem-dgpu-hold.service` and its
+unit-script — **not** `-off` — confirming the rehearsal takes the
+question's own default when nothing has answered it yet, exactly as
+designed: the dGPU ships available, never autosuspended, and the
+destructive branch only ever builds once a real answer says so. This is
+the first time in the lab any machine has produced a non-empty
+`postinstall-questions.json` (every other machine — healthy dGPU or none
+at all — has produced `[]`). **Still open:** no human has seen the `foot`
+prompt draw and `golem-postinstall-apply` has never run a real
+`nixos-rebuild switch` — that needs an actual (non-rehearsed) install,
+which stays out of scope on this machine's guarded disk without Max's
+explicit go-ahead. Full record: `testing/asus.md` round 5.
+
 **Built (2026-09-08):** both implications below are done. `gpu-second.nix`
 now holds the chip (`power/control=on`, never autosuspends) by default and
 only powers it off once the owner answers "off" through the new

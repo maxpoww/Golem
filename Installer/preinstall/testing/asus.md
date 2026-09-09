@@ -267,3 +267,106 @@ either side of that.
   (boot stick still offered in the drive list) not re-checked this pass,
   still open. New open item: the "failing dGPU → powered off entirely"
   policy question above, worth Max's call before it's treated as settled.
+
+## Round 5 (rehearsal check) — 2026-09-08 — THE HEADLINE: #33's non-empty case, proven for the first time in the lab · #32's dimmed tail proven on a real failing case · round 4 verified retroactively (it was skipped) · 0 findings
+
+This machine sat out round 4 entirely (queue gap — every other laptop got
+a round-4 pass, this one didn't). So this run also serves as the first
+live check of every round-4 fix, alongside round 5's own items.
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
+  `golem-setup` unwrapped has 1 `valid_host Golem` hit, 4
+  `cancel_install` hits, the `#34` trap pair at 3933–3934;
+  `golem-postinstall-questions` present. Still "ENTER takes it" in the
+  footer (expected — the wording fix is round-6 source, this stick is
+  frozen). UEFI. `golem-audit.service` already `ok` when driving started.
+- **Census:** every fact identical to every prior round — i5-4200U,
+  cores=2/threads=4, ram 7384, `gpu=intel`, `intelLegacy=true` → i965,
+  `firmware=uefi`, `nvidiaGen=unknown`, both PRIME bus ids, `gpu2=nvidia`
+  @ `0000:04:00.0`, **`gpu2Health=failing`** (straight from the boot
+  audit, no re-probe flap), `panelDpi=102` (→ no scale row), `hasBluetooth
+  =false` (still no radio), laptop. Decision: `gpu 2 action: powered off,
+  kept quiet` at census time — see below for what the ASK framework does
+  with that at target-eval time.
+- **#34 — Ctrl-C exits, once, cleanly. PROVEN.** Confirm screen: before →
+  marker + `golem-drv.Bh2Pw4` + `golem-kb-orig.6Pd9Bk` present; Ctrl-C →
+  prompt back immediately, no instance, marker and both temp files gone.
+- **#31 — F1 cancels from the language page.** Exercised at the earliest
+  point (the picker, first answer not yet given), twice across two
+  separate runs: `\eOP` → prompt back, no instance, each time.
+- **#32 — the failing-GPU verdict tail renders dimmed. PROVEN on a REAL
+  failing case for the first time** (every earlier check of this was
+  structural — no machine with an actual failing dGPU had exercised it
+  live). `capture-pane -e`: `GPU 2 … — tested, didn't wake up` renders in
+  `38;5;240`, the identical dim gray as the `GPU` row's own driver clause
+  and verdict tail. Not applicable on any other round-5 machine so far —
+  this is the one that could prove it.
+- **#26-reveal:** exactly one `GPU` row and one `GPU 2` row — no
+  same-chip-sibling double-count.
+- **#33 — THE HEADLINE. The ASK framework's non-empty case, proven for
+  the first time in the lab, on the machine the whole finding is about.**
+  `target/postinstall-questions.json`:
+  ```json
+  [{"id":"gpu2-failing-action","default":"hold",
+    "title":"Your second GPU didn't wake up during setup",
+    "options":[{"id":"hold","label":"Keep it available (uses a little more power)"},
+               {"id":"off","label":"Turn it off (saves battery, GPU unavailable)"}],
+    "body":"Golem tested your second graphics card (nvidia) by putting\nit to sleep and waking it back up during setup, and it did not\nwake up cleanly. …"}]
+  ```
+  `jq length` → 1. Transcript: `note postinstall questions: 1 pending`.
+  The evaluated toplevel's closure carries **`golem-dgpu-hold.service`**
+  (found via `nix-store -qR` on the real drv path) — **not** `-off` —
+  confirming the target takes the question's own default (`hold`) when
+  unanswered: the dGPU ships available, never autosuspended, and the
+  destructive branch only builds once a real person answers "off". This
+  is every other machine's `[]` finally contrasted with a real `[…]`, and
+  it resolves round 3's open design question (Max: "that is not possible,
+  the 720m works") exactly the way round 4 decided it should: the
+  installer no longer powers the chip off unilaterally, it holds it and
+  asks. **Still open, deliberately out of scope here:** no human has seen
+  the `foot` prompt draw and `golem-postinstall-apply` has never run a
+  real `nixos-rebuild switch` — that needs an actual install, not a
+  rehearsal, and this machine's disk is guarded.
+- **Surface (six screens):** English → America/Denver → English (US) →
+  drive (**only** the Toshiba HDD + Advanced — `#20b` still holds; the
+  `sdb` boot stick still not offered, `#20b`'s own open item from round 3
+  was never actually re-broken) → `asus` (ghost replaced cleanly) → `max`
+  + password ×2 → confirm. Full row set: Zram, Swap 10 GiB, `Scheduler
+  Bfq on hard disks, default on SSD/NVMe` (**round-4's R3-4 fix, verified
+  live on this machine for the first time** — round 3 predates it),
+  Thermald On, Lid, GPU (`Intel Haswell-ULT Graphics · i915 — tested,
+  working · driving this screen`), **GPU 2** (`NVIDIA GeForce
+  610M/710M/810M — tested, didn't wake up`, dimmed, no driver name — the
+  held-not-killed chip has nothing to name), Wi-Fi `AR9485 · ath9k`,
+  Ethernet `RTL8111/8168/8211/8411 · r8169`, Audio (`Intel Corporation 8
+  Series HD Audio Controller · snd_hda_intel` — **round-4's #21c fix,
+  also verified live on this machine's own screen for the first time**),
+  Touchpad `Elantech Touchpad · psmouse`. No Bluetooth row (`hasBluetooth
+  =false` still honest), no count line, no phantom rows.
+- **Disk verified untouched, before AND after:** all three UUIDs (ESP
+  `0E2A-C3BA`, ext4 `802943cb…`, swap `02325d24…`), GPT label-id and
+  `sfdisk -d` identical, first-4-MiB SHA256 (`e0a58997…`) identical
+  pre/post, no `sda` mounts. `/sys/block/sda/stat` **writes-completed = 0
+  the whole session** (reads climbed 257→306 from the checks themselves).
+  Transcript: 17 `would` lines, 0 `run` lines.
+- **Rehearsal:** `status: ok`, **no findings**, all six checks `ok`
+  (UEFI → systemd-boot, target `sda` ≠ medium `sdb`, fit 294493 MiB root
+  for ~19 GiB, `ok ram: 7384 MB`, facts match — the boot audit's own
+  `failing` held with no #23-class flap this round — **eval 31 s** →
+  `nixos-system-asus`, matching this box's round-2/3 pace).
+- **Console:** `loglevel=3`, printk `3 4 1 7`; 0 lines at emerg/alert/
+  crit, 17 at err — the familiar nouveau PRIVRING fault chatter at the
+  dGPU's own address, same class documented every round on this machine,
+  nothing new.
+- **Findings → changes.md:** none new. `#33`'s entry updated with this
+  run's proof (non-empty case, `hold`-default confirmed in the built
+  closure). Round-4's `R3-4` and `#21c` fixes both got their first live
+  verification on this machine's own screen, retroactively, since round 4
+  was skipped.
+- **Verdict:** **PASS.** Every item this machine uniquely proves in the
+  whole lab is proven: the dimmed failing-GPU tail on a real failing
+  case, and — the headline — the post-install ASK framework's non-empty
+  path, generating the right question with the right default and
+  building the right (safe, available, never-autosuspending) branch when
+  nobody has answered yet. Zero writes to the guarded Linux disk across
+  the whole session.
