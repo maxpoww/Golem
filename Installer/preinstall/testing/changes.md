@@ -181,13 +181,33 @@ epoll serviced 69×/4 s, ppoll spin gone, **CPU 90.8 % idle**,
 from that one change; #9's interaction path (`debug-hover-option`) now
 returns 0.
 
+**DEFINITIVE confirmation (Max, live, 2026-09-09):** after the clear,
+everything worked — Super+Space, option hover, dock + box icons, dock
+autohide, all good. Then he **dragged alacritty to the grid to install
+it** → the "installing" ring started → **every issue came back at once.**
+Checked on the box: alacritty DID install (in the profile + package list),
+but its pending tile never cleared → animation → starvation → the same
+deadlock, on a FRESH install. So it is not just *stale* tiles across a
+reboot — it is ANY active install ring. Installing an app (a core feature)
+breaks the whole desktop until it is cleared. Recovered the machine again
+by clearing the tile; #40-proper is now clearly the load-bearing fix.
+
 **Two fixes, and #40-proper is the important one:**
-- **37 (targeted):** on restore, a pending tile whose package is already
-  installed+applied must be resolved/cleared, not re-animated. Prevents
-  THIS trigger. `install.rs` restore path (~1292) + `resolve_pending_
-  installs`. NOTE the resolution itself is starved by the same deadlock,
-  so this must run synchronously at restore, not via the (starved) nix
-  channel.
+- **37 (targeted) — DONE + VERIFIED LIVE (2026-09-09):** on restore, a
+  pending tile whose package is already installed is dropped instead of
+  re-animated. New synchronous `applier::is_installed(attr)` (in the list
+  AND applied-since-list-write, no rebuild triggered), checked in
+  `install.rs restore_install_state` before re-staging; the cleared state
+  is persisted via `save_install_state`. Synchronous by design — it holds
+  even when the loop would otherwise be starved. Verified on the ASUS:
+  planted a stale already-installed brave tile, restarted the daemon →
+  log `pending install brave already installed; dropping stale tile (no
+  re-animate)`, tile gone from disk, `waverunner-ctl show/hide` exit 0
+  (loop healthy). Fix lives uncommitted in `~/launcher` (7 files touched:
+  applier.rs, install.rs + the #38 battery set). **Scope caveat:** this
+  fixes the stale-tile-across-reboot trigger ONLY. A FRESH drag-to-install
+  still starves the loop until 40-proper lands — that is the load-bearing
+  fix and is Max's.
 - **40 (architectural, the real hardening):** **no animation may starve
   the single-threaded calloop loop.** Any perpetual/long animation must
   yield to the loop between frames so IPC, timers, input, and the nix
