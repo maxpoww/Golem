@@ -280,8 +280,24 @@ The single most important operational finding for the whole install story.
 - **where:** `~/launcher` `crates/daemon/src/renderer.rs` (icon texture
   format / alpha handling / the Opaque-alpha fallback path) +
   `install.rs`/`notif_icons.rs` icon upload.
-- **size:** medium — a GL-backend renderer fix; needs the same iterate-on-
-  the-ASUS loop. NEXT bug after the install-freeze win.
+- **CRUCIAL REFINEMENT (Max, 2026-09-09): it's TRANSIENT, not static.**
+  "The icons came back for 2m and went back to black." So icons upload and
+  render CORRECTLY at first, then degrade to black after ~2 minutes. That
+  rules out a pure format/alpha bug (that would be black from frame 1) and
+  points at **texture-array lifetime/eviction on the GL backend** — the
+  app-icon texture array (one RGBA layer per app; renderer.rs sizes it to
+  `max_texture_array_layers`) getting invalidated, evicted, or not
+  re-bound after some event/period, while the font/glyph path (trash,
+  top-bar icons — a separate atlas) keeps rendering fine throughout. The
+  daemon log shows a `rescanning` + a couple of restarts around the window
+  but no GL/texture error at info level. Suspects to chase: the icon
+  texture array being reallocated/re-uploaded on a rescan and left blank;
+  a GL texture/context resource lost after idle or a surface reconfigure;
+  wgpu-GL dropping the array. Needs `RUST_LOG=debug` + watching the
+  transition on the ASUS.
+- **size:** medium–large — a GL-backend texture-lifetime bug, harder than a
+  static fix; needs the iterate-on-the-ASUS loop with debug logging. NEXT
+  bug after the install-freeze win.
 - **where:** `~/launcher` `crates/daemon/src/{install.rs,frame.rs,main.rs}`.
 - **size:** 37 = medium; 40-proper = needs-Max (event-loop architecture).
 
