@@ -292,6 +292,39 @@ error in the log).
   daemon (would need app-count/rebuild juggling); it is eliminated by
   construction.
 
+### 43. A live install can leave the tile stuck "Installing…" (unlaunchable) until a daemon restart — [FOUND on the ASUS 2026-09-09 · machine recovered · deeper fix pending]
+- **what (Max):** installed darktable; it finished (binary present, its
+  `.desktop` `org.darktable.darktable` scanned) but the grid tile stayed
+  **"Installing…"** and clicking it did nothing — a dead placeholder, never
+  resolved to the real app. A dock-summon rescan did not clear it.
+- **root cause (traced):** `resolve_pending_installs` excludes any tile
+  whose attr is still in `busy_ids` (install.rs:975). On a live install the
+  completion (`nix::Event::Done`) is what removes `busy_ids` + sets
+  `completed_at`; for darktable that removal did not take, so the tile
+  stayed "busy" and resolution kept skipping it on every rescan — stuck
+  forever. Aggravating factor: Max started a SECOND install (ebay webapp,
+  14:24:54) while darktable was still building (14:20:36) — overlapping
+  ops in the single nix worker are the likely reason darktable's Done
+  signal was missed/lost.
+- **why restart fixes it (and #37):** on restart, `restore_install_state`
+  re-fires `apply_install(darktable)` → "already installed" → a FRESH Done
+  → `busy_ids.remove` → resolve (darktable already scanned) → tile cleared.
+  Verified: after a daemon restart the tile was gone and darktable is a
+  normal launchable app. So a restart/reboot always recovers, and #37
+  guarantees a clean restart never re-animates an installed tile.
+- **the real fix (candidate, NOT yet done):** live resolution must be
+  robust to a missed completion signal — either (a) always clear
+  `busy_ids` for an attr once `applier::is_installed(attr)` is true and its
+  app is scanned, resolving the tile regardless of the stale busy flag, or
+  (b) serialize/queue overlapping installs so a Done can't be lost. (a) is
+  the smaller, targeted fix in `resolve_pending_installs`. Needs the nix-
+  worker concurrency reviewed either way.
+- **where:** `~/launcher` `crates/daemon/src/install.rs`
+  (`resolve_pending_installs` busy filter + the Done path) / `nix.rs`
+  (worker serialization).
+- **size:** medium; involves nix-worker concurrency — Max's renderer/worker
+  code.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
