@@ -130,3 +130,69 @@ with a panelDpi fact on metal, and the first UEFI rehearsal on NVMe
 - **Verdict:** PASS — round-4 build confirmed on the AMD machine, its own
   audio finding fixed on its own screen. First of the round-4 rehearsal
   sweep (all PCs checked before the ASUS gets the first REAL install).
+
+## Round 5 (rehearsal check) — 2026-09-08 — #34 and #31 both PROVEN (confirm screen + language page) · #33 no-gpu2 case, 2nd machine · quietest console in the lab · 0 findings
+
+Driven from the dev box over SSH at 192.168.1.149.
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sda`). Markers confirmed:
+  `golem-setup` unwrapped has 1 `valid_host Golem` hit and 4
+  `cancel_install` hits with the `#34` trap pair (`trap cleanup EXIT` /
+  `trap cancel_install INT TERM`) at 3933–3934; `golem-postinstall-
+  questions` present. UEFI. `golem-audit.service` already `ok` when
+  driving started.
+- **Census:** every fact identical to every prior round — Ryzen 7 4700U,
+  cores=8/threads=8 (no SMT), ram 7159, `gpu=amd`, `intelLegacy=false`,
+  `firmware=uefi`, `panelDpi=143` (→ no scale row, correct), `hasBluetooth`,
+  laptop, `cpuVendor=amd`. Nothing wrong, nothing new.
+- **#34 — Ctrl-C exits, once, cleanly. PROVEN.** On the confirm screen:
+  before → marker + `golem-drv.Gc0Trd` + `golem-kb-orig.2qgnvp` present;
+  Ctrl-C → prompt back immediately, no `golem-setup-unwrapped` instance,
+  marker gone, both temp files gone.
+- **#31 — F1 cancels from the language page.** Exercised at the earliest
+  possible point (the picker, before any answer given): `\eOP` → prompt
+  back, no instance, no marker/temp files (none existed yet at that
+  stage) — the escape hatch works even before there's anything to clean up.
+- **#33 — the fourth bundle file is `[]`, the no-gpu2 case, a second
+  machine.** `target/postinstall-questions.json` = `[]` — same reasoning
+  as the MacBook (no `gpu2` fact at all, single GPU/APU), a different
+  chip family (AMD Renoir vs. Intel Haswell) landing on the same "nothing
+  to ask" path.
+- **#32 / #26-reveal:** not applicable, no `GPU 2` row to dim or
+  double-count.
+- **Surface (six screens):** English → America/Denver → English (US) →
+  drive (**only** the Toshiba NVMe + Advanced — `#20b` holds, `/dev/sda`
+  boot stick not offered) → `thinkpad` (ghost replaced cleanly) → `max` +
+  password ×2 → confirm. Rows all matching round 3/4: Zram, Swap 9 GiB,
+  `Scheduler Bfq on hard disks, default on SSD/NVMe`, **Thermald Off**
+  (correctly AMD-gated), Lid, GPU (`AMD/ATI Radeon Vega Series · amdgpu —
+  tested, working · driving this screen`), Wi-Fi `RTL8822CE ·
+  rtw88_8822ce`, Ethernet `RTL8111/8168/8211/8411 · r8169`, Audio
+  (`[AMD] Ryzen HD Audio Controller · snd_hda_intel` — the `#21c`
+  speakers fix still holds), Bluetooth `btusb`, Touchpad (`Elantech
+  Touchpad · psmouse` — the `#21b` fix still holds, not the TrackPoint).
+  No count line, no phantom rows.
+- **Disk verified untouched, before AND after:** all four Windows
+  partition UUIDs (ESP `92D6-8297`, MSR, NTFS `0A52D6C6…`, WinRE
+  `E020AFC7…`), GPT label-id and `sfdisk -d` identical, first-4-MiB
+  SHA256 (`86ba2877…`) identical pre/post, no `nvme0n1` mounts.
+  `/sys/block/nvme0n1/stat` **writes-completed = 0** the whole session
+  (reads climbed 336→412 from the checks themselves — no writes ever).
+  Transcript: 17 `would` lines, 0 `run` lines.
+- **Rehearsal:** `status: ok`, **no findings**, all six checks `ok`
+  (UEFI → systemd-boot, target `nvme0n1` ≠ medium `sda`, fit 234470 MiB
+  root for ~19 GiB, `ok ram: 7159 MB`, facts match, **eval 21 s** →
+  `nixos-system-thinkpad` — matches this box's round-3/4 pace, still the
+  fastest NVMe eval in the lab).
+- **Console quiet (#17a) — the quietest machine in the lab this round:**
+  `loglevel=3`, printk `3 4 1 7`; **0 lines at emerg/alert/crit AND 0 at
+  err** — the only lab machine with a fully silent dmesg this round
+  (MacBook still carries 3 err lines, Lenovo dozens from the nouveau/i915
+  chatter).
+- **Findings → changes.md:** none. Pure regression pass — every round-5
+  item this single-GPU AMD machine can prove is proven, nothing new.
+- **Verdict:** **PASS.** `#34` and `#31` both confirmed from two
+  different screens (confirm and language-picker), the ASK framework's
+  empty-array case now has a second no-gpu2 proof on different silicon,
+  and the disk holding this machine's guarded Windows install took zero
+  writes across two full rehearsal runs.
