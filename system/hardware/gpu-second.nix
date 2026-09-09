@@ -95,6 +95,15 @@ in
         RemainAfterExit = true;
       };
       script = neverBootVga ''
+        # If a prior "off" answer removed the chip from the bus, a plain
+        # existence check silently no-ops and the owner's off→hold
+        # re-answer leaves the GPU absent until a reboot (35d, found live
+        # on the ASUS 2026-09-09: generation switched, hold active, chip
+        # still gone). Rescan first — a no-op when the device is present.
+        if [ ! -e "$d" ]; then
+          echo 1 > /sys/bus/pci/rescan 2>/dev/null || true
+          udevadm settle 2>/dev/null || true
+        fi
         if [ -e "$d/power/control" ]; then
           echo on > "$d/power/control" 2>/dev/null || true
         fi

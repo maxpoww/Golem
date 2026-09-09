@@ -437,3 +437,41 @@ watches over SSH.
 - **Verdict:** **the scoreboard's last box, ticked** — prepare → build →
   deliver → install → first boot, all real, all correct on first try.
   The lab's install story is no longer theoretical.
+
+## Round 5, the #33 desktop half — 2026-09-09 — a human sees the foot prompt · the answer pipeline's missing edge found (#35) · fixed live · BOTH branches proven on real hardware
+
+Morning session, Max at the physical keyboard, dev box watching over SSH.
+
+- **The prompt, seen by human eyes for the first time:** Max logged into
+  Hyprland; `golem-postinstall-ask` fired on `graphical-session.target`
+  and the question drew — as a **foot tile** (Max: "is a foot tile").
+  UX note for later: tiled, not floating/centered — function proven,
+  presentation debatable.
+- **The answer flow:** Max chose "off" (deliberately — "hold" is the
+  built default, so only "off" forces an observable change).
+  `answers.json` written, `golem-postinstall-apply.path` fired on its
+  own, the first real `nixos-rebuild switch` of the subsystem ran, ~74 s,
+  `ok:true`, generation 2 — **and the system did not change.** Hold still
+  active, no off unit, chip still awake. → **#35**: nothing imports
+  `postinstall-generated.nix` — the answer→evaluation edge never existed,
+  and the matrix could not see it (its rows set the option directly).
+  Full entry + two siblings (35b gitless seed / silent `git add` failure;
+  35c `ok:true` verified the exit code, not the effect) in changes.md.
+- **Fix applied and re-fired live:** path-conditional import in
+  `system/postinstall.nix`, copied into the seed, same answer re-fired →
+  **generation 3: `golem-dgpu-off` active, hold gone, the GF117M
+  REMOVED from the PCI bus.** The off branch, real, on hardware.
+- **Re-answer (off→hold):** generation 4, hold back, off gone — **and
+  the chip still absent**, because hold's script no-ops on a missing
+  device (→ **35d**, fixed in `gpu-second.nix`: rescan when absent;
+  manual rescan verified first — chip reappeared, nouveau rebound, hold
+  restarted clean).
+- **End state:** chip on the bus, `power/control=on`, never
+  autosuspends, zero new faults — the hold design working, as Max's
+  preference and as shipped default. Four system generations deep on an
+  installed Golem, every one made by the owner answering a question.
+- **Verdict:** the #33 subsystem is now proven END TO END on real
+  hardware in both directions — and the proving run caught the exact
+  class of bug (a pipeline that reports success while changing nothing)
+  that only a live desktop run could catch. The lab method, working on
+  the installed system for the first time.

@@ -32,6 +32,57 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
+### 35. The postinstall answer never reaches the system — nothing imports postinstall-generated.nix — [APPLIED to source · found + fixed live on the ASUS's REAL install · round-6 build]
+**Found (2026-09-09, the first live #33 run in history):** Max answered
+"off" at the foot prompt on the installed ASUS. Every mechanical piece
+worked — answer validated, `postinstall-generated.nix` written correctly,
+`nixos-rebuild switch` ran, generation 2 created, status `ok:true` — and
+the system did not change: `golem-dgpu-hold` still active, no
+`golem-dgpu-off`, chip still held awake. Root cause: **no file anywhere
+imports `system/postinstall-generated.nix`** — the write→rebuild pipeline
+existed, the answer→evaluation edge did not. The eval matrix could never
+catch this (its rows set `golem.postinstall.answers` directly, bypassing
+the import); only a real desktop run could, and the first one did.
+- **fix (applied):** `system/postinstall.nix` now imports the generated
+  file path-conditionally (`lib.optional (builtins.pathExists …)`) —
+  eval-time, not config-time, so no infinite-recursion risk (the
+  gpu-second.nix lesson). Absent on a fresh install → option default `{}`
+  → safe defaults; present from the first applied answer onward.
+- **two siblings, queued, NOT yet fixed:**
+  - **35b:** the apply's `git add` dies (`fatal: not a git repository` —
+    the seed is the flake-source store copy, no `.git`) and `|| true`
+    swallows it. Harmless today (a gitless dir is a plain-path flake, all
+    files visible) but the design comment promises "git-tracked", and on
+    any future git-seeded machine an untracked generated file would be
+    invisible to the flake — the exact class of bug #35 was. Decide: seed
+    a real git checkout, or drop the git assumption and the dead command.
+  - **35c:** `ok:true` was a false positive — the apply verified the
+    rebuild's exit code, not the EFFECT. It should confirm the switched
+    system actually contains what the answer implies (e.g. the expected
+    unit) before writing `ok:true`; a pipeline that lies about success is
+    the exact honesty failure the reveal rules exist to prevent.
+- **where:** `system/postinstall.nix` (fix + both siblings).
+- **size:** fix = 2 lines (done); 35b needs-Max (seed policy); 35c small.
+- **the fix, verified live the same hour (ASUS, real install):** the
+  patched postinstall.nix was copied into the machine's seed and the
+  same "off" answer re-fired through PathChanged. This time the rebuild
+  landed the effect: generation 3, `golem-dgpu-off` active ("owner
+  chose: power off"), `golem-dgpu-hold` gone, **the GF117M removed from
+  the PCI bus entirely**. Then the re-answer flow: answers.json flipped
+  to "hold" → generation 4, hold active, off gone. The full #33 pipeline
+  — prompt → answer → generated module → import → rebuild → hardware —
+  is now proven in BOTH directions on the machine the question was
+  built for.
+- **35d (found by the off→hold flip, APPLIED to source):** hold's script
+  only wrote `power/control` if the device existed — but after an "off"
+  answer the device is REMOVED from the bus, so an off→hold re-answer
+  switched generations while leaving the GPU absent until a reboot.
+  Fixed in `gpu-second.nix`: rescan the PCI bus (+`udevadm settle`) when
+  the device node is missing, then hold as before. The manual rescan was
+  verified live first (chip reappeared, nouveau rebound, hold restarted
+  clean — the box ends chip-available, never-autosuspending, Max's
+  preferred state).
+
 ### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [APPLIED to source · verified live on Lenovo · round-6 build]
 **Applied (2026-09-08):** `wait_for_audit` now ends with
 `printf '\r%s[2K%s[1A' "$esc" "$esc"` — erase the hold line, step back up

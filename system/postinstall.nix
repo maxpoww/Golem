@@ -222,6 +222,21 @@ let
   };
 in
 {
+  # The answer→system edge. golem-postinstall-apply writes the owner's
+  # answers into ./postinstall-generated.nix and rebuilds — but a written
+  # file changes nothing unless something IMPORTS it, and nothing did:
+  # the first live run of #33 (ASUS, 2026-09-09) answered "off", watched
+  # the rebuild report ok, and found golem-dgpu-hold still running —
+  # the generated module was never part of the evaluation. (The eval
+  # matrix could not catch this: its rows set golem.postinstall.answers
+  # directly, bypassing the import.) Path-conditional, not
+  # config-conditional — `imports` cannot depend on `config`, and
+  # pathExists resolves at eval time: absent on a fresh install (the
+  # option's default {} = every question's safe default), present from
+  # the first applied answer onward.
+  imports = lib.optional (builtins.pathExists ./postinstall-generated.nix)
+    ./postinstall-generated.nix;
+
   options.golem.postinstall.answers = lib.mkOption {
     type = lib.types.attrsOf lib.types.str;
     default = { };
