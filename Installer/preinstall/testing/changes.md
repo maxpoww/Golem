@@ -150,7 +150,38 @@ sub-findings:
 - **where:** `~/launcher` (waverunner), uncommitted in Max's WIP tree.
 - **size:** small — done.
 
-### note on #2/#4/#5/#7/#8/#9/#10 (the visual cluster, #36): re-test pending on the rebuilt ASUS
+### 40. waverunner control socket is dead on the installed build — Super+Space + all ctl commands no-op — [FOUND on the rebuilt ASUS 2026-09-09 · root-cause narrowed]
+- **what:** on the ASUS running the CURRENT waverunner, `waverunner-ctl`
+  gets no response to ANY command (`toggle`/`show`/`hide`/`overview-on`/
+  `debug-options` all → "failed to read daemon response", EAGAIN). Not a
+  timeout: a raw `socat` connect + `show\n` waiting 10 s gets **zero
+  bytes** back. The daemon logs `INFO waverunner::ipc: listening on
+  …/waverunner.sock` at boot and renders fine (bar, clock, deck), so it is
+  alive — but it never services the control socket. This is item 6
+  (Super+Space, which the hyprland.lua bind correctly maps to
+  `waverunner-ctl toggle`) and likely the ctl-driven options interactions.
+- **narrowed:** the IPC is a `calloop` `Generic` source (single-threaded,
+  `crates/daemon/src/ipc.rs:114`); `connect()` succeeding while no reply
+  ever comes means the daemon isn't reaching `listener.accept()` — the
+  event loop isn't dispatching the IPC source on this build, even though
+  rendering (also calloop-driven) runs. Suspect the 18-commit
+  OPTIONS-UX/deck/stage refactor changed the loop such that the IPC source
+  is starved on a slow machine, OR a render path is monopolising the loop.
+  NOT yet fixed — needs a daemon restart with `RUST_LOG=debug` to confirm
+  whether `handle_command` is ever entered, which disrupts a live dogfood
+  session, and it is Max's actively-refactored code.
+- **where:** `~/launcher` `crates/daemon/src/ipc.rs` + the main event loop.
+- **size:** needs-Max (his WIP daemon; he'll know if the refactor did it).
+
+### note on #2/#4/#5/#7/#8/#9/#10 (the visual cluster, #36): re-tested on the rebuilt ASUS
+Survivors on the current waverunner (2026-09-09): options hover/expand
+still dead (#9), no current-task pill (#5), dock doesn't hide (#4), dock/
+menubox no icons (#10), Super+Space dead (#6 → #40 above). BUT the newer
+build is **mid-migration from a pinned-dock model to a STAGE/deck model**
+(`deck.rs`/`stage.rs`: task tiles under a staged window, Super+Enter) —
+the bottom `waverunner-deck` layer is new. So #4/#5/#10 may be that
+migration in flight, not classic regressions. #9 hover + #40 IPC look
+like genuine bugs. Split for Max's steer before deeper work.
 The ASUS was running waverunner 18 commits + WIP behind `~/launcher`
 HEAD, whose recent work targets this exact cluster (OPTIONS UX rules,
 screen-derived page geometry, tooltip-detail, dock shadow, deck/stage).
