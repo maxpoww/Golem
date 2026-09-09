@@ -460,6 +460,19 @@ overlap — i.e. never on the dev box, always on 2013 metal.
 - **where:** `~/launcher` `crates/daemon/src/applier.rs`
   (`helper_active`, `wait_for_apply`, `applied_since_list_write`).
 - **size:** landed.
+- **VERIFIED LIVE on the ASUS (2026-09-09 17:16), overlap included:** the
+  deployment itself staged the exact race — the fixed daemon's startup
+  reconcile began while a foreign apply (run 1, tripped by the seed-lock
+  touch) was still building. New behavior, end to end: waited QUIETLY
+  through the live foreign run (zero "helper is not running" lines — the
+  old daemon spammed it every 5 s), refused run 1 as coverage when it
+  landed (it started the same second as the list write — started-based
+  coverage), nudged once, and the fresh run 2 (17:16:22→17:16:57, ok)
+  satisfied the wait: "startup reconcile applied; rescanning". Daemon
+  confirmed the b2d59f9 build (`kk1zjnr…`, new probe strings present);
+  live toplevel closure-diff vs the dev-box prebuild: EMPTY (pure
+  cache-hit self-rebuild). Remaining re-dogfood for Max: two GUI
+  drag-installs back to back — the applier layer under them is proven.
 
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.

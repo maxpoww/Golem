@@ -394,6 +394,19 @@ the start-timeout counts idle time, not wall time; and a corpse
 foreign. Golem's waverunner lock bumped, ASUS seed updated, rebuilt from
 seed — same permanence pipeline as #41.
 
+**Deployed + verified live (17:16):** prebuilt `golem-target` on the dev
+box from the ASUS's own seed + bumped lock, `nix copy`'d, updated the
+seed lock, and let the machine rebuild itself (pure cache hit, ~70 s).
+The deployment staged the exact overlap race by accident — the fixed
+daemon's startup reconcile began while a foreign apply was still
+building — and the new code ran it perfectly: quiet wait through the
+live run (zero "helper is not running" spam), the foreign run refused as
+coverage when it landed, one nudge, fresh covering run, "startup
+reconcile applied". What's left for the human chair: two GUI
+drag-installs back to back; the applier under them is proven. (xcalc was
+NOT silently re-added — Max's call whether he still wants it. fritzing
+is installed now, as `Fritzing`.)
+
 Also cleared up from the same journal sweep (not bugs): gen 30's weird
 old-config build at 16:19 was the dev-box recovery session rebuilding
 with stale per-machine files (the fba74c5 cleanup); the F13 drift sweep
