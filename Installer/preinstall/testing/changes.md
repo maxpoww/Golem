@@ -56,6 +56,13 @@ the import); only a real desktop run could, and the first one did.
     any future git-seeded machine an untracked generated file would be
     invisible to the flake — the exact class of bug #35 was. Decide: seed
     a real git checkout, or drop the git assumption and the dead command.
+    **Same pattern in `system/waverunner-apply.nix:104,114`** (the flake
+    port of the app installer) — same `git add … || true`, same harmless-
+    today/latent-tomorrow. Whatever seed policy is chosen must cover both
+    appliers. (Confirmed on the ASUS first install: the `fatal: not a git
+    repository` line appears in waverunner-apply's log, yet brave still
+    installed — proof the git step is dead weight on a plain-path seed,
+    not a blocker.)
   - **35c:** `ok:true` was a false positive — the apply verified the
     rebuild's exit code, not the EFFECT. It should confirm the switched
     system actually contains what the answer implies (e.g. the expected
@@ -82,6 +89,64 @@ the import); only a real desktop run could, and the first one did.
   verified live first (chip reappeared, nouveau rebound, hold restarted
   clean — the box ends chip-available, never-autosuspending, Max's
   preferred state).
+
+### 36. First installed-desktop dogfood (ASUS) — the visual cluster: waveview degraded below the dev box's screen — [FOUND on the ASUS 2026-09-09 · investigating · full report Installer/installing/FirstInstall.md]
+The lab's first REAL install, used by a human, surfaced a cluster of
+desktop bugs — none visible in any preinstall round, because those never
+log in, and none seen on the dev box, because it is a modern high-DPI
+Vulkan machine. The ASUS is 1366×768 / scale 1.0 / Haswell iGPU. Report
++ per-item root-causes: `Installer/installing/FirstInstall.md`. Headline
+sub-findings:
+- **36a waverunner-renderer-gl [P1, likely common root]:** the renderer
+  (wgpu) falls back to the GL backend on Haswell (`Haswell Vulkan support
+  is incomplete`) and logs `premultiplied alpha unsupported, transparency
+  may be wrong`. A real compositing-capability gap that never occurs on
+  the dev box; candidate root for icons/pills not drawing. Investigate
+  first — may collapse several items.
+- **36b waveview-layers [P1]:** the options/dock surface is on Hyprland
+  overlay (layer level 3), so it paints above everything incl. the
+  overview and never yields (Max items 4, 7). Should be a layer that the
+  overview supersedes, workspace-scoped.
+- **36c waveview-overview [P1]:** 2+ tiles on a space mirror across all
+  tiled overview views (item 8) — per-workspace bounds wrong.
+- **36d waveview-input-scale [P1]:** options-pill hover hitboxes land off
+  the visible pill and the expanders (clock/notifs/clipboard) never fire
+  (item 9); the current-task pill is absent (item 5). Geometry/input
+  regions computed for a ~2560px panel, wrong at 1366 scale 1.0.
+- **36e [P2]:** Super+Space dead (item 6) — check shipped keybind vs. what
+  waveview expects.
+- **size:** P1 cluster, needs live reproduction on the ASUS; possibly one
+  renderer/geometry root behind most of it.
+
+### 37. waverunner install-state never reconciles — a finished install shows "installing" forever — [FOUND on the ASUS 2026-09-09]
+- **what:** Max installed brave; it **succeeded** (generation created,
+  `brave` in the per-user profile, in the closure) but `pending-installs.
+  json` still carries its tile (`placeholder:false`) — the pending UI
+  state is never cleared when the apply lands, so the grid shows the app
+  stuck "installing" indefinitely. "Never landed after an hour" was this,
+  not a failed install. (See also #35c: the apply reports `ok:true` on
+  exit code; the UI should reconcile against the actual profile, not the
+  apply's self-report.)
+- **where:** waverunner (`~/launcher`), the install/pending reconciliation
+  path — clear pending on apply success AND reconcile on daemon start.
+- **size:** medium; high user-impact (every install looks broken).
+
+### 38. False "battery 0% — Critical" notification when no battery is readable — [FOUND on the ASUS 2026-09-09]
+- **what:** waverunner logged `battery alarm: None → Critical` / `battery:
+  0% discharging — notifying` while UPower had no readable battery
+  (`Failed to get percentage from UPower: NameHasNoOwner`). A 0%/absent
+  reading must mean "no alarm," not "critical." First machine to expose
+  the battery path against a flaky/absent reading.
+- **where:** waverunner battery collector (`~/launcher`
+  `crates/options-engine/.../battery`).
+- **size:** small.
+
+### 39. chromium offered as installable while already present — [FOUND on the ASUS 2026-09-09]
+- **what:** `chromium` appears in the apps grid (`apps-order.json`, a
+  present app) AND in the install section. An already-present app must be
+  de-duplicated out of the installable catalog.
+- **where:** waverunner catalog/index filtering vs. the present-apps set.
+- **size:** small.
 
 ### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [APPLIED to source · verified live on Lenovo · round-6 build]
 **Applied (2026-09-08):** `wait_for_audit` now ends with
