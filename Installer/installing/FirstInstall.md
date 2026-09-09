@@ -190,6 +190,43 @@ verified at first boot (`../preinstall/testing/asus.md`).
 7. Resume the preinstall rounds (acer/dell/hp/comodore) once the dogfood
    settles.
 
+## 2026-09-09 afternoon — the pivot: the ASUS was running a STALE waverunner
+
+Investigating the visual cluster surfaced the single most important fact of
+the dogfood: **the installed ASUS ran waverunner from Golem's locked rev
+(`2de760883`), 18 commits + heavy WIP behind Max's `~/launcher` HEAD
+(`4cb0775`)** — and that newer work is squarely on this cluster:
+`feat: the OPTIONS UX rules — Leader/Still Bar/One Material/Sticky`,
+`fix: page capacity is screen-derived, never content-shrunk` (the item-9
+scale bug almost by name), `options: the tooltip finally shows an offer's
+detail` (item-9 hover-expand), `style: soften the dock shadow`, plus
+untracked `deck.rs`/`stage.rs` (STAGE mode + the task deck → items 7/8).
+So most of the P1 cluster was reported against a build that predated its
+own fixes. Fixing it blind would have been wasted work.
+
+**Action taken (Max: "rebuild ASUS from current ~/launcher, re-test"):**
+built a fresh `golem-target` toplevel on the dev box with
+`--override-input waverunner path:/home/max/launcher` (+ the #38 fix
+below), `nix copy`'d the delta to the ASUS, and activated it in place
+(`nix-env --set` + `switch-to-configuration switch`) — the install's
+closure-delivery seam reused for an update, no slow rebuild on the 5400rpm
+box. The ASUS now runs Max's current waverunner. **The visual cluster must
+be RE-dogfooded on this build before any of it is treated as a live bug**
+— several items are expected to be already gone.
+
+### #38 battery false-critical — FIXED IN SOURCE + CONFIRMED LIVE
+Root cause: the ASUS has a dead battery present on AC — `BAT0` reads
+`status=Not charging, capacity=0` while `AC0` reads `online=1`. The alarm
+ladder treated "not charging" as "discharging" and fired Critical at 0%.
+Fix (in `~/launcher`, uncommitted, 4 files: `collectors/system.rs`,
+`options-engine/state.rs`, `daemon/battery.rs`, `mind/decide.rs`): a new
+`on_ac` metric read from Mains `online`; both the alarm and the battery
+affordance now clear on `charging || on_ac`. 235 daemon + 148 engine tests
+pass (incl. a new ASUS-case assertion). **Verified live:** the red
+critical-battery triangle in the top bar is gone (now a normal bell), and
+the daemon logs no battery alarm. First waveview/waverunner source fix
+driven by the dogfood. → changes.md #38.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine

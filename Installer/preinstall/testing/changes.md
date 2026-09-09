@@ -131,15 +131,33 @@ sub-findings:
   path — clear pending on apply success AND reconcile on daemon start.
 - **size:** medium; high user-impact (every install looks broken).
 
-### 38. False "battery 0% — Critical" notification when no battery is readable — [FOUND on the ASUS 2026-09-09]
-- **what:** waverunner logged `battery alarm: None → Critical` / `battery:
-  0% discharging — notifying` while UPower had no readable battery
-  (`Failed to get percentage from UPower: NameHasNoOwner`). A 0%/absent
-  reading must mean "no alarm," not "critical." First machine to expose
-  the battery path against a flaky/absent reading.
-- **where:** waverunner battery collector (`~/launcher`
-  `crates/options-engine/.../battery`).
-- **size:** small.
+### 38. False "battery 0% — Critical" when a dead battery sits on AC — [FIXED in ~/launcher (uncommitted) · VERIFIED LIVE on the ASUS 2026-09-09]
+- **what:** the ASUS has a dead battery present on wall power — `BAT0`
+  reads `status=Not charging, capacity=0`, `AC0` reads `online=1`. The
+  alarm ladder treated "not charging" as "discharging" and fired Critical
+  at 0% (red warning-triangle glyph in the top bar). First machine to hit
+  the battery path against a lying-on-AC gauge — a class the ladder's own
+  comments already named ("old machines report discharging 0% on AC").
+- **fix (applied, 4 files):** a new `on_ac` metric read from any Mains
+  supply's `online` (`collectors/system.rs` + `options-engine/state.rs`);
+  both the alarm (`daemon/battery.rs alarm_for`) and the battery
+  affordance (`mind/decide.rs`) now clear on `charging || on_ac`. Does not
+  overload `is_charging` (the bolt semantics stay). New test asserts
+  `alarm_for(Some(0), false, true) == None`; 235 daemon + 148 engine tests
+  green.
+- **verified live:** ASUS rebuilt onto the new waverunner — the red
+  triangle is now a normal bell, daemon logs no alarm.
+- **where:** `~/launcher` (waverunner), uncommitted in Max's WIP tree.
+- **size:** small — done.
+
+### note on #2/#4/#5/#7/#8/#9/#10 (the visual cluster, #36): re-test pending on the rebuilt ASUS
+The ASUS was running waverunner 18 commits + WIP behind `~/launcher`
+HEAD, whose recent work targets this exact cluster (OPTIONS UX rules,
+screen-derived page geometry, tooltip-detail, dock shadow, deck/stage).
+It has now been rebuilt onto Max's current waverunner (see
+`Installer/installing/FirstInstall.md`). **These items must be
+re-dogfooded on the new build before any is treated as a live bug** — an
+unknown number are expected already fixed. Only survivors get worked.
 
 ### 39. chromium offered as installable while already present — [FOUND on the ASUS 2026-09-09]
 - **what:** `chromium` appears in the apps grid (`apps-order.json`, a
