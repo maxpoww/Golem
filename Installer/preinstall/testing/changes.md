@@ -1326,3 +1326,11 @@ Entry template:
   (`mockup/install-cli` — typing no longer appends to the "Golem"
   default). Both surfaced by the Acer's first rehearsal and baked into the
   round-1 ISO before the queue discipline began.
+- **Round 5, wording (2026-09-08, Max: "i dont like the 'ENTER takes it',
+  something more professional?"):** the English picker footer
+  (`S[en:pick_keys]`) now reads `ENTER selects` — not just a tone fix,
+  it closes an i18n inconsistency: every other language already said
+  "selects/chooses" (`elige`/`wählt`/`choisit`/`sceglie`/`escolhe`) while
+  English alone used the idiom "takes it". Ships in the round-6 build;
+  the round-5 stick stays frozen (its own record still quotes the old
+  wording verbatim, as history).
