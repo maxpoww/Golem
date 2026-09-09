@@ -370,3 +370,70 @@ live check of every round-4 fix, alongside round 5's own items.
   building the right (safe, available, never-autosuspending) branch when
   nobody has answered yet. Zero writes to the guarded Linux disk across
   the whole session.
+
+## Round 5, THE FIRST REAL INSTALL — 2026-09-09 — the scoreboard's last box, ticked on lab metal for the first time · #33's interim state live and measurably working
+
+Max: *"asus disk is lab, have a fresh nixos… wipe it!"* (after a
+read-only inspection surfaced a lived-in user account and Max verified it
+was disposable). The guard came off THIS machine only; every other lab
+disk stays guarded.
+
+**The lab closure-delivery seam, exercised for real for the first time
+on metal** (until tonight only the VM had done this, row 0):
+
+1. `golem-setup` driven over SSH (English/Denver/us — `/tmp/golem-answers`),
+   then **real `golem-install --prepare-only`** from a clean env (no
+   GOLEM_REHEARSE/GOLEM_LAB): wipefs + GPT (ESP 512M / swap 10G / root
+   `golem`), mkfs, mount, seed, four files dropped —
+   `postinstall-questions.json` again the 1-question array.
+   `--lab-ssh` wired the golem-vm-loop key into machine.nix.
+2. Target files pulled to the dev box, dropped into `hosts/target/`
+   (staged, never committed), **toplevel BUILT on the dev box**:
+   `nixos-system-asus-26.05.20260829.c5c4a43` — 18.9 GiB, 2505 paths.
+3. **`nix copy` over lab wifi to the mounted target** (~20 GiB on the
+   5400 rpm disk; one false start from a driver-side timeout, clean on
+   the retry; toplevel `--check-validity` OK in the target store).
+4. **`golem-install --skip-prepare --system <toplevel>`** → systemd-boot
+   written, EFI entry created, `##golem 6/6 done`, exit 0.
+5. `systemctl reboot` → **the machine booted the installed Golem from
+   its own disk on the first try, stick still inserted** (the new EFI
+   entry won the boot order). SSH up in ~116 s, hostname `asus`.
+
+**First-boot audit, everything checked at runtime:** root `/dev/sda3` +
+ESP sda1 · zram 3.6G zstd prio 100 + disk swap 10G prio −2 · swappiness
+60 / cache-pressure 10 / page-cluster 0 (the 8 GB tier, correct) ·
+`resume=` → the new swap UUID · thermald active · bluetooth absent
+(confident-no) · user `max`/zsh · **joined HOLA on its own**
+(NetworkManager + ath9k).
+
+**The #33 machinery, live on an installed system for the first time:**
+`golem-dgpu-hold.service` **active** (`power/control = on`,
+`runtime_status = active`) — and the measurable payoff: **exactly ONE
+PRIVRING fault this whole boot** (at driver init) where the medium's
+runtime-PM-auto boots logged 3+; holding the chip awake prevents the
+faulting resume cycles, on the metal that defined the problem.
+`golem-postinstall-apply.path` active, watching for answers. The ask
+half is a home-manager **user** service on `graphical-session.target`
+(`system/postinstall.nix:262`) — it fires at Hyprland login.
+
+**dmesg notes (installed system):** the 1 crit-level line is
+`MXM: GUID detected in BIOS` (informational, kernel mislabels it); 5 err
+= this firmware's known ACPI bugs + the single init-time PRIVRING fault
++ spi-nor probe noise. Nothing new, nothing Golem's.
+
+**Cosmetic finding (queued-worthy, small):** the `--skip-prepare` resume
+run's plan header printed `hostname Golem` (the default) because the
+resumed invocation didn't get `--answers`; the installed machine.nix
+correctly says `asus` — display only, but the header lies about the run
+it resumes. → R5-2 candidate.
+
+**STILL OPEN — the one thing needing human eyes:** nobody has logged in
+at the physical keyboard yet, so the `#33` foot prompt has still never
+been seen by a human, and `golem-postinstall-apply` has never run its
+real `nixos-rebuild switch`. First thing tomorrow: Max logs in as `max`,
+the prompt should draw, and answering it fires the apply. The dev box
+watches over SSH.
+
+- **Verdict:** **the scoreboard's last box, ticked** — prepare → build →
+  deliver → install → first boot, all real, all correct on first try.
+  The lab's install story is no longer theoretical.
