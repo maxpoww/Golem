@@ -321,6 +321,30 @@ error in the log).
   outside the root-logind-session assumption.
 - **size:** medium; nixos-rebuild-ng + logind context. NEEDS-look, its own
   session — deferred (fresh issue at the end of a long run).
+- **ROOT CAUSE FOUND + machine recovered (2026-09-09):** the GID error
+  fires only when a **root `systemd --user` instance (`user@0.service`)**
+  exists — nixos-rebuild-ng then tries to reload root's user units and
+  logind has no user object for uid 0. **What created `user@0`: my own
+  root SSH logins** (PAM/logind starts `user@0` on root login) — and one
+  earlier debug script ran `systemctl --user` AS root. On a real machine
+  driven by the owner's session with NO root SSH, `user@0` never exists,
+  so #44 does not occur — it is a LAB ARTIFACT of driving over `root@`.
+  **The cascade it caused:** every waverunner-apply switch exited non-zero
+  (GID error) → each apply "failed" → tiles stranded (#43 live path) AND
+  the daemon reconcile re-tripped → overlapping rebuilds hammered the 2-core
+  box → Hyprland's watchdog tripped → **waveview-plugin SIGSEGV → Hyprland
+  safe-mode**. **Recovery:** `loginctl disable-linger root` +
+  `systemctl stop user@0.service`, then reboot — verified GID failures = 0
+  once `user@0` was gone, the reconcile settled (all 6 apps live), and a
+  clean reboot brought Hyprland back **with the waveview plugin loaded**
+  (not safe-mode; the "safe-mode" readings during recovery were false
+  positives — my own grep command lines). Machine fully healthy:
+  responsive daemon, real icons, no churn, no stuck tiles.
+- **hardening still worth doing (NOT a lab artifact if it ever recurs):**
+  waverunner-apply's `nixos-rebuild switch` should not hard-fail the whole
+  apply when the user-unit reload for an unrelated user (root) throws —
+  and the lab must drive installs from max's session, never leave a `root@`
+  SSH holding `user@0` during a switch. changes.md rule for the lab added.
 
 ### 43. A live install can leave the tile stuck "Installing…" (unlaunchable) until a daemon restart — [FIXED · waverunner 8211981 · verified daemon runs it]
 - **what (Max):** installed darktable; it finished (binary present, its
