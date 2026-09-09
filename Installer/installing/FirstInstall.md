@@ -322,6 +322,40 @@ gap, now on the icon path. A rendering-correctness bug, separate from the
 throttle. It's the next thing to fix, via the same iterate-on-the-ASUS
 loop. changes.md #42.
 
+## 2026-09-09 — #42 (black-square icons) root-caused + fixed + shipped
+
+Chased the transient black-square icons with debug logging on the ASUS and
+caught the exact cause: **wgpu's GLES backend guesses a texture's view
+dimension from its layer count** — depth 6 → Cube, depth >6 & %6==0 →
+CubeArray. waverunner's icon atlas is `app_count + 97` layers; when that
+total is a multiple of 6 the atlas is bound as a **cubemap** and the
+sampler reads **black**. Caught live: `137 apps + 97 = 234 = 6×39`, with
+`wgpu_hal::gles: … assumed CubeArray rather than D2Array` in the log at
+exactly that count. Transient because the count shifts with app/pending
+counts; the font/glyph atlas is a separate texture, so those icons stayed
+fine — matching "the trash renders, the app icons don't." GL-backend only
+(Vulkan honors the explicit D2Array view) — invisible on the dev box.
+
+**Fix** (waverunner `renderer.rs::upload_icon_array`): pad the layer count
+by one whenever it is 6 or a multiple of 6, so the GLES heuristic can never
+pick Cube/CubeArray. Deterministic — eliminates the trigger for every app
+count; pad layer is empty, no effect on Vulkan. Committed launcher
+`d8db7ed`, Golem `waverunner` lock bumped, ASUS seed lock updated, and the
+ASUS rebooted clean onto it. **Verified on the clean boot:** dock shows the
+real colourful icons (Snapshot/Android Studio/Bluetooth/foot/Decibels/
+trash), daemon is the fixed build, zero CubeArray errors. Permanent — in
+the distro's waverunner lock, so every install/rebuild carries it.
+
+### First-install dogfood — where it stands
+Every issue from the first human dogfood is now fixed AND permanent in the
+distro: #38 battery-on-AC, #37 stale-install clear-on-restore, #40 the
+install-freeze deadlock (GL frame throttle), #41 the seed-flake persistence
+gap, #42 the GLES black-icon cubemap. The install-freeze — the worst of
+them — no longer happens, and installs no longer revert the fixes. The
+ASUS is a working installed Golem. What Max's bet predicted holds: finding
+these here, once, means the installing rounds start from a dogfooded
+desktop, not a rehearsal that never logged in.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine

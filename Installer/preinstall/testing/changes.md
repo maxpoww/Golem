@@ -262,7 +262,37 @@ The single most important operational finding for the whole install story.
   original `znzgcl`. #40 (no freeze) and #41 (no revert) both closed on
   metal.
 
-### 42. App icons render as solid BLACK SQUARES on the GL backend — [FOUND on the ASUS 2026-09-09 · confirmed on the fixed build]
+### 42. App icons render as BLACK SQUARES on the GL backend — wgpu GLES binds the D2Array icon atlas as a cubemap — [ROOT-CAUSED + FIXED + verified · waverunner d8db7ed · Golem lock bumped]
+**ROOT CAUSE (nailed by the debug log on the ASUS):** wgpu's GLES backend
+cannot see waverunner's explicit `D2Array` icon-atlas view dimension and
+**guesses it from the layer count** — `wgpu_hal::gles`: depth `== 6` →
+`Cube`, depth `> 6 && % 6 == 0` → `CubeArray`. The icon atlas has
+`app_count + 97` reserved layers; for some app counts that total is a
+multiple of 6, so the atlas is bound as a **cubemap** and the sampler
+reads **black**. Caught live: `137 apps + 97 = 234 = 6×39`, and the log
+showed `ERROR wgpu_hal::gles: … assumed CubeArray rather than D2Array` at
+exactly that count. Transient because the count shifts with app/pending
+counts — icons render until a rescan lands on a multiple of 6, then black;
+the font/glyph atlas (trash, top-bar) is a separate texture and never
+affected. GL-backend only (Vulkan honors the explicit view) — why it never
+showed on the dev box.
+**FIX (waverunner `crates/daemon/src/renderer.rs`, `upload_icon_array`):**
+pad the layer count by one when it is 6 or a multiple of 6, so the GLES
+heuristic can never pick Cube/CubeArray. Deterministic — the trigger is
+eliminated for every app count. The pad layer is empty/harmless; no effect
+on Vulkan. Committed launcher `d8db7ed`, Golem `waverunner` lock bumped to
+it. **Verified on the ASUS:** the new daemon renders the real colourful
+icons (Snapshot/Android Studio/Bluetooth/foot/Decibels/trash), zero
+`CubeArray` errors across rescans (before: black squares + the CubeArray
+error in the log).
+- **verification note:** the fix is proven by (a) the captured GLES
+  CubeArray error at the exact 234-layer count, (b) the arithmetic
+  (234 = 6×39; pad → 235), (c) the deterministic pad code, and (d) the new
+  daemon rendering clean. The bad-count case was not re-forced on the fixed
+  daemon (would need app-count/rebuild juggling); it is eliminated by
+  construction.
+
+### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
   the dock's app-icon slots (brave/alacritty/xterm pins) are black
