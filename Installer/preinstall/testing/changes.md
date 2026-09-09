@@ -312,13 +312,24 @@ error in the log).
   Verified: after a daemon restart the tile was gone and darktable is a
   normal launchable app. So a restart/reboot always recovers, and #37
   guarantees a clean restart never re-animates an installed tile.
-- **the real fix (candidate, NOT yet done):** live resolution must be
-  robust to a missed completion signal — either (a) always clear
-  `busy_ids` for an attr once `applier::is_installed(attr)` is true and its
-  app is scanned, resolving the tile regardless of the stale busy flag, or
-  (b) serialize/queue overlapping installs so a Done can't be lost. (a) is
-  the smaller, targeted fix in `resolve_pending_installs`. Needs the nix-
-  worker concurrency reviewed either way.
+- **FIX (done — waverunner `8211981`, Golem lock bumped):** approach (a) —
+  `resolve_pending_installs` (both the tile path and the tile-less managed
+  path) now treats a pending install as eligible when it is NOT busy OR its
+  package is provably installed-and-applied (`applier::is_installed`). A
+  confirmed-installed package has its `.desktop`, so resolving is safe (no
+  phantom-latch) and rescues the stuck tile; the resolve loop already
+  clears `busy_ids`. 235 daemon tests pass. Serializing the nix worker
+  (approach b) left as a deeper hardening if overlapping installs cause
+  other trouble.
+- **harness lesson (my own, worth keeping):** while diagnosing this I ran
+  the daemon by hand with `ls /nix/store/*waverunner-daemon*/bin/waverunner
+  | tail -1` — and the ORIGINAL daemon's hash starts with `z` (`znzgcl…`),
+  so `tail -1` sorted to the *pre-fix* binary. It ran detached, got
+  reparented to init, held `waverunner.sock`, and made the icons go black
+  again (its own #42 bug) while blocking the real service from binding —
+  looking exactly like a regression. Killed by PID, service restarted
+  clean on `4p92zzy7`. NEVER pick a store path by `head`/`tail` of a glob;
+  name the exact one.
 - **where:** `~/launcher` `crates/daemon/src/install.rs`
   (`resolve_pending_installs` busy filter + the Done path) / `nix.rs`
   (worker serialization).
