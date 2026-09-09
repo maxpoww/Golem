@@ -32,7 +32,12 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
-### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [round-5 finding · Lenovo · cosmetic]
+### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [APPLIED to source · verified live on Lenovo · round-6 build]
+**Applied (2026-09-08):** `wait_for_audit` now ends with
+`printf '\r%s[2K%s[1A' "$esc" "$esc"` — erase the hold line, step back up
+over the leading newline. Live on the Lenovo under the stick's own env:
+the #28 race screen and the no-race screen `diff` to zero lines; full
+rehearsal on the patched build ok, eval 8 s. NOT on the round-5 stick.
 - **what (Lenovo, round 5, both deliberate #28 races):** when golem-setup
   reaches the confirm screen mid-audit, `wait_for_audit` prints
   `\n` + `Reading this device` with no trailing newline and returns

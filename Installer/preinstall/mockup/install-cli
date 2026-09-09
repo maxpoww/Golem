@@ -2948,6 +2948,10 @@ wait_for_audit() {
     [ -s /var/log/golem-audit/status ] && break
     sleep 1
   done
+  # R5-1: the hold line has no trailing newline, and the first census row
+  # would be appended to its tail. Erase it and step back up over the
+  # leading '\n', so the screen is exactly what the no-race path draws.
+  printf '\r%s[2K%s[1A' "$esc" "$esc"
 }
 
 census_reveal() {

@@ -837,3 +837,51 @@ the hold text with its own newline and move up). Queued as **R5-1**.
   (Scale 1.60, boot-audit `working` with no flap) hold unchanged. The
   NVMe that is the lab took zero writes across four snapshots. One new
   cosmetic finding, found the round-4 way: by racing the audit on purpose.
+
+---
+
+## Round 5, live-fix phase — 2026-09-08 — R5-1 fixed in source and verified on the metal that found it
+
+Max: *"fix it in place now, record the results."* Applied to
+`mockup/install-cli` and verified on the Lenovo while it was still on the
+medium, the round-4 way. The round-5 stick is untouched; nothing rebuilt;
+the fix ships in the round-6 build.
+
+**The fix (4 lines, `wait_for_audit()`):** after the wait loop,
+`printf '\r%s[2K%s[1A' "$esc" "$esc"` — erase the hold line and step the
+cursor back up over the leading `\n`, so the function leaves the screen
+exactly as it found it and the census draws where it would have drawn
+with no race. The no-race path is unchanged: it still returns before
+printing anything. `bash -n` clean on the Fedora and under the stick's
+bash 5.3p9 (setup.nix gates on `bash -n`, deliberately not shellcheck).
+
+**How it was verified live (no nix on the Fedora driver):** the patched
+script copied to `/root/install-cli-patched` (SHA256 `868da804…`,
+identical to the source); `diff` against the stick's own unwrapped script
+= the shebang line + the four new lines, nothing else. The stick's
+`golem-setup` wrapper copied to `/root/golem-setup-patched` with its
+`exec` pointed at the patched file — same env (`GOLEM_REHEARSE='1'`,
+`GOLEM_LAB='1'`), same closure PATH, same bash. RAM overlay; gone on
+reboot.
+
+| test | before (frozen stick) | after (patched) |
+|---|---|---|
+| #28 race (audit restarted, six screens burst in 9 s) | held ~7 s, then `Reading this device  ·  Zram  Active…` on one line | held ~7 s (t+12 s → t+20 s), then **`Reading this device` gone, Zram on its own row** |
+| race screen vs no-race screen (`capture-pane`, blank lines kept) | one row off | **`diff` zero lines — identical screens** |
+| F1 out of each | — | prompt back, marker gone, no instance |
+| full rehearsal, patched build | — | `status: ok`, no findings, all six checks ok, **eval 8 s**, `postinstall-questions.json` = `[]`, transcript 17 `would`, marker cleared on exit |
+| tty1 banner count across the phase | 1 | still 1 (audit re-run #4 with the marker present) |
+| boot-audit verdict, re-run #4 | — | `gpu2Health = "working"` — **×4 this session** |
+
+### ⚠️ The one rule: HELD through the live-fix phase too
+
+`nvme0n1` snapshotted a fifth time after everything above: `diff` against
+the pre-run snapshot **zero lines**, hashes `00191ba5…` / `688972f9…`
+unchanged, `/sys/block/nvme0n1/stat` **writes-completed still 0** at
+1358 s uptime. Three rehearsals this session, all `--rehearse` via the
+baked env, all `would`. Zero new kernel lines since the boot audit.
+
+- **Findings → changes.md:** R5-1 moved to **APPLIED to source · verified
+  live on Lenovo · round-6 build**.
+- **Verdict:** closed on the machine that filed it, the same session. The
+  round-5 stick stays frozen.
