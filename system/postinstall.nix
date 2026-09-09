@@ -205,8 +205,21 @@ let
       mv "$gen.new" "$gen"
       git -C "$flakedir" add system/postinstall-generated.nix || true
 
+      # A switch that activated the system but hit a per-user activation
+      # error still exits non-zero (switch-to-configuration-ng exit 4, AFTER
+      # the system switched) — run as root here, root has no `systemd --user`
+      # manager so its per-user activation always fails. That is not an apply
+      # failure: the answer WAS applied. Check whether the system generation
+      # actually changed and treat that as success (Golem #44; mirrors
+      # system/waverunner-apply.nix).
+      before=$(readlink -f /run/current-system 2>/dev/null || echo none)
       if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         cp -f "$gen" "$lastgood"
+        write_status "done" true null
+      elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
+        cp -f "$gen" "$lastgood"
+        echo "$err" | grep -qi "user activation" \
+          && echo "postinstall-apply: system switched; a user-activation warning was ignored (#44)" >&2
         write_status "done" true null
       else
         if [[ -f "$lastgood" ]]; then
