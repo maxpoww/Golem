@@ -265,6 +265,35 @@ ASUS with the tile cleared and the loop healthy so the visual survivors
 (#4 dock-hide, #9 hover render, #10 icons, #7/#8 overview) can be
 re-judged on a responsive daemon.
 
+## 2026-09-09 — #40 loop fix landed + verified, and the deployment gap (#41)
+
+Took the loop-architecture fix (Max: "yes, you do it"). strace pinned the
+mechanism: during a perpetual animation the daemon rendered flat out —
+5582 GPU ioctls/3 s, calloop's epoll polled once, IPC `accept()` 0×. The
+daemon already had an F12 frame-throttle for this, but gated on
+`is_software()` (llvmpipe only); the ASUS is the **GL backend on real
+Intel** (not software), so it never engaged though GL-on-Wayland present
+blocks the thread the same way. Fix: `needs_frame_throttle() = software ||
+backend==Gl`; the throttle (calloop-timer-spaced, so the loop services
+IPC/input between frames) now covers GL. **Verified with the fix actually
+running** (daemon `b22jxjw5`): during a GUI ring, epoll 125×/3 s (was 1),
+ioctl 1011 (was 5582), `waverunner-ctl` OK (was EAGAIN), CPU 60 % idle.
+
+All three fixes (#38 battery, #37 clear-on-restore, #40 GL throttle) are
+written, compile, tested, and verified working when deployed.
+
+**But #41 — the deployment gap, the session's key operational lesson:**
+the installed ASUS rebuilds itself from its seed flake
+(`/home/max/Golem`) on every app install and weekly autoupgrade, and that
+seed pins the ORIGINAL waverunner. So a dev-box `--override-input` build
+delivered by `nix copy` is not permanent — the next in-place rebuild
+reverts it (seen repeatedly: install an app → daemon back to `znzgcl`,
+desktop frozen again). To make #37/#38/#40 stick, they must live in the
+SEED: commit the launcher changes and bump Golem's `waverunner` input,
+then rebuild the machine from the updated seed. That is a Max call (his
+`~/launcher` WIP). Until then the ASUS is left on the fixed build but will
+revert on its next self-rebuild.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine

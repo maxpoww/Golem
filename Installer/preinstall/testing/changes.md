@@ -208,12 +208,48 @@ by clearing the tile; #40-proper is now clearly the load-bearing fix.
   fixes the stale-tile-across-reboot trigger ONLY. A FRESH drag-to-install
   still starves the loop until 40-proper lands — that is the load-bearing
   fix and is Max's.
-- **40 (architectural, the real hardening):** **no animation may starve
-  the single-threaded calloop loop.** Any perpetual/long animation must
-  yield to the loop between frames so IPC, timers, input, and the nix
-  channel keep flowing. Today a single stuck ring kills the whole control
-  plane — the fragility that turned one cosmetic tile into a dead
-  desktop. This is Max's render-loop architecture call.
+- **40 (architectural) — FIXED + VERIFIED (2026-09-09).** Root cause
+  pinned by strace: during a perpetual animation the daemon rendered flat
+  out — **5582 GPU ioctls / 3 s**, calloop's epoll polled **once**,
+  `accept()` on the IPC socket **0×**. The daemon already had an F12
+  throttle for exactly this (a software-render install ran it at 450 %
+  CPU), but it engaged only for `renderer.is_software()` (llvmpipe). The
+  ASUS is the **GL backend on real Intel hardware** (`device_type =
+  IntegratedGpu`, `backend = Gl`) — not software, so the throttle never
+  fired, yet the GL-on-Wayland present blocks the single thread the same
+  way. **Fix:** a `Renderer::needs_frame_throttle()` = `software || backend
+  == Gl`; the F12 ambient-frame throttle (spaced via a calloop timer, so
+  the loop services IPC/input between frames) now engages on GL too. A
+  modern Vulkan GPU (dev box) is unaffected. **Verified on the ASUS with
+  the fix actually running** (daemon `b22jxjw5…`): during a GUI install
+  ring, epoll ticked **125×/3 s** (was 1), ioctl **1011** (was 5582),
+  `waverunner-ctl show` = OK (was EAGAIN), CPU 60 % idle. Files:
+  `~/launcher` `crates/daemon/src/{renderer.rs,frame.rs}` (uncommitted).
+
+### 41. Installed-machine fixes REVERT on any rebuild — the seed flake pins the old waverunner — [FOUND on the ASUS 2026-09-09 · the deployment gap]
+The single most important operational finding for the whole install story.
+- **what:** the installed ASUS rebuilds ITSELF from its seed flake at
+  `/home/max/Golem` (waverunner-apply → `nixos-rebuild switch --flake
+  /home/max/Golem#golem` on every app install; `system.autoUpgrade`
+  weekly). That seed's `flake.lock` pins the **original** waverunner rev.
+  So any in-place rebuild — installing an app, an autoupgrade — **reverts**
+  a dev-box `--override-input` waverunner (my #37/#38/#40 fixes) back to
+  the buggy original. Observed repeatedly: after deploying `z9xflb5`
+  (fixed) and then installing a package, the running daemon was `znzgcl…`
+  (original) again and the desktop froze anew.
+- **why it matters:** a fix delivered by `nix copy` of a dev-box build is
+  NOT permanent on an installed machine. It survives until the next
+  rebuild, then vanishes. The lab's whole "nix copy the changed tool over"
+  fast path (great for the *medium*, where nothing rebuilds) does not hold
+  for an *installed* system that reconciles itself from its seed.
+- **the fix (to make #37/#38/#40 actually stick):** the fixes must live in
+  the SEED's flake — commit the launcher changes to a rev and bump Golem's
+  `waverunner` input (flake.lock) to it, so `golem-target` (and thus every
+  in-place rebuild) builds the fixed waverunner. Then reinstall/rebuild the
+  ASUS from the updated seed once. NEEDS-MAX: the fixes live uncommitted in
+  his `~/launcher` WIP; committing them (or pointing the seed at a patched
+  local launcher) is his call.
+- **size:** needs-Max (commit launcher + bump the Golem flake lock).
 - **where:** `~/launcher` `crates/daemon/src/{install.rs,frame.rs,main.rs}`.
 - **size:** 37 = medium; 40-proper = needs-Max (event-loop architecture).
 
