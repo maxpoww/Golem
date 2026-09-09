@@ -227,6 +227,44 @@ critical-battery triangle in the top bar is gone (now a normal bell), and
 the daemon logs no battery alarm. First waveview/waverunner source fix
 driven by the dogfood. → changes.md #38.
 
+## 2026-09-09 late — THE KEYSTONE: one stale tile deadlocked the desktop
+
+Re-dogfooded on the current waverunner; #38 held (bell, not red triangle).
+Survivors: no current-task pill (#5), Super+Space dead (#6), option hover
+dead (#9), dock doesn't hide (#4), dock/menubox no icons (#10). Root-caused
+the biggest ones to a single shared cause — the day's most important
+finding.
+
+**The chain (proven on metal, strace + operational fix):**
+- brave installed fine last session but its tile was never cleared from
+  `pending-installs.json` (#37).
+- Every boot the daemon restores that tile and animates its "installing"
+  ring forever (the install is already done — it never completes-and-
+  clears).
+- That perpetual animation spins the render loop: `ppoll(wl_fd)` 714×/6 s,
+  calloop's epoll (IPC + timers + the nix-completion channel) polled 1×,
+  `accept()` on the control socket 0×, CPU pegged.
+- Starved loop ⇒ the nix-completion event that would clear the tile can
+  never be processed ⇒ **deadlock**: the animation blocks the event that
+  would stop it.
+- Everything downstream falls over: dead control socket (Super+Space +
+  all `waverunner-ctl`, #40/#6), no current-task pill (#5), dead option
+  hover (#9).
+
+**Proven fix (operational):** clear the stale tile + restart → epoll
+serviced 69×/4 s, spin gone, CPU 90.8 % idle, all `waverunner-ctl`
+commands exit 0, and the current-task pill (`foot ✕`) renders again. Items
+5/6/#40 recovered from one change.
+
+**Fix plan (changes.md #37+40):** (a) targeted — clear a pending tile whose
+package is already installed on restore, synchronously (the async path is
+itself starved); (b) architectural, the real hardening — no animation may
+starve the single-threaded calloop loop; it must yield between frames so
+IPC/timers/input/nix keep flowing. (b) is Max's render-loop call. Left the
+ASUS with the tile cleared and the loop healthy so the visual survivors
+(#4 dock-hide, #9 hover render, #10 icons, #7/#8 overview) can be
+re-judged on a responsive daemon.
+
 ## Why this file matters for the installing rounds
 
 Max's bet: the issues a first human hits on the first installed machine

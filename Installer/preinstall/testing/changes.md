@@ -150,7 +150,54 @@ sub-findings:
 - **where:** `~/launcher` (waverunner), uncommitted in Max's WIP tree.
 - **size:** small — done.
 
-### 40. waverunner control socket is dead on the installed build — Super+Space + all ctl commands no-op — [FOUND on the rebuilt ASUS 2026-09-09 · root-cause narrowed]
+### 37+40 ROOT CAUSE FOUND — a stale pending-install tile deadlocks the single-threaded event loop — [DIAGNOSED + operationally proven on the ASUS 2026-09-09; source fix is Max's architecture call]
+**The keystone of the whole first-dogfood.** One un-cleared JSON tile took
+down the control plane, the current-task pill, and the option interactions
+together. The chain, proven end to end on the metal:
+1. brave installed fine last session, but its tile stayed in
+   `~/.local/share/waverunner/pending-installs.json` (#37 — completion
+   never reconciled the tile).
+2. On every boot the daemon RESTORES that pending tile
+   (`install.rs:1302`) and renders its "installing" ring — a **perpetual
+   animation** (the install is already done, so it never completes-and-
+   clears).
+3. That animation spins the render path continuously. **strace proof:**
+   `ppoll(wl_fd)` **714×/6 s** while calloop's epoll (owning IPC, timers,
+   the nix-completion channel) was polled **once**; `accept()` on the
+   control socket **0×**. CPU pegged.
+4. Because the loop is starved, the nix-completion event that would clear
+   the tile **can never be processed** → the tile animates forever. A
+   deadlock: the animation blocks the very event that would stop it.
+5. Fallout, all downstream of one stuck tile: dead control socket
+   (Super+Space + every `waverunner-ctl` → EAGAIN, #40), no current-task
+   pill (#5), dead option hover/expand (#9), likely the dock/overview
+   symptoms too.
+
+**Operationally proven:** clearing the stale tile
+(`pending-installs.json` → `{"tiles":[],"managed":[]}`) + daemon restart →
+epoll serviced 69×/4 s, ppoll spin gone, **CPU 90.8 % idle**,
+`waverunner-ctl show/hide/overview-on/overview-off` all exit 0, and the
+**current-task pill (`foot ✕`) rendered again**. Items 5/6/#40 recovered
+from that one change; #9's interaction path (`debug-hover-option`) now
+returns 0.
+
+**Two fixes, and #40-proper is the important one:**
+- **37 (targeted):** on restore, a pending tile whose package is already
+  installed+applied must be resolved/cleared, not re-animated. Prevents
+  THIS trigger. `install.rs` restore path (~1292) + `resolve_pending_
+  installs`. NOTE the resolution itself is starved by the same deadlock,
+  so this must run synchronously at restore, not via the (starved) nix
+  channel.
+- **40 (architectural, the real hardening):** **no animation may starve
+  the single-threaded calloop loop.** Any perpetual/long animation must
+  yield to the loop between frames so IPC, timers, input, and the nix
+  channel keep flowing. Today a single stuck ring kills the whole control
+  plane — the fragility that turned one cosmetic tile into a dead
+  desktop. This is Max's render-loop architecture call.
+- **where:** `~/launcher` `crates/daemon/src/{install.rs,frame.rs,main.rs}`.
+- **size:** 37 = medium; 40-proper = needs-Max (event-loop architecture).
+
+### 40. waverunner control socket is dead on the installed build — Super+Space + all ctl commands no-op — [SUPERSEDED by the 37+40 root cause above]
 - **what:** on the ASUS running the CURRENT waverunner, `waverunner-ctl`
   gets no response to ANY command (`toggle`/`show`/`hide`/`overview-on`/
   `debug-options` all → "failed to read daemon response", EAGAIN). Not a
