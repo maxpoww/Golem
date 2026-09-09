@@ -474,6 +474,40 @@ overlap — i.e. never on the dev box, always on 2013 metal.
   cache-hit self-rebuild). Remaining re-dogfood for Max: two GUI
   drag-installs back to back — the applier layer under them is proven.
 
+### 46. A finished install tile stays "Installing…" — the post-fill rescan is one-shot and races the ASYNC user activation — [FIXED · waverunner bb76739 · Golem lock bumped]
+Caught live during Max's audacity+kdenlive overlap re-dogfood (the #45
+acceptance test) — the overlap machinery worked, but BOTH tiles stranded.
+- **what (Max):** "audacity stuck on 'installing…' label" — the app was
+  fully installed (binary + `.desktop` on disk), the apply reported done
+  ok, yet the tile never swapped to the real app. It finally resolved
+  **91 s** later (should be the 1.4 s ring-fill flourish). kdenlive then
+  did the same, still stranded 5+ min after its apply landed.
+- **root cause (timeline-proven):** the deferred rescan that swaps a
+  finished tile for its real app was a ONE-SHOT latch (`rescan_fired`)
+  fired at ring-fill end. But `apply-status.json` says "done" when
+  `nixos-rebuild switch` returns, while the `.desktop` materializes via
+  the switch's **async user activation** (home-manager restarts after the
+  switch); on the ASUS's 5400rpm HDD that lagged the apply by 1–4
+  MINUTES (kdenlive: scans at +2 s and +2:46 still showed the old entry
+  count; the desktop file appeared later still). The hold-end scan runs
+  inside that window, misses the new file, the latch is spent, and
+  nothing ever rescans — the tile sits "Installing…" until unrelated
+  activity (the user poking the dock) happens to trigger a scan. On an
+  idle desktop: forever. The dev box never showed it (NVMe: activation
+  completes within the 1.4 s hold). This is the "re-arm the deferred
+  rescan while a tile stays unresolved" hardening #43's UPDATE predicted.
+- **FIX (waverunner `bb76739`, `crates/daemon/src/{install,frame,main}.rs`):**
+  `rescan_fired: bool` → `last_rescan: Option<Instant>` — fires at
+  hold-end as before, then RE-FIRES every `RESOLVE_RESCAN_RETRY` (2 s)
+  while the tile stays unresolved; resolution removes the tile, which is
+  what stops the retries. Frames already keep coming while a pending
+  install exists, so the retry ticks reliably. Worst case is now
+  "flourish + activation lag + ≤2 s", not "until the user pokes it".
+- **where:** `~/launcher` `crates/daemon/src/install.rs`
+  (`PendingInstall::last_rescan`, `RESOLVE_RESCAN_RETRY`), `frame.rs`
+  (the re-arming latch), `main.rs` (retry reset).
+- **size:** landed.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):

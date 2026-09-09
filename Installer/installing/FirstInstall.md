@@ -407,6 +407,25 @@ drag-installs back to back; the applier under them is proven. (xcalc was
 NOT silently re-added — Max's call whether he still wants it. fritzing
 is installed now, as `Fritzing`.)
 
+## 2026-09-09 evening — the overlap re-dogfood: #45 held, and caught #46
+
+Max ran the acceptance test himself: audacity, then kdenlive 4 s later,
+both from the grid. The #45 layer worked exactly as designed — the two
+ops serialized (audacity's run landed, then kdenlive's began; no
+liveness spam, no false-fail, no revert; both packages delivered). But
+Max's chair caught what the applier can't see: **"audacity stuck on
+'installing…'"** — the finished tile never swapped to the real app.
+
+Root cause (#46, changes.md): the post-fill rescan is a ONE-SHOT latch,
+and the apply says "done" when nixos-rebuild returns while the .desktop
+materializes via the switch's ASYNC user activation — minutes later on
+this HDD. The hold-end scan lands inside that window, misses the file,
+and the tile sits "Installing…" until the user pokes something that
+rescans (audacity: 91 s; kdenlive: stranded 5+ min). Fix: the rescan
+re-arms every 2 s while a finished tile stays unresolved (waverunner
+`bb76739` — the exact hardening #43's UPDATE predicted). Deployed via
+the same seed pipeline.
+
 Also cleared up from the same journal sweep (not bugs): gen 30's weird
 old-config build at 16:19 was the dev-box recovery session rebuilding
 with stale per-machine files (the fba74c5 cleanup); the F13 drift sweep
