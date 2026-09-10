@@ -199,3 +199,28 @@ preserved here.
 - The day's tally on this component: #45–#58 landed (reliability,
   aging, security, coalescing), #59 open (plate-renderer wedge — Max's
   WIP, evidence filed), all drilled or measured on the two-machine map.
+
+## 2026-09-10 — #60: uninstall leaves NOTHING behind (residue sweep)
+
+- **Max's requirement, verbatim intent:** "i want all out of my system,
+  not .config folders, caches, nothing … that is a working system after
+  5 years." Measured motivation: ONE day of dogfood churn left 9 orphan
+  dirs / ~112 MB (BraveSoftware, GIMP, krita 87 MB, libreoffice,
+  inkscape, caches) after clean uninstalls.
+- **#60 (launcher `1437273`)**: the uninstall-Done path sweeps the app's
+  user-level residue into the FreeDesktop Recycle Bin: exact
+  case-insensitive matches under the four XDG bases + curated $HOME
+  dotdirs (.mozilla, .thunderbird, …), candidates derived from
+  attr + desktop ids + reverse-DNS tails + a curated divergent-name
+  table (brave → BraveSoftware). Trash, never rm — residue can be a
+  browser profile or mail store; the Bin keeps it restorable and the
+  move is a same-fs rename. <4-char names never match; desktop plumbing
+  is protected outright.
+- Today's 9 leftover dirs were swept to the Bin retroactively by hand
+  (the feature fires on future uninstalls); dev box grid clean.
+- New invariant for INVARIANTS.md when verified live: **S8 — after an
+  uninstall, no directory derived from the app's identity remains in
+  any XDG base.** aging-check gains the corresponding probe next pass.
+- Interplay note: the sweep lives in the same Done branch as the #57
+  mystery (managed entry not removed in one observed batch); if #57
+  recurs, the sweep skips with it — one more reason to root-cause #57.
