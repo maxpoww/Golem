@@ -586,6 +586,24 @@ then chromium: "chromium have not icon").
   fallbacks + the heal pass), `managed.rs` (`cli_concluded_attrs`).
 - **size:** landed.
 
+### 49+50. DockMenu aging pass: corrupt-store rescue + notif history cap/image sweep — [FIXED · waverunner 8bb6c72 · drilled live]
+First fixes from the DockMenu reliability program (`~/GolemOne/DockMenu`
+— full audit, invariants contract, census harness; see
+`Installer/installing/DockMenu.md`).
+- **#49:** a malformed JSON store read as empty and the NEXT write
+  destroyed the user's data (the dev box lost its whole grid order this
+  way, 2026-09-03). Now preserved as `<name>.corrupt-<epoch>` + loud
+  warn; the store restarts clean; a schema break on upgrade degrades the
+  same safe way. **Verified with a live corruption drill on the ASUS**
+  (garbage into usage.json → rescue fired, bytes preserved, daemon
+  healthy, counts restored).
+- **#50:** notif history was unbounded by design and its image cache had
+  no delete path (153 orphans after months on the dev box). Capped at
+  500 newest cards on save AND load; every save sweeps unreferenced
+  images.
+- ASUS on daemon `mfzr434j…`; `aging-check.sh` green on both map
+  machines.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
