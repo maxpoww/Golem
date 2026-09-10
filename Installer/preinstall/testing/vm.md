@@ -182,3 +182,52 @@ installed target gets proven here before round 4 touches metal)
   header (needs a real `--skip-prepare` run), #35c's verify_effect
   (needs an installed system answering a question), #39 (needs the
   installed desktop's catalog).
+
+## Round 6, THE BIOS INSTALL — 2026-09-10 — GRUB boot of an installed target PROVEN for the first time anywhere · R5-2 proven live · the round-3 gate's "next" finally done
+
+The gap the round-3 gate named ("the closure-delivery dance for a FULL
+real install … so the GRUB/BIOS boot of an installed target gets proven
+here before it touches metal") — closed tonight, same session as the
+round-6 gate, before any metal wipe.
+
+- **ISO:** `1xpifas9…` (round-6). **Mode: real-install + installed-boot.**
+  Fresh `golem-target-bios.qcow2` 40G, SeaBIOS (no --uefi) — the first
+  full install ever run WITHOUT an ESP.
+- **The seam, BIOS variant, end to end:**
+  1. golem-setup driven for answers (six screens; Ctrl-C at confirm,
+     answers persist — the #34 exit reused as a feature).
+  2. Real `golem-install --prepare-only --yes` (clean env): GPT +
+     **bios-boot 1 MiB (no filesystem)** + swap 6G + root, seed copied,
+     four target files dropped, `##golem prepared`.
+  3. Target files pulled to the dev box → `hosts/target/` — **staged
+     with `git add`, never committed** (a git flake cannot see untracked
+     files; the unstaged first build failed with "no attribute
+     golem-target", the #35-class trap doing its thing).
+  4. Toplevel built on the dev box (`nixos-system-vmbios-…`), closure
+     `nix copy`'d to `ssh://…?remote-store=/mnt` over the 2222 forward.
+  5. `golem-install --skip-prepare --system … --yes` → **R5-2 PROVEN
+     LIVE: the plan header printed `hostname vmbios  (from seed)`** —
+     the resume run no longer lies. GRUB installed to
+     `/dev/disk/by-id/virtio-golemtarget`, "No error reported",
+     `##golem 6/6 done`.
+  6. Reboot `--no-cd`: **SeaBIOS → GRUB → installed Golem on the first
+     try.** SSH up inside ~30 s.
+- **First-boot audit (installed vmbios):** hostname right, root
+  `/dev/vda3`, `systemctl is-system-running` = **running** (zero failed
+  units — not even degraded), zram prio 100 + disk swap 6G prio −2,
+  swappiness 180 (the sub-4GB tier, correct for 3912 MB), `resume=` →
+  the swap UUID, user `max` uid 1000 with a fully-populated profile,
+  `waverunner-apply.path` + `golem-postinstall-apply.path` both active
+  and watching.
+- **Permanence verified:** the installed seed's own `flake.lock` pins
+  waverunner `0696b72` — this machine's self-rebuilds carry every
+  first-install fix from day zero. (The exact property #41 was about.)
+- **Noted, not exercised:** the #56 seal manifest (`/var/lib/golem`)
+  does not exist yet — TOFU seals at the first unattended apply, and
+  none has run; `golem-bless` is aboard. `postinstall-questions.json`
+  was `[]` (no gpu2 in the rig), so #35c's verify_effect stays for a
+  metal machine with a real question (the hp).
+- **Verdict:** **the BIOS install branch is REAL — proven prepare →
+  deliver → GRUB → boot → healthy first boot, in the rig, before any
+  BIOS metal is wiped.** The dell/comodore/hp installs now walk a road
+  the VM has driven.
