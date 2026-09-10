@@ -146,3 +146,17 @@
   Distro rule: a unit that DRIVES the switch is never restart-on-change.
 - Deploy-loop change: seed syncs now require `ssh root@asus golem-bless`
   before the next apply — the gate doing its job.
+
+## 2026-09-10 — #53-#55 SHIPPED (launcher f31f75f, atop Max's plate refactor)
+
+Deployed to both map machines and verified live:
+- dev box: dock restarted on the build; state dirs flipped 0755 → 0700
+  on startup (#55 observed directly).
+- ASUS: seed lock bumped → `golem-bless` caught + blessed the lock
+  change (the #56 gate's first REAL deploy-loop exercise) → apply passed
+  the gate (40 s) → daemon `k0d97syv`, dirs 0700, aging-check fully
+  green including the new perms assertion.
+- #53 (sensitive clips) and #54 (unfurl hardening) ride the same build:
+  #54's private-host refusal is unit-tested; #53 is compile-verified
+  (a true end-to-end test needs a real password-manager copy — worth a
+  manual KeePassXC copy check next dogfood).
