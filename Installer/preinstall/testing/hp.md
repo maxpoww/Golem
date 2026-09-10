@@ -265,12 +265,14 @@ the whole chain, on its own metal:
   (1 `valid_host`, 4 `cancel_install`, postinstall-questions present).
   BIOS — the stick's second BIOS machine (Comodore was the first, same
   day). Audit `ok`.
-- **Boot/network:** reachable ~5–6 min after boot at the usual
-  192.168.1.150. Whether autoconnect or a manual nmtui bounce brought
-  it up is UNCONFIRMED — the ISO's NM journal logs nothing usable
-  (zero `golem-lab` lines; worth knowing for future net debugging) —
-  Max to say. Decides the day's bounce tally (see acer/comodore round
-  5): 2-of-3 environmental vs 3-of-3 finding.
+- **Boot/network:** **joined HOLA BY ITSELF** (Max confirmed — no
+  bounce), reachable ~5–6 min after boot at the usual 192.168.1.150.
+  That makes the day's bounce tally **2-of-3** (acer wifi + comodore
+  wired needed nmtui; HP didn't) — consistent with a flaky
+  router/DHCP day, not a stick regression; the slow-ish join fits the
+  same story. Side note kept: the ISO's NM journal logs nothing usable
+  (zero `golem-lab` lines) — a debugging annoyance worth remembering.
+  Dell remains the last data point.
 - **Census:** i5 M 460 2c/4t, 3718 MB, `gpu=intel`,
   **`intelLegacy=true`** (Arrandale → i965 decode), `firmware=bios`,
   **`gpu2=amd` @ `0000:01:00.0`, `gpu2Health=failing`** straight from
