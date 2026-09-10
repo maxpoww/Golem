@@ -508,6 +508,48 @@ acceptance test) — the overlap machinery worked, but BOTH tiles stranded.
   (the re-arming latch), `main.rs` (retry reset).
 - **size:** landed.
 
+### 47. The fingerprint short-circuit starves pending-install resolution — vlc stuck "Installing…" 13 min with the app fully indexed — [FIXED · waverunner 1fa223f · Golem lock bumped]
+Found live on Max's very next test after #46 deployed (vlc): the #46
+retry rescans fired every 2 s exactly as designed — and the tile STILL
+never resolved. The deepest bug of the day, and the one that explains
+the residue #46 left behind.
+- **what (Max):** installed vlc; apply ok in 41 s, binary + `.desktop`
+  on disk ~90 s later (the async-activation lag), retry scans running —
+  tile stuck on "Installing…" for 13+ minutes until a daemon restart
+  healed it via the restore path.
+- **the hunt (worth recording; assumptions killed in order):** strace
+  proved the scanner OPENED vlc.desktop every 2 s scan. A byte-identical
+  copy planted as `vlctest.desktop` indexed INSTANTLY (order.sync
+  adopted it) while a copy named `vlc.desktop` did not bump the count —
+  the same daemon indexed one id and appeared blind to the other. A
+  standalone scan binary on the ASUS with the daemon's exact env found
+  vlc fine. No shadowing entry existed anywhere. The killer detail: the
+  planted `vlc.desktop` copy did NOT raise the entry count — because the
+  real one was ALREADY indexed and deduped it. vlc had been in the index
+  the whole time. The daemon just never looked.
+- **root cause:** `on_apps_loaded` returns early when the scan
+  fingerprint is unchanged (main.rs:2454) — BEFORE
+  `resolve_pending_installs` (2523). A scan that lands in the window
+  between the `.desktop` materializing and the tile becoming eligible
+  (still busy mid-install, or inside the INSTALL_HOLD flourish) captures
+  the file into the fingerprint while SKIPPING the tile; every following
+  scan is "unchanged" → early return → the resolve is never called
+  again. The #46 2 s retries make landing in that window a
+  near-certainty — #46 armed the very trap that then starved it. On the
+  old daemon audacity escaped by luck: no retries, so the first scan
+  containing the file was ALSO the first after eligibility → fingerprint
+  changed → full path → resolve ran.
+- **FIX (waverunner `1fa223f`, `crates/daemon/src/main.rs`):** the
+  unchanged-fingerprint branch re-runs `resolve_pending_installs` when
+  tiles are pending. Sound because an unchanged fingerprint guarantees
+  the stored entries equal this scan's — it is a pure filter over
+  pending tiles, no rebuild, no icon re-upload. Combined with #46's
+  retry, tile-swap latency is now bounded at ~2 s after the desktop file
+  lands, regardless of activation lag.
+- **where:** `~/launcher` `crates/daemon/src/main.rs` (`on_apps_loaded`
+  fingerprint short-circuit).
+- **size:** landed.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):

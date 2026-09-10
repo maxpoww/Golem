@@ -426,6 +426,21 @@ re-arms every 2 s while a finished tile stays unresolved (waverunner
 `bb76739` — the exact hardening #43's UPDATE predicted). Deployed via
 the same seed pipeline.
 
+**#47 — the vlc test caught the layer BELOW #46.** Max installed vlc on
+the fixed build: apply ok, retries firing every 2 s — tile STILL stuck.
+The hunt (strace on the scanner, planted marker desktop files, a
+standalone scan binary on the ASUS) proved the app was fully indexed
+the whole time; the daemon just never re-ran the resolve. Root: the
+scan-fingerprint short-circuit returns before `resolve_pending_installs`,
+and a scan landing in the busy/held window captures the new `.desktop`
+into the fingerprint while skipping the tile — every later scan is
+"unchanged" and the resolve is starved forever. The #46 retries made
+that window a near-certainty: #46 armed the trap that starved it.
+Fixed in waverunner `1fa223f` (the unchanged branch re-runs the
+resolve; swap latency now bounded ~2 s after the file lands). Audacity
+had escaped on the old daemon by luck — no retries meant the first scan
+with the file was also the first after eligibility.
+
 Also cleared up from the same journal sweep (not bugs): gen 30's weird
 old-config build at 16:19 was the dev-box recovery session rebuilding
 with stale per-machine files (the fba74c5 cleanup); the F13 drift sweep
