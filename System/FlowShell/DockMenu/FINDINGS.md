@@ -160,3 +160,21 @@ Deployed to both map machines and verified live:
   #54's private-host refusal is unit-tested; #53 is compile-verified
   (a true end-to-end test needs a real password-manager copy — worth a
   manual KeePassXC copy check next dogfood).
+
+## 2026-09-10 — #59 (OPEN, renderer): the loop can block FOREVER on a GPU fence
+
+Caught live on the dev box (Vulkan/Iris Xe, the plate-refactor build):
+the main thread blocked in `drm_syncobj_array_wait_timeout` — a fence
+wait that never signaled — freezing the single-threaded loop: IPC dead
+(ctl → EAGAIN), install Done unprocessed, tile stuck "installing…"
+while the package was in fact installed. No i915 GPU-hang/reset in
+dmesg → likely a wait on a semaphore/fence whose submission never
+happened (plate-era pipeline suspect), not a true hardware hang.
+OPTIONS flagged system.high_cpu at 15:34:34; frozen right after.
+Recovery: TERM + restart; #37 dropped the stale tile cleanly.
+
+INVARIANT to add when fixed (I8): the render loop must never wait
+unbounded on GPU sync — every fence/acquire wait needs a timeout +
+device-lost path that keeps IPC/installs alive on a wedged GPU (the #40
+lesson, Vulkan edition). Renderer territory — Max's plate WIP; evidence
+preserved here.
