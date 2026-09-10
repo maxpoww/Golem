@@ -59,3 +59,20 @@ When the acer/dell/hp/comodore installs happen, run
 `harness/aging-check.sh` on each as part of first-boot verification, and
 `state-census.sh` before AND after the install session — the deltas are
 free dogfood data for DockMenu.
+
+## 2026-09-09 late — the security pass
+
+Max: "this one can't be Golem's backdoor." Full threat model written
+(`~/GolemOne/DockMenu/SECURITY.md`). The privilege boundary
+(packages.list → root helper) audited SOUND — data-parsed, charset-gated,
+no injection, no privilege the user lacks. Three fixes staged in
+~/launcher (ship when the in-flight plate refactor compiles): #53
+password-manager clips were recorded in plaintext history (now honor
+x-kde-passwordManagerHint), #54 link-unfurl hardened (proto pinning,
+size caps, private/loopback refusal), #55 state dirs 0700 (were 0755 —
+clipboard/notif/Chrome-profile readable by any local account). One
+DECISION for Max (#56): the seed-in-$HOME silent-root path — options in
+SECURITY.md, recommendation: helper-side integrity gate. Uninstall
+dogfood closed the last pipeline gap: 4 packages + 2 webapps removed
+clean; one LOW residue (#57, managed.json stale until restart,
+self-heals). #52 queued: coalesce batched drags into one rebuild.
