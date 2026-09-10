@@ -69,3 +69,57 @@
   Invariant S2 verified end-to-end on metal.
 - `aging-check.sh` green on the ASUS post-deploy; zero tmp/corrupt
   leftovers.
+
+## 2026-09-09 evening — uninstall-path dogfood (Max, live)
+
+- **The path WORKS end-to-end:** 5 trash-drags in 12 s (2 webapps + 4
+  packages) + installs pushed on top. Instant grid removal (the
+  hide-until-reindex hold), strict serialization on the mutation thread,
+  each op edits the list at ITS turn, every rebuild landed ok (~40 s
+  each), no reverts, no phantoms. First systematic exercise of
+  `apply_uninstall` on metal — closes the AUDIT-D "uninstall not yet
+  dogfooded" gap.
+- **#52 (NEW, optimization)** — N queued drags = N sequential
+  nixos-rebuilds. A 5-item batch costs ~3–4 min of serial rebuilds and
+  holds a queued install's tile at "installing…" the whole time. The
+  mutation worker should COALESCE: drain the request queue, apply ALL
+  pending list edits, run ONE rebuild, then send each op its Done. Same
+  correctness (the #45 started-based coverage already tolerates a run
+  covering several writes), ~N× faster on batches. Care: per-op
+  attribution of a batch failure (one bad attr must not fail the whole
+  batch — or must fail it honestly). QUEUED — design note here first,
+  then implement.
+
+## 2026-09-09 late — the security pass (#53–#56) + uninstall residue (#57)
+
+- **#53 (FIXED, staged)** — password-manager copies were recorded in the
+  plaintext clipboard history: the watcher ignored the de-facto
+  `x-kde-passwordManagerHint` MIME. Any clip offering it is now never
+  recorded. (Code staged in ~/launcher; ships when Max's in-flight
+  plate refactor compiles.)
+- **#54 (FIXED, staged)** — link unfurl (off by default) fetched copied
+  URLs with `curl -sL`: redirect pivots into the LAN/metadata addresses,
+  any protocol, unbounded size. Now: `--proto =http,https` initial+
+  redirect, `--max-filesize` 2M/8M, literal private/loopback host
+  refusal (v4+v6, tested). Residual documented: DNS rebinding.
+- **#55 (FIXED, staged)** — state dirs were 0755: clipboard text, notif
+  bodies, and the whole webapp Chrome profile readable by any local
+  account. The daemon now enforces 0700 on both dirs at startup.
+- **#56 (DECISION — Max)** — the seed-in-$HOME escalation: user-level
+  code can edit the system flake and trigger a silent root rebuild (no
+  sudo prompt ever). Options + recommendation (helper-side integrity
+  gate on the non-generated config) in SECURITY.md.
+- **#57 (LOW)** — after the 4-package uninstall batch, all four attrs
+  stayed in managed.json for the rest of the session (`managed.remove`
+  at uninstall-Done demonstrably didn't fire — mechanism unclear, needs
+  instrumentation). A STARTUP prune reconciles managed against the
+  package list, so it self-heals on restart and the feared per-boot
+  forced-rebuild loop does NOT exist (verified live: restart → entries
+  gone, no drift sweep fired). Root-cause when the tree settles.
+- Observation (AUDIT row updated): dead pin ids persist (android-studio
+  still pinned, app long gone) — filtered at render, harmless; census
+  watches pins.json size.
+- Memory-ledger addendum: the allocator was ALREADY arena-tuned
+  (2026-09-02, `tune_allocator()` — 2 arenas + eager trim, "the single
+  biggest RAM lever for the 4 GB target"). Today's 277 MB is
+  post-tuning, strengthening the profile-first stance for the diet.

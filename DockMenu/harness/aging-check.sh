@@ -62,5 +62,12 @@ if command -v waverunner-ctl >/dev/null 2>&1; then
   fi
 fi
 
+# S-perms (#55): state dirs must be owner-only once the #55 build is live.
+for d in "$D" "$C"; do
+  [ -d "$d" ] || continue
+  mode=$(stat -c %a "$d")
+  [ "$mode" = "700" ] || warn "#55: $d is $mode (0700 expected once the #55 daemon has run)"
+done
+
 [ "$rc" -eq 0 ] && echo "OK: all machine-checkable invariants hold"
 exit "$rc"
