@@ -128,3 +128,57 @@ again). Rebuilt and re-gated: audit ok, engine ok, disk untouched.
 (next for the VM: the closure-delivery dance for a FULL real install —
 prepare-only + `nix copy` from the dev box — so the GRUB/BIOS boot of an
 installed target gets proven here before round 4 touches metal)
+
+> **Record gap, noted 2026-09-10:** the round-4 and round-5 sticks were
+> never gated here on the record — no entries exist between the round-3
+> gate above and the round-6 gate below. Both sticks cleared all metal
+> anyway, so nothing was lost — but the gate discipline says machine
+> zero goes FIRST, and the gap is written down so it stays visible.
+
+## Round 6 GATE — 2026-09-10 — the queue-worked ISO cleared machine zero · R5-3 fix proven live · the lock-refresh trap caught pre-gate
+
+- **ISO:** `1xpifas9…-golem-installer.iso` (`result-round6`, 1.5 GB) —
+  the FIRST image whose seed carries the first-install fixes: embedded
+  Golem seed lock pins waverunner `0696b72` (#37/#38/#40/#42/#45–#48/
+  #49–#61 + #39), verified inside the closure, and the built
+  `golem-setup` greps positive for the round-6 markers (`hw_wifi`,
+  `R5-3`).
+- **THE PRE-GATE CATCH — the ISO-level #41:** the first round-6 build
+  "succeeded" while still pinning waverunner `2de76088` and a
+  2026-09-03 seed — a locked `path:` input is NOT re-read by
+  `nix build`. Caught by the post-build lock check; `nix flake update`
+  now precedes every cut (rule written into testing/CLAUDE.md
+  Mechanics). The round-5 stick's stale seed — the very thing the
+  first-install pivot fought — was this same trap.
+- **Mode:** rehearse (headless, --uefi, fresh `golem-target-r6.qcow2`
+  40G). Menu Enter via the monitor socket.
+- **Audit:** `ok`. Census right for the rig: 4c/4t, 3912 MB,
+  `gpu=virtio`, `firmware=uefi`, `vmGuest=qemu`.
+- **R5-3 FIX PROVEN LIVE:** `\eOP` at the rotating welcome → prompt
+  back, no instance, no temp files, no "F1" filter leak — the exact
+  input that broke all four round-5 machines now cancels cleanly on
+  the build that ships the fix.
+- **Round-6 wording live:** the picker footer reads "ENTER selects"
+  (the round-6 change; round-5 said "takes it").
+- **Surface:** six screens clean (English → Denver → English (US) →
+  vda → vmzero → max). Confirm rows honest for a VM: Thermald Off,
+  Lid Systemd default, GPU `Virtio 1.0 GPU · virtio-pci — tested,
+  working · driving this screen`, Ethernet virtio, and correct
+  ABSENCES (no Wi-Fi row — `hw_wifi`'s sysfs fallback correctly finds
+  nothing; no BT, no touchpad, no count line).
+- **Rig-only observation:** qemu's default floppy shows in the drive
+  list (`fd0 4K`) beside vda — harmless on metal (no floppy hardware
+  anywhere in the lab), but a size floor on the drive list would drop
+  physically-uninstallable devices; queue candidate if it ever matters.
+- **Rehearsal:** `status: ok`, 0 findings, all six checks green —
+  UEFI → systemd-boot, target `vda` ≠ medium `sr0`, fit 34304 MiB,
+  `ok ram: 3912 MB`, facts match, **eval 18 s** →
+  `nixos-system-vmzero-…`. `postinstall-questions.json` = `[]` (no
+  gpu2). vda verified virgin after (no filesystem, 19 `would` /
+  0 `run` lines).
+- **Verdict:** **GATE PASSED — `1xpifas9…` is the round-6 reflash
+  candidate.** Not exercised here (needs metal or a follow-up VM
+  pass): R5-4's USB-wifi row (no USB wlan in the rig), R5-2's resume
+  header (needs a real `--skip-prepare` run), #35c's verify_effect
+  (needs an installed system answering a question), #39 (needs the
+  installed desktop's catalog).
