@@ -32,6 +32,27 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
+### R5-4. USB wifi is invisible to the reveal — no Wi-Fi row while the machine is ONLINE via the dongle — [FOUND on the Dell, round 5 · 2026-09-10]
+- **what:** the Dell ran the whole round-5 session connected through
+  the lab's Realtek USB dongle (`rtw88_8821au`), yet the confirm
+  screen showed NO Wi-Fi row (Ethernet, Bluetooth, Audio, Touchpad all
+  present). The reveal's wifi row is built from PCI enumeration only —
+  USB wlan never appears. Matches every prior Dell round; nobody had
+  flagged it.
+- **why it matters:** the reveal honesty rule — the machine was
+  visibly using wifi the screen said it didn't have. And the MacBook's
+  own recommended fallback for Broadcom pain IS a USB dongle, so the
+  "stranger with a dongle" is a real persona, not an edge case.
+- **where:** the reveal's network rows in `mockup/install-cli`
+  (mirrored in built `golem-setup`); the USB data is already collected
+  (lsusb in the census/evidence path — btusb devices are found the
+  same way).
+- **decide (Max):** reveal-only (show the dongle, perhaps marked
+  "USB"), or also reflect it in the target's network stack. Reveal-only
+  is the safe default — a transient dongle should probably not shape
+  the installed system.
+- **size:** small (reveal half); the target question is a decision.
+
 ### R5-3. F1 at the rotating WELCOME screen leaks as literal filter text — [FOUND on the Acer, round 5 · 2026-09-10]
 - **what:** at the welcome ("Press ENTER to choose your language"),
   pressing F1 does not cancel: the `\eOP` sequence half-parses and the

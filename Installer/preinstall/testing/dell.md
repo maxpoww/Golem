@@ -206,3 +206,67 @@ UEFI-check catch WITH a completed eval and a real target.
   "home" `bd0c3e05…`, identical.
 - **Verdict:** PASS — round-4 build clean on the BIOS/dead-keyboard box,
   and a real-world glimpse of the #28 race the build now handles.
+
+## Round 5 (rehearsal check) — 2026-09-10 — ROUND 5 CLOSES HERE · #34/#31/#33-empty proven · the flipped-device #20 case · R5-3 on a 4th machine · R5-4 new (USB wifi invisible to the reveal) · two machine quirks documented
+
+- **ISO:** round-5 stick (`GOLEM_INST` — **`/dev/sda` on this box**);
+  markers confirmed (1 `valid_host`, 4 `cancel_install`,
+  postinstall-questions present). BIOS — the stick's third BIOS
+  machine. Audit `ok`.
+- **Boot/network — the dongle needed a PHYSICAL bounce:** the Realtek
+  dongle sat associated-to-nothing through the whole boot + ~12 min;
+  Max's unplug/replug re-enumerated it (dmesg t=737 s) and it
+  authenticated **14 s later** — USB re-enumeration as the
+  no-keyboard nmtui. Day's tally: **3-of-4 machines needed a bounce**
+  (acer wifi, comodore wired, dell dongle; HP auto-joined). Still
+  reads as a flaky router/DHCP day rather than a stick regression —
+  but watch round 6; if the pattern persists on a different day it
+  becomes a finding.
+- **Machine quirks documented (lab notes, not Golem findings):**
+  - **Phantom load ~65** on the 2c/4t box: dozens of kworkers stuck
+    in D-state on `kec_query` — the dead keyboard's embedded
+    controller never answers Dell SMBIOS queries and each one parks a
+    thread forever (load counts D-state). CPU actually idle; **eval
+    174 s = the box's normal pace**, so it's harmless to the lab. If
+    it ever grows unbounded across a long session, revisit.
+  - **RTC years off** (uptime displayed "3901 days"; dead CMOS
+    battery suspect) — NTP snapped the clock to correct the moment
+    the dongle joined. Pre-network timestamps in this boot's logs are
+    wrong; nothing in the offline rehearsal depends on wall clock.
+- **Census:** identical to round 4 — i5-2430M 2c/4t, 5809 MB,
+  `gpu=intel`, `intelLegacy=true` (Sandy Bridge), `firmware=bios`,
+  `hasBluetooth=true` (DW375), laptop.
+- **R5-3 REPRODUCED (fourth machine):** F1 at the welcome → literal
+  "F1" in the filter. Four-for-four across the lab.
+- **#31 — F1 from the open list: PROVEN** (clean cancel, no residue).
+  **#34 — Ctrl-C at the confirm: PROVEN** (one Ctrl-C, run-scoped
+  temp files removed, outputs remain).
+- **Surface:** six screens clean → `dell`/`max`. Drive list: **only
+  the Hitachi 465.8G + Advanced — the stick absent even though it is
+  `sda` here and sorts FIRST** (the strongest #20/#20b variant any
+  machine has run). Confirm rows: Zram / Swap 8 GiB / Bfq / Thermald /
+  Lid / GPU `2nd Generation Core … · i915 — tested, working · driving
+  this screen` / Ethernet `82579LM · e1000e` / Audio `6 Series/C200 ·
+  snd_hda_intel` / Bluetooth `DW375 · btusb` / Touchpad `ALPS
+  GlidePoint · psmouse`. No count line, no phantom rows.
+- **NEW FINDING → changes.md R5-4:** **no Wi-Fi row while the machine
+  was ONLINE via the USB dongle** — the reveal enumerates wifi from
+  PCI only, so USB wlan (rtw88_8821au) is invisible. Matches every
+  prior dell round (never flagged before); matters because the
+  MacBook fallback path IS a USB dongle.
+- **Rehearsal:** `status: ok`, **0 findings**, all six checks ok —
+  BIOS → GRUB to `/dev/sdb`, **target `sdb` ≠ medium `sda`** (the
+  flipped case), fit 468747 MiB, `ok ram: 5809 MB`, facts match,
+  **eval 174 s** (171/173/174 across rounds — the steadiest slow box
+  in the lab). Same `19700101.dirty` version cosmetic (#35b class).
+- **#33:** `postinstall-questions.json` = `[]` — fifth machine on the
+  empty-array case.
+- **Disk verified untouched, before AND after:** xfs `492cfb55…` +
+  ext4 "home" `bd0c3e05…` identical, **writes-completed = 0 on BOTH
+  disks the whole session**, transcript 17 `would` / 0 `run` lines.
+- **Findings → changes.md:** R5-4 (new). R5-3 fourth confirmation.
+- **Verdict:** **PASS — and round 5 is COMPLETE: 8 of 8 machines**
+  (vm-gate pending its own entry, see vm.md note): lenovo, macbook,
+  thinkpad, asus (+ the real install), acer, comodore, hp, dell —
+  every round-5 mechanism proven on the machine best equipped to
+  break it. Next: work the round-6 queue, build, VM-gate, reflash.
