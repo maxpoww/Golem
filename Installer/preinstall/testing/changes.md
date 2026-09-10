@@ -32,6 +32,37 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
+### R5-3. F1 at the rotating WELCOME screen leaks as literal filter text — [FOUND on the Acer, round 5 · 2026-09-10]
+- **what:** at the welcome ("Press ENTER to choose your language"),
+  pressing F1 does not cancel: the `\eOP` sequence half-parses and the
+  literal text **"F1" becomes the language filter** — the list opens on
+  "no language matches F1". Reproduced twice (two separate runs). Arrow
+  keys at the welcome behave (open the list, no leak), so the gap is
+  specifically the SS3 (`\eO…`) escape path in the welcome reader; the
+  open-list reader handles F1 correctly (#31, proven on the same machine
+  in the same session).
+- **why:** unadvertised key (the welcome shows no footer), so lower
+  severity than #31's dead-advertised-key — but it is a stranger-
+  confusing state one keystroke into the product, and the #31 class
+  says the reader should behave consistently on every screen. Likely
+  fix covers any SS3 key at the welcome, not just F1.
+- **where:** `mockup/install-cli` — the welcome/rotating-prompt read
+  loop (pre-list), mirrored in the built `golem-setup`.
+- **size:** small.
+
+### R5-2. golem-install's --skip-prepare resume header shows the DEFAULT hostname, not the run's — [FOUND on the ASUS real install 2026-09-09 · entered 2026-09-10]
+- **what:** the `--skip-prepare --system <toplevel>` resume run printed
+  `hostname Golem` (the default) in its plan header because the resumed
+  invocation didn't get `--answers`; the installed machine.nix correctly
+  said `asus`. Display-only — but the header lies about the run it
+  resumes. (Raw observation: `asus.md`, the first real install.)
+- **fix sketch:** on the resume path, read the hostname from the seed's
+  `hosts/target/machine.nix` when `--answers` is absent, and say
+  "(from seed)" rather than printing a default as if chosen.
+- **where:** `Installer/preinstall/install.nix` (plan header, resume
+  branch).
+- **size:** small.
+
 ### 35. The postinstall answer never reaches the system — nothing imports postinstall-generated.nix — [APPLIED to source · found + fixed live on the ASUS's REAL install · round-6 build]
 **Found (2026-09-09, the first live #33 run in history):** Max answered
 "off" at the foot prompt on the installed ASUS. Every mechanical piece

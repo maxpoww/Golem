@@ -199,3 +199,61 @@ built). Keyfile kept (rehearsal opened nothing), then shredded.
   UEFI→systemd-boot. Disk untouched — ESP + NTFS "Acer" + WinRE intact.
 - **Verdict:** PASS — round-4 build clean; the Acer's audio row joins the
   ThinkPad's in being fixed by #21c on its own screen.
+
+## Round 5 (rehearsal check) — 2026-09-10 — #34, #31 and #33's empty array all PROVEN · 0 rehearsal findings · NEW: F1 leaks as filter text at the welcome screen
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
+  1 `valid_host Golem` hit, 4 `cancel_install` hits,
+  `golem-postinstall-questions` present. UEFI. Audit `ok` at boot.
+- **Boot/network:** joined HOLA on its own, but SLOWLY — ath10k up at
+  19:31:08, association ~19:36:44 (**~5.5 min gap**; rounds 1–4 joined
+  promptly). Most of the apparent delay before that was pre-boot (the
+  dev box polled a dark machine); only the 5.5 min is real. Watch
+  whether the slow join recurs. Driven over SSH at 192.168.1.99
+  (root@ key login fine).
+- **Census:** identical to every prior round — i5-5200U 2c/4t, 3833 MB,
+  `gpu=intel`, `intelLegacy=false` (decode iHD), `firmware=uefi`,
+  `panelDpi=102`, `hasBluetooth=true`, laptop. Low-RAM tier decisions:
+  zram zstd prio 100, swappiness 180 / cache-pressure 50, swap 6 GiB
+  for hibernation, bfq on the spinning WDC.
+- **#31 — F1 cancels from the language list: PROVEN twice** (two separate
+  runs, list open): `\eOP` → prompt back immediately, no instance, no
+  temp files.
+- **NEW FINDING → changes.md R5-3:** at the rotating WELCOME screen
+  ("Pulsa ENTER…"), F1 does NOT cancel — the sequence half-parses and
+  literal **"F1" becomes the language filter** ("no language matches
+  F1"). Reproduced twice. Arrow keys at the welcome behave (open the
+  list clean), so the gap is the SS3 (`\eO…`) path in the welcome
+  reader specifically; the open-list reader handles F1 fine (#31 above,
+  same machine, same session).
+- **#34 — Ctrl-C at the confirm: PROVEN.** One Ctrl-C → prompt back, no
+  instance; `golem-drv.jRqeCd` + `golem-kb-orig.LyISjG` both removed
+  (the `--out`/`--write` outputs correctly remain).
+- **#33 empty-array:** `postinstall-questions.json` = `[]` — third
+  machine proving the no-gpu2 case.
+- **Surface (six screens):** English → America/Denver → English (US) →
+  drive (**only** the WDC + Advanced — the sdb stick absent, #20b
+  holding) → `acer` (ghost replaced cleanly) → `max` + password ×2 →
+  confirm. Full row set: Zram / Swap 6 GiB / `Bfq on hard disks…`
+  (R3-4) / Thermald / Lid / GPU `Intel HD Graphics 5500 · i915 —
+  tested, working · driving this screen` / Wi-Fi `QCA9377 · ath10k_pci`
+  / Ethernet `RTL8111… · r8169` / Audio `Wildcat Point-LP … ·
+  snd_hda_intel` (#21c holding) / Bluetooth `· btusb` / Touchpad
+  `SYN1B81:01 … · hid-multitouch` (R3-1). No count line, no phantom
+  rows.
+- **Rehearsal:** `status: ok`, **0 findings**, all six checks ok — UEFI
+  → systemd-boot, target `sda` ≠ medium `sdb`, fit 947213 MiB, `ok ram:
+  3833 MB` (the boundary holding a third round), facts match, **eval
+  31 s** → `nixos-system-acer-26.05.19700101.dirty.drv` (round-4 pace).
+  Note: the drv version reads `19700101.dirty` — the plain-path seed's
+  epoch `lastModified` (the #35b gitless-seed class), cosmetic.
+- **Disk verified untouched, before AND after:** GPT label-id
+  `CE953AA5…`, ESP `FE4B-49BE`, NTFS "Acer" `82364D2E364D250F`, WinRE
+  `48101DE3101DD8B0` all identical; `/sys/block/sda/stat`
+  **writes-completed = 0 the whole session**; transcript 19 `would` /
+  0 `run` lines.
+- **Findings → changes.md:** R5-3 (new — the F1 welcome-screen leak);
+  R5-2 (the asus resume-header candidate) also finally entered.
+- **Verdict:** **PASS** — round-5 machine 5. #34/#31/#33-empty proven on
+  this machine's own screen; one new small finding queued, nothing
+  blocking.
