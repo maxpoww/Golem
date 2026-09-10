@@ -64,7 +64,7 @@ let
 
   sealCheck = pkgs.writeShellApplication {
     name = "golem-seal-check";
-    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.diffutils ];
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.diffutils pkgs.gawk ];
     text = ''
       manifest=${lib.escapeShellArg manifest}
       ${computeFn}
@@ -93,7 +93,7 @@ let
 
   bless = pkgs.writeShellApplication {
     name = "golem-bless";
-    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.diffutils ];
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.diffutils pkgs.gawk ];
     text = ''
       if [[ "$(id -u)" != 0 ]]; then
         echo "golem-bless: run with sudo — blessing is the explicit root consent." >&2
