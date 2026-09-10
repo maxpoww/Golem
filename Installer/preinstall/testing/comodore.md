@@ -160,3 +160,62 @@ load on **1931 MB**.
 - **Verdict:** PASS on substance (RAM refusal + census #26); the reveal
   phantom-GPU2 was a real miss in the round-4 build, now fixed for the
   reburn — the Comodore earns its keep every round.
+
+## Round 5 (rehearsal check) — 2026-09-10 — #26's reveal half PROVEN on the machine that found it · first BIOS pass of the round-5 stick · #34/#31/#33-empty proven · R5-3 reproduced · designed findings: 1
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed
+  (1 `valid_host`, 4 `cancel_install`, postinstall-questions present).
+  **BIOS/legacy boot — the round-5 image's first BIOS machine ever**
+  (rounds 5 so far were all UEFI). Audit `ok`.
+- **Boot/network:** the ISO booted clean; the machine sat OFF the
+  network until Max bounced the WIRED connection by hand (nmtui:
+  deactivate → activate; sky2 + DHCP then came right up at the usual
+  192.168.1.129). **Same manual bounce the Acer needed for wifi hours
+  earlier** — two machines, two media, one day, one router, while this
+  same stick joined by itself on the ASUS 2026-09-09. Suspect the
+  router/DHCP being flaky today, not the image — the harness first.
+  **Watch item: if the Dell needs the same bounce, it's three-for-three
+  and becomes a real finding.**
+- **Census:** T4200 2c/**2t** (no-SMT correct), 1931 MB, `gpu=intel`,
+  **`intelLegacy=true`** (#12 holding on the Gen4 GMA), `firmware=bios`,
+  `hasBluetooth=false`, laptop, **no gpu2 line** (#26 census half
+  holding). Guarded disk verified before driving: ext4 `fc240c7b…` +
+  swap `59331be7…`, writes-completed 0.
+- **R5-3 REPRODUCED (second machine):** F1 at the rotating welcome
+  (Chinese frame this run) leaks literal **"F1" into the language
+  filter** — identical to the Acer. It's the reader, not a keyboard.
+- **#31 — F1 from the open list: PROVEN.** Clean cancel, no instance,
+  no temp files.
+- **#34 — Ctrl-C at the confirm: PROVEN.** One Ctrl-C → prompt back,
+  `golem-drv.FWpY6e` + `golem-kb-orig.c3Pym9` removed, outputs remain.
+- **THE HEADLINE — #26's reveal half, first live proof:** the confirm
+  screen shows **exactly ONE GPU row** (`Intel Mobile 4 Series Chipset
+  Graphics · i915 — tested, working · driving this screen`). The
+  round-4 phantom `GPU 2` (the 00:02.1 sibling) is GONE on the machine
+  that caught it. Full row set: Zram / Swap 4 GiB (the tiny-RAM tier) /
+  `Bfq on hard disks…` / Thermald / Lid / Ethernet `Marvell 88E8055 ·
+  sky2` (#15's row, present on the wired-only box) / Audio `ICH9 ·
+  snd_hda_intel` / Touchpad `ALPS GlidePoint · psmouse` (#14). No
+  Bluetooth row, no Wi-Fi row, no count line — all honest absences.
+- **Drive list:** only the HGST + Advanced — the sdb stick absent
+  (#20b holding on the BIOS path too).
+- **Rehearsal:** `status: findings: 1` — **the designed #16 outcome.**
+  checks.txt: `ok firmware: booted BIOS/legacy — GRUB to /dev/sda
+  (BIOS-boot partition)` (the round-5 BIOS branch proven), target `sda`
+  ≠ medium `sdb`, fit 949772 MiB, **`FAIL ram: 1931 MB — needs about
+  4 GB`**, facts match, `note eval SKIPPED` (no thrashing). Confirm
+  line: "rehearsed — nothing was written, 1 finding(s)". Machine
+  responsive throughout (1373 MB available at the end).
+- **#33:** `postinstall-questions.json` = `[]` — fourth machine on the
+  empty-array case, AND proven the file is generated even when the eval
+  is refused (good: the ask pipeline doesn't depend on the eval).
+- **Disk verified untouched, before AND after:** ext4 `fc240c7b…` +
+  swap `59331be7…` identical, dos label-id `0x916b15f8` identical,
+  **writes-completed = 0 the whole session**, transcript 17 `would` /
+  0 `run` lines. The treasure stays a treasure.
+- **Findings → changes.md:** none new (R5-3 confirmed on a second
+  machine — entry updated by reference; network bounce is a watch item
+  pending the Dell).
+- **Verdict:** **PASS** — round-5 machine 6. The BIOS branch, the #16
+  refusal, and #26's reveal half all proven on the one machine that
+  could prove them.

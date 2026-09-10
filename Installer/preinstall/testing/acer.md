@@ -205,12 +205,16 @@ built). Keyfile kept (rehearsal opened nothing), then shredded.
 - **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
   1 `valid_host Golem` hit, 4 `cancel_install` hits,
   `golem-postinstall-questions` present. UEFI. Audit `ok` at boot.
-- **Boot/network:** joined HOLA on its own, but SLOWLY — ath10k up at
-  19:31:08, association ~19:36:44 (**~5.5 min gap**; rounds 1–4 joined
-  promptly). Most of the apparent delay before that was pre-boot (the
-  dev box polled a dark machine); only the 5.5 min is real. Watch
-  whether the slow join recurs. Driven over SSH at 192.168.1.99
-  (root@ key login fine).
+- **Boot/network — CORRECTED same evening:** the machine did NOT join
+  on its own this boot. ath10k came up 19:31:08 but the association at
+  ~19:36:44 was **Max manually bouncing the connection in nmtui**
+  (deactivate → activate) — learned when the Comodore needed the
+  IDENTICAL bounce on WIRED ethernet hours later (see comodore.md
+  round 5). Two machines, two media, one day, one router — while this
+  same stick joined by itself on the ASUS 2026-09-09 — so the suspect
+  is the router/DHCP that day, not the image. Watch item: the Dell is
+  the tiebreaker. Driven over SSH at 192.168.1.99 (root@ key login
+  fine).
 - **Census:** identical to every prior round — i5-5200U 2c/4t, 3833 MB,
   `gpu=intel`, `intelLegacy=false` (decode iHD), `firmware=uefi`,
   `panelDpi=102`, `hasBluetooth=true`, laptop. Low-RAM tier decisions:
