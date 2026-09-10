@@ -123,3 +123,26 @@
   (2026-09-02, `tune_allocator()` — 2 arenas + eager trim, "the single
   biggest RAM lever for the 4 GB target"). Today's 277 MB is
   post-tuning, strengthening the profile-first stance for the diet.
+
+## 2026-09-09/10 night — #56 IMPLEMENTED + drilled live; #58 found on the way
+
+- **#56 (LANDED · Golem `fa4d1a3`+`332920f`)** — the seed blessing gate
+  is LIVE on the ASUS. Acceptance drill on metal:
+  1. TOFU: first helper run sealed the seed (221 files →
+     `/var/lib/golem/seed.manifest`, root 0700/0600).
+  2. Tamper (user-level "malware" edit to configuration.nix): the next
+     apply REFUSED in 76 ms — "changed since the last blessing … sudo
+     golem-bless" — no root rebuild happened.
+  3. Legit change: `golem-bless` showed exactly the one changed path,
+     re-sealed; the next apply passed the gate and rebuilt clean.
+  App installs never prompt (the two validated DATA channels are exempt
+  by design). The silent user→root path is closed.
+- **#58 (NEW → FIXED same commits)** — the apply helper could not
+  survive applying a change to ITS OWN unit: switch-to-configuration
+  stopped the running oneshot and (via systemd-run --pipe) the dying
+  helper killed the in-flight switch — two half-activated generations
+  observed live during the seal deploy; recovered by an external root
+  switch. Fixed: `restartIfChanged = false` on both apply services.
+  Distro rule: a unit that DRIVES the switch is never restart-on-change.
+- Deploy-loop change: seed syncs now require `ssh root@asus golem-bless`
+  before the next apply — the gate doing its job.

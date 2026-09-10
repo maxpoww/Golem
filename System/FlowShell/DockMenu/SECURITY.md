@@ -46,7 +46,7 @@ order of friction:
    philosophy.
 
 Not implemented — this reshapes the distro contract, so it's Max's
-decision. Recorded as #56.
+decision. UPDATE: option 2 IMPLEMENTED + drilled live 2026-09-09 (Golem fa4d1a3, FINDINGS #56); option 3 queued as the installer default (GolemSecurity.md phase 2).
 
 ## Fixed in the first security pass (2026-09-09, #53–#55)
 
