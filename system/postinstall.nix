@@ -144,6 +144,7 @@ let
       pkgs.git
       pkgs.jq
       pkgs.coreutils
+      pkgs.systemd # #61 reset-failed (clean-PATH: must be declared)
     ];
     text = ''
       questions=${lib.escapeShellArg questionsFile}
@@ -165,6 +166,10 @@ let
       }
 
       write_status "building" null null
+
+      # #61: clear an orphaned mid-switch transient unit (see
+      # waverunner-apply.nix) so a switch after a crash isn't refused.
+      systemctl reset-failed nixos-rebuild-switch-to-configuration.service 2>/dev/null || true
 
       # The seed blessing gate (#56, golem-seal.nix) — same guard as
       # waverunner-apply: the answers file is validated DATA (exempt);

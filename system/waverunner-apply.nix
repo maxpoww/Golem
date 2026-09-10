@@ -47,6 +47,8 @@ let
       pkgs.git
       pkgs.jq
       pkgs.coreutils
+      pkgs.systemd # for the #61 reset-failed; a bare systemctl under a
+                   # writeShellApplication's clean PATH would break silently.
     ];
     text = ''
       list=${lib.escapeShellArg listFile}
@@ -131,6 +133,13 @@ let
       # did, the package IS installed — a user-activation warning is not an
       # install failure. Only a switch that did NOT change the system is a
       # real failure to revert.
+      # #61: a daemon (or helper) killed mid-switch orphans the transient
+      # `nixos-rebuild-switch-to-configuration` unit in a failed state, and
+      # systemd-run then refuses the name ("already loaded") — every later
+      # install fails at switch though the build succeeded (seen on both
+      # map machines, 2026-09-10). We are root: clear any corpse first.
+      # A RUNNING unit is not "failed", so this never touches a live switch.
+      systemctl reset-failed nixos-rebuild-switch-to-configuration.service 2>/dev/null || true
       before=$(readlink -f /run/current-system 2>/dev/null || echo none)
       if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         cp -f "$gen" "$lastgood"
