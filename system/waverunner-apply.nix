@@ -43,6 +43,7 @@ let
     runtimeInputs = [
       config.system.build.nixos-rebuild
       config.nix.package
+      config.golem.seal.check
       pkgs.git
       pkgs.jq
       pkgs.coreutils
@@ -66,6 +67,18 @@ let
       }
 
       write_status "building" null null
+
+      # 0. The seed blessing gate (#56, golem-seal.nix): an unattended
+      #    root rebuild only proceeds when the seed matches its blessed
+      #    manifest. The list this script exists to apply is exempt (it's
+      #    validated DATA, below) — the gate guards everything else in the
+      #    tree from being edited into a silent root rebuild.
+      if ! sealmsg=$(golem-seal-check 2>&1); then
+        errjson=$(printf '%s' "$sealmsg" | tail -c 2000 | jq -Rs .)
+        write_status "done" false "$errjson"
+        echo "$sealmsg" >&2
+        exit 1
+      fi
 
       # 1. Validate: keep only strict nixpkgs attr tokens; anything else is
       #    dropped (never interpreted).
@@ -146,6 +159,13 @@ in
   config = lib.mkIf (flakeDir != null) {
     systemd.services.waverunner-apply = {
       description = "Apply waverunner's declarative package list (nixos-rebuild switch --flake)";
+      # NEVER restart-on-change: this unit DRIVES the switch, so a seed
+      # change that alters its own definition made switch-to-configuration
+      # stop the running instance — killing the in-flight switch with it
+      # (seen on the ASUS 2026-09-09: two half-activated generations, the
+      # #58 self-kill). A oneshot picks up the new definition on its next
+      # run anyway.
+      restartIfChanged = false;
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${applyScript}/bin/waverunner-apply";

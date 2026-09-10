@@ -140,6 +140,7 @@ let
     runtimeInputs = [
       config.system.build.nixos-rebuild
       config.nix.package
+      config.golem.seal.check
       pkgs.git
       pkgs.jq
       pkgs.coreutils
@@ -164,6 +165,16 @@ let
       }
 
       write_status "building" null null
+
+      # The seed blessing gate (#56, golem-seal.nix) — same guard as
+      # waverunner-apply: the answers file is validated DATA (exempt);
+      # everything else in the tree must match the blessed manifest.
+      if ! sealmsg=$(golem-seal-check 2>&1); then
+        errjson=$(printf '%s' "$sealmsg" | tail -c 2000 | jq -Rs .)
+        write_status "done" false "$errjson"
+        echo "$sealmsg" >&2
+        exit 1
+      fi
 
       # Validate: keep only (id, optionId) pairs the SHIPPED question set
       # actually declares. The answers file is owner-writable data, never
@@ -270,6 +281,11 @@ in
 
     systemd.services.golem-postinstall-apply = {
       description = "Apply the owner's post-install answers (nixos-rebuild switch --flake)";
+      # Same as waverunner-apply: this unit drives the switch, so a
+      # change to its own definition must never stop the running
+      # instance mid-switch (#58). Oneshot picks up new definitions on
+      # the next run.
+      restartIfChanged = false;
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${applyScript}/bin/golem-postinstall-apply";

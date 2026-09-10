@@ -22,6 +22,7 @@
     ./hardware/virt-guest.nix
     ./hardware-detect.nix
     ./hardware-runtime.nix
+    ./golem-seal.nix
     ./waverunner-apply.nix
     ./postinstall.nix
     # GolemModules.md's software module library: same pattern as the
