@@ -178,3 +178,24 @@ unbounded on GPU sync — every fence/acquire wait needs a timeout +
 device-lost path that keeps IPC/installs alive on a wedged GPU (the #40
 lesson, Vulkan edition). Renderer territory — Max's plate WIP; evidence
 preserved here.
+
+## 2026-09-10 — #52 LANDED + verified live on the ASUS (and the day's close)
+
+- **#52 (launcher `d1f5313`)**: the mutation worker drains ops queued
+  behind a running rebuild and folds them into ONE list write + ONE
+  rebuild (pure planner `plan_batch`, batch-wide honest revert). Single
+  installs unchanged; deployed to both machines through the sealed
+  pipeline (bless → apply).
+- **Live proof (Max's 5-drag burst, 10:20:44)**: krita built first;
+  gimp+firefox+audacity+vscode queued behind it →
+  `coalesced apply of 4 ops — one rebuild` → all four resolved within
+  the SAME 44 ms (16:27:02.94–.98). Five apps, all downloads included,
+  in 6 m 19 s on the 5400rpm Haswell — the old serial code spent that
+  on rebuild overhead alone.
+- Speed frontier recorded for the queue: the ~40 s whole-system eval per
+  apply is now the single-install floor; cutting it means a
+  pre-evaluated home-layer fast path — an architecture decision, not an
+  optimization.
+- The day's tally on this component: #45–#58 landed (reliability,
+  aging, security, coalescing), #59 open (plate-renderer wedge — Max's
+  WIP, evidence filed), all drilled or measured on the two-machine map.
