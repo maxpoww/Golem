@@ -441,6 +441,21 @@ resolve; swap latency now bounded ~2 s after the file lands). Audacity
 had escaped on the old daemon by luck — no retries meant the first scan
 with the file was also the first after eligibility.
 
+**The #47 verification run (Max, 18:11–18:18) — and #48.** On the
+deployed #47 build: gimp resolved in **1.6 s** after its Done, signal in
+**1.5 s** (attr `signal-desktop` → app `signal`, the id-matching doing
+its job). The install pipeline's timing story is closed. Then Max
+dragged **chromium** — an app ALREADY in the grid (finding #3's catalog
+overlap) — and caught #48: the tile resolved to an icon-less phantom
+"Command-line tool" (`gui=false`), because the fuzzy resolver only
+considers newly-appeared apps and chromium's real app
+(`chromium-browser`) pre-existed. The same misfile signature was
+already sitting in managed.json for brave/darktable/fritzing from
+earlier sessions. Fixed in waverunner `ab44373`: an already-present
+related app is rescued as the real resolve target, and a reconcile pass
+heals the previously misfiled cache entries (phantoms evaporate on the
+next scan). The #3 catalog dedup itself stays queued.
+
 Also cleared up from the same journal sweep (not bugs): gen 30's weird
 old-config build at 16:19 was the dev-box recovery session rebuilding
 with stale per-machine files (the fba74c5 cleanup); the F13 drift sweep

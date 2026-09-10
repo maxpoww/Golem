@@ -550,6 +550,42 @@ the residue #46 left behind.
   fingerprint short-circuit).
 - **size:** landed.
 
+### 48. Installing an ALREADY-PRESENT app fabricates an icon-less phantom "Command-line tool" tile — the #3 overlap's real fallout — [FIXED · waverunner ab44373 · Golem lock bumped]
+Caught live in Max's post-#47 test run (gimp 1.6 s ✓, signal 1.5 s ✓,
+then chromium: "chromium have not icon").
+- **what (Max):** dragged chromium from the install list (it was ALSO
+  already in the apps grid — the #3 catalog overlap). The install ran
+  fine, but the tile resolved to an icon-less phantom: `resolved as app
+  chromium (gui=false)` — a fabricated "Command-line tool" tile at the
+  drop slot, while the real Chromium browser sat elsewhere in the grid.
+- **root cause:** the catalog's desktop ids for chromium don't name the
+  real id (`chromium-browser`); the resolver's fuzzy route only
+  considers NEWLY appeared apps (by design, so an install never steals
+  an existing app's tile) — but chromium's app PRE-EXISTED, so nothing
+  matched and the tile fell to the CLI fallback: a synthetic terminal
+  tile with the generic package icon (missing → letter tile), and
+  `managed.json` cached `gui:false` with the wrong ids. **The same
+  signature already sat in the cache for brave, darktable and fritzing**
+  — all misfiled by this path in earlier sessions; fritzing (stored id
+  misses `org.fritzing.Fritzing`) had a lurking phantom tile too.
+- **FIX (waverunner `ab44373`):** (1) both CLI fallbacks (tile +
+  tile-less managed path) first try an already-present rescue — an
+  unclaimed scanned app that `ids_relate()`s to the attr is the real
+  thing; resolve to it (gui=true, drop anchor honored) instead of
+  fabricating a terminal tile. (2) A reconcile heal pass relabels attrs
+  cached CLI-only that demonstrably have a live GUI app (own stored id
+  matches a scanned app: brave/darktable; or live phantom + the rescue
+  relation: chromium/fritzing) — relabeling stores the real id, so the
+  phantom evaporates on the next scan. Genuine CLI tools match neither
+  and are untouched. 436 tests + clippy clean.
+- **NOT covered here:** #3's actual catalog dedup (don't OFFER an
+  already-installed app in the install section) — still the queued
+  upstream fix; #48 makes its fallout benign (the drop now just moves
+  the existing app to the drop slot).
+- **where:** `~/launcher` `crates/daemon/src/install.rs` (both CLI
+  fallbacks + the heal pass), `managed.rs` (`cli_concluded_attrs`).
+- **size:** landed.
+
 ### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
 - **what (Max):** the dock and box show app icons as solid black squares.
   Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
