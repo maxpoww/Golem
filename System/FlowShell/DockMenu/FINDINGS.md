@@ -246,3 +246,33 @@ preserved here.
 - Lesson for INVARIANTS (I-class): completion events must be
   self-describing — a handler that infers WHAT finished from mutable
   daemon state will eventually race whatever mutates that state.
+
+## 2026-09-10 — #61: orphaned mid-switch unit silently failed every later install (Max's vanished krita)
+
+- **Symptom (Max):** installed krita on the dev box; the tile "just
+  disappeared" — krita nowhere. NOT a lost tile: the install genuinely
+  FAILED at the switch step and the applier correctly reverted the list;
+  the wedged dock (#59) hid the failure, so it read as a disappearance.
+- **Root cause:** a daemon/helper killed mid-`switch-to-configuration`
+  (every #59 wedge-recovery this session did exactly that) leaves
+  systemd's transient `nixos-rebuild-switch-to-configuration.service`
+  in `failed`. systemd-run then REFUSES the name ("already loaded or
+  has a fragment file") → every subsequent switch fails though the
+  build succeeded. Confirmed in the apply journal ("Unit ... was
+  already loaded", exit 1). Same corpse bit the ASUS seal deploy
+  earlier (recovered by an external switch then).
+- **Fix (Golem `f949925`)**: both apply helpers (seed
+  waverunner-apply + postinstall, and the dev-box channel helper in
+  /etc/nixos) `systemctl reset-failed` the transient unit before
+  building. A RUNNING unit isn't "failed" → a live switch is untouched.
+  systemd added to runtimeInputs ([[writeshellapp-systemd-clean-path]]
+  — a bare systemctl under writeShellApplication's clean PATH breaks
+  silently under the service). Deployed to the ASUS (direct switch
+  since the helper unit itself changed).
+- **Causal note:** #61 is a downstream symptom of #59 — the plate wedge
+  is what keeps killing the daemon mid-switch. #61 makes the pipeline
+  self-heal from ANY mid-switch death (a real robustness win on its
+  own), but #59 remains the root and now produces VISIBLE install
+  failures, not just a frozen screen. #59 escalated to top priority.
+- Dev-box #61 permanence pending a `sudo nixos-rebuild switch` (its
+  helper is the channel config, not the seed).
