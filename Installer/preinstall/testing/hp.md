@@ -258,3 +258,60 @@ the whole chain, on its own metal:
   leaving all dedicated GPUs out"): census → force-cold verdict → honest
   reveal wording → target power-off, the full health-gated design proven
   on the machine that taught us every piece of it.
+
+## Round 5 (rehearsal check) — 2026-09-10 — THE HEADLINE: #33's non-empty case on the SECOND failing-dGPU machine — the ask framework supersedes round 4's unilateral power-off · #32 dimmed tail on the amd case · #34/#31 proven · R5-3 on a third machine · 0 findings
+
+- **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`); markers confirmed
+  (1 `valid_host`, 4 `cancel_install`, postinstall-questions present).
+  BIOS — the stick's second BIOS machine (Comodore was the first, same
+  day). Audit `ok`.
+- **Boot/network:** reachable ~5–6 min after boot at the usual
+  192.168.1.150. Whether autoconnect or a manual nmtui bounce brought
+  it up is UNCONFIRMED — the ISO's NM journal logs nothing usable
+  (zero `golem-lab` lines; worth knowing for future net debugging) —
+  Max to say. Decides the day's bounce tally (see acer/comodore round
+  5): 2-of-3 environmental vs 3-of-3 finding.
+- **Census:** i5 M 460 2c/4t, 3718 MB, `gpu=intel`,
+  **`intelLegacy=true`** (Arrandale → i965 decode), `firmware=bios`,
+  **`gpu2=amd` @ `0000:01:00.0`, `gpu2Health=failing`** straight from
+  the boot audit (the #23 force-cold verdict holding a second round),
+  `hasBluetooth=true`, laptop.
+- **R5-3 REPRODUCED (third machine):** F1 at the rotating welcome →
+  literal "F1" in the language filter. Uniform across the lab; entry
+  stands.
+- **#31 — F1 from the open list: PROVEN** (clean cancel, no instance,
+  no temp files). **#34 — Ctrl-C at the confirm: PROVEN** (one Ctrl-C,
+  run-scoped temp files removed, outputs remain).
+- **Reveal/confirm:** `GPU  Intel Core Processor Graphics · i915 —
+  tested, working · driving this screen` / `GPU 2  AMD/ATI Radeon HD
+  6370M — tested, didn't wake up` (no driver name — nothing drives a
+  sleeping chip). **#32 verified on the second real failing case:**
+  the verdict tail renders `38;5;240`, identical dim gray to the GPU
+  row's own driver clause. Full row set: Zram / Swap 6 GiB / Bfq /
+  Thermald / Lid / Wi-Fi `Centrino Wireless-N 1000 · iwlwifi` /
+  Ethernet `RTL8111 · r8169` / Audio `5 Series/3400 · snd_hda_intel` /
+  Bluetooth `HP Integrated Module · btusb` / Touchpad `Synaptics ·
+  psmouse`. No count line. Drive list: only the TOSHIBA + Advanced —
+  stick absent (#20b, second BIOS machine).
+- **THE HEADLINE — #33's non-empty case, machine 2:**
+  `postinstall-questions.json` = the 1-question array
+  (`gpu2-failing-action`, default `hold`) — **with the body correctly
+  vendor-substituted ("amd")** where the ASUS's said nvidia. And the
+  evaluated closure carries **`golem-dgpu-hold` ONLY** (no `-off`):
+  the unanswered default builds the safe held branch. Round 4 on this
+  same machine powered the chip off unilaterally; round 5 holds it and
+  asks the owner — the ask framework proven on the second machine, and
+  the first amd one.
+- **Rehearsal:** `status: ok`, **0 findings**, all six checks ok —
+  BIOS → GRUB (BIOS-boot partition), target `sda` ≠ medium `sdb`, fit
+  299100 MiB, `ok ram: 3718 MB`, facts match (failing held, no flap),
+  **eval 44 s** → `nixos-system-hp-…` (exactly round-4 pace). Same
+  `19700101.dirty` version cosmetic as the Acer (#35b class).
+- **Disk verified untouched, before AND after:** ext4 "root"
+  `b0f3d418…` + swap `568830cc…` identical, **writes-completed = 0 the
+  whole session**, transcript 17 `would` / 0 `run` lines.
+- **Findings → changes.md:** none new (R5-3 third confirmation noted;
+  ISO NM-journal silence noted above as a debugging annoyance, not
+  queued).
+- **Verdict:** **PASS** — round-5 machine 7. The round's last big
+  proof landed: hold-and-ask, on real failing amd metal.
