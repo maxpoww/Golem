@@ -1397,10 +1397,21 @@ step_language() {
           ESC|SIDE|OTHER)  ;;
           q|Q)             printf '\r%s[2K' "$esc"; show_cursor; exit 0 ;;
           BACK)            ;;
+          # F1 cancels here too. The list's own guide advertises "F1
+          # cancel" for this step, and the invitation IS this step — but
+          # this case had no F1 arm, so the decoded key NAME fell through
+          # to the head-start rule below and became the filter: the list
+          # opened on «no language matches "F1"» (R5-3, reproduced on all
+          # four round-5 machines).
+          F1)              printf '\r%s[2K' "$esc"; cancel_install ;;
           # A printable key is a head start, not a mistake: it opens the
           # list already carrying that letter. Nobody who knows what they
           # want should have to wait out a rotation first.
-          *)               QUERY=$KEY; break ;;
+          # Only a single CHARACTER is a head start: every named key
+          # read_key can return (F1, DEV, …) is longer than one, and a
+          # key's name must never be typed into the filter (the R5-3
+          # class, closed for keys not yet invented).
+          *)               [ "${#KEY}" = 1 ] && { QUERY=$KEY; break; } ;;
         esac
       else
         ROT=$(( (ROT + 1) % ${#INVITE[@]} ))
@@ -3083,7 +3094,7 @@ hardware_reveal() {
   # both its Intel iGPU and its AMD/nvidia dGPU, matching what is on the
   # case — primary first, each with its tested verdict (#17).
   reveal_gpus "$pci"
-  hw_row Wi-Fi     "$(hw_pci "$pci" 'Network controller')"
+  hw_row Wi-Fi     "$(hw_wifi "$pci")"
   # Ethernet too, or a wired-only machine shows NO networking at all — the
   # Comodore has only a Marvell NIC and its whole network row was blank
   # (2026-09-06). "Network controller" is the PCI class for wireless; wired
@@ -3281,6 +3292,42 @@ reveal_gpus() {
 
 hw_usb() {  # lsusb line for $1, trimmed to the vendor-product description
   lsusb 2>/dev/null | grep -m1 -i "$1" | sed -E 's/^.*[0-9a-f]{4}:[0-9a-f]{4} //' || true
+}
+
+# The Wi-Fi row. PCI first — that is every internal card, named by lspci
+# like the other rows. But USB wifi is invisible to lspci: the Dell ran
+# its whole round-5 session ONLINE through a Realtek dongle while this
+# row was blank (R5-4) — and the MacBook's recommended Broadcom fallback
+# IS a USB dongle, so "stranger with a dongle" is a real persona. When
+# the PCI class finds nothing, walk the wireless side of /sys/class/net
+# the way hw_bt walks the bluetooth class: name from the USB device's
+# own strings, driver from the bound module, and a "USB" mark so a
+# transient dongle never reads as built-in hardware. Reveal-only — what
+# the dongle means for the TARGET's network stack is a separate decision
+# (changes.md R5-4).
+hw_wifi() {
+  local row dev real usbdev name drv
+  row=$(hw_pci "$1" 'Network controller')
+  [ -n "$row" ] && { printf '%s' "$row"; return 0; }
+  for dev in /sys/class/net/*; do
+    [ -d "$dev/wireless" ] || continue
+    real=$(readlink -f "$dev/device" 2>/dev/null) || continue
+    drv=$(basename "$(readlink -f "$dev/device/driver" 2>/dev/null)" 2>/dev/null)
+    # A USB NIC's device node is the INTERFACE (…:1.0); the product
+    # strings live one level up on the device proper — same shape hw_bt
+    # handles for bluetooth radios.
+    usbdev=$(dirname "$real" 2>/dev/null)
+    name=$(cat "$usbdev/product" 2>/dev/null)
+    [ -n "$name" ] || name=$(cat "$usbdev/manufacturer" 2>/dev/null)
+    [ -n "$name" ] || name="Wireless adapter"
+    # Trim stray whitespace (the Dell's dongle ships "802.11ac WLAN
+    # Adapter " with a trailing space in its USB strings).
+    name=$(printf '%s' "$name" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+    case $real in */usb*) name="$name (USB)" ;; esac
+    printf '%s%s' "$name" "${drv:+ · $drv}"
+    return 0
+  done
+  return 0
 }
 
 # The Bluetooth radio, matched the way the CENSUS matches it: the sysfs

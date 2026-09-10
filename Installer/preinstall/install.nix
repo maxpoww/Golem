@@ -266,6 +266,23 @@ pkgs.writeShellApplication {
       exit 2
     fi
 
+    # R5-2: the --skip-prepare resume never gets --answers, so this header
+    # printed the DEFAULT hostname ("Golem") while the seed's machine.nix
+    # carried the real one (the ASUS's first real install: header said
+    # Golem, the machine says asus). Display-only, but a header must not
+    # lie about the run it resumes — read the name from the seed this run
+    # is about to install, and say where it came from. Best-effort: /mnt
+    # not mounted yet or no machine.nix leaves the default (the resume
+    # preflight right after the plan still enforces both).
+    hostname_src=""
+    if [[ "$skip_prepare" == true && "$hostname" == "Golem" ]]; then
+      seed_machine="/mnt/home/$owner/Golem/hosts/target/machine.nix"
+      if [[ -r "$seed_machine" ]]; then
+        seed_host=$(sed -n 's/.*networking\.hostName *= *"\([^"]*\)".*/\1/p' "$seed_machine" | head -1)
+        [[ -n "$seed_host" ]] && { hostname="$seed_host"; hostname_src="  (from seed)"; }
+      fi
+    fi
+
     {
       echo "── plan ─────────────────────────────────────────"
       if [[ "$rehearse" == true ]]; then
@@ -282,7 +299,7 @@ pkgs.writeShellApplication {
       echo "  swap        $swap_mb MiB  label swap   (hibernation, locked)"
       echo "  root        rest          label golem"
       echo "  owner       $owner ($fullname)"
-      echo "  hostname    $hostname"
+      echo "  hostname    $hostname$hostname_src"
       if [[ "$luks" == true ]]; then
         echo "  encryption  LUKS2 on $(part 2), swap and root inside it"
       else

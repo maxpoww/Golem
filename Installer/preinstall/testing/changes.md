@@ -32,7 +32,7 @@ the same Golem.
 > the round-4 sweep; they are applied to SOURCE but ship only in the
 > round-5 build, exactly as round-3 surface findings waited for round 4.
 
-### R5-4. USB wifi is invisible to the reveal — no Wi-Fi row while the machine is ONLINE via the dongle — [FOUND on the Dell, round 5 · 2026-09-10]
+### R5-4. USB wifi is invisible to the reveal — no Wi-Fi row while the machine is ONLINE via the dongle — [REVEAL HALF APPLIED to source 2026-09-10 · round-6 build · target half = Max's decision]
 - **what:** the Dell ran the whole round-5 session connected through
   the lab's Realtek USB dongle (`rtw88_8821au`), yet the confirm
   screen showed NO Wi-Fi row (Ethernet, Bluetooth, Audio, Touchpad all
@@ -53,7 +53,7 @@ the same Golem.
   the installed system.
 - **size:** small (reveal half); the target question is a decision.
 
-### R5-3. F1 at the rotating WELCOME screen leaks as literal filter text — [FOUND on the Acer, round 5 · 2026-09-10]
+### R5-3. F1 at the rotating WELCOME screen leaks as literal filter text — [APPLIED to source 2026-09-10 · round-6 build]
 - **what:** at the welcome ("Press ENTER to choose your language"),
   pressing F1 does not cancel: the `\eOP` sequence half-parses and the
   literal text **"F1" becomes the language filter** — the list opens on
@@ -71,7 +71,7 @@ the same Golem.
   loop (pre-list), mirrored in the built `golem-setup`.
 - **size:** small.
 
-### R5-2. golem-install's --skip-prepare resume header shows the DEFAULT hostname, not the run's — [FOUND on the ASUS real install 2026-09-09 · entered 2026-09-10]
+### R5-2. golem-install's --skip-prepare resume header shows the DEFAULT hostname, not the run's — [APPLIED to source 2026-09-10 · round-6 build]
 - **what:** the `--skip-prepare --system <toplevel>` resume run printed
   `hostname Golem` (the default) in its plan header because the resumed
   invocation didn't get `--answers`; the installed machine.nix correctly
@@ -120,8 +120,18 @@ the import); only a real desktop run could, and the first one did.
     system actually contains what the answer implies (e.g. the expected
     unit) before writing `ok:true`; a pipeline that lies about success is
     the exact honesty failure the reveal rules exist to prevent.
+    **APPLIED (2026-09-10, round-6 queue):** `verify_effect` in
+    postinstall.nix — each answered question id maps to the observable
+    its option implies (`gpu2-failing-action` → `golem-dgpu-hold`/`-off`
+    present AND the rival absent, via `systemctl cat` on the switched
+    system); both switch-success paths now route through it and an
+    absent effect writes `ok:false` with the reason instead of lying.
+    The generated file is NOT rolled back on effect-failure — the answer
+    is right, the wiring is broken, and hiding that is the #35 lie
+    again. Unmapped ids verify vacuously (a new question ships with its
+    check). Undetectable only when the answer equals the built default.
 - **where:** `system/postinstall.nix` (fix + both siblings).
-- **size:** fix = 2 lines (done); 35b needs-Max (seed policy); 35c small.
+- **size:** fix = 2 lines (done); 35b needs-Max (seed policy); 35c DONE.
 - **the fix, verified live the same hour (ASUS, real install):** the
   patched postinstall.nix was copied into the machine's seed and the
   same "off" answer re-fired through PathChanged. This time the rebuild
@@ -735,7 +745,7 @@ It has now been rebuilt onto Max's current waverunner (see
 re-dogfooded on the new build before any is treated as a live bug** — an
 unknown number are expected already fixed. Only survivors get worked.
 
-### 39. chromium offered as installable while already present — [FOUND on the ASUS 2026-09-09]
+### 39. chromium offered as installable while already present — [FIXED · waverunner 0696b72 · Golem lock bumped · ships with the round-6 seed]
 - **what:** `chromium` appears in the apps grid (`apps-order.json`, a
   present app) AND in the install section. An already-present app must be
   de-duplicated out of the installable catalog.

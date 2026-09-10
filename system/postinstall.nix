@@ -221,6 +221,51 @@ let
       mv "$gen.new" "$gen"
       git -C "$flakedir" add system/postinstall-generated.nix || true
 
+      # #35c: the switch's exit code proves the rebuild ran; it does NOT
+      # prove the answers reached the system — #35 was `ok:true` over a
+      # switch that evaluated a config which never imported them. Map each
+      # answered question to the observable its option implies, and refuse
+      # ok:true unless every mapped observable is present in the SWITCHED
+      # system (and its rival absent). An id without a mapping verifies
+      # vacuously — a new question should ship with its check. On failure
+      # the generated file is NOT rolled back: the answer is right, the
+      # wiring is broken, and hiding that is the #35 lie again.
+      verify_effect() {
+        local id opt want lose
+        while IFS=$'\t' read -r id opt; do
+          want=""; lose=""
+          case "$id:$opt" in
+            gpu2-failing-action:hold) want=golem-dgpu-hold.service; lose=golem-dgpu-off.service ;;
+            gpu2-failing-action:off)  want=golem-dgpu-off.service;  lose=golem-dgpu-hold.service ;;
+          esac
+          [[ -n "$want" ]] || continue
+          if ! systemctl cat "$want" >/dev/null 2>&1; then
+            echo "answer $id=$opt: expected $want in the switched system, not found"
+            return 1
+          fi
+          if systemctl cat "$lose" >/dev/null 2>&1; then
+            echo "answer $id=$opt: rival $lose still present in the switched system"
+            return 1
+          fi
+        done < <(printf '%s\n' "$pairs" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')
+        return 0
+      }
+
+      # Shared success tail for both switch-ok paths: effect verified →
+      # ok:true; effect missing → ok:false with the reason (#35c).
+      finish_ok() {
+        local effmsg
+        if effmsg=$(verify_effect); then
+          cp -f "$gen" "$lastgood"
+          write_status "done" true null
+        else
+          errjson=$(printf '%s' "switch succeeded but the effect is missing — $effmsg" | jq -Rs .)
+          write_status "done" false "$errjson"
+          echo "postinstall-apply: $effmsg" >&2
+          exit 1
+        fi
+      }
+
       # A switch that activated the system but hit a per-user activation
       # error still exits non-zero (switch-to-configuration-ng exit 4, AFTER
       # the system switched) — run as root here, root has no `systemd --user`
@@ -230,13 +275,11 @@ let
       # system/waverunner-apply.nix).
       before=$(readlink -f /run/current-system 2>/dev/null || echo none)
       if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
-        cp -f "$gen" "$lastgood"
-        write_status "done" true null
+        finish_ok
       elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
-        cp -f "$gen" "$lastgood"
         echo "$err" | grep -qi "user activation" \
           && echo "postinstall-apply: system switched; a user-activation warning was ignored (#44)" >&2
-        write_status "done" true null
+        finish_ok
       else
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
