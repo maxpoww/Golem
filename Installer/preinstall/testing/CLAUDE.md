@@ -28,6 +28,23 @@ channel between the two sessions — pull before driving, push when done.
 
 ## Mechanics
 
+**Cutting a new round ISO — update the lock FIRST.** The ISO flake's
+`golem` input is `path:../../` and a locked path input is NOT re-read by
+`nix build` — without an explicit update the new stick silently carries
+the OLD seed (the round-6 cut reproduced the exact #41-class trap: a
+fresh build still pinning waverunner `2de76088` and a 2026-09-03 seed).
+Always:
+
+```
+cd Installer/preinstall
+nix flake update                      # re-reads ../../ + all follows
+jq -r '.nodes.waverunner.locked.rev' flake.lock   # must equal ~/Golem's lock
+nix build .#iso --out-link result-roundN
+```
+
+Then verify the BUILT artifacts, not the source: grep the new
+golem-setup store path for a marker the round's fixes introduce.
+
 **SSH to a lab machine** (key-only, the golem-vm-loop key is baked into the
 ISO; the host key changes each boot so don't check it):
 
