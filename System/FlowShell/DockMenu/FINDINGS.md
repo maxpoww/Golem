@@ -224,3 +224,25 @@ preserved here.
 - Interplay note: the sweep lives in the same Done branch as the #57
   mystery (managed entry not removed in one observed batch); if #57
   recurs, the sweep skips with it — one more reason to root-cause #57.
+
+## 2026-09-10 — #57 ROOT-CAUSED + FIXED (the leaked-uninstall race) — and it was gating #60
+
+- Max's 12-op uninstall batch on the ASUS: apply landed in 36 s,
+  packages gone — but managed.json kept ALL 12 attrs, no residue sweep,
+  trash empty. 12/12 leaked. The daemon never restarted; the loop was
+  healthy; the Dones were sent. The timestamps told it: the rescan at
+  17:10:45.7 (desktop files removed by the switch mid-activation)
+  PRUNED the `uninstalling` hold; the worker's 500 ms poll noticed
+  completion at 17:10:46.8 — the Dones then MISSED the map and
+  mis-routed into the install branch, CONFIRMING the managed entries
+  they should remove and skipping the #60 sweep entirely. Singles hit
+  the same window via the previous op's in-flight rescan; the startup
+  prune masked everything by healing managed.json on restart.
+- **Fix (launcher `72a3a6e`)**: `Event::Done` carries `DoneOp`
+  (Install / Remove{attr} / Reconcile). Routing never touches racy
+  daemon state; a Remove-Done cleans up and sweeps with the attr from
+  the event even when the map entry is long pruned. The map is now
+  purely the UI hide-hold it was meant to be.
+- Lesson for INVARIANTS (I-class): completion events must be
+  self-describing — a handler that infers WHAT finished from mutable
+  daemon state will eventually race whatever mutates that state.
