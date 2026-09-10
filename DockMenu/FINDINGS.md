@@ -57,3 +57,15 @@
   webapp-chrome disk-cache bound; terminal-emulator assumption of the
   CLI tile path; uninstall-path dogfood; apps-order dead-id policy
   (watch via census).
+
+## 2026-09-09 — #49/#50 landed + drilled live
+
+- Both shipped in launcher `8bb6c72`, Golem lock bumped, ASUS rebuilt
+  from seed (daemon `mfzr434j…`).
+- **Live corruption drill on the ASUS:** wrote garbage into
+  `usage.json`, restarted — the daemon logged the loud rescue, preserved
+  the exact bytes as `usage.json.corrupt-1789004889`, started with a
+  clean store, and stayed healthy. Real counts restored after the drill.
+  Invariant S2 verified end-to-end on metal.
+- `aging-check.sh` green on the ASUS post-deploy; zero tmp/corrupt
+  leftovers.

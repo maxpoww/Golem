@@ -128,7 +128,7 @@ distro-permanent:
 |---|---|---|
 | daemon killed mid-install | restore re-arms; #37 drops if provably installed; wait rejoins or re-trips | VERIFIED live (multiple times, 2026-09-09) |
 | machine rebooted mid-apply | stale `building` status detected via corrected liveness; nudge past corpse | VERIFIED (code) after #45; live corpse case seen 16:34 |
-| corrupt JSON store | today: silent empty + overwrite (data loss) | **FIX #49 pending** |
+| corrupt JSON store | preserved as `.corrupt-<epoch>` + loud warn; store restarts clean | VERIFIED live (drill on the ASUS, 2026-09-09 19:48) |
 | helper never triggers (no path unit) | honest fast-fail ("live medium" guard) | code-verified |
 | build fails mid-switch (#44 class) | system-changed check treats user-activation-only failure as success; real failures revert list + restore last-good | VERIFIED live (fritzing) |
 | disk full during write | write fails → warn + tmp removed; in-memory state intact | code-verified (unexercised) |
