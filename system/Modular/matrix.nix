@@ -76,6 +76,16 @@ let
         "power/laptop.nix" "power/thermald.nix"
       ];
     }
+    {
+      name = "macbook air 2013 (Apple EFI, Haswell HD5000 → i965, BROADCOM wl — the boss fight)";
+      kind = "resolve";
+      path = ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix;
+      expect = [
+        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
+        "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
+        "power/laptop.nix" "power/thermald.nix" "quirks/broadcom-wl.nix"
+      ];
+    }
   ];
 
   checkResolve = row:

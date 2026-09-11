@@ -79,6 +79,19 @@ let
       ];
     }
     {
+      name = "macbook air 2013 (Broadcom BCM4360 — the wl quirk, the boss fight)";
+      facts = (import ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "wl kernel module requested" (lib.elem "wl" c.boot.kernelModules))
+        (ex "broadcom_sta in extraModulePackages"
+          (lib.any (p: (p.pname or "") == "broadcom-sta") c.boot.extraModulePackages))
+        (ex "Haswell HD5000 → LIBVA i965" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
+        (ex "Apple EFI → systemd-boot" c.boot.loader.systemd-boot.enable)
+        (ex "intel laptop: thermald on" c.services.thermald.enable)
+        (ex "tier1 (3858 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
+      ];
+    }
+    {
       name = "comodore GM45 (BIOS + GMA 4500 — the i965 legacy + grub-bios path)";
       facts = (import ../../Installer/preinstall/fixtures/comodore-gm45/facts.nix { }).golem.hardware;
       expect = c: [
