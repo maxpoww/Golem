@@ -55,4 +55,31 @@ stick, hostname `vmmin`.
   self-rebuild, all green, 2.92 GiB. The modular composition reproduces
   the system it runs.
 
-*(BIOS stage-0 + the engine's live drop: round-I1 recut, implementation.md step 6-7.)*
+## Round I1 GATE — the recut ISO — 2026-09-10 — stage-0 minimal PASSED on BOTH firmwares, engine drops modules.nix by itself, self-rebuild clean
+
+The round-I1 ISO (`jd9lgha3…-golem-installer.iso`, `result-roundI1`),
+cut with the #62 engine fix aboard. `nix flake update` first (the rule);
+verified in the built artifact: `golem-install` greps positive for
+`Modular/choose.nix`, the embedded seed carries the full `system/Modular`
+tree + the `golem-minimal` attr + waverunner `0696b72`.
+
+**THE NEW CAPABILITY, proven live on both firmwares:** a real
+`--prepare-only` **drops `hosts/target/modules.nix` into the seed by
+itself** — no hand-sync this time (#62's live proof). The seed is
+self-sufficient by construction.
+
+- **UEFI (`golem-i1-uefi.qcow2`, vmi1u):** chooser dropped systemd-boot ·
+  intel-microcode · virtio · zram-tier1 · hibernation · disk-policy ·
+  qemu-guest. Installed 2.92 GiB, first boot `running` / 0 failed /
+  root vda3 / zsh / swappiness 180 / sshd+NM active. **Self-rebuild
+  `#golem-minimal` from the untouched seed → generation 2, running.**
+- **BIOS (`golem-i1-bios.qcow2`, vmi1b):** chooser correctly swapped in
+  **grub-bios** (not systemd-boot) — the leaf split works. SeaBIOS →
+  GRUB (installed to the by-id alias) → Golem, first boot `running` /
+  0 failed / root vda3 / zsh / swappiness 180. **Self-rebuild → gen 2,
+  running.**
+- **Verdict:** **round-I1 ISO GATE PASSED, both firmwares.** Stage-0
+  modular install is real end to end — choose → drop modules.nix →
+  install → boot → self-rebuild — with the seed carrying everything by
+  construction. `jd9lgha3…` is the reflash candidate for the acer (the
+  first blessed metal, stage 0).

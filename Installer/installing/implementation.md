@@ -31,14 +31,16 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    hyprland) + qemu-virtio's. The acer's composed toplevel is not just
    instantiated but BUILT on source (2.92 GiB, sysctls + LIBVA=iHD +
    rebuild-golem verified in the store path). `nix flake check` green.
-6. ◐ **VM gate, both firmwares** — ✅ UEFI (2026-09-10, vm.md): choose →
-   deliver → install → first boot → **self-rebuild as golem-minimal →
-   gen 2**, 2.92 GiB closure; caught+fixed #62. ☐ BIOS stage-0 (owed on
-   the recut, so it also exercises the engine's live modules.nix drop).
-7. ☐ **Recut the ISO** (`nix flake update` first — the rule), gate,
-   reflash. This stick installs minimal by default. First cut carries
-   the #62 engine fix — verify the seed drops modules.nix on a real
-   prepare.
+6. ✅ **VM gate, both firmwares** (2026-09-10, vm.md) — UEFI (vmi1u) AND
+   BIOS (vmi1b): choose → the engine DROPS modules.nix itself → deliver
+   → install → first boot clean → **self-rebuild as golem-minimal → gen
+   2** from the untouched seed. 2.92 GiB. The BIOS leaf split
+   (grub-bios vs systemd-boot) verified.
+7. ✅ **Recut the ISO** (`jd9lgha3…`, round-I1) — `nix flake update`
+   done, built artifact verified (golem-install carries the chooser;
+   seed carries Modular + golem-minimal + waverunner 0696b72). The
+   engine's live modules.nix drop proven on both firmwares. ☐ Reflash
+   the stick (Max) — this ISO installs minimal by default.
 8. ☐ **First blessed metal machine, stage 0** — full record in its
    file: install minutes, closure, first-boot audit, self-rebuild
    proof. Round I1 closes on Max's call; queue → recut.
