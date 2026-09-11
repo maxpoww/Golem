@@ -23,12 +23,14 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    recorded (target: ≤3 GiB).
 5. ☐ **Matrix: chosen-list assertions** — every fixture pinned to its
    expected pointer list; `nix flake check` green stays mandatory.
-6. ☐ **VM gate, both firmwares** — full stage-0 install UEFI and BIOS
-   onto fresh qcow2s: choose → prepare → deliver → install → first
-   boot audit → **self-rebuild proof** (add a trivial module, rebuild
-   from the seed, survive).
+6. ◐ **VM gate, both firmwares** — ✅ UEFI (2026-09-10, vm.md): choose →
+   deliver → install → first boot → **self-rebuild as golem-minimal →
+   gen 2**, 2.92 GiB closure; caught+fixed #62. ☐ BIOS stage-0 (owed on
+   the recut, so it also exercises the engine's live modules.nix drop).
 7. ☐ **Recut the ISO** (`nix flake update` first — the rule), gate,
-   reflash. This stick installs minimal by default.
+   reflash. This stick installs minimal by default. First cut carries
+   the #62 engine fix — verify the seed drops modules.nix on a real
+   prepare.
 8. ☐ **First blessed metal machine, stage 0** — full record in its
    file: install minutes, closure, first-boot audit, self-rebuild
    proof. Round I1 closes on Max's call; queue → recut.

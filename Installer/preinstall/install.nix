@@ -541,6 +541,27 @@ pkgs.writeShellApplication {
       fi
     fi
 
+    # The chooser's output — hosts/target/modules.nix, THE MACHINE as a
+    # modular pointer list (Installing spec). Computed from the SAME facts
+    # written above, so the leaves this machine gets and the census it ran
+    # on can never disagree. Load-bearing for the modular golem-minimal
+    # (its self-rebuild evaluates modules.nix); inert for the fat
+    # golem-target (which imports the individual files, never this). A
+    # chooser that THROWS — an unmatchable machine, e.g. an nvidia box
+    # before its leaves land — is surfaced as a warning here rather than
+    # blocking, because the fat path does not need it; a minimal install
+    # would then fail visibly at its own rebuild, with the chooser's
+    # reason. (Finding #62: without this drop the installed minimal seed
+    # cannot reproduce itself — caught by the VM self-rebuild proof.)
+    if modules_nix=$(nix eval --impure --raw --expr \
+         "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).golem.hardware; }).rendered" 2>"$logdir/choose.err"); then
+      printf '%s' "$modules_nix" > "$seed/hosts/target/modules.nix"
+      note "chose $(grep -c 'Modular/' "$seed/hosts/target/modules.nix") modules → hosts/target/modules.nix"
+    else
+      check_warn "chooser: could not resolve a module list for this machine (a minimal install will fail at rebuild; the fat target is unaffected):"
+      tail -c 500 "$logdir/choose.err" >> "$CHK" 2>/dev/null || true
+    fi
+
     # The fourth dropped file: what Golem is deliberately NOT deciding for
     # this machine (postinstall/postinstall.md). Computed from the SAME
     # facts just written above, so a question's trigger and the census

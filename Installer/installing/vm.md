@@ -21,4 +21,38 @@ machine files: one dated entry per session, Mode line
   `vmbios`). New stages get fresh disks — a stage-0 proof starts from
   zero, a stage-climb proof continues an existing disk on purpose.
 
-*(entries begin with round I1, step 6 of implementation.md)*
+## Round I1 — stage 0, UEFI — 2026-09-10 — golem-minimal installed, booted, and SELF-REBUILT; caught + fixed #62
+
+First modular install anywhere. **Mode: real-install + installed-boot +
+stage-climb (self-rebuild).** Fresh `golem-minimal-uefi.qcow2`, round-6
+stick, hostname `vmmin`.
+
+- **The seam, minimal variant:** answers → `--prepare-only` → pull facts
+  → **run the chooser** → build `golem-minimal` toplevel (**2.92 GiB**,
+  vs the fat 18.9) → `nix copy` → `--skip-prepare --system` (systemd-boot
+  written, header `hostname vmmin (from seed)`) → boot from disk.
+- **Chooser output (vmmin):** systemd-boot · intel-microcode · virtio ·
+  zram-tier1 · hibernation · disk-policy · qemu-guest — 7 leaves, each
+  with its why in modules.nix.
+- **First boot:** `is-system-running: running`, zero failed units, root
+  /dev/vda3, sshd+NetworkManager active, max's shell = zsh (Golem's),
+  **zram-tier1 exact** (zram 5.7G prio 100, swap 6G, swappiness 180,
+  cache-pressure 50), resume wired, seed present. Correctly NO
+  hyprland/waverunner — this is minimal.
+- **#62 — the self-rebuild proof did its job:** the first attempt found
+  the installed seed couldn't reproduce itself (no modules.nix dropped;
+  golem-minimal never wired flakeDir/flakeAttr). Both fixed in source
+  (changes.md #62); after the fix the machine **rebuilt itself
+  `#golem-minimal` from its own seed → generation 2, still running.**
+  Stage 0's defining requirement — climbs happen by rebuild — proven.
+- **Owed on the round-I1 recut:** the engine's LIVE modules.nix drop
+  (this stick predates the Modular work; the drop was verified by
+  running its exact chooser line, and the seed was hand-synced for the
+  rebuild proof — a harness artifact, not a Golem bug), and the
+  **BIOS stage-0 install** (this entry is UEFI; BIOS boot-path is
+  already proven for the fat target).
+- **Verdict:** stage 0 is REAL on UEFI — choose → install → boot →
+  self-rebuild, all green, 2.92 GiB. The modular composition reproduces
+  the system it runs.
+
+*(BIOS stage-0 + the engine's live drop: round-I1 recut, implementation.md step 6-7.)*
