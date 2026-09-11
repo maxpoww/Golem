@@ -62,18 +62,21 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    lenovo, asus — no refusals). Each source-tested: chooser-matrix pins
    the lists, minimal-matrix builds the lenovo's full nvidia-offload
    config + the asus iron-law config on source.
-8b. ☐ **The census/fixture SWEEP** — boot the un-fixtured lab machines
-   (dell, hp, comodore, thinkpad, macbook), capture golem-hardware.nix
-   + evidence into `fixtures/`, and verify each one's leaves against its
-   REAL facts. Key proofs the sweep unlocks: the hp's amd-failing gpu2
-   (gpu2/failing for real), the macbook's broadcom-wl, the thinkpad's
-   amd primary. Pure census — no installs, writes nothing.
-8c. ☐ **Remaining leaves the sweep may demand** — non-qemu virt guests
-   (vmware/vbox/hyperv, currently refused — land when a machine needs
-   them), and any new fact a machine surfaces.
-8d. ☐ **Database-complete gate** — chooser-matrix + minimal-matrix cover
-   every lab fixture; the chooser refuses NOTHING a real lab machine
-   presents. That's the green light for the offline installer.
+8b. ✅ **The census/fixture SWEEP** (2026-09-11) — thinkpad (amd),
+   comodore (intel-legacy/BIOS), macbook (broadcom-wl/Apple EFI), hp
+   (failing amd gpu2) all fixtured, chosen, and BUILT on source; dell
+   confirmed redundant with comodore (identical leaf list — no new leaf,
+   not swept). Pure census, every guarded disk 0 writes. Each build
+   proved its class in the closure: lenovo's nvidia driver, asus's
+   iron-law absence, macbook's broadcom-sta wl, hp's golem-dgpu-hold.
+8c. ◐ **Remaining leaves** — non-qemu virt guests (vmware/vbox/hyperv,
+   still refused — land when a machine needs them; no lab machine does).
+   No new fact surfaced in the sweep.
+8d. ✅ **Database-complete gate PASSED** (2026-09-11) — 8 fixtures
+   (acer, qemu, lenovo, asus, thinkpad, comodore, macbook, hp) pinned in
+   chooser-matrix + minimal-matrix; every one BUILDS on source; the
+   chooser refuses NOTHING a real lab machine presents. Green light for
+   the offline installer.
 8e. ☐ **The offline self-installer** (Max's end goal) — bake the minimal
    closure into the ISO + wire ENTER-runs-it-locally, so a stranger
    flashes, answers, presses play, and it installs — no dev box.

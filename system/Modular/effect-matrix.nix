@@ -79,6 +79,20 @@ let
       ];
     }
     {
+      name = "hp Pavilion dm4 (FAILING amd Radeon gpu2 — the #33 hold default)";
+      facts = (import ../../Installer/preinstall/fixtures/hp-pavilion-dm4/facts.nix { }).golem.hardware;
+      expect = c: [
+        # No answer yet → the safe HOLD service is on, the destructive OFF is
+        # absent entirely (mkIf'd out — `or false` avoids the missing-attr throw).
+        (ex "failing gpu2: golem-dgpu-hold service enabled (safe default)" (c.systemd.services.golem-dgpu-hold.enable or false))
+        (ex "failing gpu2: golem-dgpu-off ABSENT (needs an explicit answer)" (!(c.systemd.services ? golem-dgpu-off)))
+        (ex "BIOS → GRUB" (c.boot.loader.grub.enable && !c.boot.loader.systemd-boot.enable))
+        (ex "Arrandale → LIBVA i965" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
+        (ex "intel laptop: thermald on" c.services.thermald.enable)
+        (ex "tier1 (3718 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
+      ];
+    }
+    {
       name = "macbook air 2013 (Broadcom BCM4360 — the wl quirk, the boss fight)";
       facts = (import ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix { }).golem.hardware;
       expect = c: [

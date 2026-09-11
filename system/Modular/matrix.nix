@@ -86,6 +86,16 @@ let
         "power/laptop.nix" "power/thermald.nix" "quirks/broadcom-wl.nix"
       ];
     }
+    {
+      name = "hp Pavilion dm4 (BIOS, Arrandale i965 + FAILING amd Radeon gpu2 → #33 hold/off)";
+      kind = "resolve";
+      path = ../../Installer/preinstall/fixtures/hp-pavilion-dm4/facts.nix;
+      expect = [
+        "boot/grub-bios.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
+        "gpu2/failing.nix" "memory/zram-tier1.nix" "swap/hibernation.nix"
+        "disk/policy.nix" "power/laptop.nix" "power/thermald.nix"
+      ];
+    }
   ];
 
   checkResolve = row:
