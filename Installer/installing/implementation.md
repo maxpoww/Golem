@@ -21,8 +21,16 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
 4. ☐ **`golem-minimal` composition** — `nixosConfigurations` attr:
    base + chosen leaves, nothing else. Closure size measured and
    recorded (target: ≤3 GiB).
-5. ☐ **Matrix: chosen-list assertions** — every fixture pinned to its
-   expected pointer list; `nix flake check` green stays mandatory.
+5. ✅ **Matrix: chosen-list AND effect assertions** (2026-09-10) —
+   `checks.chooser-matrix` pins every fixture to its expected pointer
+   list (nvidia machines to their refusal); `checks.minimal-matrix`
+   (Max: build & test the hardware modules on source) composes each
+   machine's chosen leaves via `mkMinimal` and asserts the evaluated
+   config — the acer's 20 effects (iHD, systemd-boot, tier1 sysctls,
+   thermald, laptop stack, flakeAttr=golem-minimal, no nvidia, no
+   hyprland) + qemu-virtio's. The acer's composed toplevel is not just
+   instantiated but BUILT on source (2.92 GiB, sysctls + LIBVA=iHD +
+   rebuild-golem verified in the store path). `nix flake check` green.
 6. ◐ **VM gate, both firmwares** — ✅ UEFI (2026-09-10, vm.md): choose →
    deliver → install → first boot → **self-rebuild as golem-minimal →
    gen 2**, 2.92 GiB closure; caught+fixed #62. ☐ BIOS stage-0 (owed on

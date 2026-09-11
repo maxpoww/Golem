@@ -98,6 +98,29 @@
         inherit system;
         modules = golemModules ++ [ ./hosts/target ] ++ extra;
       };
+
+      # The MODULAR twin of mkTarget (Installing spec): given a facts
+      # attrset, compose the base + EXACTLY the leaves the chooser points
+      # at + those facts, into an evaluable golem-minimal. The chooser is
+      # the single brain here too, so "what the effect matrix proves" and
+      # "what golem-install drops into modules.nix" cannot drift. Used by
+      # checks.minimal-matrix to assert each chosen leaf's EFFECT on
+      # source — build-and-test the hardware modules before any metal.
+      mkMinimal = facts: extra: nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = [
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+          }
+          ./system/Modular/composition.nix
+          { golem.hardware = facts; }
+        ]
+        ++ map (leaf: ./system/Modular + "/${leaf}")
+          (import ./system/Modular/choose.nix { inherit facts; }).leaves
+        ++ extra;
+      };
     in
     {
       packages.${system} = {
@@ -182,6 +205,15 @@
           lib = nixpkgs.lib;
           inherit pkgs;
           choose = import ./system/Modular/choose.nix;
+        };
+
+        # The EFFECT matrix (Installing, Max 2026-09-10: build & test the
+        # hardware modules on source): compose each machine's chosen
+        # leaves via mkMinimal and assert the evaluated config. A leaf
+        # whose values drift fails here, before metal.
+        minimal-matrix = import ./system/Modular/effect-matrix.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs mkMinimal;
         };
 
         # The keyboard table's names, against the packages that consume
