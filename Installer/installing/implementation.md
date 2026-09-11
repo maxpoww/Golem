@@ -41,11 +41,45 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    seed carries Modular + golem-minimal + waverunner 0696b72). The
    engine's live modules.nix drop proven on both firmwares. ☐ Reflash
    the stick (Max) — this ISO installs minimal by default.
-8. ☐ **First blessed metal machine, stage 0** — full record in its
-   file: install minutes, closure, first-boot audit, self-rebuild
-   proof. Round I1 closes on Max's call; queue → recut.
+8. ✅ **First blessed metal machine, stage 0 — the acer** (2026-09-10,
+   acer.md): installed, booted, self-rebuilt; caught #63/#64/#65 (the
+   blank-console #65 fixed live). Round I1's implementation is proven;
+   the round stays open for its findings' recut (I2).
 
-## Round I2 — stage 1 climbs
+## Round I2 — the module DATABASE, then stage 1 (Max, 2026-09-10)
+
+> Max's sequencing: before an offline self-installer, the module
+> library must be TOTAL — a chooser that refuses a stranger's nvidia
+> box can't drive a hands-off install. So: complete the database, wire
+> every condition, THEN the offline ISO. Then stage 1.
+
+8a. ✅ **Port the portable fat modules to leaves** (2026-09-10) — from
+   the fixtures we already have: gpu-nvidia → gpu/nvidia-{turing,
+   preturing,nouveau-floor} + gpu2/nvidia-offload-{turing,preturing};
+   gpu-second → gpu2/failing (the #33 hold/off); broadcom-wifi →
+   quirks/broadcom-wl; fingerprint → quirks/fingerprint; gpu2/amd-offload.
+   **The chooser is now TOTAL for every fixtured machine** (acer, qemu,
+   lenovo, asus — no refusals). Each source-tested: chooser-matrix pins
+   the lists, minimal-matrix builds the lenovo's full nvidia-offload
+   config + the asus iron-law config on source.
+8b. ☐ **The census/fixture SWEEP** — boot the un-fixtured lab machines
+   (dell, hp, comodore, thinkpad, macbook), capture golem-hardware.nix
+   + evidence into `fixtures/`, and verify each one's leaves against its
+   REAL facts. Key proofs the sweep unlocks: the hp's amd-failing gpu2
+   (gpu2/failing for real), the macbook's broadcom-wl, the thinkpad's
+   amd primary. Pure census — no installs, writes nothing.
+8c. ☐ **Remaining leaves the sweep may demand** — non-qemu virt guests
+   (vmware/vbox/hyperv, currently refused — land when a machine needs
+   them), and any new fact a machine surfaces.
+8d. ☐ **Database-complete gate** — chooser-matrix + minimal-matrix cover
+   every lab fixture; the chooser refuses NOTHING a real lab machine
+   presents. That's the green light for the offline installer.
+8e. ☐ **The offline self-installer** (Max's end goal) — bake the minimal
+   closure into the ISO + wire ENTER-runs-it-locally, so a stranger
+   flashes, answers, presses play, and it installs — no dev box.
+   Round I1's #63/#64/#65 fixes ride this recut.
+
+## Round I3 — stage 1 climbs (desktop)
 
 9. ☐ desktop/ leaves (hyprland, waveview, waverunner, greeter) —
    config lifted from the current system, added to the VM's stage-0 by
