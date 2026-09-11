@@ -1,63 +1,80 @@
 # Installing — the wired-install phase
 
-> Companion to `../preinstall/PLAN.md` (the medium, the census, the
-> rehearsal loop, the offline matrix) and `../../postinstall/postinstall.md`
-> (what happens after first login). `preinstall/` proves the whole decision
-> chain without touching a disk; this directory is where the REAL install —
-> actual partitioning, actual `nixos-install`, actual first boot — gets
-> recorded, one machine at a time, once it earns the right to run.
+> The successor program to preinstall (GRADUATED 2026-09-10 — records
+> and maintainer docs at `~/GolemOne/Install/Preinstall/`, the
+> implementation still at `../preinstall/`). Preinstall proved Golem can
+> read a machine, ask the right questions, and assemble a system.
+> Installing proves the system it assembles — MODULAR, minimal-first,
+> installed for real on every lab machine, one round at a time.
 >
-> Opened 2026-09-08 as the sibling `Installer/preinstall/` needed once that
-> name stopped being accurate for the whole directory: the install engine
-> and the census/rehearsal machinery had been sharing one folder. This is
-> the split's other half — currently empty on purpose (see "The gate").
+> The spec (WHAT/WHY) is [spec.md](spec.md). The rules are
+> [constitution.md](constitution.md). The build order is
+> [implementation.md](implementation.md). The finding ledger is
+> [changes.md](changes.md). One file per machine, plus vm.md.
 
-## The gate
+## The mission (Max, 2026-09-10)
 
-Per `../preinstall/testing/constitution.md`'s standing rule — *"Rehearsal
-writes nothing. Until a round explicitly graduates a machine to the wired
-install, no test touches a disk."* — a machine's record only starts in this
-directory once:
+Golem is **completely modular**. One module per concrete configuration
+— one for systemd-boot, one for GRUB, one for nvidia, one for amd, one
+for intel, one for each dual-GPU arrangement, one for battery/energy,
+one PER ZRAM TIER, per swap shape, per locale mechanism. Modules carry
+no logic; **the preinstaller measures the machine and POINTS** — the
+installed system is an explicit list of chosen leaves
+(`hosts/target/modules.nix`), readable as what the machine is.
 
-1. its rehearsal is green on the frozen ISO under test (`checks.txt` all
-   `ok`, no open findings), and
-2. the round it belongs to has been decided closed — Max's call, under the
-   constitution's round discipline (no mid-round fixes, no mid-round
-   graduations).
+## The ladder
 
-**As of 2026-09-08: nothing has cleared that gate.** Round 4 on the lab's
-NVMe machine (the Lenovo, rehearsal-only forever — see `testing/lenovo.md`)
-still found and fixed two things (#34, R4-1) before round 5 even cut.
-Round 2 on the five guinea-pig laptops (acer/dell/hp/macbook/comodore) is
-still open. `../preinstall/PLAN.md`'s scoreboard has the honest state of
-every machine's four boxes; this directory exists to fill in the last one,
-"Installed, first boot OK," when a machine gets there.
+- **Stage 0 — minimal:** boots, is reachable, can rebuild itself, and
+  feels like Golem at the tty. Bootloader + kernel/firmware + chosen
+  hardware leaves + memory tier + NetworkManager + SSH + the seed &
+  self-rebuild machinery + Golem's zsh + user/locale from the answers.
+  Nothing else. (~2–3 GiB closure; minutes per install.)
+- **Stage 1 — desktop:** hyprland + waveview + waverunner leaves,
+  added to a WORKING stage-0 machine by rebuild, never by reinstall.
+- **Stage 2 — programs:** the CURATE set and the GolemModules bundles,
+  same mechanism, chosen by the owner not the installer.
 
-## What will land here
+A machine climbs one rung per entry; a failure bisects itself because
+every rung lands on a proven previous rung.
 
-The same shape `preinstall/testing/` uses for rehearsal, adjusted for the
-one thing that's different: one file per machine, dated entries, disk
-state checked before *and* after — except "before/after" now means
-"factory state" vs. "booted Golem," not byte-identical, because a wired
-install's whole point is that the disk changes. Findings still go through
-`preinstall/testing/changes.md`'s queue; a wired install is a test like any
-other, just the one with no rehearse flag.
+## The method (same lab, disks now real)
 
-## The mechanism (already built, still lives in preinstall/)
+Rounds, exactly like preinstall: **one frozen ISO per round**, the VM
+gates every ISO first, machines meet the same image, every experience
+recorded in the machine's file, every implied change queued in
+[changes.md](changes.md), and when the round closes the queue is worked
+and the ISO is "changed" — recut, re-gated, reflashed. Findings
+continue the global number line (#62 onward); round-scoped items are
+`I<round>-<n>`.
 
-The engine that does the actual writing is `../preinstall/install.nix`
-(`golem-install`) — the *same* control flow `--rehearse` already exercises
-safely across the lab (PLAN.md's rule: "same code path, not a parallel
-fake"). Dropping `--rehearse` is the only thing that changes; the mode
-ladder (`GOLEM_REHEARSE=1` → `GOLEM_LAB=1` prepare-only → the product
-install) is documented in `../preinstall/setup.nix` and PLAN.md's
-"rehearsal loop" section. Whether the engine itself relocates into this
-directory once real installs start is an open question, not decided here —
-this file only claims the record-keeping side of the split.
+## The scoreboard
+
+| # | Machine | Blessed? | Stage 0 installed · first boot OK | Stage 1 desktop | Stage 2 programs | Dogfood |
+|---|---------|----------|-----------------------------------|-----------------|------------------|---------|
+| 0 | VM (UEFI + BIOS, disposable qcow2) | always | ☐ | ☐ | ☐ | — |
+| 1 | acer (UEFI, HD 5500) | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 2 | hp (BIOS, failing radeon — the real #33 answer) | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 3 | dell (BIOS, USB wifi, dead keyboard) | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 4 | comodore (BIOS, 1.9 GB — always the seam, GMA 4500) | ☐ | ☐ | ☐ | ☐ | ☐ |
+| 5 | macbook (Apple EFI, Broadcom wl — the boss fight) | ☐ | ☐ | ☐ | ☐ | ☐ |
+| — | asus | installed 2026-09-09 | **✅ (fat, pre-modular)** — the reference machine | ✅ | ✅ | ongoing |
+| — | lenovo / thinkpad | guarded | never — rehearsal metal only | — | — | — |
+
+A "Blessed?" box ticks only on Max's explicit per-machine wipe call —
+the constitution's first rule.
+
+## Where the pieces live
+
+- The engine and medium: `../preinstall/` (implementation, unchanged
+  home). The module tree: `../../system/modules/` (built by this
+  program). The chooser: grows out of the census/decide machinery, its
+  output is `hosts/target/modules.nix`.
+- Prehistory of this directory: [FirstInstall.md](FirstInstall.md) (the
+  ASUS dogfood — the war that taught us the desktop is where bugs
+  live), [DockMenu.md](DockMenu.md), [issues.md](issues.md).
 
 ## Working agreements
 
-Same as `../preinstall/PLAN.md`'s: Max is the idea guy and manages scope
-and the graduation call; the technician builds what's agreed and reports
-numbers. Nothing here is a green light — it's the shelf the first real
-result goes on.
+Unchanged: Max is the idea guy — scope, blessings, graduations, the
+round-close call. The technician builds what's agreed, records numbers,
+and never lets a pass go unrecorded.
