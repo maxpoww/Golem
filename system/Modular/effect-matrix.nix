@@ -62,6 +62,34 @@ let
         (ex "not a laptop → no power-profiles-daemon" (!c.services.power-profiles-daemon.enable))
       ];
     }
+    {
+      name = "lenovo (intel primary + nvidia gpu2 working turing+ — the ported nvidia leaves)";
+      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "nvidia driver on (offload)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
+        (ex "turing+: open module" (c.hardware.nvidia.open == true))
+        (ex "turing+: stable package" (c.hardware.nvidia.package == c.boot.kernelPackages.nvidiaPackages.stable))
+        (ex "THE SUSPEND FIX on" c.hardware.nvidia.powerManagement.enable)
+        (ex "PRIME offload enabled" c.hardware.nvidia.prime.offload.enable)
+        (ex "PRIME intel bus id from facts" (c.hardware.nvidia.prime.intelBusId == "PCI:0:2:0"))
+        (ex "PRIME nvidia bus id from facts" (c.hardware.nvidia.prime.nvidiaBusId == "PCI:1:0:0"))
+        (ex "intel primary keeps iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
+        (ex "tier3 (31 GB): swappiness 10" (c.boot.kernel.sysctl."vm.swappiness" == 10))
+        (ex "tier3: zram 25%" (c.zramSwap.memoryPercent == 25))
+      ];
+    }
+    {
+      name = "asus (gpu=nvidia, unknown gen — the IRON LAW: NO proprietary driver)";
+      facts = (import ../../Installer/preinstall/fixtures/asus/golem-hardware.nix { }).golem.hardware;
+      expect = c: [
+        # Just "no nvidia driver" — deliberately NOT reading
+        # hardware.nvidia.open, which evaluates null nvidia internals on
+        # the iron-law floor and throws (the #22 crash the ASUS taught us).
+        (ex "iron law: NO nvidia driver" (!lib.elem "nvidia" c.services.xserver.videoDrivers))
+        (ex "still a laptop: thermald on" c.services.thermald.enable)
+        (ex "tier2 (7.8 GB): swappiness 60" (c.boot.kernel.sysctl."vm.swappiness" == 60))
+      ];
+    }
   ];
 
   runRow = row:

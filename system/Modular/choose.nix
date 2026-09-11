@@ -26,6 +26,7 @@ let
     ramMB = facts.ramMB or 0;
     gpu = facts.gpu or "auto";
     intelLegacy = facts.intelLegacy or false;
+    nvidiaGen = facts.nvidiaGen or "unknown";
     gpu2 = facts.gpu2 or "none";
     gpu2Health = facts.gpu2Health or "unknown";
     cpuVendor = facts.cpuVendor or "unknown";
@@ -66,15 +67,37 @@ let
     then { group = "gpu"; leaf = "gpu/virtio.nix"; why = "gpu=virtio"; }
     else if f.gpu == "auto"
     then { group = "gpu"; leaf = "gpu/auto.nix"; why = "gpu=auto — vendor unknown, ship every VA driver"; }
-    else refuse "gpu" "gpu=${f.gpu} — the nvidia leaves land when an nvidia machine enters the Installing rounds";
+    # PRIMARY nvidia (boot_vga nvidia: a desktop or a muxed laptop),
+    # branched on the generation the census classified.
+    else if f.gpu == "nvidia" && f.nvidiaGen == "turing+"
+    then { group = "gpu"; leaf = "gpu/nvidia-turing.nix"; why = "gpu=nvidia, nvidiaGen=turing+ (open module)"; }
+    else if f.gpu == "nvidia" && f.nvidiaGen == "pre-turing"
+    then { group = "gpu"; leaf = "gpu/nvidia-preturing.nix"; why = "gpu=nvidia, nvidiaGen=pre-turing (legacy_580)"; }
+    else if f.gpu == "nvidia"
+    then { group = "gpu"; leaf = "gpu/nouveau-floor.nix"; why = "gpu=nvidia, nvidiaGen=unknown — THE IRON LAW (nouveau floor)"; }
+    else refuse "gpu" "gpu=${f.gpu} — unrecognized primary GPU vendor";
 
+  # The SECOND GPU on a hybrid machine. Failing (any vendor) → the #33
+  # hold/off leaf; a working nvidia → PRIME offload by generation; a
+  # working amd → mesa handles it; unknown health → nothing (verdict
+  # discipline, #17).
   gpu2 =
     if f.gpu2 == "none"
     then [ ]
-    else refuse "gpu2" "gpu2=${f.gpu2}/${f.gpu2Health} — the gpu2 leaves (hold/off/offload) land when the hp enters";
+    else if f.gpu2Health == "failing"
+    then [ { group = "gpu2"; leaf = "gpu2/failing.nix"; why = "gpu2=${f.gpu2}, gpu2Health=failing (#33 hold/off)"; } ]
+    else if f.gpu2 == "nvidia" && f.gpu2Health == "working" && f.nvidiaGen == "turing+"
+    then [ { group = "gpu2"; leaf = "gpu2/nvidia-offload-turing.nix"; why = "gpu2=nvidia working, turing+ (PRIME offload)"; } ]
+    else if f.gpu2 == "nvidia" && f.gpu2Health == "working" && f.nvidiaGen == "pre-turing"
+    then [ { group = "gpu2"; leaf = "gpu2/nvidia-offload-preturing.nix"; why = "gpu2=nvidia working, pre-turing (PRIME offload)"; } ]
+    else if f.gpu2 == "amd" && f.gpu2Health == "working"
+    then [ { group = "gpu2"; leaf = "gpu2/amd-offload.nix"; why = "gpu2=amd working (mesa handles offload)"; } ]
+    else [ ];  # working nvidia of unknown gen (iron law → no offload driver), or unknown health
   gpu2Skip =
     if f.gpu2 == "none"
     then [ { group = "gpu2"; why = "gpu2=none — single-GPU machine"; } ]
+    else if gpu2 == [ ]
+    then [ { group = "gpu2"; why = "gpu2=${f.gpu2}/${f.gpu2Health}, nvidiaGen=${f.nvidiaGen} — no offload driver (iron law / verdict discipline)"; } ]
     else [ ];
 
   memory =

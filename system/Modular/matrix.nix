@@ -37,16 +37,24 @@ let
       ];
     }
     {
-      name = "asus (nvidia hybrid — must REFUSE until nvidia leaves land)";
-      kind = "refuse";
+      name = "asus (gpu=nvidia, nvidiaGen=unknown → the IRON LAW, nouveau floor)";
+      kind = "resolve";
       path = ../../Installer/preinstall/fixtures/asus/golem-hardware.nix;
-      refuseHas = "no gpu leaf matches";
+      expect = [
+        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/nouveau-floor.nix"
+        "memory/zram-tier2.nix" "swap/hibernation.nix" "disk/policy.nix"
+        "power/laptop.nix" "power/thermald.nix"
+      ];
     }
     {
-      name = "lenovo (nvidia gpu2 working — must REFUSE until gpu2 leaves land)";
-      kind = "refuse";
+      name = "lenovo (intel primary + nvidia gpu2 working turing+ → PRIME offload)";
+      kind = "resolve";
       path = ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix;
-      refuseHas = "no gpu2 leaf matches";
+      expect = [
+        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/intel.nix"
+        "gpu2/nvidia-offload-turing.nix" "memory/zram-tier3.nix"
+        "swap/hibernation.nix" "disk/policy.nix" "power/laptop.nix" "power/thermald.nix"
+      ];
     }
   ];
 

@@ -28,6 +28,19 @@
     description = "The machine's single human user — one knob for the installer.";
   };
 
+  # Post-install answers (id → chosen option id), set only by the
+  # generated system/postinstall-generated.nix. Declared here so the
+  # gpu2/failing leaf evaluates on stage-0 minimal (no desktop to ask
+  # at) and defaults to its safe branch. The ask/apply pipeline itself
+  # (postinstall.nix, asked at graphical login) arrives with the desktop
+  # stage. Lifted from system/postinstall.nix.
+  options.golem.postinstall.answers = lib.mkOption {
+    type = lib.types.attrsOf lib.types.str;
+    default = { };
+    internal = true;
+    description = "Applied post-install question answers; each consuming leaf keys off its own id, falling back to that question's safe default.";
+  };
+
   options.golem.locale = {
     defaultLocale = lib.mkOption {
       type = lib.types.str;
