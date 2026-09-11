@@ -24,6 +24,90 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 65. Minimal boots to a BLANK console — fbcon=map:1 maps the tty to a framebuffer that doesn't exist — [FOUND + FIXED LIVE on the acer, first metal · 2026-09-10]
+**The most important find of the first metal install, and the textbook
+minimal-first catch.** The installed acer showed systemd-boot, then a
+dead screen — no login ever drew. Max typed the login + `nmcli`
+BLINDLY and it worked: the system was fully up and SSH-reachable the
+whole time (running, 0 failed units) — only the display was dark.
+- **root cause (read-only diagnosis):** `fbcon=map:1` in the kernel
+  params (base/core.nix) maps the framebuffer console to fb**1**; the
+  acer has only fb0 (`i915drmfb`), so getty@tty1 renders to nowhere.
+  The param — plus `splash` — rode in VERBATIM from the fat config,
+  where greetd→Hyprland takes the screen through KMS and a mapped-away
+  fbcon is invisible-and-harmless. On minimal there is no compositor:
+  **fbcon IS the display**, so the same param is invisible-and-FATAL.
+- **fix (APPLIED to source + verified live):** drop `fbcon=map:1` and
+  `splash` from `base/core.nix`; keep the log-quieting params (quiet,
+  not blank). Built the fixed toplevel, updated the acer's seed,
+  self-rebuilt `#golem-minimal` → gen 3, rebooted → **Max saw boot
+  loader → quiet blank → `login:` → zsh on the acer's own screen.**
+  Running kernel has no fbcon=map:1; vtconsole is `(M) frame buffer
+  device` not the dummy. The desktop stage (I2) re-adds its own
+  clean-boot handoff and should reconsider whether fbcon=map is the
+  right mechanism on a single-framebuffer machine at all.
+- **where:** `system/Modular/base/core.nix` (done). Ships in the I2 cut.
+- **size:** done. The self-rebuild that applied it also proved stage-0
+  self-rebuild on metal.
+
+### 64. A lab-installed minimal has no wifi — unreachable for the remote first-boot audit — [FOUND on the acer · 2026-09-10]
+The installed stage-0 acer booted healthy but off the network: the
+`golem-lab` wifi profile lives on the INSTALLER medium (iso.nix), not
+in the installed config, and minimal has no GUI to connect from. Had to
+connect it at the keyboard (`nmcli device wifi connect HOLA`) to audit
+over SSH. `--lab-ssh` already wires the lab KEY into machine.nix; the
+lab needs the same for the lab WIFI so an installed lab machine is
+reachable without a keyboard trip.
+- **fix (queued):** a `--lab-wifi` that writes the golem-lab profile
+  (open, or the baked PSK) into the installed `machine.nix`, gated the
+  same way `--lab-ssh` is — lab-only, never on a shipped image
+  (GolemSecurity phase 3). A real user connects to their own wifi; this
+  is purely a lab-reachability affordance.
+- **where:** `Installer/preinstall/install.nix` (arg + the machine.nix
+  writer) — mirrors the `--lab-ssh` block.
+- **size:** small. Ships in the I2 cut.
+
+### 63. The lab medium doesn't join the network by itself — NM gives up after 4 autoconnect retries — [FOUND across machines+days · root-caused 2026-09-10 · fix queued, NOT applied mid-round]
+**Max, 2026-09-10 (acer, first blessed metal): "it should do it by
+itself."** Right — and it's now recurred on 4+ machine-boots across TWO
+different days (round-5's acer + dell + comodore-wired, and today's acer
+again), each cleared by a manual nmtui/nmcli toggle. That promotes it
+from round 5's "flaky-router day" watch item to a real finding:
+recurrence on a new day was the tiebreaker.
+- **root cause:** `iso.nix`'s `golem-lab` profile sets
+  `autoconnect = true` but no `connection.autoconnect-retries`, so it
+  takes NM's **default of 4**. When the wifi driver isn't up yet
+  (ath10k/ath9k firmware load is seconds) OR the AP/DHCP is momentarily
+  busy at boot, NM spends all 4 attempts before the device/router is
+  ready and then STOPS trying until a manual `nmcli con up`. Same
+  mechanism hit the comodore's WIRED sky2 (NM's default wired profile,
+  same default-4 retries, waiting on DHCP) — which is why "slow wifi
+  driver" alone never explained it.
+- **fix (queued, needs-verify):** set infinite retries so NM keeps
+  trying until it gets an address, for BOTH the baked wifi profile and
+  the default wired profile:
+  - `iso.nix` golem-lab profile: `connection.autoconnect-retries = 0;`
+  - global default (covers auto wired): `networking.networkmanager`
+    connection defaults — `settings.connection."autoconnect-retries" =
+    0;` (NetworkManager.conf `[connection]`).
+  - belt-and-suspenders candidate: a `NetworkManager-wait-online`-ordered
+    oneshot that `nmcli con up golem-lab` if still down after boot —
+    decide whether the retry fix alone suffices first (verify on the
+    machine that a giving-up log actually appears).
+- **verify:** confirm on the acer's journal that NM logged
+  "autoconnect: giving up" (or retries exhausted) at boot BEFORE
+  committing the fix as root cause; then prove a rebuilt medium joins
+  unattended across a cold boot on the slowest wifi machine (acer/asus).
+- **where:** `Installer/preinstall/iso.nix` (the golem-lab profile +
+  networkmanager settings). Medium-only — the installed system uses the
+  owner's own wifi, but the same retries=0 default is worth carrying
+  into `base/network.nix` so a stranger's flaky-AP first boot doesn't
+  strand them either (decide at fix time).
+- **size:** small (the profile line); the wired/global half + the
+  optional nudge need a decision. Ships in the round-I2 cut (no
+  mid-round reburn — the acer installs on the current stick with the
+  manual bounce).
+
 ### 62. The installed minimal seed can't reproduce itself — the engine never dropped modules.nix, and golem-minimal never wired its self-rebuild loop — [FOUND + FIXED in source, pre-ISO · VM stage-0 self-rebuild proof, 2026-09-10]
 Caught by round I1's first VM stage-0 install (UEFI, golem-minimal),
 exactly by the self-rebuild proof the constitution mandates. Two holes,

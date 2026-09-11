@@ -38,7 +38,20 @@
     "kernel.printk" = "0 0 0 0";
   };
 
-  # The quiet boot — Golem's console is silent until Golem speaks.
+  # The quiet boot — Golem's console is silent until Golem speaks. But
+  # QUIET, not BLANK: a stage-0 machine has no compositor, so fbcon IS
+  # its only display. The two params that HIDE the framebuffer console —
+  # `fbcon=map:1` (maps the console to framebuffer 1) and `splash` — are
+  # desktop-boot cosmetics: on the fat path greetd→Hyprland takes the
+  # screen through KMS and fbcon never matters, so a mapped-away console
+  # was invisible-and-harmless. On minimal it is invisible-and-FATAL:
+  # the acer (first metal, #65) has only fb0, `fbcon=map:1` pointed the
+  # tty at a fb1 that does not exist, and the installed system booted
+  # perfectly to a DEAD SCREEN — getty active, SSH fine, nothing drawn.
+  # So base keeps the log-QUIETING (harmless, still a visible console)
+  # and drops the two display-TAKEOVER params; the desktop stage re-adds
+  # its own clean-boot handoff (and should reconsider whether fbcon=map
+  # is even the right mechanism on a single-framebuffer machine).
   boot.consoleLogLevel = 0;
   boot.initrd.verbose = false;
   boot.initrd.systemd.enable = true;
@@ -55,8 +68,6 @@
     "vt.default_red=0"
     "vt.default_green=0"
     "vt.default_blue=0"
-    "fbcon=map:1"
-    "splash"
   ];
 
   # Read every disk a stranger might plug in.
