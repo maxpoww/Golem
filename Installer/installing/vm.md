@@ -21,6 +21,32 @@ machine files: one dated entry per session, Mode line
   `vmbios`). New stages get fresh disks — a stage-0 proof starts from
   zero, a stage-climb proof continues an existing disk on purpose.
 
+## Round I2 GATE — 2026-09-11 — the dell-shaped ISO: BIOS + --lab-wifi + the #65 fix, all live on a fresh install
+
+The round-I2 ISO (`m8vkd2jg…-golem-installer.iso`, `result-roundI2`) —
+cut for the DELL, whose keyboard is broken (only e/g/i/Enter/Backspace),
+so the installed machine must come up reachable with NO keyboard.
+`nix flake update` first (the rule); built artifact verified:
+`--lab-wifi` in golem-install (3 hits), the seed's base/core.nix carries
+NO fbcon/splash kernelParam (#65), the full 17-leaf database aboard.
+
+- **Mode:** real-install + installed-boot, BIOS (matching the dell),
+  fresh `golem-i2-bios.qcow2`, hostname `vmi2b`.
+- **`--lab-wifi HOLA` (#64's fix) works end to end:** the prepare baked
+  the profile into machine.nix
+  (`golem-lab`, autoconnect, `autoconnect-retries = 0`), golem-minimal
+  evaluated with it (`ssid: HOLA`), and the INSTALLED system carries it
+  — `nmcli con show` lists **golem-lab**. That is the property the dell
+  needs: after reboot it joins on its own and I reach it over SSH.
+- **#65 fixed at the ISO level, not just live-patched:** the installed
+  GRUB entry has no `fbcon=map:1`/`splash`, and the booted kernel's
+  cmdline is clean. A fresh install from this stick shows a real login.
+- **First boot:** `running`, zero failed units, zsh, tier1 swappiness
+  180, rebuild-golem present, GRUB/BIOS.
+- **Verdict:** **GATE PASSED — `m8vkd2jg…` is the dell's stick.**
+  Everything the keyboard-less install needs is proven in the rig: BIOS
+  path, baked lab wifi, visible console, healthy first boot.
+
 ## Round I1 — stage 0, UEFI — 2026-09-10 — golem-minimal installed, booted, and SELF-REBUILT; caught + fixed #62
 
 First modular install anywhere. **Mode: real-install + installed-boot +
