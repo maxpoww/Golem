@@ -173,6 +173,17 @@
           inherit (self.lib.golem) keyboards;
         };
 
+        # The chooser's chosen-list assertions (Installing constitution
+        # rule 4): every lab fixture pinned to its exact pointer list,
+        # nvidia machines pinned to their loud refusal until their
+        # leaves land. A rule change in Modular/choose.nix that moves a
+        # machine's list fails here.
+        chooser-matrix = import ./system/Modular/matrix.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs;
+          choose = import ./system/Modular/choose.nix;
+        };
+
         # The keyboard table's names, against the packages that consume
         # them. facts-matrix proves an evaluated config says what we meant;
         # it cannot prove `console.keyMap = "gb"` is a keymap that exists.
@@ -232,6 +243,33 @@
           golem-target = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = golemModules ++ [ ./hosts/target ];
+          };
+
+          # The MODULAR stage-0 target (Installing spec, 2026-09-10):
+          # base composition + the chooser's pointer list + the same
+          # dropped target files — and NOTHING from the fat tree. The
+          # home layer here is zsh-only (base/zsh.nix wires it); the
+          # desktop/program leaves arrive with their stages by rebuild.
+          golem-minimal = nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              {
+                system.configurationRevision =
+                  self.rev or self.dirtyRev or "unknown";
+              }
+              home-manager.nixosModules.home-manager
+              {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+              }
+              ./system/Modular/composition.nix
+              ./hosts/target/golem-hardware.nix
+              ./hosts/target/hardware-configuration.nix
+              ./hosts/target/machine.nix
+            ]
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/modules.nix)
+              ./hosts/target/modules.nix;
           };
         };
     };
