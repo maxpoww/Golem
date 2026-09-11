@@ -67,14 +67,28 @@ reachable without a keyboard trip.
   writer) — mirrors the `--lab-ssh` block.
 - **size:** small. Ships in the I2 cut.
 
-### 63. The lab medium doesn't join the network by itself — NM gives up after 4 autoconnect retries — [FOUND across machines+days · root-caused 2026-09-10 · fix queued, NOT applied mid-round]
-**Max, 2026-09-10 (acer, first blessed metal): "it should do it by
-itself."** Right — and it's now recurred on 4+ machine-boots across TWO
-different days (round-5's acer + dell + comodore-wired, and today's acer
-again), each cleared by a manual nmtui/nmcli toggle. That promotes it
-from round 5's "flaky-router day" watch item to a real finding:
-recurrence on a new day was the tiebreaker.
-- **root cause:** `iso.nix`'s `golem-lab` profile sets
+### 63. The lab medium sometimes doesn't join the network by itself — [DOWNGRADED to UNCONFIRMED 2026-09-11 · my detection was broken · re-verify before fixing]
+**CORRECTION (2026-09-11, the thinkpad sweep):** the thinkpad joined
+HOLA on its own, no bounce — and that exposed that my own reachability
+checks were the unreliable part: `zsh -c 'echo >/dev/tcp/host/22'` FAILS
+UNCONDITIONALLY (zsh has no /dev/tcp; it is a bash-only feature), so
+every "not on the network" reading I reported from those sweeps was a
+false negative. The "medium doesn't auto-join" narrative was built on a
+mix of Max's REAL nmtui bounces (acer + comodore, round 5 — genuine)
+and my broken checks reinforcing it. So the finding is NOT dismissed
+(Max did have to bounce real machines) but its SCOPE and ROOT CAUSE are
+unconfirmed: I never captured the NM "giving up" log I claimed. Method
+fixed (ssh/ping/bash only, never zsh /dev/tcp). **Re-verify with a
+working check WHICH machines actually fail to auto-join, and capture the
+real NM journal, before applying the autoconnect-retries=0 fix below.**
+The fix is still plausible and cheap, but it must be earned by evidence,
+not by my tooling error.
+- **real evidence:** Max DID have to nmtui-bounce the acer and the
+  comodore (round 5) — his own hands, not my check. So SOME machines
+  don't auto-join. The thinkpad (2026-09-11) did, cleanly. Inconsistent
+  across machines — which is itself a clue.
+- **original theory (UNCONFIRMED — the plausible fix to earn):**
+  `iso.nix`'s `golem-lab` profile sets
   `autoconnect = true` but no `connection.autoconnect-retries`, so it
   takes NM's **default of 4**. When the wifi driver isn't up yet
   (ath10k/ath9k firmware load is seconds) OR the AP/DHCP is momentarily
