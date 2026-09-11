@@ -24,6 +24,37 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 67. A multi-GB closure delivery over a USB WIFI DONGLE kills the machine — two machines, same night, same signature — [FOUND 2026-09-11 · lab-method finding, not a Golem bug]
+**The dell and the comodore both died mid-`nix copy`**, minutes apart in
+behaviour: transfer stalls → `error: write of N bytes: Broken pipe` →
+the machine drops OFF the network entirely and does not return (needs a
+physical power-cycle).
+- **common factor:** both were receiving a ~3 GiB closure over a **USB
+  wifi dongle** (dell: rtw88_8821au; comodore: rtl8187). The dell was
+  also writing to a USB drive (double USB load); the comodore wrote to
+  its internal SATA, so the dongle alone is sufficient to trigger it.
+- **the control:** the ASUS took the same 2.93 GiB delivery over its
+  **internal** ath9k card and finished clean. So: internal radio fine,
+  USB dongle fatal.
+- **measured pathology before the comodore's death:** ~25 KB/s
+  sustained (188 MB in ~48 min of a 2.95 GiB closure — a ~30 h ETA),
+  i.e. the link was already collapsing long before the drop; this is
+  not merely "slow old hardware".
+- **not a Golem bug** — it is the LAB's delivery method meeting weak
+  USB stacks. But it shapes real work: the offline installer exists
+  precisely so a machine never needs a 3 GiB network delivery, and
+  these two machines are the argument for it.
+- **workarounds, in order:** (a) internal NIC/ethernet where one
+  exists; (b) **sneakernet** — write the closure to a USB drive from
+  the dev box and import locally on the target (no network in the
+  path); (c) batched, resumable delivery — one path at a time with
+  retries, so drops cost seconds instead of the whole transfer (script
+  written this session, unused so far:
+  `scratchpad/overnight-copy.sh`).
+- **where:** lab method (OPERATIONS-level), plus the offline-installer
+  design rationale in implementation.md step 8e.
+- **size:** no source change owed. Record + method change.
+
 ### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED in source 2026-09-11 · live-fixed on the comodore]
 **Found on the comodore's first real install (1931 MB):** `golem-install
 --prepare-only` died at the preflight with *"this machine has 1931 MB —

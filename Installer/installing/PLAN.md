@@ -49,16 +49,23 @@ continue the global number line (#62 onward); round-scoped items are
 
 ## The scoreboard
 
-| # | Machine | Blessed? | Stage 0 installed · first boot OK | Stage 1 desktop | Stage 2 programs | Dogfood |
-|---|---------|----------|-----------------------------------|-----------------|------------------|---------|
-| 0 | VM (UEFI + BIOS, disposable qcow2) | always | ☐ | ☐ | ☐ | — |
-| 1 | acer (UEFI, HD 5500) | ☐ | ☐ | ☐ | ☐ | ☐ |
-| 2 | hp (BIOS, failing radeon — the real #33 answer) | ☐ | ☐ | ☐ | ☐ | ☐ |
-| 3 | dell (BIOS, USB wifi, dead keyboard) | ☐ | ☐ | ☐ | ☐ | ☐ |
-| 4 | comodore (BIOS, 1.9 GB — always the seam, GMA 4500) | ☐ | ☐ | ☐ | ☐ | ☐ |
-| 5 | macbook (Apple EFI, Broadcom wl — the boss fight) | ☐ | ☐ | ☐ | ☐ | ☐ |
-| — | asus | installed 2026-09-09 | **✅ (fat, pre-modular)** — the reference machine | ✅ | ✅ | ongoing |
-| — | lenovo / thinkpad | guarded | never — rehearsal metal only | — | — | — |
+*(state as of 2026-09-11 end of session)*
+
+| # | Machine | In the module DB | Stage 0 on metal | Stage 1 | Notes |
+|---|---------|------------------|------------------|---------|-------|
+| 0 | VM (UEFI + BIOS) | ✅ qemu-virtio | ✅ **both firmwares**, self-rebuild proven | ☐ | gates every ISO |
+| 1 | **acer** (UEFI, HD 5500) | ✅ | ✅ **PASS 09-10** — first blessed metal | ☐ | runs on the dell's old drive |
+| 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live | ☐ | internal disk still holds the fat dogfood Golem |
+| 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ◐ **MID-INSTALL** — disk wiped+prepared, closure ~188 MB/2.95 GiB, **no bootloader yet** (#67 killed the copy) | ☐ | old Linux is gone; needs the copy finished to boot |
+| 4 | dell (BIOS, USB wifi, **no keyboard**) | ✅ (redundant with comodore) | ✗ blocked — USB-enumeration boot quirk + #67; firmware mode unknown (F2/F12 unreachable) | ☐ | needs a USB keyboard, or stays parked |
+| 5 | hp (BIOS, failing radeon) | ✅ | ☐ not attempted | ☐ | guarded |
+| 6 | macbook (Apple EFI, Broadcom wl) | ✅ | ☐ not attempted | ☐ | guarded; the boss fight |
+| — | lenovo / thinkpad | ✅ | never — census/rehearsal metal only | — | guarded (dev box / Windows) |
+
+**Module database: COMPLETE** — 8 fixtures, every hardware class the lab
+holds, each one chosen correctly AND built on source (intel/iHD,
+intel-legacy/i965, amd, virtio, nvidia turing primary + offload, the iron
+law, failing gpu2, broadcom-wl, both bootloaders, 4 memory tiers).
 
 A "Blessed?" box ticks only on Max's explicit per-machine wipe call —
 the constitution's first rule.
