@@ -32,6 +32,7 @@ let
     cpuVendor = facts.cpuVendor or "unknown";
     firmware = facts.firmware or "uefi";
     broadcomWifi = facts.broadcomWifi or false;
+    fingerprint = facts.fingerprint or false;
     chassis = facts.chassis or "unknown";
     vmGuest = facts.vmGuest or "none";
   };
@@ -135,12 +136,19 @@ let
     then [ { group = "virt"; why = "vmGuest=none — physical machine"; } ]
     else [ ];
 
+  # Quirks are ADDITIVE (a machine can have several, or none) — each is
+  # its own independent check, not a one-of group.
   quirks =
-    if f.broadcomWifi
-    then refuse "quirks" "broadcomWifi — the broadcom-wl leaf lands with the macbook"
-    else [ ];
+    (if f.broadcomWifi
+     then [ { group = "quirks"; leaf = "quirks/broadcom-wl.nix"; why = "broadcomWifi (BCM4360 → the unfree wl driver)"; } ]
+     else [ ])
+    ++ (if f.fingerprint
+        then [ { group = "quirks"; leaf = "quirks/fingerprint.nix"; why = "fingerprint reader present → fprintd"; } ]
+        else [ ]);
   quirksSkip =
-    [ { group = "quirks"; why = "no quirks demanded"; } ];
+    if quirks == [ ]
+    then [ { group = "quirks"; why = "no quirks demanded"; } ]
+    else [ ];
 
   pointers =
     [ boot ] ++ cpu ++ [ gpu ] ++ gpu2 ++ [ memory swap disk ]
