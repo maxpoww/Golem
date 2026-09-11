@@ -56,6 +56,16 @@ let
         "swap/hibernation.nix" "disk/policy.nix" "power/laptop.nix" "power/thermald.nix"
       ];
     }
+    {
+      name = "thinkpad E15 (AMD Ryzen + Renoir Vega — amd microcode, NO thermald)";
+      kind = "resolve";
+      path = ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix;
+      expect = [
+        "boot/systemd-boot.nix" "cpu/amd-microcode.nix" "gpu/amd.nix"
+        "memory/zram-tier2.nix" "swap/hibernation.nix" "disk/policy.nix"
+        "power/laptop.nix"
+      ];
+    }
   ];
 
   checkResolve = row:

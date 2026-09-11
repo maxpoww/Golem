@@ -79,6 +79,20 @@ let
       ];
     }
     {
+      name = "thinkpad E15 (AMD Ryzen 4700U + Renoir Vega — the amd path)";
+      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "amd microcode on" c.hardware.cpu.amd.updateMicrocode)
+        (ex "NOT intel microcode" (!c.hardware.cpu.intel.updateMicrocode))
+        (ex "amd gpu: no LIBVA pin (mesa radeonsi rides default)"
+          ((c.environment.sessionVariables.LIBVA_DRIVER_NAME or null) == null))
+        (ex "laptop: power-profiles-daemon on" c.services.power-profiles-daemon.enable)
+        (ex "AMD laptop: thermald OFF (intel-only daemon)" (!c.services.thermald.enable))
+        (ex "tier2 (7159 MB): swappiness 60" (c.boot.kernel.sysctl."vm.swappiness" == 60))
+        (ex "UEFI → systemd-boot" c.boot.loader.systemd-boot.enable)
+      ];
+    }
+    {
       name = "asus (gpu=nvidia, unknown gen — the IRON LAW: NO proprietary driver)";
       facts = (import ../../Installer/preinstall/fixtures/asus/golem-hardware.nix { }).golem.hardware;
       expect = c: [
