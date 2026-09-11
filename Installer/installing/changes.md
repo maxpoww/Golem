@@ -24,6 +24,35 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED in source 2026-09-11 · live-fixed on the comodore]
+**Found on the comodore's first real install (1931 MB):** `golem-install
+--prepare-only` died at the preflight with *"this machine has 1931 MB —
+installing Golem needs about 4 GB of RAM"*, before touching the disk.
+- **why it was wrong:** #16's floor exists because a small machine
+  cannot EVALUATE the target config locally without thrashing. But
+  `--prepare-only` evaluates nothing — it partitions, mounts, seeds and
+  drops the target files; the system is BUILT ELSEWHERE and delivered
+  (`nix copy` — the closure-delivery seam used since the ASUS, and the
+  shape a product stick will use). Same for a `--skip-prepare` resume:
+  it activates a closure that already exists. So the check was gating
+  the wrong verb — refusing an install that was never going to thrash
+  the machine.
+- **fix (applied):** the floor now distinguishes `eval_is_local`. A
+  local-eval install still hard-FAILS below 3300 MB (unchanged, and a
+  rehearsal still records the finding); a delivery-seam run
+  (`--prepare-only` / `--skip-prepare`) records an honest **warn** —
+  *"below the local-eval floor — fine here: this run does not evaluate
+  (the system is built elsewhere and delivered)"* — and proceeds.
+  Nothing is silently skipped; checks.txt still tells the truth.
+- **why it matters beyond tonight:** this is exactly the distinction
+  the OFFLINE INSTALLER needs — "can this machine eval?" vs "can it
+  receive a prebuilt system?". Answering it here means the offline work
+  inherits a preflight that already asks the right question.
+- **where:** `Installer/preinstall/install.nix` (the ram check).
+- **size:** done. Live-fixed on the comodore (patched golem-install
+  nix-copied onto the running medium — the constitution's live-fix
+  refinement, the frozen stick untouched); ships in the next cut.
+
 ### 65. Minimal boots to a BLANK console — fbcon=map:1 maps the tty to a framebuffer that doesn't exist — [FOUND + FIXED LIVE on the acer, first metal · 2026-09-10]
 **The most important find of the first metal install, and the textbook
 minimal-first catch.** The installed acer showed systemd-boot, then a

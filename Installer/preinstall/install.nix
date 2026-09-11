@@ -365,10 +365,32 @@ pkgs.writeShellApplication {
     # rest of the flow still gets exercised; a real install refuses here
     # (check_fail exits in real mode). Prebuilt-closure delivery for
     # these machines is the round-4 question.
+    #
+    # WHAT THIS CHECK IS ACTUALLY ABOUT (clarified 2026-09-11, the
+    # Comodore's first real install): it gates the LOCAL EVAL, not the
+    # act of installing. `--prepare-only` evaluates nothing — it
+    # partitions, mounts, seeds and drops the target files; the system
+    # is BUILT ELSEWHERE and delivered (`nix copy`), which is the
+    # closure-delivery seam the lab has used since the ASUS and the
+    # shape a product stick will use. Refusing prepare on a small
+    # machine therefore refused an install that was never going to
+    # thrash it — the guard firing on the wrong verb. So: the floor
+    # still FAILS a local-eval install, still records the finding in a
+    # rehearsal, and now merely NOTES the situation when the eval is
+    # not this machine's job. (A --skip-prepare resume is likewise
+    # eval-free: it activates a closure that already exists.)
     ram_ok=true
+    eval_is_local=true
+    if [[ "$prepare_only" == true || "$skip_prepare" == true ]]; then
+      eval_is_local=false
+    fi
     if (( ram_mb < 3300 )); then
       ram_ok=false
-      check_fail "ram: this machine has $ram_mb MB — installing Golem needs about 4 GB of RAM"
+      if [[ "$eval_is_local" == false ]]; then
+        check_warn "ram: $ram_mb MB is below the local-eval floor — fine here: this run does not evaluate (the system is built elsewhere and delivered)"
+      else
+        check_fail "ram: this machine has $ram_mb MB — installing Golem needs about 4 GB of RAM"
+      fi
     else
       check_ok "ram: $ram_mb MB is enough to evaluate the system locally"
     fi
