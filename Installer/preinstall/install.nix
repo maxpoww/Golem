@@ -66,7 +66,7 @@ pkgs.writeShellApplication {
   ];
   text = ''
     disk=""; owner="max"; fullname=""; hostname="Golem"
-    system=""; labkey=""; assume_yes=false
+    system=""; labkey=""; labwifi=""; assume_yes=false
     prepare_only=false; skip_prepare=false; rehearse=false
     src="${golemSrc}"
 
@@ -93,6 +93,7 @@ pkgs.writeShellApplication {
         --hostname)  hostname="''${2:?}"; shift 2 ;;
         --system)    system="''${2:?}"; shift 2 ;;
         --lab-ssh)   labkey="''${2:?}"; shift 2 ;;
+        --lab-wifi)  labwifi="''${2:?}"; shift 2 ;;
         --src)       src="''${2:?}"; shift 2 ;;
         --yes)       assume_yes=true; shift ;;
         --kb-layout)  kb_layout="''${2:?}"; shift 2 ;;
@@ -143,7 +144,7 @@ pkgs.writeShellApplication {
         --rehearse)     rehearse=true; shift ;;
         -h|--help)
           echo "usage: golem-install --disk DEV [--owner NAME] [--full-name STR]"
-          echo "                     [--hostname NAME] [--system PATH] [--lab-ssh KEY] [--yes]"
+          echo "                     [--hostname NAME] [--system PATH] [--lab-ssh KEY] [--lab-wifi SSID] [--yes]"
           echo "                     [--kb-layout L] [--kb-variant V] [--kb-options O]"
           echo "                     [--locale L] [--timezone ZONE]"
           echo "                     [--kb-model M] [--kb-console KEYMAP] [--kb-font F]"
@@ -686,6 +687,20 @@ pkgs.writeShellApplication {
         echo "  services.openssh.settings.PasswordAuthentication = false;"
         echo "  users.users.$owner.openssh.authorizedKeys.keys = [ \"$labkey\" ];"
         echo "  users.users.root.openssh.authorizedKeys.keys = [ \"$labkey\" ];"
+      fi
+      if [[ -n "$labwifi" ]]; then
+        echo
+        echo "  # --lab-wifi: bake an OPEN-network profile so this lab testbed"
+        echo "  # auto-joins after install and is reachable over SSH with NO"
+        echo "  # keyboard (#64 — the installed minimal otherwise comes up dark"
+        echo "  # with no known network). Lab-only; a stranger's install gets"
+        echo "  # none of this — they pick their own wifi. autoconnect-retries=0"
+        echo "  # (infinite) so a slow driver/AP at boot can't exhaust NM's"
+        echo "  # default 4 and strand it (#63)."
+        echo "  networking.networkmanager.ensureProfiles.profiles.golem-lab = {"
+        echo "    connection = { id = \"golem-lab\"; type = \"wifi\"; autoconnect = true; \"autoconnect-retries\" = 0; };"
+        echo "    wifi = { mode = \"infrastructure\"; ssid = \"$labwifi\"; };"
+        echo "  };"
       fi
       echo "}"
     } > "$seed/hosts/target/machine.nix"

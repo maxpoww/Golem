@@ -50,7 +50,19 @@ whole time (running, 0 failed units) — only the display was dark.
 - **size:** done. The self-rebuild that applied it also proved stage-0
   self-rebuild on metal.
 
-### 64. A lab-installed minimal has no wifi — unreachable for the remote first-boot audit — [FOUND on the acer · 2026-09-10]
+### 64. A lab-installed minimal has no wifi — unreachable for the remote first-boot audit — [FIXED in source 2026-09-11 · --lab-wifi · ships in the I2 cut]
+**APPLIED (2026-09-11):** `golem-install` gained `--lab-wifi SSID`,
+mirroring `--lab-ssh`. It writes an OPEN NetworkManager profile
+(`golem-lab`, autoconnect) into the installed `machine.nix`, so a lab
+testbed auto-joins after reboot and is reachable over SSH with NO
+keyboard — which is exactly what the dell (broken keyboard: only
+e/g/i/Enter/Backspace) forces. Lab-only; a stranger's install gets none
+of it (they pick their own wifi). Carries `autoconnect-retries = 0`
+(infinite) so a slow driver/AP at boot can't exhaust NM's default 4 —
+the cheap half of #63, ridden along here where it's free. `where`:
+install.nix (arg + the machine.nix writer, beside the --lab-ssh block).
+Original finding below.
+
 The installed stage-0 acer booted healthy but off the network: the
 `golem-lab` wifi profile lives on the INSTALLER medium (iso.nix), not
 in the installed config, and minimal has no GUI to connect from. Had to
