@@ -79,6 +79,19 @@ let
       ];
     }
     {
+      name = "comodore GM45 (BIOS + GMA 4500 — the i965 legacy + grub-bios path)";
+      facts = (import ../../Installer/preinstall/fixtures/comodore-gm45/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "BIOS → GRUB on, no systemd-boot" (c.boot.loader.grub.enable && !c.boot.loader.systemd-boot.enable))
+        (ex "Gen4 GMA → LIBVA i965 (not iHD)" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
+        (ex "legacy h264ify Chrome policy shipped" (c.environment.etc ? "opt/chrome/policies/managed/golem-legacy-video.json"))
+        (ex "intel microcode on" c.hardware.cpu.intel.updateMicrocode)
+        (ex "tier1 (1931 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
+        (ex "tier1: one build job" (c.nix.settings.max-jobs == 1))
+        (ex "intel laptop: thermald on" c.services.thermald.enable)
+      ];
+    }
+    {
       name = "thinkpad E15 (AMD Ryzen 4700U + Renoir Vega — the amd path)";
       facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).golem.hardware;
       expect = c: [

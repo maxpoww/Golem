@@ -66,6 +66,16 @@ let
         "power/laptop.nix"
       ];
     }
+    {
+      name = "comodore GM45 (BIOS, GMA 4500 → i965 legacy, 1931 MB tier1)";
+      kind = "resolve";
+      path = ../../Installer/preinstall/fixtures/comodore-gm45/facts.nix;
+      expect = [
+        "boot/grub-bios.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
+        "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
+        "power/laptop.nix" "power/thermald.nix"
+      ];
+    }
   ];
 
   checkResolve = row:
