@@ -13,11 +13,18 @@ VM's qcow2s are pre-blessed by nature. Everything unblessed keeps the
 full preinstall guarantee: writes-completed = 0, UUIDs identical,
 proven in the record.
 
-## 2. One frozen ISO per round
+## 2. One frozen ISO per round — and the round runs the WHOLE roster
 
 No ISO change lands mid-round; every machine in a round meets the same
-image. A fix a machine teaches goes to [changes.md](changes.md), not
-into a reburn. When the round closes: work the queue top to bottom,
+image. **A round is not finished until every machine on the roster has
+had its turn with that ISO** (installed, or explicitly deferred with a
+recorded reason — e.g. no blessing, or hardware blocking it). Partial
+rounds do not close, and no new work (next ISO, next stage, new
+features) starts ahead of the remaining machines — that ordering is
+what makes the rounds mean anything. (Written plainly 2026-09-11 after
+the technician drifted toward the offline installer with hp, thinkpad
+and macbook untouched — Max caught it.) A fix a machine teaches goes
+to [changes.md](changes.md), not into a reburn. When the round closes: work the queue top to bottom,
 `nix flake update` (the locked-path-input rule — a cut without it
 ships a stale seed), rebuild, **verify the built artifact carries the
 round's markers**, VM-gate, then reflash. The live-fix refinement
