@@ -54,7 +54,7 @@ continue the global number line (#62 onward); round-scoped items are
 | # | Machine | In the module DB | Stage 0 on metal | Stage 1 | Notes |
 |---|---------|------------------|------------------|---------|-------|
 | 0 | VM (UEFI + BIOS) | ✅ qemu-virtio | ✅ **both firmwares**, self-rebuild proven | ☐ | gates every ISO |
-| 1 | **acer** (UEFI, HD 5500) | ✅ | ✅ **PASS 09-10** — first blessed metal | ☐ | runs on the dell's old drive |
+| 1 | **acer** (UEFI, HD 5500) | ✅ | ✅ **PASS 09-10 (I1) + 09-11 (I2, from the shipping ISO)** | ☐ | runs on the dell's old drive |
 | 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live | ☐ | internal disk still holds the fat dogfood Golem |
 | 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ◐ **MID-INSTALL** — disk wiped+prepared, closure ~188 MB/2.95 GiB, **no bootloader yet** (#67 killed the copy) | ☐ | old Linux is gone; needs the copy finished to boot |
 | 4 | dell (BIOS, USB wifi, **no keyboard**) | ✅ (redundant with comodore) | ✗ blocked — USB-enumeration boot quirk + #67; firmware mode unknown (F2/F12 unreachable) | ☐ | needs a USB keyboard, or stays parked |

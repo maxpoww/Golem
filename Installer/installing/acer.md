@@ -1,5 +1,38 @@
 # Acer — the first blessed metal install of the modular era
 
+## Round I2 — reinstalled from the SHIPPING ISO — 2026-09-11 — PASS; #65 and #64 arrive from the image, not from a patch
+
+The acer's round-I2 turn (the round runs the whole roster — constitution
+rule 2). Its round-I1 install carried the #65 console fix as a LIVE
+patch; this one takes it from the shipping image, on the machine that
+found the bug. Blessed by Max ("do it") — the I1 install on `sda` (the
+dell's old 465.8 G drive) was wiped.
+
+- **ISO:** round-I2 (`m8vkd2jg…`), booted from the stick; DHCP handed
+  the medium `.99`.
+- **Chosen leaves — identical to round I1** (the chooser is
+  deterministic for identical facts): systemd-boot · intel-microcode ·
+  gpu/intel · zram-tier1 · hibernation · disk/policy · power/laptop ·
+  thermald.
+- **Delivered over the acer's INTERNAL ath10k** — the path that works
+  (#67: the USB-dongle deliveries are what killed the dell/comodore).
+- **First boot, generation 1:** `acer` on `/dev/sda3`,
+  `is-system-running: running`, **zero failed units**.
+  - **#64 from the image:** `--lab-wifi` baked the profile in and the
+    machine **rejoined HOLA by itself** (`golem-lab:wlp3s0:activated`)
+    — its I1 install predated the flag.
+  - **#65 from the image:** no `fbcon=map:1` on the booted cmdline.
+    Last round this fix had to be nix-copied on after the fact; now it
+    ships. Console confirmed visible at the machine.
+  - `LIBVA_DRIVER_NAME=iHD` (Broadwell), zsh, swappiness 180 (tier1),
+    seed + modules.nix, rebuild-golem, no desktop (minimal ✓).
+- **Self-rebuild:** `#golem-minimal` from its own seed → **generation
+  2**, still running.
+- **Verdict:** **PASS.** The acer now runs a stage-0 Golem built
+  entirely from the shipping round-I2 image, with no live patches in
+  it. Round-I2 turn: done.
+
+
 Acer Aspire E5-573 · i5-5200U Broadwell (2c/4t) · Intel HD 5500 ·
 QCA9377 wifi+BT · **boots UEFI** · 3833 MB RAM. Its census identity
 throughout the preinstall rounds
