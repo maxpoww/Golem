@@ -44,7 +44,7 @@ let
   boot =
     if f.firmware == "bios"
     then { group = "boot"; leaf = "boot/grub-bios.nix"; why = "firmware=bios"; }
-    else { group = "boot"; leaf = "boot/systemd-boot.nix"; why = "firmware=uefi"; };
+    else { group = "boot"; leaf = "boot/grub-efi.nix"; why = "firmware=uefi"; };
 
   cpu =
     if f.cpuVendor == "intel"

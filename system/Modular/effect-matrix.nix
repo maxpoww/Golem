@@ -28,7 +28,7 @@ let
       name = "acer-e5-573 (THE FIRST BLESSED METAL — stage 0, UEFI, HD 5500)";
       facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
       expect = c: [
-        (ex "UEFI → systemd-boot on, no grub" (c.boot.loader.systemd-boot.enable && !c.boot.loader.grub.enable))
+        (ex "UEFI → GRUB-EFI on, no systemd-boot (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport && !c.boot.loader.systemd-boot.enable))
         (ex "Broadwell (not legacy) → LIBVA iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
         (ex "intel microcode on" c.hardware.cpu.intel.updateMicrocode)
         (ex "tier1: zram 150%" (c.zramSwap.memoryPercent == 150))
@@ -58,7 +58,7 @@ let
         (ex "qemu guest agent on" c.services.qemuGuest.enable)
         (ex "spice vdagent on" c.services.spice-vdagentd.enable)
         (ex "tier1 (3912 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
-        (ex "UEFI → systemd-boot" c.boot.loader.systemd-boot.enable)
+        (ex "UEFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
         (ex "not a laptop → no power-profiles-daemon" (!c.services.power-profiles-daemon.enable))
       ];
     }
@@ -100,7 +100,7 @@ let
         (ex "broadcom_sta in extraModulePackages"
           (lib.any (p: (p.pname or "") == "broadcom-sta") c.boot.extraModulePackages))
         (ex "Haswell HD5000 → LIBVA i965" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
-        (ex "Apple EFI → systemd-boot" c.boot.loader.systemd-boot.enable)
+        (ex "Apple EFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
         (ex "intel laptop: thermald on" c.services.thermald.enable)
         (ex "tier1 (3858 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
       ];
@@ -129,7 +129,7 @@ let
         (ex "laptop: power-profiles-daemon on" c.services.power-profiles-daemon.enable)
         (ex "AMD laptop: thermald OFF (intel-only daemon)" (!c.services.thermald.enable))
         (ex "tier2 (7159 MB): swappiness 60" (c.boot.kernel.sysctl."vm.swappiness" == 60))
-        (ex "UEFI → systemd-boot" c.boot.loader.systemd-boot.enable)
+        (ex "UEFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
       ];
     }
     {

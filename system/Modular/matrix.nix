@@ -21,7 +21,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/intel.nix"
+        "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/intel.nix"
         "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
         "power/laptop.nix" "power/thermald.nix"
       ];
@@ -31,7 +31,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/qemu-virtio/facts.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/virtio.nix"
+        "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/virtio.nix"
         "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
         "virt/qemu-guest.nix"
       ];
@@ -41,7 +41,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/asus/golem-hardware.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/nouveau-floor.nix"
+        "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/nouveau-floor.nix"
         "memory/zram-tier2.nix" "swap/hibernation.nix" "disk/policy.nix"
         "power/laptop.nix" "power/thermald.nix"
       ];
@@ -51,7 +51,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/intel.nix"
+        "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/intel.nix"
         "gpu2/nvidia-offload-turing.nix" "memory/zram-tier3.nix"
         "swap/hibernation.nix" "disk/policy.nix" "power/laptop.nix" "power/thermald.nix"
       ];
@@ -61,7 +61,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/amd-microcode.nix" "gpu/amd.nix"
+        "boot/grub-efi.nix" "cpu/amd-microcode.nix" "gpu/amd.nix"
         "memory/zram-tier2.nix" "swap/hibernation.nix" "disk/policy.nix"
         "power/laptop.nix"
       ];
@@ -81,7 +81,7 @@ let
       kind = "resolve";
       path = ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix;
       expect = [
-        "boot/systemd-boot.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
+        "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
         "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
         "power/laptop.nix" "power/thermald.nix" "quirks/broadcom-wl.nix"
       ];
