@@ -111,6 +111,64 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
     deleted, finding #1 closed structurally. The ASUS re-installed
     minimal+stages as the final parity proof.
 
+## DUAL BOOT — the installer learns to share a disk (Max, 2026-09-15)
+
+Scope set by Max: **make dual-boot work from the installer.** Secure
+Boot is explicitly NOT part of it (decision record in GolemInstall.md).
+The surface was already decided 2026-09-05 — dual boot is an **Advanced
+row at the foot of the disk list**, so the ordinary path stays one
+keypress and nobody meets a question they cannot answer.
+
+GRUB was already the right loader for this: `grub-bios.nix`'s header
+picked it partly because it chainloads other OSes, and the engine
+already lays GPT + a BIOS-boot partition on both firmware paths.
+
+**v1 policy — DETECT, NEVER RESIZE.** Golem installs into existing
+**free space** and refuses to shrink anyone else's filesystem. Shrinking
+NTFS is where installers earn their reputation for eating data; Windows'
+own Disk Management does it safely, so the instruction is "make room
+there first, then come back". Resize is a v2 question, if ever.
+
+- ☐ **a. Layout: kernels must not live on a Windows ESP.** Measured on
+  the acer 2026-09-15: one kernel+initrd is **54 MiB**, and 8
+  generations occupy **122 MiB**. A Windows ESP is typically **100 MiB**
+  — it cannot hold even one generation. So on a shared disk: reuse the
+  EXISTING ESP, mount it at `/boot/efi` for the EFI binaries only, and
+  keep kernels in `/boot` on Golem's own filesystem. Worth taking as the
+  layout EVERYWHERE rather than a dual-boot special case — BIOS already
+  works that way (the comodore's `/boot` is on root), so one shape for
+  both firmwares, fewer branches. Note the LUKS interaction: with
+  encryption on, `/boot` must be its own unencrypted partition (or GRUB
+  cryptodisk, which is slower and fiddlier).
+- ☐ **b. Never create a second ESP.** Detect the existing one and adopt
+  it; two ESPs on one disk is a mess firmware resolves unpredictably.
+- ☐ **c. The destructive-verb guard grows a partition dimension.** #20
+  proved disk identity before a destructive verb; the same rigour now
+  applies one level down — the engine must know which partitions are
+  NOT ours and refuse to touch them, by identity, before anything runs.
+- ☐ **d. Find the neighbour: `boot.loader.grub.useOSProber = true`**
+  (confirmed present in our nixpkgs). Adds the Windows entry by
+  chainloading its bootmgfw.efi.
+- ☐ **e. #95's menu rule gains a case.** os-prober titles read
+  `Windows Boot Manager (on /dev/sda1)` (~380px) and would blow past
+  the 226px box — rewrite to **`Windows`**, then re-measure. The menu
+  becomes `Start Golem` / `Windows` / `Previous Versions`.
+- ☐ **f. #94's default flips here.** Owning `\EFI\BOOT\BOOTX64.EFI`
+  saved the acer from firmware that deletes NVRAM entries, but on a
+  shared disk it is a liability — Windows Update rewrites that path.
+  A named NVRAM entry is the dual-boot answer; `efiInstallAsRemovable`
+  is already `mkDefault`, so the leaf just overrides it.
+- ☐ **g. The paper cuts, in a `quirks/dual-boot.nix` leaf** pointed at
+  by a new census fact (another OS present on the target disk):
+  `time.hardwareClockInLocalTime = true` (Windows keeps local time),
+  do NOT auto-mount the Windows partition (Fast Startup leaves NTFS
+  dirty — read-only if at all), and the BitLocker warning belongs in
+  the installer's own words before the disk step, not in a wiki.
+- ☐ **h. Prove it in the VM first** — a second OS installed in a qemu
+  disk, then Golem alongside it, both firmwares. Nothing is at risk and
+  the VM already gates every ISO. Metal after that, on a machine Max
+  blesses; the thinkpad is the only lab box with real Windows.
+
 ## Carried decisions (Max's, non-blocking until their step)
 
 - **#35b** — seed git policy (plain-path vs git; kill the dead

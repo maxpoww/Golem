@@ -88,6 +88,33 @@ Decision record (Max, 2026-09-03): installer surface = **Golem-native**
 toggle**; boot menu = Start/Install only, no timeout (shipped, see
 `Installer/preinstall/iso.nix`).
 
+Decision record (Max, 2026-09-15): **Secure Boot is OUT OF SCOPE.
+Golem requires it OFF.** Weighed properly first, then rejected on UX.
+There is no signature Microsoft's chain trusts without the shim review
+process — an organizational commitment, months long, for established
+distros. The only alternative is the owner enrolling Golem's own key:
+two or three firmware visits at install time (Setup Mode wording differs
+per vendor), **plus a standing obligation to sign every kernel on every
+rebuild, forever** — and an unsigned kernel after a routine update is an
+unbootable machine, the worst class of failure because it lands *after*
+the owner has learned to trust the thing. Max: *"we can't have our users
+doing all that shit."*
+Consequences to hold on to:
+- The medium is unsigned too, so a machine with Secure Boot ON never
+  reaches our installer at all — it dies at a firmware "Secure Boot
+  violation" screen. **The installer therefore cannot detect this or
+  explain it**; "turn Secure Boot off first" is an onboarding/docs fact,
+  not a step we can own. An installed Golem may still say plainly that
+  Secure Boot is off and why.
+- BitLocker: disabling Secure Boot changes what Windows seals against,
+  so Windows demands its recovery key on the next boot. Suspend
+  BitLocker from inside Windows BEFORE touching firmware, then resume.
+  This belongs in the dual-boot instructions, in bold.
+- `boot/systemd-boot.nix` stays retired-but-kept, and lanzaboote stays
+  the door if this is ever revisited — it is the only supported NixOS
+  Secure Boot path, and it is systemd-boot-based, so revisiting means
+  reopening #92's one-loader decision.
+
 Decision record (Max, 2026-09-05): the surface is a **CLI conversation**,
 not a TUI — one shape per step, a title saying what is being asked, a
 filter line, and the likely answers under it in order of importance. And
