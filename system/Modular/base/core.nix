@@ -80,10 +80,9 @@
     f2fs = true;
   };
 
-  # Clear a stale one-shot boot pin (harmless no-op on BIOS/GRUB).
-  system.activationScripts.clearStaleBootPin.text = ''
-    ${pkgs.systemd}/bin/bootctl set-default "" 2>/dev/null || true
-  '';
+  # (The stale-boot-pin cleanup moved to boot/systemd-boot.nix — it is
+  # bootctl, i.e. UEFI-only, and running it on a BIOS machine printed
+  # "Not booted with UEFI." onto Golem's silent boot every time. #68.)
 
   # Run-anything conveniences — tiny, and part of "feels like Golem".
   programs.nix-ld.enable = true;

@@ -37,4 +37,16 @@
   services.openssh.settings.PasswordAuthentication = false;
   users.users.max.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop" ];
   users.users.root.openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop" ];
+
+  # --lab-wifi: bake an OPEN-network profile so this lab testbed
+  # auto-joins after install and is reachable over SSH with NO
+  # keyboard (#64 — the installed minimal otherwise comes up dark
+  # with no known network). Lab-only; a stranger's install gets
+  # none of this — they pick their own wifi. autoconnect-retries=0
+  # (infinite) so a slow driver/AP at boot can't exhaust NM's
+  # default 4 and strand it (#63).
+  networking.networkmanager.ensureProfiles.profiles.golem-lab = {
+    connection = { id = "golem-lab"; type = "wifi"; autoconnect = true; "autoconnect-retries" = 0; };
+    wifi = { mode = "infrastructure"; ssid = "HOLA"; };
+  };
 }

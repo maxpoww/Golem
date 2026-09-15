@@ -31,7 +31,21 @@
 #    recolours the text. One centre slice is enough — GRUB stretches it.
 #  - the font must be a .pf2, and iso-image-golem.nix loadfont's every
 #    .pf2 it finds in this directory.
-{ runCommand, imagemagick, binutils, nixos-grub2-theme }:
+#
+# SHARED (moved here 2026-09-11, #68): the ISO's boot menu and an
+# INSTALLED machine's GRUB menu must look like the same distro — Max, on
+# seeing the hp's stock-blue GRUB: "all golem should look the same".
+# The medium calls it from iso.nix; the installed system calls it from
+# boot/grub-bios.nix. One file, one look, two geometries — the medium's
+# box hugs "Install", the installed one has to hold generation lines.
+{ runCommand, imagemagick, binutils, nixos-grub2-theme
+  # Menu box, in pixels. Defaults are the medium's proven values.
+, menuWidth ? 120
+, menuHeight ? 64
+, menuLeft ? "50%-60"
+, menuTop ? "50%-32"
+, itemHeight ? 28
+}:
 
 runCommand "golem-grub-theme" { nativeBuildInputs = [ imagemagick binutils ]; } ''
   mkdir -p $out
@@ -93,13 +107,13 @@ runCommand "golem-grub-theme" { nativeBuildInputs = [ imagemagick binutils ]; } 
   title-text: ""
 
   + boot_menu {
-      left = 50%-60
-      top = 50%-32
-      width = 120
-      height = 64
+      left = ${menuLeft}
+      top = ${menuTop}
+      width = ${toString menuWidth}
+      height = ${toString menuHeight}
       item_font = "$font_name"
       item_color = "#cccccc"
-      item_height = 28
+      item_height = ${toString itemHeight}
       item_spacing = 0
       item_padding = 2
       item_icon_space = 0

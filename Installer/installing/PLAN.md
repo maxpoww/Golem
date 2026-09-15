@@ -49,14 +49,14 @@ continue the global number line (#62 onward); round-scoped items are
 
 ## The scoreboard
 
-*(state as of 2026-09-14, the comodore's overnight install)*
+*(state as of 2026-09-15, the comodore's quiet-boot morning)*
 
 | # | Machine | In the module DB | Stage 0 on metal | Stage 1 | Notes |
 |---|---------|------------------|------------------|---------|-------|
 | 0 | VM (UEFI + BIOS) | ✅ qemu-virtio | ✅ **both firmwares**, self-rebuild proven | ☐ | gates every ISO |
 | 1 | **acer** (UEFI, HD 5500) | ✅ | ✅ **PASS 09-10 (I1) + 09-11 (I2, from the shipping ISO)** | ☐ | runs on the dell's old drive |
 | 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live | ☐ | internal disk still holds the fat dogfood Golem |
-| 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ✅ **PASS 09-14** — audited clean, rejoined over a USB dongle, **self-rebuilt → gen 2 in <3 min on 1931 MB** | ☐ | **#67 answered here** (throttle, not sneakernet); caught #85/#87/#88 |
+| 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ✅ **PASS 09-14** — audited clean, rejoined over a USB dongle, **self-rebuilt → gen 2 in <3 min on 1931 MB**; **09-15: gen 5**, quiet boot (#89) + lid quirk (#90) live-verified, Max's eyes on the themed menu | ☐ | **#67 answered here** (throttle); caught #85/#87/#88, then #89/#90/#91 |
 | 4 | dell (BIOS, USB wifi, **no keyboard**) | ✅ (redundant with comodore) | ✗ blocked — USB-enumeration boot quirk; firmware mode unknown (F2/F12 unreachable). **#67 no longer blocks it** — retry under the throttle | ☐ | needs a USB keyboard, or stays parked |
 | 5 | hp (BIOS, failing radeon) | ✅ | ☐ not attempted | ☐ | guarded |
 | 6 | macbook (Apple EFI, Broadcom wl) | ✅ | ☐ not attempted | ☐ | guarded; the boss fight |

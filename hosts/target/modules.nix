@@ -21,6 +21,10 @@
     ../../system/Modular/power/laptop.nix
     # chassis=laptop + cpuVendor=intel
     ../../system/Modular/power/thermald.nix
+    # OWNER EDIT (#90, 2026-09-15): the lid switch reports "closed"
+    # with the lid open — power/laptop's lid rule slept the machine 30 s
+    # after every wake. No census fact chooses this yet.
+    ../../system/Modular/quirks/lid-switch-broken.nix
   ];
-  # not chosen: gpu2 (gpu2=none — single-GPU machine) · virt (vmGuest=none — physical machine) · quirks (no quirks demanded)
+  # not chosen: gpu2 (gpu2=none — single-GPU machine) · virt (vmGuest=none — physical machine) · quirks (lid-switch-broken added by owner edit above, not by the chooser)
 }

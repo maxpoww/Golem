@@ -5,6 +5,62 @@ Max's treasure. Intel GM45 whitebox · Pentium T4200 (2c/2t) · GMA 4500
 931 GB HGST (**Linux — guarded**). Preinstall history:
 `~/GolemOne/Install/Preinstall/testing/comodore.md`.
 
+## Round I2 coda — 2026-09-15 — the lid that lies (#90), the boot that wasn't (#91), and the quiet boot (#89) — gens 3→5 in one morning
+
+**Status in one line:** gen 5 booted and verified (`c7lx0rd7…`, `running`,
+0 failed units, 0 suspends), the lid quirk live, the boot fully silent
+from Golem's first MBR instruction to the themed menu — the one
+remaining cursor blink is the BIOS's own, before our code exists.
+
+### The lid that lies (#90) — Max: "it goes sleep after like 30s ish, and that is Golem"
+It was. Caught in one of the 30 s wake windows and pinned awake by
+masking every sleep target; the evidence in one pull:
+`/proc/acpi/button/lid/LID/state` = **closed** with the lid open and Max
+at the screen; battery innocent (BAT0 100 %, on AC); `PM: suspend entry`
+every ~31–35 s — logind's post-resume holdoff cadence, `HandleLidSwitch=
+suspend-then-hibernate` (power/laptop) believing a stuck 2008 reed
+switch. The medium never showed it (installer profiles ignore the lid);
+the 09-14 audit never showed it (the switch read open then — it sticks
+INTERMITTENTLY: after the gen-3 reboot it read **open** again). Fix:
+`quirks/lid-switch-broken.nix` (`HandleLidSwitch=ignore`), an OWNER EDIT
+in `hosts/target/modules.nix` — the first quirk to arrive by hand rather
+than by the chooser. Gens 3–5 have slept **zero** times.
+
+### The boot that wasn't (#91)
+The morning power-on that "rebooted" the machine had not: `/run/booted-system`
+still said gen 1 (`yi4krfsi…`) while the profile said gen 2 — the bag
+timer had hibernated it overnight and the power button RESUMED the image
+instead of booting. On a machine with suspend-then-hibernate + wired
+`resume=`, "power-cycled" and "rebooted" are different claims; only the
+audit's `booted:` line tells the truth. Gen 3's clean `systemctl reboot`
+discharged the long-owed real reboot.
+
+### The quiet boot (#89) — three generations, each moved the line
+Max's eyes at the screen were the instrument for all three:
+| gen | change | Max saw |
+|---|---|---|
+| 3 | banner strings emptied (boot.S "GRUB ", diskboot "loading…", main.c Welcome) + lid quirk | "looks good" — banner gone; a `_` blinks twice before the menu |
+| 4 | cursor hidden at `grub_console_init` (BIOS int 10h, 0x2000) | still blinking — the window is EARLIER than core |
+| 5 | cursor-hide as boot.S's opening move, replacing the old "GRUB " print (%dx already stacked; `.org` layout makes overflow a build error) | **one blink** — pre-MBR, the BIOS's own |
+Byte-verified before and after landing: `strings` on boot.img/diskboot
+show only error strings; `b4 01 b9 00 20 cd 10` present in the built
+boot.img AND read back from `/dev/sda` sector 0 after gen 5's
+grub-install. `grub_console_cls` and the menu path were audited for
+re-enables: the only `setcursor(1)` sites are the command-line reader
+and editor — off the menu path, so the emergency CLI keeps its cursor.
+What remains is firmware territory: the BIOS's cursor during POST/USB
+enumeration. Levers if Max wants it: BIOS Quiet/Fast boot, or unplug
+the spare dongle (`wlp0s29f7u2` sits disconnected but is enumerated at
+POST). Owed at the next recut: the ISO's UEFI GRUB gets the same patch.
+
+### The deliveries — #67's answer, re-proven three times in one morning
+Three live deliveries over the rtl8187 (the dongle class that killed
+two machines), all via the new `tools/deliver-live.sh` (the throttle
+pointed at a running system, DB-checked per #85): gen 3 16 paths (one
+drop, auto-backoff 400→200 KB/s, resumed, complete), gen 4 14 paths
+(clean, 2 m 25 s), gen 5 14 paths (clean, 2 m 20 s). The seed synced
+each time — `installed == seed` held through all three generations.
+
 ## Round I2 — the real install — 2026-09-13/14 — **PASS** (stage 0 on the lab's oldest machine), and it caught #87
 
 **Status in one line:** installed, booted, audited — `comodore` on

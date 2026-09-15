@@ -24,6 +24,153 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 92. TWO BOOTLOADERS, ONE LOOK — systemd-boot retires, GRUB-EFI takes firmware=uefi — [DECIDED by Max 2026-09-15 · REWIRED in source, matrices green · metal owed on the UEFI machines]
+Max, after the comodore's quiet boot landed: *"i want Golem to look and
+feel the same no matter if it is booting on grub or Systemd."* The
+technical fact that decides the shape: **systemd-boot has no theming at
+all** — font, colors, geometry are compiled in — so the grub theme's
+sd-boot mimicry had a hard ceiling, and one look everywhere means one
+MENU everywhere.
+- **done in source:** `boot/grub-efi.nix` (new leaf: same theme
+  numbers, same #89 quiet-patch overlay, `efiSupport`+`nodev`,
+  canTouchEfiVariables; sd-boot's stale-boot-pin housekeeping does NOT
+  carry over — that was a bootctl/EFI-var mechanism only sd-boot
+  reads). Chooser: `firmware=uefi → boot/grub-efi.nix`. All six
+  fixture expectations in chooser-matrix and four UEFI assertions in
+  minimal-matrix flipped and GREEN. The patched EFI grub variant
+  builds (the BIOS-sector hunks simply don't compile on EFI; the
+  banner/cursor hunks do). `systemd-boot.nix` kept with a RETIRED
+  header for the day a machine truly cannot GRUB.
+- **owed on metal:** the acer and asus run sd-boot today — each gets
+  grub-efi by live-fix rebuild on its next turn (their ESPs keep
+  sd-boot files until then; harmless, grub writes its own). The
+  macbook's Apple EFI may need `efiInstallAsRemovable` as a quirk —
+  decide on its metal. The ISO's UEFI GRUB gets theme+patch at the
+  recut (#89's note) — after which ALL four boot surfaces (ISO
+  BIOS/UEFI, installed BIOS/UEFI) show the same Golem menu, the ISO's
+  BIOS syslinux being the one bespoke sibling.
+- **where:** `boot/grub-efi.nix`, `boot/systemd-boot.nix` (header),
+  `choose.nix`, both matrices.
+- **size:** source done; metal = one rebuild per UEFI machine.
+
+### 91. A HIBERNATION IMAGE MAKES A POWER-ON NOT A BOOT — "reboot required" can be undischargeable from the power button — [FOUND 2026-09-15 · the comodore · lab-method + audit consequence]
+Gen 2 was activated 09-14 with `REBOOT REQUIRED` recorded as owed. The
+machine was then power-cycled at least twice (hibernated overnight, Max's
+power-on at the screen 09-15) — and this morning `/run/booted-system`
+STILL said gen 1 (`yi4krfsi…`) while the profile said gen 2 (`8mwl79j0…`).
+- **mechanism:** power/laptop's bag timer (`suspend-then-hibernate`,
+  image to disk after 120 min) + the wired `resume=` mean a power-on
+  goes GRUB → initrd finds the hibernation image → **restores the OLD
+  session** — same kernel, same boot id, same generation. The GRUB menu
+  shows, the machine "boots", and no boot happened. On the comodore,
+  #90's stuck lid is what wrote the image unattended.
+- **why it matters to the method:** "power-cycled" and "rebooted" are
+  different claims on any machine carrying this leaf. The `REBOOT
+  REQUIRED` state can survive the power button INDEFINITELY; only an
+  explicit `systemctl reboot` (a clean shutdown discards no-image) or a
+  consumed/absent image lets the new generation actually boot. The
+  audit already asks the right question (`booted:` vs `current:` from
+  /run) — trust THAT line, never the power button.
+- **not a bug:** hibernation doing its exact job. The finding is that
+  our records equated power-on with boot; they must not.
+- **where:** lab method + a note in the audit's reading; touches #88's
+  generation bookkeeping and this machine's "still owed" reboot.
+- **size:** no source change. Method note; recorded here so the next
+  machine with power/laptop doesn't re-earn it.
+
+### 90. THE LID SWITCH LIES — stuck "closed", the machine sleeps 30 s after every wake — [VERIFIED LIVE 2026-09-15 · quirk live since gen 3, zero suspends across gens 3–5 · the census fact is needs-Max]
+**Addendum:** after the gen-3 reboot the switch read **open** again —
+it lies INTERMITTENTLY, which is worse than stuck (yesterday's clean
+audit was luck, not health). The quirk stays regardless of today's
+reading.
+Max: *"after like 30s ish, it goes sleep, i have to touch the power
+button to wake it up.. and that is Golem."* It was. Evidence, pulled in
+one of the 30 s wake windows (the machine was then pinned awake by
+masking the sleep targets):
+- `/proc/acpi/button/lid/LID/state` = **closed** — with the lid open
+  and Max standing at the screen. The switch is stuck.
+- battery innocent: BAT0 fully-charged 100%, on AC (`on-battery: no`).
+- journal: `PM: suspend entry (deep)` every **~31–35 s**, the cadence
+  of logind's post-resume holdoff.
+- **mechanism:** power/laptop (chassis=laptop) sets `HandleLidSwitch =
+  suspend-then-hibernate`. logind ignores the lid for
+  `HoldoffTimeoutSec` (default **30 s**) after every boot/resume, then
+  acts on the LEVEL it reads — stuck "closed" → sleep, forever. The
+  eyes at the screen change nothing; systemd believes the switch.
+- **why the lab never saw it:** the installation medium sets the lid
+  switch to ignore (installation-device profile) — every census and
+  delivery night was immune; and on the 09-14 audit morning the switch
+  still read open — the machine was moved between sessions, and a 2008
+  magnetic reed switch sticks.
+- **fix (in source, owner-edit):** `system/Modular/quirks/lid-switch-broken.nix`
+  — `HandleLidSwitch = "ignore"`, plain definition beating
+  power/laptop's mkDefault; power button, manual suspend and the bag
+  timer stay live. Wired into the comodore's `hosts/target/modules.nix`
+  as a commented OWNER EDIT (rule: the chooser points, the owner may
+  add) — the chooser matrix pins the chooser's resolve, so an owner
+  line is visible drift-free.
+- **needs-Max (the chooser question):** a census fact IS possible —
+  during an interactive census someone is typing at the machine, so a
+  lid device reading "closed" at that moment is self-evidently a lie →
+  `lidSwitchStuck=true` → the chooser adds the quirk itself. Worth it,
+  or does a lying lid stay an owner call?
+- **where:** the quirk leaf, `hosts/target/modules.nix`, the census
+  fact set if blessed; the raw capture in the machine file.
+- **size:** done for the comodore; small for the fact.
+
+### 89. GRUB SAYS ITS OWN NAME BEFORE THE THEME CAN STOP IT — the banner, then the blinking cursor — [VERIFIED LIVE 2026-09-15, gens 3→5 on the comodore · software side CLOSED · the UEFI/ISO side owed at the recut]
+**Final state:** boot fully silent from Golem's first MBR instruction to
+the themed menu. Three iterations, Max's eyes as the instrument each
+time (gen 3 banner gone / gen 4 cursor still blinks — window is earlier
+than core / gen 5 cursor-hide as boot.S's OPENING MOVE → one blink
+left, which is the BIOS's own pre-MBR cursor, out of software's reach).
+MBR bytes read back from /dev/sda after landing. Full account:
+comodore.md, the I2 coda.
+**Live-verify, first half (gen 3, Max at the screen):** the "GRUB.."
+banner is gone — "looks good". What the silence exposed: the firmware's
+hardware TEXT CURSOR, blinking alone on the empty screen ("it blinks
+twice") while core loads modules/theme/font from the 2008 HDD. GRUB
+never hides it until gfxterm takes the display. Second hunk added to
+the same patch: `grub_console_init` now hides the cursor at
+registration (BIOS int 10h, shape 0x2000), before anything else runs;
+the command-line reader re-enables it through `setcursor` when it
+actually wants one, so the emergency CLI keeps its cursor.
+Max's eyes on the comodore's first themed boot (#68's still-owed
+observation): the menu itself "looks better", but a `GRUB..` message
+flashes before it. Three banners print BEFORE grub.cfg is ever read, so
+no theme or config option can prevent them — the theme only clears them
+after the fact (grub-bios.nix's header even documented the chatter and
+assumed clearing was enough; a flash is still a flash):
+- `boot.S` (the MBR sector) prints **"GRUB "**;
+- `diskboot.S` prints **"loading"** + a dot per read while core.img
+  loads — on a 2008 machine this is the visible part;
+- `kern/main.c` prints **"Welcome to GRUB!"** — upstream already
+  silences this one on EFI ("this breaks flicker-free boot on EFI"),
+  BIOS just never got the same care.
+- **fix (in source):** `system/Modular/boot/grub-quiet.patch` — empties
+  the three success-path strings, keeps every error string ("Geom",
+  "Read", " Error"): silence on success, words on failure. Wired as a
+  `nixpkgs.overlays` entry in `grub-bios.nix` because the grub module
+  has no package option — it reaches for `pkgs.grub2` directly.
+  Verified on the built artifact: `strings` on boot.img/diskboot.img
+  show only error strings; zero "Welcome to GRUB" anywhere in
+  `lib/grub/i386-pc/`.
+- **why the stick never showed this:** on BIOS the medium boots through
+  **syslinux/vesamenu** (its boot sector prints nothing and the round-8
+  work alpha-zeroed its text); GRUB is only on the stick for UEFI —
+  where the SAME flash exists in the ISO's GRUB side. The ISO grub is a
+  different program (`iso-image-golem.nix`); pointing it at the same
+  patched package is part of the next recut, noted there.
+- **cost note:** a patched grub is not in cache.nixos.org, so a
+  machine's LOCAL self-rebuild would compile grub from source (~slow on
+  the small boxes). Deliver the closure from the dev box first (the #67
+  throttle exists now) and the local rebuild finds it in the store.
+- **where:** `system/Modular/boot/grub-quiet.patch` (the patch, header
+  documents the re-vendor rule), `grub-bios.nix` (the overlay + #89
+  comment), `iso-image-golem.nix` (owed: the UEFI side, next recut).
+- **size:** done in source; live-verify on the comodore = deliver +
+  switch + one more power-on with Max watching.
+
 ### 88. A SELF-REBUILT MACHINE FORGETS WHAT IT IS — `configurationRevision` becomes "unknown" — [FOUND 2026-09-14 · the comodore's gen 2 · answers the #35b carried decision with evidence]
 The comodore's self-rebuild produced a toplevel that DIFFERS from the one
 installed. Chased to the bottom, **the entire difference is one string**:

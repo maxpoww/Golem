@@ -1,0 +1,94 @@
+#89 — the quiet boot: no banner, no blinking cursor, from the MBR on.
+Before grub.cfg is ever read, stock GRUB prints "GRUB " (boot.S),
+"loading" + dots (diskboot.S), "Welcome to GRUB!" (kern/main.c), and
+leaves the firmware's hardware TEXT CURSOR blinking while core loads
+modules/theme/font from disk (1-2 s on a 2008 HDD). The theme (#68)
+only clears all of it after the fact. This patch: empties diskboot's
+strings and silences the banner on every platform (upstream already
+does EFI); REPLACES boot.S's "GRUB " print with an int 10h cursor-hide
+(AH=01, CX=0x2000) — the earliest instruction we own, %dx already
+stacked, layout guarded by the .org directives so overflow is a build
+error; and hides the cursor again at console init as belt-and-braces
+(the command-line reader re-enables it via setcursor when it needs
+one). ERROR strings ("Geom"/"Read"/" Error") are all KEPT — silence on
+success, words on failure. The residue that cannot be fixed from here:
+whatever the BIOS itself draws before the MBR runs.
+Applies to grub 2.12 / nixpkgs c5c4a43. Re-check on nixpkgs bumps.
+diff -ru a/grub-core/boot/i386/pc/boot.S b/grub-core/boot/i386/pc/boot.S
+--- a/grub-core/boot/i386/pc/boot.S	2026-09-15 08:53:34.721494344 -0400
++++ b/grub-core/boot/i386/pc/boot.S	2026-09-15 09:29:43.235096940 -0400
+@@ -249,8 +249,12 @@
+ 	/* save drive reference first thing! */
+ 	pushw	%dx
+ 
+-	/* print a notification message on the screen */
+-	MSG(notification_string)
++	/* Golem: hide the firmware's blinking cursor — the earliest
++	   instruction we own.  Replaces the old "GRUB " notification;
++	   %dx is already saved on the stack.  */
++	movb	$0x01, %ah
++	movw	$0x2000, %cx
++	int	$0x10
+ 
+ 	/* set %si to the disk address packet */
+ 	movw	$disk_address_packet, %si
+@@ -478,7 +482,6 @@
+ LOCAL(stop):
+ 	jmp	LOCAL(stop)
+ 
+-notification_string:	.asciz "GRUB "
+ geometry_error_string:	.asciz "Geom"
+ hd_probe_error_string:	.asciz "Hard Disk"
+ read_error_string:	.asciz "Read"
+diff -ru a/grub-core/boot/i386/pc/diskboot.S b/grub-core/boot/i386/pc/diskboot.S
+--- a/grub-core/boot/i386/pc/diskboot.S	2026-09-15 08:53:34.725786986 -0400
++++ b/grub-core/boot/i386/pc/diskboot.S	2026-09-15 08:53:53.833959718 -0400
+@@ -320,10 +320,10 @@
+ /* go here when you need to stop the machine hard after an error condition */
+ LOCAL(stop):	jmp	LOCAL(stop)
+ 
+-notification_string:	.asciz "loading"
++notification_string:	.asciz ""
+ 
+-notification_step:	.asciz "."
+-notification_done:	.asciz "\r\n"
++notification_step:	.asciz ""
++notification_done:	.asciz ""
+ 
+ geometry_error_string:	.asciz "Geom"
+ read_error_string:	.asciz "Read"
+diff -ru a/grub-core/kern/main.c b/grub-core/kern/main.c
+--- a/grub-core/kern/main.c	2026-09-15 08:53:34.717668758 -0400
++++ b/grub-core/kern/main.c	2026-09-15 08:53:53.838439139 -0400
+@@ -270,13 +270,8 @@
+ 
+   grub_boot_time ("After machine init.");
+ 
+-  /* This breaks flicker-free boot on EFI systems, so disable it there. */
+-#ifndef GRUB_MACHINE_EFI
+-  /* Hello.  */
+-  grub_setcolorstate (GRUB_TERM_COLOR_HIGHLIGHT);
+-  grub_printf ("Welcome to GRUB!\n\n");
+-  grub_setcolorstate (GRUB_TERM_COLOR_STANDARD);
+-#endif
++  /* Golem: no banner on any platform. Upstream already silences this on
++     EFI for flicker-free boot; BIOS deserves the same quiet.  */
+ 
+   /* Init verifiers API. */
+   grub_verifiers_init ();
+diff -ru a/grub-core/term/i386/pc/console.c b/grub-core/term/i386/pc/console.c
+--- a/grub-core/term/i386/pc/console.c	2026-09-15 09:19:49.883704625 -0400
++++ b/grub-core/term/i386/pc/console.c	2026-09-15 09:19:49.887969918 -0400
+@@ -297,6 +297,12 @@
+ void
+ grub_console_init (void)
+ {
++  /* Golem: hide the firmware's blinking text cursor from the first
++     moment.  The quiet path prints nothing while core loads modules,
++     theme and font from disk, so the cursor was the only thing on
++     screen.  Anything that truly needs it (the command-line reader)
++     re-enables it through setcursor.  */
++  grub_console_setcursor (&grub_console_term_output, 0);
+   grub_term_register_output ("console", &grub_console_term_output);
+   grub_term_register_input ("console", &grub_console_term_input);
+ }
