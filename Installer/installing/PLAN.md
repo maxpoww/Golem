@@ -55,7 +55,7 @@ continue the global number line (#62 onward); round-scoped items are
 |---|---------|------------------|------------------|---------|-------|
 | 0 | VM (UEFI + BIOS) | ✅ qemu-virtio | ✅ **both firmwares**, self-rebuild proven | ☐ | gates every ISO |
 | 1 | **acer** (UEFI, HD 5500) | ✅ | ✅ **PASS 09-10 (I1) + 09-11 (I2, from the shipping ISO)**; **09-15: GRUB-EFI (#92) live**, caught #94 | ☐ | runs on the dell's old drive |
-| 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live | ☐ | internal disk still holds the fat dogfood Golem |
+| 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live. **09-15: #92 swap DEFERRED** — the external drive no longer enumerates (no block dev, no USB bus entry, no errors) | ☐ | internal disk still holds the fat dogfood Golem — **it answers as `asus` too; check modules.nix + Hyprland before ANY write** |
 | 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ✅ **PASS 09-14** — audited clean, rejoined over a USB dongle, **self-rebuilt → gen 2 in <3 min on 1931 MB**; **09-15: gen 6**, quiet boot (#89) + lid quirk (#90) + graphics handoff (#93) all live-verified — "the message is gone, clean boot" | ☐ | **#67 answered here** (throttle); caught #85/#87/#88, then #89/#90/#91/#93 |
 | 4 | dell (BIOS, USB wifi, **no keyboard**) | ✅ (redundant with comodore) | ✗ blocked — USB-enumeration boot quirk; firmware mode unknown (F2/F12 unreachable). **#67 no longer blocks it** — retry under the throttle | ☐ | needs a USB keyboard, or stays parked |
 | 5 | hp (BIOS, failing radeon) | ✅ | ☐ not attempted | ☐ | guarded |

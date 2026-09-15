@@ -1,5 +1,44 @@
 # ASUS — the modular install (to an external drive)
 
+## 2026-09-15 — DEFERRED for the #92 GRUB-EFI swap: the external drive no longer enumerates
+
+Rule 2 lets a machine be deferred with a recorded reason. This is it.
+
+**The evidence, from three separate boots of the machine:** the Seagate
+BUP that carries this machine's stage-0 does not appear as a block
+device (`lsblk` shows only the internal Toshiba + the DVD), does not
+appear on the USB bus (the ONLY USB device present is the built-in
+Chicony webcam), and — the diagnostic part — **logs no USB errors at
+all**. A failing drive or a bad enumeration leaves something in dmesg;
+silence means nothing is reaching a live port. Max reordered the
+firmware boot entries and it kept booting the internal disk, which is
+the expected result: firmware cannot offer an entry for a device that
+is not electrically there. Cable, port, or drive — not boot order.
+
+**A trap avoided, worth recording:** the machine answers at `.85` as
+`asus`, healthy, with a Golem seed — and it is the **FAT DOGFOOD Golem
+on the internal Toshiba**, not the stage-0. Told apart by three checks
+before anything was written: Hyprland PRESENT (stage 0 is minimal by
+definition), **no `hosts/target/modules.nix`** in the seed (that file IS
+the modular install; the fat tree has `default.nix` instead), and
+`/boot` + root both on `/dev/sda`. Running the #92 rebuild against what
+answered would have written GRUB over the dogfood system's
+systemd-boot, on the disk this round promised to leave alone. **Writes
+to `sda` this session: 0.** Any future visit must repeat those three
+checks before a destructive verb — the hostname alone is not identity.
+
+**What is owed when a drive exists again:** the #92 GRUB-EFI swap plus
+#89/#93/#95 (quiet boot, graphics handoff, the menu) — i.e. one live
+rebuild, ~15 min, exactly the acer's recipe (7384 MB, so it builds
+locally). Nothing else; this machine's round-I2 PASS below stands.
+
+**Why deferring costs the round little:** the asus's unique evidence —
+`gpu2/failing` on real failing-dGPU hardware, zram-tier2, the
+external-drive install — is already banked below. Its remaining
+contribution was a SECOND UEFI GRUB-EFI data point, and the acer
+provided the first on metal today (including #94). The hp and macbook
+have never met the round-I2 ISO and would teach more.
+
 ASUS X550LC · i5-4200U Haswell (2c/4t) · Intel Haswell-ULT iGPU (boot
 display) + **GF117M nvidia dGPU that FAILS its wake test** · UEFI ·
 7384 MB · internal 298 GB Toshiba = **the lab's dogfooded fat Golem
