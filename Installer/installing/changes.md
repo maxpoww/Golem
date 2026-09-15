@@ -24,6 +24,40 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 94. THE FIRMWARE DELETES YOUR BOOT ENTRY — a loader that lives only in NVRAM is at the mercy of the machine — [FOUND + FIXED 2026-09-15 · the acer, #92's first metal · wire-verified]
+The acer took GRUB-EFI perfectly: `grubx64.efi` installed, a named
+`Golem-boot` NVRAM entry created, BootOrder **`0002,0001,2001,…`** with
+Golem first. One reboot later the firmware had **dropped entry 0002 from
+BootOrder entirely** (`0001,2001,2002,2003`) and booted its own generic
+`HDD: Hitachi` entry — which runs the removable fallback
+`\EFI\BOOT\BOOTX64.EFI`. That file was still **systemd-boot**, whose
+entries stop at generation 2, so the machine came up on the OLD
+generation and GRUB never ran. Everything we installed was correct; the
+firmware simply refused to keep it.
+- **why this is a class, not a machine:** old consumer firmware curates
+  its own boot list. Trusting NVRAM means trusting the machine to
+  remember a favour. The removable path is the one location every
+  firmware falls back to, and nothing purges it.
+- **fix:** `efiInstallAsRemovable = lib.mkDefault true` +
+  `canTouchEfiVariables = false` (NixOS asserts they are mutually
+  exclusive) in `boot/grub-efi.nix` — the DEFAULT for every UEFI
+  machine, not an acer quirk. With no NVRAM writes there is no named
+  entry to lose; mkDefault leaves room for a machine that needs one.
+- **the gotcha that cost a reboot:** `nixos-rebuild boot` re-generates
+  grub.cfg but SKIPS `grub-install` when it thinks nothing changed —
+  `efiInstallAsRemovable` flipping is not enough to trigger it.
+  **`--install-bootloader` is required** whenever the loader's
+  installation shape changes. Worth remembering for the installer too.
+- **predicted:** this is very likely what would have met us on the
+  macbook (Apple EFI) — the quirk grub-efi.nix's header anticipated is
+  now the default, so that boss fight may already be won.
+- **verified:** fallback path is byte-identical to `grubx64.efi`;
+  `booted == current == jr3f86mg…` (a generation only GRUB knows);
+  running, 0 failed. sd-boot's binary + a backup of the old fallback
+  kept on the ESP as an F12 escape hatch.
+- **where:** `system/Modular/boot/grub-efi.nix`.
+- **size:** done. Same change carries to the ISO's UEFI side at the recut.
+
 ### 93. THE KERNEL'S STUB SAYS "No EFI environment detected." ON EVERY BIOS BOOT — unsilenceable by loglevel, cured by the graphics handoff — [VERIFIED 2026-09-15 · gen 6, wire + Max's eyes: "the message is gone, clean boot"]
 After the menu, one line survived the quiet boot: the kernel's
 REAL-MODE STUB warns "No EFI environment detected." when it finds no

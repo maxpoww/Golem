@@ -1,5 +1,37 @@
 # Acer — the first blessed metal install of the modular era
 
+## 2026-09-15 — #92's first metal: systemd-boot → GRUB-EFI, and the firmware fought back (#94)
+
+**Status in one line:** the acer boots **GRUB-EFI** wearing the same Golem
+menu as the comodore — `booted == current == jr3f86mg…` (a generation
+only GRUB knows), `running`, 0 failed units.
+
+- **Method — local rebuild, not delivery.** 3833 MB is above the #16/#66
+  eval floor and this machine had self-rebuilt twice already, so: rsync
+  the updated source into its seed (`system/` + flake, `installed ==
+  seed` preserved), re-point `hosts/target/modules.nix` at
+  `boot/grub-efi.nix` (an owner edit, marked `#92`, with a
+  `.pre-92` backup beside it), pre-deliver the patched grub over the
+  INTERNAL ath10k (#67's sanctioned path — 100 MiB, plain `nix copy`),
+  then `nixos-rebuild boot`. ~15 minutes end to end.
+- **First attempt LOOKED perfect and silently failed.** GRUB installed,
+  a named `Golem-boot` NVRAM entry appeared, BootOrder put it first —
+  and the next boot came up on **generation 2**. The firmware had purged
+  entry 0002 and booted its own `HDD:` entry → the removable fallback →
+  **systemd-boot**, which knows nothing past gen 2. Caught only because
+  the wire check compares `booted` against `current`; the machine was
+  healthy and would have passed any casual look. **→ #94.**
+- **The fix that stuck:** own `\EFI\BOOT\BOOTX64.EFI`
+  (`efiInstallAsRemovable`), now the default for every UEFI machine.
+  Needed `nixos-rebuild boot --install-bootloader` — a plain rebuild
+  regenerates grub.cfg but skips `grub-install`.
+- **Escape hatch left in place:** sd-boot's binary still at
+  `/boot/EFI/systemd/`, plus `BOOTX64.EFI.sdboot-backup`; F12 →
+  "Linux Boot Manager" returns to the old loader.
+- **Owed:** Max's eyes on the menu — whether it reads as the SAME menu
+  as the comodore's on a different panel (1366×768 vs 1024×768; the
+  theme is percentage-based, so it should).
+
 ## Round I2 — reinstalled from the SHIPPING ISO — 2026-09-11 — PASS; #65 and #64 arrive from the image, not from a patch
 
 The acer's round-I2 turn (the round runs the whole roster — constitution

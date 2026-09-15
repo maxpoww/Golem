@@ -30,10 +30,24 @@
   ];
 
   boot.loader.timeout = 3;
-  boot.loader.efi.canTouchEfiVariables = true;
+
+  # #94 — OWN THE FALLBACK PATH, don't trust firmware NVRAM. The acer
+  # (2026-09-15) accepted a named "Golem-boot" entry, put it first in
+  # BootOrder, and then DELETED it across one reboot — booting its own
+  # "HDD:" entry, which runs \EFI\BOOT\BOOTX64.EFI. A bootloader that
+  # lives only in an NVRAM entry is at the mercy of firmware that
+  # rewrites its boot order, and old laptops do exactly that. Installing
+  # as removable puts GRUB at the fallback path every firmware falls
+  # back to, so "it boots" stops depending on NVRAM surviving.
+  # mutually exclusive with canTouchEfiVariables (NixOS asserts it):
+  # with no NVRAM writes there is no named entry to lose. mkDefault so a
+  # machine that needs a named entry can override in its own quirk.
+  boot.loader.efi.canTouchEfiVariables = false;
+
   boot.loader.grub = {
     enable = true;
     efiSupport = true;
+    efiInstallAsRemovable = lib.mkDefault true;
     device = "nodev";
     configurationLimit = 15;
 
