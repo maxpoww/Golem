@@ -57,5 +57,17 @@
     extraConfig = ''
       set timeout_style=menu
     '';
+
+    # #93 — the kernel's real-mode stub prints "No EFI environment
+    # detected." on every BIOS boot, straight into VGA text memory —
+    # before printk exists, so quiet/loglevel can't touch it. NixOS
+    # hands over in TEXT mode on BIOS (gfxpayload=text), which is what
+    # makes the write visible (and what causes the menu→boot mode-switch
+    # flash). Hand over in graphics like the EFI path always has: the
+    # menu's framebuffer survives into KMS, the stub's text lands in
+    # invisible memory, the flash is gone. Tradeoff, accepted: a stub-
+    # LEVEL panic (rare: corrupt image, decompression failure) is a
+    # silent black hang instead of a printed error — the record knows.
+    gfxpayloadBios = "keep";
   };
 }

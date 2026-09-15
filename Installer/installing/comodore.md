@@ -7,10 +7,13 @@ Max's treasure. Intel GM45 whitebox · Pentium T4200 (2c/2t) · GMA 4500
 
 ## Round I2 coda — 2026-09-15 — the lid that lies (#90), the boot that wasn't (#91), and the quiet boot (#89) — gens 3→5 in one morning
 
-**Status in one line:** gen 5 booted and verified (`c7lx0rd7…`, `running`,
-0 failed units, 0 suspends), the lid quirk live, the boot fully silent
-from Golem's first MBR instruction to the themed menu — the one
-remaining cursor blink is the BIOS's own, before our code exists.
+**Status in one line:** gen 6 booted and verified (`yvphx9fq…`, `running`,
+0 failed units, 0 suspends, console on `i915drmfb`), the lid quirk live,
+the boot fully silent AND flash-free from Golem's first MBR instruction
+through the kernel handoff — Max: "the message is gone, clean boot." The
+one remaining cursor blink is the BIOS's own USB enumeration (dongle-
+dependent, Max-verified), before our code exists; accepted as the
+machine's firmware signature.
 
 ### The lid that lies (#90) — Max: "it goes sleep after like 30s ish, and that is Golem"
 It was. Caught in one of the 30 s wake windows and pinned awake by
@@ -41,7 +44,8 @@ Max's eyes at the screen were the instrument for all three:
 |---|---|---|
 | 3 | banner strings emptied (boot.S "GRUB ", diskboot "loading…", main.c Welcome) + lid quirk | "looks good" — banner gone; a `_` blinks twice before the menu |
 | 4 | cursor hidden at `grub_console_init` (BIOS int 10h, 0x2000) | still blinking — the window is EARLIER than core |
-| 5 | cursor-hide as boot.S's opening move, replacing the old "GRUB " print (%dx already stacked; `.org` layout makes overflow a build error) | **one blink** — pre-MBR, the BIOS's own |
+| 5 | cursor-hide as boot.S's opening move, replacing the old "GRUB " print (%dx already stacked; `.org` layout makes overflow a build error) | **one blink** — pre-MBR, the BIOS's own (dongle-unplug experiment proved it: no dongle, no blink) |
+| 6 | `gfxpayloadBios=keep` (#93) — graphics handoff mutes the kernel stub's "No EFI environment detected." and kills the menu→boot text flash | **"the message is gone, clean boot"** |
 Byte-verified before and after landing: `strings` on boot.img/diskboot
 show only error strings; `b4 01 b9 00 20 cd 10` present in the built
 boot.img AND read back from `/dev/sda` sector 0 after gen 5's

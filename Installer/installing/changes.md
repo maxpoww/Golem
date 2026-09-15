@@ -24,6 +24,34 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 93. THE KERNEL'S STUB SAYS "No EFI environment detected." ON EVERY BIOS BOOT — unsilenceable by loglevel, cured by the graphics handoff — [VERIFIED 2026-09-15 · gen 6, wire + Max's eyes: "the message is gone, clean boot"]
+After the menu, one line survived the quiet boot: the kernel's
+REAL-MODE STUB warns "No EFI environment detected." when it finds no
+EFI tables on a BIOS machine, writing STRAIGHT INTO VGA TEXT MEMORY
+before printk exists — no `quiet`, no `loglevel=0`, no journal setting
+can reach it (which is why the string appears on screen yet in no log;
+found by grepping the whole closure: it lives in bzImage's
+uncompressed stub region).
+- **why it was visible at all:** NixOS's BIOS grub.cfg does
+  `set gfxpayload=text` — the screen is switched BACK to text mode for
+  the kernel handoff, so the stub's VGA write shows (and the
+  menu→boot mode-switch flash comes from the same line). The EFI path
+  has always used `gfxpayload=keep`.
+- **fix:** `gfxpayloadBios = "keep"` in grub-bios.nix (#92's sameness
+  principle applied one layer deeper): the menu's framebuffer survives
+  into KMS, the stub's text lands in memory nothing displays, and the
+  text-mode flash is gone. Wire-verified on gen 6: booted, `running`,
+  0 failed, console on `i915drmfb`.
+- **tradeoff, accepted and recorded:** a stub-LEVEL kernel failure
+  (corrupt image, decompression error — rare) is now a silent black
+  hang instead of a printed error. If a BIOS machine ever hangs black
+  before any disk activity, boot once with gfxpayload=text and read
+  the screen.
+- **where:** `system/Modular/boot/grub-bios.nix`. The ISO's loaders
+  are syslinux (BIOS) / GRUB-EFI — neither has this handoff, nothing
+  owed there.
+- **size:** one line, done.
+
 ### 92. TWO BOOTLOADERS, ONE LOOK — systemd-boot retires, GRUB-EFI takes firmware=uefi — [DECIDED by Max 2026-09-15 · REWIRED in source, matrices green · metal owed on the UEFI machines]
 Max, after the comodore's quiet boot landed: *"i want Golem to look and
 feel the same no matter if it is booting on grub or Systemd."* The
