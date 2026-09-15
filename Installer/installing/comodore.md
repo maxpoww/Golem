@@ -7,7 +7,15 @@ Max's treasure. Intel GM45 whitebox · Pentium T4200 (2c/2t) · GMA 4500
 
 ## Round I2 coda — 2026-09-15 — the lid that lies (#90), the boot that wasn't (#91), and the quiet boot (#89) — gens 3→5 in one morning
 
-**Status in one line:** gen 6 booted and verified (`yvphx9fq…`, `running`,
+**gen 7 (2026-09-15, later):** the #95 menu — `Start Golem` / `Previous
+Versions`, centred in the 226px box — delivered and live here too, so the
+SAME menu now exists on a 2008 BIOS machine chainloading from an MBR and
+on the acer's UEFI GRUB. That is #92 proven on metal rather than argued:
+different firmware, different loader path, different panel, one menu.
+Booted, `running`, 0 failed, 0 suspends. Delivery: 16 paths in 3.5 min
+over the dongle, zero drops.
+
+**Status in one line (gen 6):** booted and verified (`yvphx9fq…`, `running`,
 0 failed units, 0 suspends, console on `i915drmfb`), the lid quirk live,
 the boot fully silent AND flash-free from Golem's first MBR instruction
 through the kernel handoff — Max: "the message is gone, clean boot." The

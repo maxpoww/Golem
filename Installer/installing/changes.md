@@ -79,8 +79,13 @@ guessing:
   number with no date to reason about.
 - **where:** `boot/grub-item-align.patch`, `boot/grub-patched.nix`,
   `boot/grub-theme.nix`, both leaves' geometry.
-- **owed:** the comodore (powered off — one delivery + reboot) and the
-  ISO's own menu at the recut, so medium and installed match.
+- **BOTH FIRMWARES, SAME MENU (2026-09-15):** live on the acer
+  (UEFI/GRUB-EFI) and the comodore (2008 BIOS, MBR chainload) — booted,
+  healthy, verified on the wire. #92 stops being a design goal here and
+  becomes a fact on metal.
+- **owed:** the ISO's own menu at the recut (its grub is unpatched, so
+  it ignores `item_align` and keeps the old look until then), so the
+  medium finally matches the machines it installs.
 
 ### 94. THE FIRMWARE DELETES YOUR BOOT ENTRY — a loader that lives only in NVRAM is at the mercy of the machine — [FOUND + FIXED 2026-09-15 · the acer, #92's first metal · wire-verified]
 The acer took GRUB-EFI perfectly: `grubx64.efi` installed, a named
