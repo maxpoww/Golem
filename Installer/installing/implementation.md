@@ -81,6 +81,16 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    closure into the ISO + wire ENTER-runs-it-locally, so a stranger
    flashes, answers, presses play, and it installs — no dev box.
    Round I1's #63/#64/#65 fixes ride this recut.
+   - **Inherit #85's lesson:** when it decides "what still needs
+     installing?", ask the store DATABASE (`path-info --all`), never
+     `[ -e ]` on the path. A resumed install can meet a half-written path
+     from a previous death, and a filesystem test calls that present.
+   - **#67's rationale is now weaker, and that is good news:** the
+     comodore proved a throttled per-path delivery moves 2.96 GiB over a
+     USB dongle with zero drops. The offline installer is still the right
+     end state (no delivery at all), but it is no longer the only way to
+     reach these machines — so it does not have to be rushed to unblock
+     the small-RAM boxes.
 
 ## Round I3 — stage 1 climbs (desktop)
 

@@ -24,8 +24,179 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
-### 67. A multi-GB closure delivery over a USB WIFI DONGLE kills the machine — two machines, same night, same signature — [FOUND 2026-09-11 · lab-method finding, not a Golem bug]
-**The dell and the comodore both died mid-`nix copy`**, minutes apart in
+### 88. A SELF-REBUILT MACHINE FORGETS WHAT IT IS — `configurationRevision` becomes "unknown" — [FOUND 2026-09-14 · the comodore's gen 2 · answers the #35b carried decision with evidence]
+The comodore's self-rebuild produced a toplevel that DIFFERS from the one
+installed. Chased to the bottom, **the entire difference is one string**:
+| | `configurationRevision` |
+|---|---|
+| gen 1 — built on the dev box | `d0347f9d34940e7225f39f39938097afcbef0fbc-dirty` |
+| gen 2 — rebuilt from its own seed | **`unknown`** |
+
+Everything else is byte-identical: same kernel, same kernel-params, same
+binaries, `nix store diff-closures` **empty**, and the two `system-path`
+buildEnvs differ only by the `nixos-version` input that carries the string.
+- **cause:** `flake.nix` sets `system.configurationRevision = self.rev or
+  self.dirtyRev or "unknown"`. The dev box's `~/Golem` is a git checkout,
+  so it resolves to a dirtyRev; **the seed is a plain directory copy with
+  no `.git`** (confirmed: `du` shows no `.git` in the seed), so it falls
+  all the way through to `"unknown"`.
+- **why it matters:** an installed Golem in the field, after its first
+  self-rebuild, can no longer say what source it is running.
+  `nixos-version --json` reports `"configurationRevision":"unknown"`
+  forever after. That is the one field whose whole job is traceability,
+  and the rebuild loop — the thing stage 0 exists to provide — is what
+  erases it. Support, bisection and "which fix does this machine have?"
+  all go through it.
+- **this ANSWERS #35b** (implementation.md's carried decision: *seed git
+  policy — plain-path vs git*). The question was open on aesthetics; it
+  now has a consequence. Plain-path seeding costs the machine its
+  identity string. Options: (a) seed as a real git repo with one commit,
+  so `self.rev` resolves and stays stable; (b) have `golem-install` write
+  the revision it built from into the seed as an explicit
+  `system.configurationRevision` override, which needs no git at all and
+  survives copying — **probably the right answer**, since the seed is a
+  distribution artifact rather than a working tree; (c) accept "unknown"
+  and stop claiming traceability.
+- **not a regression, and not urgent:** gen 2 is functionally identical
+  and the machine is healthy (`running`, 0 failed units). This is about
+  what the machine can TELL you, not what it does.
+- **where:** `Installer/preinstall/install.nix` (phase 3, the seed drop),
+  `flake.nix` (the `configurationRevision` line), implementation.md's
+  #35b carried decision.
+- **size:** small for option (b). Needs-Max on which option.
+
+### 87. A CHOSEN LEAF THAT DOES NOTHING, AND EVERY LAYER SAYS IT WORKS — thermald is a silent no-op on pre-RAPL Intel — [FOUND 2026-09-14 · the comodore's first boot · rule-10 class]
+The chooser deliberately points the comodore at `power/thermald.nix`
+(`chassis=laptop` + `cpuVendor=intel`). On the booted machine:
+```
+thermald[597]: NO RAPL sysfs present
+thermald[597]: 13 CPUID levels; family:model:stepping 0x6:17:a (6:23:10)
+thermald[597]: Need Linux PowerCap sysfs
+thermald[597]: Unsupported cpu model or platform
+```
+…and it **exits 0**. Not a crash — a clean, successful exit after 2.2 s.
+- **why nothing catches it:** systemd sees `status=0/SUCCESS`, so the unit
+  is `enabled`, `inactive (dead)`, and **`failed units` stays 0**. The
+  effect matrix asserts `services.thermald.enable == true` — which is
+  TRUE, and useless. The install record would have said "thermald on" and
+  been wrong in the only sense that matters. This is exactly constitution
+  §10's lie: *success without verification*.
+- **root cause:** RAPL / `/sys/class/powercap` arrive with **Sandy Bridge**
+  (family 6 model 42). The comodore is **family 6 model 23** — Penryn,
+  2008. `/sys/class/powercap/` does not exist on it. thermald has nothing
+  to drive, correctly declines, and says so only in its own journal.
+- **the chooser rule is too coarse.** `laptop + intel → thermald` is not
+  the question; "does this CPU expose powercap/RAPL" is. Note
+  `intelLegacy` is NOT the right discriminator either — the asus is
+  Haswell, `intelLegacy=true`, and thermald works fine there.
+- **the machine is NOT unprotected** (do not over-read this): `acpitz`
+  zone reads 40.8 °C, two `Processor` cooling devices + LCD, `coretemp`
+  loaded, `acpi_cpufreq` with the `schedutil` governor. Kernel/ACPI
+  passive throttling is live. What is missing is thermald's adaptive
+  layer — and, more importantly, our HONESTY about whether it is there.
+- **blast radius:** the **hp** (i5 M 460 Arrandale, family 6 model 37 —
+  also pre-Sandy-Bridge) is predicted to behave identically; it was
+  powered off at the time of writing, so that is a prediction to confirm,
+  not a result. The acer (Broadwell) and asus (Haswell) are post-RAPL and
+  genuinely run it — their records saying "thermald active" are correct.
+- **fix (needs-Max on the shape):** either (a) a new census fact —
+  powercap/RAPL presence is directly observable on the medium, which boots
+  the same kernel — and narrow the chooser to point at `power/thermald`
+  only when it is true; or (b) keep pointing at it and make the leaf's
+  header state plainly that it self-disables below Sandy Bridge, so the
+  record stops implying an effect that is not there. (a) is the
+  rule-4-correct answer: the chooser is the brain, and this is a fact
+  about the machine.
+- **the wider lesson, worth more than the leaf:** `minimal-matrix` proves
+  CONFIGURATION, not EFFECT-ON-HARDWARE. "the option is set" and "the
+  thing happens" are different claims, and only metal separates them.
+  Every leaf whose payoff is a running daemon deserves an is-active check
+  in the first-boot audit, not just an enable-flag assertion on source.
+- **where:** `system/Modular/choose.nix` (the rule),
+  `system/Modular/power/thermald.nix` (the header), the census/fact set,
+  `system/Modular/effect-matrix.nix` (assert what it can).
+- **size:** small to state, medium to do properly (a new fact).
+
+### 86. THE NUMBER LINE HAS FORKED — #68 names two different findings — [FOUND 2026-09-14 · records integrity · needs-Max]
+Constitution rule 9 says the number line is ONE line. It currently is not.
+- **#68 (a)** — `OPTIONS/changes.md`: *"The Mind's ranked control row
+  re-flows under the pointer — the Still Bar was never applied to it"*
+  (STATED 2026-09-04). OPTIONS declares itself as continuing at #68 and
+  has since allocated through **#84**.
+- **#68 (b)** — the in-flight GRUB work, in source comments:
+  `system/Modular/boot/grub-bios.nix`, `system/Modular/boot/grub-theme.nix`,
+  `system/Modular/boot/systemd-boot.nix`, `system/Modular/base/core.nix`
+  (*"#68 — Max, on the hp's stock menu: 'grub looks like shit…'"*).
+- **how it happened:** both programs read "#1–#67 are taken" and both
+  claimed #68, in different files, on the same night (09-11/09-12).
+- **why it matters:** every rule-9 reference — "#68 ships in the I2 cut",
+  "verified live on the comodore" — is now ambiguous, and tonight's
+  install is the first artifact that carries one of them to metal.
+- **the fix is Max's call**, because renumbering rewrites either a
+  17-entry OPTIONS block or four source files' comments. The cheap
+  direction: leave OPTIONS #68–#84 alone (they are written down and
+  cross-referenced) and give the GRUB work **#85's successor number**,
+  editing the four source comments. The durable direction: one allocator
+  file that both ledgers append to, so a number is claimed once.
+- **where:** `Installer/installing/constitution.md` §9 (the rule),
+  `OPTIONS/changes.md` (the declaration), the four boot leaves.
+- **size:** small to fix, needs-Max to decide which way.
+
+### 85. A delivered store path can be PRESENT but UNREGISTERED — an `[ -e ]` presence check re-runs #67's damage silently — [FOUND + FIXED in the lab method 2026-09-14 · the comodore]
+Found while resuming the comodore: `/mnt/nix/store` held **78** path
+directories while the target database had registered only **76**. The gap
+was a truncated `nix-manual-2.34.8` (plus its `.lock`) left mid-write when
+#67 killed the machine.
+- **why it is a trap:** the obvious "what still needs sending?" test is
+  `[ -e /mnt$path ]`, and that test calls a half-written directory
+  **present**. The first overnight delivery script used exactly that, so
+  it would have skipped the one path that was actually broken and
+  declared the closure complete.
+- **the fix (applied in the delivery method):** ask the DATABASE —
+  `nix --store /mnt path-info --all` lists only VALID paths, so a
+  truncated path is correctly seen as missing and re-sent. Cheap: one ssh
+  round-trip per round, compared locally.
+- **how bad was it really:** it would have failed LOUDLY, not silently —
+  `nixos-install` against an invalid path errors out. So this costs a
+  wasted delivery, not a broken machine. Recording it anyway because
+  **the offline installer will write this exact code** (implementation.md
+  step 8e), and it will be delivering to a disk whose previous attempt
+  may have died the same way.
+- **where:** lab method; and a note owed at implementation.md step 8e so
+  the offline installer inherits the database check rather than
+  rediscovering it.
+- **size:** no Golem source change owed today. Method + a design note.
+
+### 67. A multi-GB closure delivery over a USB WIFI DONGLE kills the machine — two machines, same night, same signature — [ROOT CAUSE FOUND + ANSWERED 2026-09-14 · it is SATURATION, and a throttle fixes it]
+**ANSWERED (2026-09-14, the comodore).** The killer is **link saturation,
+not the dongle's existence**. A rate-limited, per-path delivery moved the
+**whole 2.96 GiB / 1037-path closure over a USB wifi dongle in 1 h 52 m
+with ZERO drops, ZERO backoffs and ZERO waits** — one uninterrupted pass,
+~460 KB/s average, the cap auto-climbing 400 → 500 → 625 → 781 → 900 KB/s
+and holding all the way.
+- **why this is a real control, not luck:** same machine that died, same
+  payload size, and tonight's radio was the **rtw88_8821au — the DELL's
+  dongle**, i.e. the other half of the original pair. Two variables
+  changed and nothing else: a **throughput cap** (`pv -L`) and **per-path
+  granularity** (one `nix-store --export | ssh … --import` at a time,
+  missing set recomputed from the target DB each round).
+- **it was predicted by #67's own number.** The original finding measured
+  ~25 KB/s *sustained* before the drop and called it "the link was
+  already collapsing long before the drop". That is a saturation
+  signature. Capping below saturation is the direct answer to it.
+- **what this changes:** the workaround order in this entry was wrong.
+  Sneakernet is NOT needed for these machines. **(a) throttle** is first;
+  ethernet remains better where a cable reaches; sneakernet drops to a
+  last resort. The offline installer's rationale is unaffected — it
+  removes the delivery entirely, which is still the right end state.
+- **method, reusable:** cap ~400 KB/s to start, halve on any failure to a
+  48 KB/s floor, ease up 25% after 20 consecutive clean paths, 2 s
+  between paths, and **ask the database** what is missing (see #85).
+- **not yet proven:** the dell itself (double-USB load: dongle *and* USB
+  target disk) has not been retried under the throttle. That is the
+  honest remaining gap in this finding.
+
+Original finding below. **The dell and the comodore both died mid-`nix copy`**, minutes apart in
 behaviour: transfer stalls → `error: write of N bytes: Broken pipe` →
 the machine drops OFF the network entirely and does not return (needs a
 physical power-cycle).
@@ -55,7 +226,42 @@ physical power-cycle).
   design rationale in implementation.md step 8e.
 - **size:** no source change owed. Record + method change.
 
-### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED in source 2026-09-11 · live-fixed on the comodore]
+### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED 2026-09-11 · ⚠ REOPENED-IN-PART 2026-09-14: the floor's PREMISE is wrong for golem-minimal]
+**MEASURED 2026-09-14 on the comodore (1931 MB).** The entry below — and
+#16 before it — rests on "a small machine cannot EVALUATE the target
+config locally without thrashing". **That is true of the FAT
+`golem-target`, which is what it was measured against, and FALSE of
+`golem-minimal`:**
+
+| | |
+|---|---|
+| `rebuild-golem` (`nixos-rebuild switch --flake …#golem-minimal`) | 07:02:28 → **07:05:25**, EXIT=0 |
+| peak memory | **~1165 MB** of 1931 |
+| **peak swap** | **1 MB** |
+| result | generation 2, `running`, 0 failed units |
+
+Under three minutes, 60% of RAM, essentially no swap. No thrash.
+- **what is still right:** gating `--prepare-only` / `--skip-prepare` was
+  the wrong verb, and that fix stands. A *local-eval install of the fat
+  target* on a 2 GB box would still be a bad idea.
+- **what is now wrong:** the floor is stated as a property of "installing
+  Golem", and its message says *"installing Golem needs about 4 GB of
+  RAM"*. On the minimal path that sentence is simply untrue, and it is
+  the sentence a stranger will read.
+- **why this matters beyond wording:** it means **rule 5's ladder holds on
+  the smallest hardware** — stage 1 can reach the comodore by REBUILD
+  rather than reinstall, which is exactly what the constitution requires
+  and what we could not previously assume. It also removes an argument
+  for the offline installer being mandatory on small machines.
+- **fix:** make the floor a property of *which config is being evaluated*
+  (`golem-minimal` vs `golem-target`), not of the machine alone; and
+  re-word the message accordingly. Re-measure the fat target on a small
+  box before keeping 3300 for it.
+- **where:** `Installer/preinstall/install.nix` (the ram check + its
+  message), and #16's original reasoning.
+- **size:** small (a config-aware threshold + wording).
+
+*Original entry:*
 **Found on the comodore's first real install (1931 MB):** `golem-install
 --prepare-only` died at the preflight with *"this machine has 1931 MB —
 installing Golem needs about 4 GB of RAM"*, before touching the disk.
@@ -139,7 +345,36 @@ reachable without a keyboard trip.
   writer) — mirrors the `--lab-ssh` block.
 - **size:** small. Ships in the I2 cut.
 
-### 63. The lab medium sometimes doesn't join the network by itself — [DOWNGRADED to UNCONFIRMED 2026-09-11 · my detection was broken · re-verify before fixing]
+### 63. The lab medium sometimes doesn't join the network by itself — [UPGRADED to PREDICTED-AND-OBSERVED 2026-09-14 · still owed its journal · the comodore]
+**NEW EVIDENCE (2026-09-14, the comodore's post-install reboot).** The
+machine was rebooted at 01:47 and watched until 07:31 — **5 h 45 m, never
+appeared on the network.** That silence discriminates between the two
+configurations, because they retry differently:
+- **installed system** (`machine.nix`, written by `--lab-wifi`):
+  `autoconnect-retries = 0` → **infinite**, keeps trying forever.
+- **the medium** (`iso.nix` `golem-lab`): **no retries key at all** → NM's
+  default **4**, then it gives up and stays silent.
+
+A booted installed Golem with a working radio would have retried all night
+and turned up; it did not. A booted MEDIUM goes permanently silent after
+four attempts — which is precisely what was observed. So the theory below
+now has a **successful prediction** behind it, on one of the two machines
+whose hand-bounce was the original real evidence.
+- **what is still owed, unchanged:** the captured NM "giving up" journal.
+  This is inference from a retry asymmetry, not the log. Do not close the
+  finding on it — but the fix is now much better motivated than
+  "plausible and cheap".
+- **note the asymmetry is itself the smell:** the installed system got
+  `retries = 0` for free when #64 landed, while the MEDIUM — the thing
+  that has to come up unattended in a lab, with no keyboard, on the
+  slowest radios we own — still runs NM's default 4. That is backwards.
+- **where (unchanged):** `Installer/preinstall/iso.nix`, the `golem-lab`
+  profile — add `"autoconnect-retries" = 0;` beside `autoconnect = true`,
+  exactly as `--lab-wifi` already writes for installed machines.
+- **size:** one line, and it is now the single most likely reason a lab
+  machine goes dark after a reboot.
+
+Original entry below. — [DOWNGRADED to UNCONFIRMED 2026-09-11 · my detection was broken · re-verify before fixing]
 **CORRECTION (2026-09-11, the thinkpad sweep):** the thinkpad joined
 HOLA on its own, no bounce — and that exposed that my own reachability
 checks were the unreliable part: `zsh -c 'echo >/dev/tcp/host/22'` FAILS

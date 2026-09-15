@@ -1,0 +1,51 @@
+[23:52:54] === delivery starting: /nix/store/yi4krfsirdv4273mw36z4lxklzl9yzfv-nixos-system-comodore-26.05.20260829.c5c4a43
+[23:52:54]     rate 400 KB/s, one path at a time, 2s between paths
+[23:52:54]     closure: 1037 paths / 3026 MiB
+[23:52:56] round 1: 1/1037 present, 1036 to go (rate 400 KB/s)
+[23:56:36]   link steady — easing rate up to 500 KB/s
+[23:56:51]   …25/1036 this round (libmnl-1.0.5)
+[23:58:28]   link steady — easing rate up to 625 KB/s
+[23:59:16]   …50/1036 this round (pcsclite-2.4.1-lib)
+[23:59:54]   link steady — easing rate up to 781 KB/s
+[00:01:05]   …75/1036 this round (pcre2-10.46)
+[00:01:25]   link steady — easing rate up to 900 KB/s
+[00:04:53]   …100/1036 this round (libxcb-1.17.0)
+[00:06:18]   …125/1036 this round (useradd.pam)
+[00:10:00]   …150/1036 this round (libedit-20251016-3.1)
+[00:14:04]   …175/1036 this round (libtatsu-1.0.5)
+[00:16:17]   …200/1036 this round (boost-1.89.0)
+[00:18:04]   …225/1036 this round (nix-cmd-2.34.8)
+[00:20:30]   …250/1036 this round (gnupg-2.4.9)
+[00:22:53]   …275/1036 this round (dbus-broker-37)
+[00:26:08]   …300/1036 this round (jemalloc-5.3.1)
+[00:28:25]   …325/1036 this round (ffmpeg-8.1.2-data)
+[00:29:54]   …350/1036 this round (libmpg123-1.33.7)
+[00:32:30]   …375/1036 this round (libva-2.23.0)
+[00:35:14]   …400/1036 this round (ldacBT-2.0.2.3)
+[00:40:20]   …425/1036 this round (libxi-1.8.3)
+[00:42:14]   …450/1036 this round (glibmm-2.66.8)
+[00:46:49]   …475/1036 this round (curl-impersonate-1.5.6)
+[00:49:06]   …500/1036 this round (oniguruma-6.9.10-lib)
+[00:50:28]   …525/1036 this round (python3.13-pygobject-3.56.3)
+[00:52:21]   …550/1036 this round (libressl-4.2.1)
+[00:54:47]   …575/1036 this round (nano-9.2-doc)
+[00:56:17]   …600/1036 this round (iproute2-7.0.0)
+[00:57:48]   …625/1036 this round (sound-theme-freedesktop-0.8)
+[00:59:13]   …650/1036 this round (perl5.42.0-HTTP-Message-6.45)
+[01:01:24]   …675/1036 this round (git-2.54.0)
+[01:03:00]   …700/1036 this round (libtracefs-1.8.3)
+[01:05:03]   …725/1036 this round (openssh-10.5p1-man)
+[01:06:47]   …750/1036 this round (unit-dbus-broker.service)
+[01:07:55]   …775/1036 this round (X-Restart-Triggers-nix-daemon)
+[01:09:01]   …800/1036 this round (unit-polkit-agent-helper-.service)
+[01:10:17]   …825/1036 this round (linux-headers-static-6.18.7)
+[01:11:22]   …850/1036 this round (unit-polkit.service)
+[01:12:30]   …875/1036 this round (unit-firewall.service)
+[01:16:29]   …900/1036 this round (groupadd.pam)
+[01:17:51]   …925/1036 this round (broadcom-bt-firmware-12.0.1.1012-zstd)
+[01:34:39]   …950/1036 this round (usermod.pam)
+[01:36:00]   …975/1036 this round (fontconfig-etc)
+[01:37:08]   …1000/1036 this round (sudoers)
+[01:42:24]   …1025/1036 this round (switch-to-configuration-0.1.0)
+[01:44:11] ALL 1037 PATHS PRESENT — closure delivered (round 2). Ready to write GRUB.
+[01:44:11] === done.

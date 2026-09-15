@@ -5,6 +5,40 @@ HP Pavilion dm4 · i5 M 460 Arrandale (2c/4t) · switchable Intel iGPU +
 (**Linux — guarded**). Preinstall history + the #17c failing-dGPU story:
 `~/GolemOne/Install/Preinstall/testing/hp.md`.
 
+## ⚠ Round I2 — an UNRECORDED session, 2026-09-12 — reconstructed from artifacts only
+
+**This is not a record, it is a gap flagged.** Noticed 2026-09-14 while
+working the comodore: the repo carries artifacts from an hp session that
+no file describes. Constitution rule 8 says a pass is recorded with its
+numbers; there are no numbers here because I was not there. Written down
+only so the evidence is not lost — **Max should replace this with the
+real account.**
+
+What the artifacts prove, and nothing more:
+- `hosts/target/golem-hardware.nix` was regenerated **2026-09-12T01:28:40Z**
+  with the hp's facts (i5 M 460, 3718 MB, gpu2=amd/failing @ 0000:01:00.0)
+  and `machine.nix` carried `networking.hostName = "hp"` plus a
+  `boot.loader.grub.device` of `ata-TOSHIBA_MQ01ABF032_83DAS9EVS` — i.e.
+  a **real `--prepare-only` ran against the hp's own Toshiba disk**, the
+  one this file calls "Linux — guarded". Whether that disk was blessed is
+  not recorded anywhere.
+- The chosen list dropped that night included **`gpu2/failing`** — the
+  first time the #33 leaf was pointed at on metal rather than in a fixture.
+- Source comments written the same night (`system/Modular/boot/grub-bios.nix`,
+  `grub-theme.nix`, `systemd-boot.nix`, `base/core.nix`) record two
+  observations made **at the hp's screen**: GRUB's stock menu looked wrong
+  ("all golem should look the same"), and a BIOS machine printed
+  *"Not booted with UEFI."* onto every activation because `bootctl` lived
+  in `base/core.nix`. Both were fixed in source; both are still
+  uncommitted.
+- Those `hosts/target/*` files were **overwritten on 2026-09-14** by the
+  comodore's install. They remain recoverable from the git index
+  (`git show :hosts/target/machine.nix`).
+
+**Owed:** the actual hp experience — was it blessed, did it install, did it
+boot, what did the screen show. And the GRUB work's number is contested
+(see changes.md #86).
+
 ## Round I2 sweep — 2026-09-11 — fixtured; the #33 gpu2/failing leaf BUILT on source against REAL failing-dGPU facts · NO install (census only)
 
 The machine that closes the database — the only lab hardware with a
