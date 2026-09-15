@@ -1,0 +1,82 @@
+Golem: add an item_align property to the gfxmenu boot_menu component.
+
+GRUB draws every menu item's text at x=0 of its item viewport and draws
+the selection bar across the FULL content width; there is no alignment
+property upstream. So a box wide enough for the longest label leaves
+short labels stuck against the left edge of a wide bar — Max, at the
+acer's menu 2026-09-15: "the items are centered but aligned to the left
+and the selection is huge. i want the look that we got on the usb."
+(The USB is syslinux/vesamenu, where the same one-width-for-all-rows
+constraint is worked around with per-entry MENU INDENT; GRUB gives no
+such lever, hence this patch.)
+
+item_align = left (default, upstream behaviour) | center | right.
+Applies to both the selected and unselected item, uses the row's own
+font, and never returns a negative x, so a label wider than the box
+still starts at the left edge and clips exactly as before.
+
+Applies to grub 2.12 / nixpkgs c5c4a43. Re-check on nixpkgs bumps.
+diff -ru al_a/grub-core/gfxmenu/gui_list.c al_b/grub-core/gfxmenu/gui_list.c
+--- a/grub-core/gfxmenu/gui_list.c	2026-09-15 13:55:52.202455257 -0400
++++ b/grub-core/gfxmenu/gui_list.c	2026-09-15 13:55:59.626091862 -0400
+@@ -44,6 +44,7 @@
+   int icon_height;
+   int item_height;
+   int item_padding;
++  int item_align;
+   int item_icon_space;
+   int item_spacing;
+   grub_font_t item_font;
+@@ -433,13 +434,27 @@
+       const char *item_title =
+         grub_menu_get_entry (self->view->menu, menu_index)->title;
+ 
++      /* Golem: item_align. Upstream always draws at x=0, so a menu box
++         wide enough for the longest label leaves short ones hugging the
++         left edge of a full-width selection bar.  */
++      int text_x = 0;
++      if (self->item_align)
++        {
++          int text_width = grub_font_get_string_width (font, item_title);
++          text_x = (self->item_align == 1)
++                   ? (viewport_width - text_width) / 2
++                   : (viewport_width - text_width);
++          if (text_x < 0)
++            text_x = 0;
++        }
++
+       sviewport.y = item_top + top_pad;
+       sviewport.width = viewport_width;
+       grub_gui_set_viewport (&sviewport, &svpsave);
+       grub_font_draw_string (item_title,
+                              font,
+                              color,
+-                             0,
++                             text_x,
+                              text_top_offset);
+       grub_gui_restore_viewport (&svpsave);
+ 
+@@ -725,6 +740,15 @@
+     {
+       self->item_height = grub_strtol (value, 0, 10);
+     }
++  else if (grub_strcmp (name, "item_align") == 0)
++    {
++      if (grub_strcmp (value, "center") == 0)
++        self->item_align = 1;
++      else if (grub_strcmp (value, "right") == 0)
++        self->item_align = 2;
++      else
++        self->item_align = 0;
++    }
+   else if (grub_strcmp (name, "item_padding") == 0)
+     {
+       self->item_padding = grub_strtol (value, 0, 10);
+@@ -905,6 +929,7 @@
+   self->icon_height = 32;
+   self->item_height = 42;
+   self->item_padding = 14;
++  self->item_align = 0;
+   self->item_icon_space = 4;
+   self->item_spacing = 16;
+   self->item_font = default_font;

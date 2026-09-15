@@ -7,20 +7,9 @@
 { pkgs, lib, ... }:
 
 {
-  # #89 — the "GRUB loading. Welcome to GRUB!" flash BEFORE the themed
-  # menu. Those banners print from the boot sector and grub's kernel
-  # before grub.cfg is ever read, so no config hides them; the theme
-  # (#68) only clears them after the fact. grub-quiet.patch empties the
-  # success-path strings (error strings stay). An overlay because the
-  # grub module offers no package option — it reaches for pkgs.grub2.
-  # Re-check the patch applies on nixpkgs bumps.
-  nixpkgs.overlays = [
-    (final: prev: {
-      grub2 = prev.grub2.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./grub-quiet.patch ];
-      });
-    })
-  ];
+  # The Golem grub (quiet + item_align), shared with grub-efi.nix so the
+  # two firmware halves cannot drift apart. See #89, #92, #94b.
+  imports = [ ./grub-patched.nix ];
 
   boot.loader.timeout = 3;
   boot.loader.grub = {
@@ -43,10 +32,16 @@
     # items, #eeeeee selection bar, DejaVu), sized like a systemd-boot
     # list rather than the first attempt's half-screen slab: a narrow
     # centred box, one modest highlight bar per row.
+    # Width HUGS the widest label in the whole tree. After #95's
+    # rewording that is a recovery row, "Gen 15 - 2026-09-15" = 210px in
+    # DejaVu Sans 20 (measured), + a space either side = a 222px bar in
+    # a 226px box, centred at 50%-113. The top level ("Golem" 67px,
+    # "Recover" 82px) rides the same bar — one width for every row is
+    # GRUB's rule as much as syslinux's. Lockstep with grub-efi.nix.
     theme = pkgs.callPackage ./grub-theme.nix {
-      menuWidth = 360;
+      menuWidth = 226;
       menuHeight = 120;
-      menuLeft = "50%-180";
+      menuLeft = "50%-113";
       menuTop = "50%-60";
       itemHeight = 24;
     };

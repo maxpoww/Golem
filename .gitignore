@@ -18,3 +18,11 @@ raw.jsonl
 # committable in the seeded checkout.
 target/
 !hosts/target/
+
+# deliver-live.sh working files (per-run logs and scratch state)
+Installer/installing/tools/deliver-live.log
+Installer/installing/tools/deliver-live.state
+Installer/installing/tools/.present-live
+Installer/installing/tools/deliver.log
+Installer/installing/tools/deliver.state
+Installer/installing/tools/.present

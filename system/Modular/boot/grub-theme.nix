@@ -45,6 +45,16 @@
 , menuLeft ? "50%-60"
 , menuTop ? "50%-32"
 , itemHeight ? 28
+  # left | center | right. Needs grub-item-align.patch (grub-patched.nix);
+  # stock GRUB has no such property and always draws at x=0.
+  # SAFE ON UNPATCHED GRUB, checked in the source rather than assumed:
+  # the hard "unknown property" error lives in theme_loader.c's GLOBAL
+  # parser (desktop-image, title-text...); a component property falls
+  # through list_set_property's else-if chain and is silently ignored.
+  # So the ISO — whose grub is not patched until the next recut — keeps
+  # its current left-aligned menu instead of losing the theme entirely,
+  # which is the failure mode this file exists to warn about.
+, itemAlign ? "center"
 }:
 
 runCommand "golem-grub-theme" { nativeBuildInputs = [ imagemagick binutils ]; } ''
@@ -88,6 +98,17 @@ runCommand "golem-grub-theme" { nativeBuildInputs = [ imagemagick binutils ]; } 
   # Geometry mirrors iso.nix's syslinuxTheme: left/width centre a box just
   # wide enough for "Install", item_color #cccccc on black, and the
   # selection is black text on the #eeeeee bar drawn by select_c.png.
+  #
+  # THE TWO LEVERS THAT MAKE IT LOOK LIKE THE USB (2026-09-15, #94b):
+  #  - icon_width/icon_height = 0. GRUB DEFAULTS THEM TO 32 and reserves
+  #    that gutter whether or not an icon exists, so every label sat 32px
+  #    right of where the theme said. Silent, and invisible until you read
+  #    gui_list.c.
+  #  - item_align (our patch) + a box sized to the LONGEST label. GRUB
+  #    draws the selection bar across the full content width and cannot
+  #    hug a row, exactly like syslinux's one-WIDTH-for-all-rows; so the
+  #    tight look is: box = longest label + a space each side, everything
+  #    centred within it.
   # THE FONT NAME MUST BE THE ONE INSIDE THE PF2, EXACTLY. This file is
   # generated with the name read out of the .pf2 at build time rather than
   # typed, because typing it is how this went wrong: "DejaVu Regular"
@@ -117,6 +138,9 @@ runCommand "golem-grub-theme" { nativeBuildInputs = [ imagemagick binutils ]; } 
       item_spacing = 0
       item_padding = 2
       item_icon_space = 0
+      icon_width = 0
+      icon_height = 0
+      item_align = ${itemAlign}
       selected_item_font = "$font_name"
       selected_item_color = "#000000"
       selected_item_pixmap_style = "select_*.png"

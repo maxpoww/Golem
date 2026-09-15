@@ -18,16 +18,9 @@
 { pkgs, lib, ... }:
 
 {
-  # #89 — same quiet grub as grub-bios.nix: no banner (upstream already
-  # silences EFI's, the patch makes it universal), cursor hidden at
-  # console init. The BIOS-sector hunks simply don't apply on EFI.
-  nixpkgs.overlays = [
-    (final: prev: {
-      grub2 = prev.grub2.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [ ./grub-quiet.patch ];
-      });
-    })
-  ];
+  # The Golem grub (quiet + item_align), shared with grub-bios.nix so the
+  # two firmware halves cannot drift apart. See #89, #92, #94b.
+  imports = [ ./grub-patched.nix ];
 
   boot.loader.timeout = 3;
 
@@ -53,9 +46,9 @@
 
     # THE GOLEM LOOK (#68/#92) — identical numbers to grub-bios.nix.
     theme = pkgs.callPackage ./grub-theme.nix {
-      menuWidth = 360;
+      menuWidth = 226;
       menuHeight = 120;
-      menuLeft = "50%-180";
+      menuLeft = "50%-113";
       menuTop = "50%-60";
       itemHeight = 24;
     };

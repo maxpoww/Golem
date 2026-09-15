@@ -24,6 +24,64 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 95. THE MENU FINALLY READS LIKE GOLEM — item_align, the hidden icon gutter, and the words — [BUILT + live on the acer 2026-09-15 · Max's eyes owed · the comodore and the ISO owe the same update]
+Max at the acer's first GRUB-EFI menu: *"it does not look like
+systemd-boot, on grub, the items are centered but aligned to the left
+and the selection is huge. i want the look that we got on the usb."*
+Three separate causes, all found by reading `gui_list.c` rather than
+guessing:
+- **A 32px icon gutter nobody asked for.** GRUB defaults
+  `icon_width`/`icon_height` to **32** and reserves `icon_width +
+  item_icon_space` on the left of every row whether an icon exists or
+  not. Our theme never set them, so every label sat 32px right of where
+  the theme said. Fixed: both to 0 in grub-theme.nix.
+- **GRUB cannot centre a menu item at all.** `draw_menu` draws each
+  title at x=0 of its viewport and stretches the selection bar across
+  the full content width — the same one-width-for-all-rows rule
+  syslinux has, but WITHOUT syslinux's `MENU INDENT` escape hatch.
+  Fixed by patch: `grub-item-align.patch` adds an `item_align`
+  property (left/center/right), using the row's own font and clamping
+  at 0 so an over-wide label still clips exactly as before.
+- **The words were NixOS's, not Golem's.** `<distro> - All
+  configurations` and `<distro> - Configuration N (date - version)` —
+  the latter ~600px, clipping off the box for as long as the theme has
+  existed. The menu now reads **`Start Golem`** / **`Previous
+  Versions`**, with **`Gen N - YYYY-MM-DD`** inside. Max landed there
+  after weighing snapshots / backups / recover / restore; two traps
+  were dodged on the way, and both are claims about what a generation
+  IS:
+  - "snapshots"/"backups" promise DATA safety it does not give — the
+    files are untouched, not backed up;
+  - "restore" promises PERMANENCE it does not give either. **Checked
+    on the acer before arguing it:** the entries carry no
+    `savedefault` and `set default=0` pins the newest generation, so
+    picking an old one is a **one-time boot** — next reboot is back on
+    current. A noun phrase promises nothing and stays true.
+  "Start" also lines the installed menu up with the medium's
+  Start/Install, so a stranger meets the same verb on the USB and on
+  the machine it installed.
+  Mechanism: the titles are baked into `install-grub.pl` with no
+  option behind them, so the leaf rewrites the generated grub.cfg in
+  `extraInstallCommands` (runs right after the generator, idempotent
+  by construction). The alternative was vendoring the whole 900-line
+  grub module for two strings — the ISO already vendors iso-image.nix,
+  so that door stays open if this ever gets fragile.
+- **Geometry, measured not guessed** (ImageMagick against the same
+  DejaVu at the same size): widest row in the whole tree is now
+  `Gen 15 - 2026-09-15` at 210px → a 222px bar in a **226px** box at
+  `50%-113`, down from 360px.
+- **Also done:** `boot/grub-patched.nix` — the patched package AND the
+  menu wording, imported by both leaves, so the two firmware halves
+  cannot drift (#92's lockstep comment was an invitation to drift).
+- **still available if it reads too wide:** drop the dates from the
+  recovery rows and every row becomes "Gen N"-sized — box collapses to
+  ~95px, genuinely USB-tight, at the cost of picking a generation by
+  number with no date to reason about.
+- **where:** `boot/grub-item-align.patch`, `boot/grub-patched.nix`,
+  `boot/grub-theme.nix`, both leaves' geometry.
+- **owed:** the comodore (powered off — one delivery + reboot) and the
+  ISO's own menu at the recut, so medium and installed match.
+
 ### 94. THE FIRMWARE DELETES YOUR BOOT ENTRY — a loader that lives only in NVRAM is at the mercy of the machine — [FOUND + FIXED 2026-09-15 · the acer, #92's first metal · wire-verified]
 The acer took GRUB-EFI perfectly: `grubx64.efi` installed, a named
 `Golem-boot` NVRAM entry created, BootOrder **`0002,0001,2001,…`** with
