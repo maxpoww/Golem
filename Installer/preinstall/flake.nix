@@ -86,7 +86,7 @@
       # needs the DERIVATIONS, not a system profile — a systemd unit gets
       # an explicit PATH and cannot see /run/current-system/sw/bin.
       hw-detect = builtins.head
-        ((import ../../system/hardware-detect.nix { inherit pkgs; })
+        ((import "${golem}/system/hardware-detect.nix" { inherit pkgs; })
           .environment.systemPackages);
       hw-evidence = builtins.head
         ((import ./evidence.nix { inherit pkgs; })

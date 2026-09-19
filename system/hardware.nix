@@ -180,6 +180,18 @@ in
         every other wifi is handled by in-tree drivers already present.
       '';
     };
+
+    hasFacetimeHD = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        A Broadcom 720p FaceTime HD camera (PCI 0x14e4:0x1570) is present —
+        the PCIe webcam in 2013+ Intel Macs. Drives the facetimehd
+        (bcwc_pcie) out-of-tree module + the ISP firmware nixpkgs extracts
+        from Apple's driver (quirks/facetimehd.nix). Default false: no other
+        machine has this part. Proven live on the MacBookAir6,2 (2026-09-18).
+      '';
+    };
     chassis = lib.mkOption {
       type = lib.types.enum [ "unknown" "laptop" "desktop" ];
       default = "unknown";

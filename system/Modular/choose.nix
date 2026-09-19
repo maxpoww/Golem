@@ -32,6 +32,7 @@ let
     cpuVendor = facts.cpuVendor or "unknown";
     firmware = facts.firmware or "uefi";
     broadcomWifi = facts.broadcomWifi or false;
+    hasFacetimeHD = facts.hasFacetimeHD or false;
     fingerprint = facts.fingerprint or false;
     chassis = facts.chassis or "unknown";
     vmGuest = facts.vmGuest or "none";
@@ -125,16 +126,24 @@ let
     then [ { group = "power"; why = "chassis=${f.chassis} — battery plumbing gains a desktop nothing"; } ]
     else [ ];
 
+  # THE VIRT GROUP FLOORS, it does NOT throw (Max, 2026-09-18, the 8e
+  # deep-check): an unknown hypervisor (vmware/virtualbox/hyperv — the census
+  # DOES emit these) gets no dedicated guest-agent leaf and that is fine, so
+  # the group degrades to [ ] with an honest skip note. Unlike the GPU group
+  # (which still refuses — a machine cannot boot without a display driver), a
+  # missing guest-agent integration is not a boot risk: the guest boots
+  # generic and a real vbox/vmware/hyperv leaf can land later. This is the
+  # product's never-fail floor at the chooser; the GPU tripwire stays.
   virt =
     if f.vmGuest == "qemu"
     then [ { group = "virt"; leaf = "virt/qemu-guest.nix"; why = "vmGuest=qemu"; } ]
-    else if f.vmGuest == "none"
-    then [ ]
-    else refuse "virt" "vmGuest=${f.vmGuest} — that hypervisor's leaf lands when its machine enters";
-  virtSkip =
-    if f.vmGuest == "none"
-    then [ { group = "virt"; why = "vmGuest=none — physical machine"; } ]
     else [ ];
+  virtSkip =
+    if f.vmGuest == "qemu"
+    then [ ]
+    else if f.vmGuest == "none"
+    then [ { group = "virt"; why = "vmGuest=none — physical machine"; } ]
+    else [ { group = "virt"; why = "vmGuest=${f.vmGuest} — no dedicated guest-agent leaf yet; not a boot risk, so it boots generic (never-fail floor) and a leaf can land later"; } ];
 
   # Quirks are ADDITIVE (a machine can have several, or none) — each is
   # its own independent check, not a one-of group.
@@ -142,6 +151,9 @@ let
     (if f.broadcomWifi
      then [ { group = "quirks"; leaf = "quirks/broadcom-wl.nix"; why = "broadcomWifi (BCM4360 → the unfree wl driver)"; } ]
      else [ ])
+    ++ (if f.hasFacetimeHD
+        then [ { group = "quirks"; leaf = "quirks/facetimehd.nix"; why = "hasFacetimeHD (14e4:1570 → facetimehd module + Apple ISP firmware)"; } ]
+        else [ ])
     ++ (if f.fingerprint
         then [ { group = "quirks"; leaf = "quirks/fingerprint.nix"; why = "fingerprint reader present → fprintd"; } ]
         else [ ]);

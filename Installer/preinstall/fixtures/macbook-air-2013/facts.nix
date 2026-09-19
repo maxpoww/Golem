@@ -12,6 +12,7 @@
     intelLegacy = true;
     firmware = "uefi";
     broadcomWifi = true;
+    hasFacetimeHD = true;
     panelDpi = 126;
     hasBluetooth = true;
     cpuVendor = "intel";

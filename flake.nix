@@ -121,10 +121,107 @@
           (import ./system/Modular/choose.nix { inherit facts; }).leaves
         ++ extra;
       };
+
+      # 8e — THE ALL-IN BAKED MATRIX (Max, 2026-09-18, the Omarchy model).
+      # Every lab hardware class's minimal toplevel, so the installer ISO can
+      # carry the whole matrix and install by LOCAL COPY — no network. Its
+      # UNION closure (measured ~6.69 GiB → ~4 GiB compressed ISO) is what
+      # system.extraDependencies drags onto the medium. A machine whose exact
+      # combo isn't a listed fixture still installs offline: all the heavy
+      # driver/kernel/firmware paths are present, so its toplevel assembles
+      # from baked components.
+      bakedFacts = path: (import path { }).golem.hardware;
+      bakedFixtures = [
+        { name = "acer";     path = ./Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix; }
+        { name = "asus";     path = ./Installer/preinstall/fixtures/asus/golem-hardware.nix; }
+        { name = "comodore"; path = ./Installer/preinstall/fixtures/comodore-gm45/facts.nix; }
+        { name = "hp";       path = ./Installer/preinstall/fixtures/hp-pavilion-dm4/facts.nix; }
+        { name = "lenovo";   path = ./Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix; }
+        { name = "macbook";  path = ./Installer/preinstall/fixtures/macbook-air-2013/facts.nix; }
+        { name = "thinkpad"; path = ./Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix; }
+        { name = "qemu";     path = ./Installer/preinstall/fixtures/qemu-virtio/facts.nix; }
+      ];
+      # Placeholder filesystems so each toplevel BUILDS (the bake carries the
+      # driver/kernel/firmware closures; the real per-machine toplevel — with
+      # its own machine.nix + measured hardware-configuration.nix — assembles
+      # from these baked components at install). by-label golem/ESP matches
+      # what golem-install actually creates. Same shape effect-matrix uses.
+      bakedFakeDisk = {
+        fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+        fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
+        # THE FLOOR'S "boots on anything" initrd (8e HOLE C, 2026-09-18): a baked
+        # toplevel is installed by DIRECT COPY, so it NEVER runs
+        # nixos-generate-config to measure this machine's disk controller. With
+        # only nixpkgs' default initrd set (ahci/nvme/sd_mod/xhci) the initrd
+        # cannot find root on any other controller — proven fatal on virtio-blk
+        # (root device by-label never appears → systemd-initrd emergency). These
+        # make the disk reachable on any common machine at gen-1; the first
+        # self-rebuild then measures and trims to the real hardware. Additive to
+        # includeDefaultModules, so it only ever ADDS bootability.
+        boot.initrd.availableKernelModules = [
+          # the proven gap — every virtio disk transport
+          "virtio_pci" "virtio_mmio" "virtio_blk" "virtio_scsi"
+          # SATA/PATA/AHCI
+          "ahci" "ata_piix" "ata_generic" "sata_nv" "sata_via" "sata_sis"
+          # NVMe + SCSI disk/cdrom
+          "nvme" "sd_mod" "sr_mod"
+          # USB storage + host controllers
+          "usb_storage" "uas" "xhci_pci" "ehci_pci" "ohci_pci" "uhci_hcd"
+          # eMMC/SD
+          "sdhci_pci" "mmc_block"
+          # common SAS/RAID HBAs
+          "mptspi" "megaraid_sas" "mpt3sas"
+        ];
+      };
+      bakedLib = nixpkgs.lib;
+      bakedFirmwares = [ "bios" "uefi" ];
+      # The generic FLOOR (Max's never-fail L3): nothing confidently detected →
+      # gpu/auto (boots on any GPU) + tier0 + no microcode/power. Baked per
+      # firmware so an UNCLASSIFIABLE machine still resolves to a
+      # direct-installable, bootable toplevel — never a from-source build.
+      bakedFloorFacts = fw: {
+        gpu = "auto"; cpuVendor = "unknown"; ramMB = 0;
+        chassis = "unknown"; firmware = fw; vmGuest = "none"; hasBluetooth = false;
+      };
+      mkBakedEntry = { name, firmware, isFloor, facts }:
+        let leaves = (import ./system/Modular/choose.nix { inherit facts; }).leaves; in {
+          inherit name firmware isFloor leaves;
+          key = bakedLib.concatStringsSep ":" leaves;
+          toplevel = (mkMinimal facts [ bakedFakeDisk ]).config.system.build.toplevel;
+        };
+      # COVERAGE: every class in BOTH firmwares (firmware picks grub-bios vs
+      # grub-efi → a different leaf-list), plus the floor in both. So any
+      # reachable leaf-list has a baked, direct-installable match; anything
+      # unmatched falls to the floor for its firmware.
+      bakedRaw =
+        (bakedLib.concatMap (f:
+          map (fw: mkBakedEntry {
+            name = "${f.name}-${fw}"; firmware = fw; isFloor = false;
+            facts = (bakedFacts f.path) // { firmware = fw; };
+          }) bakedFirmwares) bakedFixtures)
+        ++ map (fw: mkBakedEntry {
+             name = "floor-${fw}"; firmware = fw; isFloor = true;
+             facts = bakedFloorFacts fw;
+           }) bakedFirmwares;
+      # Dedupe by leaf-list KEY for the linkFarm (many collapse — intel-legacy-
+      # bios recurs across hp/comodore/etc.); its CLOSURE is what
+      # system.extraDependencies bakes onto the medium. The MANIFEST keeps every
+      # named entry so golem-install can match exactly OR fall to a floor by
+      # firmware — installing by DIRECT COPY (nixos-install --system <baked>),
+      # no rebuild, so the eval-mismatch that broke the seed-rebuild can't happen.
+      bakedUnique = builtins.attrValues
+        (builtins.listToAttrs (map (e: { name = e.key; value = e; }) bakedRaw));
+      bakedMatrix = nixpkgs.legacyPackages.${system}.linkFarm "golem-baked-matrix"
+        (map (e: { name = e.key; path = e.toplevel; }) bakedUnique);
+      bakedManifest = nixpkgs.legacyPackages.${system}.writeText "golem-baked-manifest.json"
+        (builtins.toJSON (map (e: {
+          inherit (e) name firmware isFloor leaves;
+          toplevel = "${e.toplevel}";
+        }) bakedRaw));
     in
     {
       packages.${system} = {
-        inherit waveview;
+        inherit waveview bakedMatrix bakedManifest;
 
         # The Arc-1 deliverable: one command, one bootable Golem.
         iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;

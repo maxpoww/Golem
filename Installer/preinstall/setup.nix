@@ -24,6 +24,17 @@
 
 let
   tableFile = pkgs.writeText "golem-keyboards.table" keyboardsTable;
+  # The surface's runtime tools, shared by both wrappers so they cannot drift.
+  runtimePath = pkgs.lib.makeBinPath (with pkgs; [
+    coreutils gnugrep gnused gawk findutils
+    util-linux   # lsblk, findmnt — the disk step's eyes
+    iproute2     # ip — the rehearsed screen prints where to ssh
+    jq           # the reveal reads decision.json, the census as data
+    kbd          # loadkeys — the keyboard step applies what it proposes
+    mkpasswd     # the password is hashed the moment it is typed
+    pciutils     # lspci -k — the hardware reveal names GPU/Wi-Fi/audio
+    usbutils     # lsusb — the reveal's Bluetooth/fingerprint rows
+  ]);
 in
 pkgs.runCommand "golem-setup"
   {
@@ -55,14 +66,17 @@ pkgs.runCommand "golem-setup"
       --set GOLEM_REHEARSE 1 \
       --set GOLEM_LAB 1 \
       --set GOLEM_KEYBOARDS ${tableFile} \
-      --prefix PATH : ${pkgs.lib.makeBinPath (with pkgs; [
-        coreutils gnugrep gnused gawk findutils
-        util-linux   # lsblk, findmnt — the disk step's eyes
-        iproute2     # ip — the rehearsed screen prints where to ssh
-        jq           # the reveal reads decision.json, the census as data
-        kbd          # loadkeys — the keyboard step applies what it proposes
-        mkpasswd     # the password is hashed the moment it is typed
-        pciutils     # lspci -k — the hardware reveal names GPU/Wi-Fi/audio
-        usbutils     # lsusb — the reveal's Bluetooth/fingerprint rows
-      ])}
+      --prefix PATH : ${runtimePath}
+
+    # golem-setup-install — THE PRODUCT (8e autostart). Neither GOLEM_REHEARSE
+    # nor GOLEM_LAB set: per the mode ladder above, deleting both is the real
+    # destructive install (ENTER on the confirm runs golem-install for real,
+    # against the baked matrix — no rehearsal, no dev-box closure delivery).
+    # The Install boot's autologin runs THIS, while the bare `golem-setup`
+    # name a stranger might type at a shell stays safely in rehearse. Same
+    # out paths, same keyboards table, same PATH — only the mode rung differs.
+    makeWrapper $out/libexec/golem-setup-unwrapped $out/bin/golem-setup-install \
+      --add-flags "--out /tmp/golem-answers --write /tmp/golem-machine.nix" \
+      --set GOLEM_KEYBOARDS ${tableFile} \
+      --prefix PATH : ${runtimePath}
   ''

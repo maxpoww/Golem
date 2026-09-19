@@ -16,6 +16,9 @@
   # app set is not a question.
   nixpkgs.config.allowUnfree = true;
 
+  # A system monitor on EVERY Golem, minimal included (Max, 2026-09-18).
+  environment.systemPackages = [ pkgs.btop ];
+
   # /bin/sh and /usr/bin/env on FRESH roots — nixos-init makes the
   # classic activation a no-op, and greetd's worker execve's a
   # hardcoded /bin/sh. Belt-and-suspenders tmpfiles: harmless where the

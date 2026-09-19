@@ -24,6 +24,331 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+### 101. 8e USABLE INSTALL — gen-1 is loginable (password + SSH key) on the opt-A generic system, verified — [2026-09-18 · Max: "take on the usable-install piece next"]
+The opt-A direct-copy installs a GENERIC baked toplevel that never imports this
+machine's machine.nix, so its owner had no password and no key — the machine
+booted to a login nobody could pass. **Fix (install.nix, step 5b, after
+nixos-install):** apply the answers IMPERATIVELY into /mnt — `chpasswd -e` for
+the owner's hashed password (via `nixos-enter`), and write the SSH key to
+`~owner/.ssh/authorized_keys`. This STICKS because Golem sets no
+`users.mutableUsers` → the NixOS default (true) holds → activation does not
+reassert /etc/shadow or ~/.ssh. The seed's machine.nix still carries the
+DECLARATIVE answers (owner, hostName, hashedPassword, keys), so the first
+`rebuild-golem` makes them permanent AND swaps the generic hardware config for
+this box's measured one. Offline, no rebuild at install; harmless on the
+from-seed path (same values re-applied). Hostname stays the baked default until
+that first rebuild (cosmetic, not a login blocker).
+- **VM-PROVEN on the FLOOR (hardest case — an unbaked VBox+unknown-GPU machine):**
+  installed with `--password-hash <sha512> --lab-ssh <key> --hostname golembox`,
+  clean sync, booted the disk alone → **logged in as `max@Golem` over SSH with
+  the key** (shell zsh), **and the console password works** (`sudo -S` with
+  `golemtest123` → root; wrong password rejected). machine.nix on the installed
+  system carries `hostName="golembox"` + hashedPassword + the keys for the first
+  rebuild. Every install path gets this (the personalize step runs after any
+  nixos-install), so exact-match class installs are usable too.
+- **CONVERGENCE TO IDEAL — works ONLINE, offline is a deliberate non-goal
+  [investigated + decided 2026-09-18].** `rebuild-golem` (→ #golem-minimal, via
+  base/loop.nix's flakeAttr default) converges gen-1 → the IDEAL per-machine
+  system. VM-PROVEN ONLINE on the exact-match install: `nixos-rebuild switch
+  --flake …#golem-minimal` built `nixos-system-golembox`, activated **gen-2**
+  with the MEASURED hardware-config (fstab now by-uuid, ESP fsck + swap units) +
+  real hostname + declarative creds. This is Max's L2 rung (online for the
+  ideal). The FLAKE EVAL itself works offline (inputs resolve from the seed's
+  cached lock; version now matches the bake, `…20260829.c5c4a43`, not the old
+  `19700101.dirty`). What does NOT work offline: the rebuild must BUILD its thin
+  per-machine glue (the initrd trimmed to the measured modules, os-release, the
+  toplevel), and a gen-1 disk carries only the RUNTIME closure — no toolchain —
+  so it tries to build stdenv/initrd offline and dies. `system.includeBuildDependencies`
+  would fold the whole build closure onto the disk, but it is the sledgehammer
+  (every package's -dev/-debug/source) — realizing it timed out and would blow
+  the 8 GB-stick budget, so it was tried and REVERTED. **Decision:** gen-1 is
+  fully usable offline; convergence to the ideal is ONLINE (matches the L1-baked
+  / L2-online ladder). A curated on-disk toolchain for offline convergence is a
+  possible future effort, weighed against stick size — not shipped.
+
+### 100. 8e DEEP DOUBLE-CHECK — A/B/C FIXED + never-fail PROVEN END-TO-END to multi-user (unbaked VBox → floor → login+sshd); E was a harness artifact (sync-before-quit), D latent; integrity all-green — [2026-09-18 · Max: "run deep debug test … then we move on", then "E now"]
+A hands-on audit of the whole 8e install path (bake machinery, matcher,
+autostart, chooser throw-safety). **Verified SOUND:** firmware override flips
+ONLY the boot leaf per class (no leakage); all 18 baked toplevels incl. both
+floors are in the `bakedMatrix` closure (offline-installable, 0 missing);
+`loginShellInit` is confined to the Install specialisation (Start never
+autostarts); firmware detect emits exactly `bios`/`uefi` (matches manifest +
+exact-match is implicitly firmware-correct, the boot leaf is in the leaf-list);
+**exact-match integrity holds** — install evals `$seed/…/choose.nix` from
+`golemSrc`, the SAME tree `bakedManifest` baked from, and **all 8 fixtures
+exact-match their correct baked entry** (acer→acer-uefi … asus→asus-uefi w/
+nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
+- **HOLE A — the installer floor was gated behind a successful chooser [FIXED +
+  unit-tested; ISO-gate owed].** `install.nix` step 5 had
+  `if [[ -r manifest && -n "$leaves_json" ]]` wrapping BOTH exact-match AND the
+  floor. So if the leaves eval returned EMPTY — chooser `throw`, bad facts, any
+  nix error — the floor was SKIPPED and it fell to an offline from-seed build
+  that DIES on a stranger's machine. The floor needs only `$firmware`, never the
+  leaves. **Fix:** split — `-n "$leaves_json"` now guards only the exact-match;
+  the floor runs on any `-z "$system"`, outside that guard. **Proven:** a
+  VirtualBox facts file → chooser throws → leaves empty → floor-uefi selected
+  (direct copy, offline). `golem-install` rebuilds clean (shellcheck passes).
+- **HOLE B — the chooser THREW on VMware/VirtualBox/Hyper-V [FIXED, Max blessed
+  "floor it to []" 2026-09-18].** `choose.nix` `refuse "virt"` threw when
+  `vmGuest ∉ {qemu,none}`, and the census (`hardware-detect.nix:344-349,453`)
+  DOES emit `vmGuest = "vmware"|"virtualbox"|"hyperv"`. **Fix:** the `virt` group
+  now floors to `[ ]` (else-branch) with an honest `virtSkip` note, exactly like
+  the `gpu2` group — a missing guest-agent leaf is not a boot risk, unlike a GPU
+  driver, so the guest boots generic and a real leaf can land later. The GPU
+  tripwire STAYS (a display driver is not optional). **Proven:** a VirtualBox
+  guest now yields `grub-efi cpu/intel-microcode gpu/auto zram-tier1 swap disk`
+  + a virt skip (no throw); and the change is ZERO-regression — the baked
+  manifest hash is IDENTICAL and all 8 fixtures still exact-match their class
+  (qemu still gets qemu-guest). Net: hypervisor guests get a climbable
+  modules.nix (floor install now, self-rebuild to their proper config later),
+  instead of a dead install (pre-HOLE-A) or a bare unclimbable floor (HOLE-A
+  only).
+- **HOLE C — the opt-A baked install BOOTS TO EMERGENCY: the generic initrd
+  lacked the target's disk controller [FIX IMPLEMENTED, Max blessed "broad initrd
+  in the bake" 2026-09-18; initrd-verified, ISO re-gate pending].** Fix:
+  `bakedFakeDisk` (flake.nix) now sets a broad `boot.initrd.availableKernelModules`
+  — the virtio family (`virtio_pci/mmio/blk/scsi`) + SATA/PATA/AHCI + nvme/sd/sr +
+  USB storage + eMMC/SD + common SAS/RAID — additive to includeDefaultModules, so
+  it only ever ADDS bootability. Every baked toplevel now boots on any common
+  controller at gen-1; the first self-rebuild measures + trims to the real
+  hardware. VERIFIED: the rebuilt floor initrd now carries `virtio_blk virtio_pci
+  virtio_scsi virtio_mmio` (was absent). Below is the discovery record.
+  The definitive live floor gate (VirtualBox+unknown-GPU facts → chooser floors
+  → `golem-install` picks floor-uefi → "Installation finished. No error." offline,
+  ALL PROVEN) then FAILED to reach multi-user: the installed floor disk, booted
+  alone, hangs `A start job is running for /dev/disk/by-label/golem (…/1min 30s)`
+  → systemd-initrd **emergency mode** (root account locked). Root cause, proven
+  by unpacking the baked initrd: it carries only the DEFAULT modules
+  (`ahci nvme sd_mod xhci libahci`) and **NO `virtio_blk`/`virtio_pci`** — so on
+  a virtio-blk machine the initrd never sees `vda`, the root device never
+  appears, boot times out. The opt-A DIRECT COPY installs the baked toplevel
+  as-is, skipping the per-machine `nixos-generate-config` that normally adds the
+  measured `boot.initrd.availableKernelModules`. **Blast radius:** any machine
+  whose disk controller is outside {ahci,nvme,sd_mod,xhci} — notably ANY
+  virtio-blk VM (a huge share of "a stranger tries Golem in a VM") — installs but
+  cannot boot. Real AHCI/NVMe/SATA/USB laptops likely boot (those modules ARE in
+  the initrd), which is why the roster (from-seed, MEASURED configs) never hit it
+  and the earlier opt-A gate (only checked "GRUB starts") missed it. This means
+  8e's install, as built, is NOT never-fail to multi-user. **Fix options (Max's
+  call):** (a) bake a BROAD `boot.initrd.availableKernelModules` (add the virtio
+  family + common controllers) into every baked toplevel via `mkMinimal`/the
+  `bakedFakeDisk` module — the true "boots on anything" floor, keeps opt-A direct
+  copy [recommended, low-risk: only ever adds bootability]; (b) first-boot
+  auto-rebuild to the measured hardware-configuration.nix (needs the deferred
+  reproducible-rebuild, the deep "usable install" work); (c) a+b (broad initrd
+  for gen-1, then rebuild to ideal). Proven with `-vga std`+virtio-blk +
+  rigged facts; the exact-match class path uses the SAME generic initrd, so it is
+  affected identically on any non-{ahci,nvme,sd_mod,xhci} controller.
+- **HOLE E — grub rescue `normal.mod not found` = A TEST ARTIFACT, NOT a Golem
+  bug [RESOLVED 2026-09-18].** Chased it into the grub-rescue prompt: `set`
+  showed correct `root='hd0,gpt1'` + `prefix='(hd0,gpt1)/grub'`; `ls /grub/`
+  listed `x86_64-efi/`; but `ls /grub/x86_64-efi/` returned only a PARTIAL set
+  (~15 of 250 modules) and `insmod normal` → not found. `fsck.fat -v` on the ESP
+  revealed the cause: **corrupted LFN directory entries** ("Long filename
+  fragment 'video_cirrus.' found outside a LFN sequence — start bit missing",
+  boot-sector≠backup). GRUB's strict fat driver stops at the malformed LFN run;
+  Linux's lenient vfat reads past it (so `find`/`ls` on the medium saw the files).
+  **Cause: my harness hard-quit QEMU (`quit`) right after the install without a
+  guest sync, dropping unflushed FAT writes** — the real product flow REBOOTS
+  after the 6/6 marker (a clean sync/unmount). PROVEN: re-installed, then
+  `sync; umount -R /mnt` before power-off → `fsck.fat` clean (`344 files`, no LFN
+  errors) → the disk **booted to `Golem login:` on tty1 AND sshd answered
+  (`Permission denied (publickey)`) = FULL MULTI-USER.** No code change needed;
+  the harness lesson (sync before hard-quit) is noted in vm.md. Below is the
+  original discovery record, kept for the trail.
+- **[superseded — kept for the trail] HOLE E discovery: opt-A UEFI boot landed in
+  `grub rescue> normal.mod not found`.** With
+  the HOLE-C fix in, the re-gate floor install succeeded ("using the generic
+  FLOOR" → "Installation finished. No error." offline), but booting the installed
+  disk in OVMF hit `error: file '/grub/x86_64-efi/normal.mod' not found →
+  grub rescue>` — BEFORE grub.cfg. Inspected the ESP: normal.mod IS present at
+  exactly `/grub/x86_64-efi/normal.mod`, grub.cfg correctly does
+  `search --fs-uuid B478-EC19` (= the ESP's real UUID), BUT the CORE image
+  (`EFI/BOOT/BOOTX64.EFI`) embeds a bare `prefix` with **no fs-uuid search and no
+  `search`/`search_fs_uuid` module built in** — so `$root` never resolves in OVMF
+  and `/grub/...` points nowhere. Behavior is INCONSISTENT with OVMF NVRAM state
+  (pre-fix floor-target booted GRUB via its install-time NVRAM entry → reached
+  the kernel; floor2 grub-rescues via both its install NVRAM and fresh/removable
+  vars; floor-target+fresh-vars = blank) → reads as a FRAGILE UEFI-removable
+  boot-path interaction, not obviously a regression (nothing I changed touches
+  GRUB, and the metal roster — real firmware, from-seed installs — boots fine).
+  **Consequence:** "opt-A floor reaches MULTI-USER" is still UNPROVEN in the VM —
+  the install + the initrd fix are proven, but a clean end-to-end boot of a
+  direct-copied baked system to a login is blocked by this GRUB/OVMF murk (and
+  compounded by the generic-system no-login gap). **Follow-up (focused, separate
+  from never-fail):** why the opt-A removable GRUB core can't resolve $root under
+  OVMF — likely a grub-mkimage prefix/search-module issue in the bootloader
+  install for a direct-copied (non-generate-config) system; compare a from-seed
+  install's core image; consider `efiInstallAsRemovable` + an fs-uuid search in
+  the embedded core. This is the next thing to chase before 8e can claim a
+  verified multi-user boot.
+- **LATENT D — `gpu2="other"` is not folded to a safe value [low].** Primary
+  `gpu` folds `other`→`auto` (`hardware-detect.nix:162`); `gpu2` (line 180) does
+  NOT. Harmless today (the `gpu2` group floors to `[]`, no refuse) but a future
+  `refuse` on gpu2 would make `gpu2="other"` an instant hole. Optional one-line
+  fold for symmetry.
+- **where:** `Installer/preinstall/install.nix` (HOLE A, fixed),
+  `system/Modular/choose.nix` (HOLE B/C), `system/hardware-detect.nix`.
+- **Owed:** rebuild the ISO to carry HOLE A (+ HOLE B if Max blesses it), then
+  the **live floor install→boot** gate now exercises HOLE A's path for real.
+
+### 99. 8e — THE ALL-IN BAKED INSTALLER (the Omarchy model) — ISO builds (3.0 GiB); opt-A install + coverage + autostart all VM-gated; live floor-boot + TUI product install still owed — [IN PROGRESS 2026-09-18 · Max: "reliable as fuck, never fail" · "Cobertura/autoarranque first"]
+Max's end goal, decided after the math: **no online install / no 50 G ISO —
+BAKE the whole hardware matrix, install by LOCAL COPY.** DHH's Omarchy does
+~1-min installs exactly this way (image on the stick, copy-not-download).
+- **DONE + measured:** `flake.nix` `bakedMatrix` (linkFarm of every fixture's
+  minimal toplevel, `bakedFakeDisk` by-label golem/ESP) → `iso.nix`
+  `system.extraDependencies`. **All-in ISO = 2.91 GiB** (union 6.64 GiB
+  uncompressed; squashfs + medium overlap compress it), fits 8 GB with ~4.5 GiB
+  spare. btop added to base/core.nix. Preinstall flake made self-contained
+  (`../../system/...` → `"${golem}/system/..."`), builds via
+  `--override-input golem path:<clean git tree>`.
+- **VM BOOT-GATE PASSED (2026-09-18, vm.md):** the 2.91 GiB all-in ISO boots
+  (UEFI/OVMF), comes up `golem-installer`, carries all 8 class closures offline,
+  census runs (virtio/intel/bios), floor logic confirmed.
+- **VM INSTALL-GATE FAILED + CAUGHT A REAL GAP (2026-09-18):** with golem-install
+  building golem-minimal offline from the seed, a VM install died building
+  cmake/glib/elfutils from SOURCE — the seed-rebuild is
+  `…19700101.dirty`, the bake is `…20260829.c5c4a43`, DIFFERENT evals →
+  `--offline` can't reuse the bake. **"Rebuild from the seed at install" cannot
+  reuse the baked matrix.** ARCHITECTURE FORK (awaiting Max): **(A) install the
+  BAKED toplevel DIRECTLY** (`nixos-install --system <baked class>`, local copy,
+  no rebuild — can't mismatch; per-machine hostname/owner/swap/wifi via a
+  first-boot rebuild on the target where the closure is present) — recommended;
+  or **(B)** make the seed-rebuild byte-reproduce the bake (fragile). This is
+  why we VM-gate — the gap was caught before shipping.
+- **OPT A WIRED + PROVEN (2026-09-18):** `flake.nix` `bakedManifest` (leaf-list →
+  toplevel JSON) + `iso.nix` `/etc/golem/baked-manifest.json` + `install.nix`
+  matches the machine's chosen leaves to a baked toplevel and
+  `nixos-install --system <baked>` (direct copy, no rebuild). Fall back to the
+  from-seed build only when no baked match. **VM-PROVEN:** UEFI VM → live leaves
+  == baked `qemu` → `nixos-install --system` copied paths + installed GRUB-EFI,
+  **"Installation finished. No error." offline, no rebuild** — the mismatch is
+  gone; OVMF then started the disk's removable grub-efi (bootable). One-word
+  unblock: the leaves eval needed `--impure`.
+- **COBERTURA + AUTOARRANQUE DONE + VM-GATED (2026-09-18, Max: "Cobertura/
+  autoarranque first"):**
+  - **Coverage:** `flake.nix` bakes+manifests **18** entries — 8 classes × both
+    firmwares (16) + `floor-bios`/`floor-uefi` (`isFloor:true`). `install.nix`:
+    exact leaf-list → the ideal class, else the floor-for-firmware, both DIRECT
+    copies. NEVER-FAIL selection proven on a real weird machine (9-leaf unbaked
+    combo → exact miss → floor-uefi, whose 1017-path closure is 0-missing
+    offline). Resolves owed items (2) coverage and the ⚠ COVERAGE note.
+  - **Autostart:** new `golem-setup-install` wrapper (`setup.nix`) = the surface
+    with neither `GOLEM_REHEARSE` nor `GOLEM_LAB` (mode ladder: neither = the
+    full real install); the `install` specialisation (`iso.nix`) autostarts it
+    on tty1 via `environment.loginShellInit`, `tty`-guarded. Resolves owed (3).
+    **Bug caught in the gate:** NixOS `/etc/profile` does NOT source
+    `/etc/profile.d/*.sh` — the first `environment.etc."profile.d/…"` cut
+    silently no-op'd; `loginShellInit` fixed it. VM-PROVEN: Install boot →
+    autologin → surface live on tty1 in product mode (no REHEARSE/LAB in its
+    `/proc/environ`), SSH stays on a pty (guard holds).
+- **STILL OWED after opt A:** (1) a USABLE install — the baked-generic has no
+  owner/hostname/sshd (no machine.nix); applying the surface's answers means a
+  FIRST-BOOT rebuild that must REUSE the baked deps (the deeper reproducibility
+  the gen-1 copy sidestepped — likely needs mkMinimal==golem-minimal so the
+  rebuild matches the bake). (4) full multi-user boot capture + a **live floor
+  install→boot** (selection+closure proven; the disk-boot of the floor is the
+  last gold-standard never-fail proof) + a **TUI-driven full product install**
+  (autostart → 6 answers → confirm → installed system boots).
+- **⚠ COVERAGE (the never-fail requirement for opt A):** the match is EXACT on
+  the leaf-list, and firmware SPLITS every class (bios→grub-bios vs
+  uefi→grub-efi are different leaf-lists). The current 8 fixtures each carry
+  ONE firmware, so e.g. a BIOS-qemu machine won't match the UEFI-qemu bake and
+  falls through. For never-fail the bake must cover {GPU class × firmware ×
+  common tier} AND a **floor entry** (gpu=auto/unknown, both firmwares) so the
+  generic floor is itself directly-installable. Follow-on: expand
+  `bakedFixtures` (or synthesize the permutations) so every reachable leaf-list
+  — including the floor — is a baked, direct-installable entry.
+- **The never-fail ladder (Max's demand):** L1 baked matrix → L2 online pull for
+  the rare unbaked driver → **L3 the generic floor (`gpu/auto`, boots on
+  anything)**. Proven the chooser FLOORS (not throws) on nothing-detected; the
+  floor is a CI row. Census degrades every fact to a safe default. For the
+  PRODUCT the chooser must floor-not-throw on unknown (lab throws for the CI
+  tripwire) — confirm the census never emits an unfloorable GPU value.
+- **STILL OWED:** (a) `golem-install` offline path — pick the chosen toplevel
+  from the medium's baked store (not a delivery/build); ask the store DB, not
+  `[-e]` (#85). (b) `golem.install` boot autostart: Install-boot → `golem-setup`
+  → `golem-install`, gated `ConditionKernelCommandLine=golem.install`. (c) L2
+  online fallback for a driver outside the bake. (d) **VM-GATE (§3): boot the
+  ISO, install a deliberately-weird fake machine, watch it land on `gpu/auto`
+  and boot** — the never-fail end-to-end proof. (e) fold the #62–#98 queue.
+- **where:** `flake.nix`, `Installer/preinstall/{flake,iso,install,setup}.nix`,
+  `system/hardware-detect.nix` (census floor), `system/Modular/choose.nix`.
+
+### 98. THE FULL-SYSTEM FACT MATRIX IS THIN — no lenovo row, and it can't run from a seeded checkout — [FOUND 2026-09-18 · the lenovo nvidia audit · needs-Max on scope]
+Two related gaps the lenovo audit surfaced in `system/hardware/matrix.nix`:
+- **Coverage:** its header claims "the committed lab fixtures' facts files are
+  permutations too, so a … change that would regress a past machine fails CI in
+  seconds" — but only **2 of 8** committed fixtures are `facts-matrix` rows
+  (`acer-e5-573`, `qemu-virtio`). The nvidia coverage is a SYNTHETIC
+  `nvidia-hybrid-ada` row hard-coding `ramMB=32768`/`cores=20` and omitting
+  `gpu2`/`gpu2Health`/`panelDpi=239`/`hasBluetooth`. The machine just proven on
+  metal (lenovo) has **no** facts-matrix row for its real fact-set. Fix: add
+  `fixture-lenovo-slim-pro-9-16irp8` (and ideally the other real fixtures) as
+  rows.
+- **Procedure:** `facts-matrix` **cannot be run from an install-seeded
+  checkout** — `mkTarget` composes `golemModules ++ [ ./hosts/target ]`, so the
+  installer's dropped `golem-hardware.nix` (real lenovo facts) leaks into EVERY
+  row, and the `floor` row (whose point is "no detection → safe defaults")
+  fails on nvidia/laptop-power/resume it should never see. Confirmed: a pristine
+  tree (dropped files removed) makes `facts-matrix` green + `nix flake check` =
+  `all checks passed!`. So an installed Golem can self-prove chooser-matrix /
+  minimal-matrix / keyboard-table / timezone-defaults, but NOT facts-matrix.
+  A future audit must be told this or it reads the `floor` failure as a
+  regression. (Adding the lenovo row would have caught this as a side effect.)
+- **where:** `system/hardware/matrix.nix`; `hosts/target/default.nix` (already
+  documents the "pristine repo stays green" premise). **size:** small-medium;
+  scope is Max's (how many real fixtures become facts rows).
+
+### 97. `lspci` IS NOT IN THE MINIMAL IMAGE — the driver-binding audit must read sysfs — [FOUND 2026-09-18 · the lenovo nvidia audit · small]
+The rule-6 / GPU audits ask for `lspci -nnk`'s "Kernel driver in use:" line, but
+**pciutils ships only in the fat/desktop set, not stage-0 minimal** — so the
+literal command fails on a freshly installed machine. The lenovo audit read the
+binding from **sysfs** instead (`/sys/bus/pci/devices/<bdf>/driver` →
+`…/drivers/nvidia`, and the device `uevent`'s `DRIVER=`), which is the SAME
+source `lspci` itself reads, so the fact stands. Fix (pick one): add `pciutils`
+to the minimal closure (a few hundred KB — convenient for every future hardware
+audit), OR make sysfs the canonical driver-binding check in `firstboot-audit.sh`
+and the audit instructions. **where:** `system/Modular/base/*` (if adding
+pciutils) or `tools/firstboot-audit.sh`. **size:** small.
+
+### 96. THE FACETIME HD WEBCAM — a new leaf, fact and chooser rule; PROVEN capturing on the installed MacBook — [BUILT + INSTALLED + live-captured 2026-09-18 · the macbook · must ride the recut]
+Max, at the macbook: *"IMPORTANT!! drivers | audio | wifi | BT | WEBCAM |
+etc. …it is important that Golem install the webcam and make it functional."*
+The 2013 Air's camera is the Broadcom 720p **FaceTime HD (PCI 14e4:1570)** —
+an out-of-tree `facetimehd` (bcwc_pcie) module + an ISP firmware blob nixpkgs
+extracts from a 2 MB byte-range of Apple's OSXUpd10.11.5.dmg (unfree, but
+cached on cache.nixos.org — no live dependency on Apple's CDN).
+- **Made modular, the Golem way** (spec growth rule + rule 4): new census
+  fact **`hasFacetimeHD`** (probe detects 14e4:1570), new leaf
+  **`quirks/facetimehd.nix`** (`hardware.facetimehd.enable` +
+  `allowUnfreePredicate` scoped to the blob, composes with broadcom-wl's
+  `allowInsecurePredicate`), chooser rule, matrix assertion + fixture.
+- **THE GOTCHA — the fact must be declared TWICE.** `golem.hardware` options
+  live in BOTH the Modular `base/options.nix` AND the fat `system/hardware.nix`;
+  `golem-postinstall-questions` evaluates `lib.golem.postinstallQuestions`,
+  which routes through the FAT config, so a fact declared only in the Modular
+  set makes prepare die at the postinstall-questions drop ("option
+  `golem.hardware.hasFacetimeHD' does not exist"). Declare new facts in both.
+- **THE OTHER GOTCHA — golemSrc must be git, not `path:`.** Building the
+  patched engine with `--override-input golem path:$HOME/Golem` baked the
+  WHOLE working tree (70 GB of build artifacts) into the closure. The frozen
+  golemSrc is git-based (3 MiB). Use a clean tree (`git archive HEAD` +
+  overlay the uncommitted deltas) for `--override-input golem path:<clean>`.
+- **PROVEN:** live on the medium before the wipe (720p frame), and on the
+  INSTALLED system — `/dev/video0` auto-appears at boot, `facetimehd-firmware`
+  + `facetimehd-calibration` both load (the `1871_01XX.dat` error is gone),
+  captured a 1,843,200-byte frame. See macbook.md.
+- **where:** `system/Modular/quirks/facetimehd.nix` (new),
+  `system/Modular/base/options.nix`, `system/hardware.nix`,
+  `system/hardware-detect.nix`, `system/Modular/choose.nix`,
+  `system/Modular/matrix.nix`, `Installer/preinstall/fixtures/macbook-air-2013/facts.nix`.
+- **owed:** all uncommitted; ride the recut (8e) so the webcam reaches the
+  image, and run `nix flake check` to confirm the updated chooser/effect
+  matrices are green (validated by hand: the chooser emits the macbook's 10
+  leaves incl facetimehd; postinstall-questions returns []).
+
 ### 95. THE MENU FINALLY READS LIKE GOLEM — item_align, the hidden icon gutter, and the words — [BUILT + live on the acer 2026-09-15 · Max's eyes owed · the comodore and the ISO owe the same update]
 Max at the acer's first GRUB-EFI menu: *"it does not look like
 systemd-boot, on grub, the items are centered but aligned to the left
@@ -337,7 +662,7 @@ buildEnvs differ only by the `nixos-version` input that carries the string.
   #35b carried decision.
 - **size:** small for option (b). Needs-Max on which option.
 
-### 87. A CHOSEN LEAF THAT DOES NOTHING, AND EVERY LAYER SAYS IT WORKS — thermald is a silent no-op on pre-RAPL Intel — [FOUND 2026-09-14 · the comodore's first boot · rule-10 class]
+### 87. A CHOSEN LEAF THAT DOES NOTHING, AND EVERY LAYER SAYS IT WORKS — thermald is a silent no-op on pre-RAPL Intel — [FOUND 2026-09-14 the comodore (Penryn) · CONFIRMED 2026-09-18 on the hp (Arrandale), a second microarch · rule-10 class · fix still needs-Max]
 The chooser deliberately points the comodore at `power/thermald.nix`
 (`chassis=laptop` + `cpuVendor=intel`). On the booted machine:
 ```
@@ -366,11 +691,14 @@ thermald[597]: Unsupported cpu model or platform
   loaded, `acpi_cpufreq` with the `schedutil` governor. Kernel/ACPI
   passive throttling is live. What is missing is thermald's adaptive
   layer — and, more importantly, our HONESTY about whether it is there.
-- **blast radius:** the **hp** (i5 M 460 Arrandale, family 6 model 37 —
-  also pre-Sandy-Bridge) is predicted to behave identically; it was
-  powered off at the time of writing, so that is a prediction to confirm,
-  not a result. The acer (Broadwell) and asus (Haswell) are post-RAPL and
-  genuinely run it — their records saying "thermald active" are correct.
+- **blast radius — the hp CONFIRMS it (2026-09-18):** the **hp** (i5 M 460
+  Arrandale, family 6 model 37 — also pre-Sandy-Bridge) booted its
+  clean-image stage-0 with `thermald` **inactive** and **0 failed units**,
+  identical to the comodore on a different microarchitecture. Prediction is
+  now a result: two pre-RAPL machines, same silent no-op, same green audit.
+  The acer (Broadwell) and asus (Haswell) are post-RAPL and genuinely run
+  it — their records saying "thermald active" are correct. So the fix's
+  motivation is now doubled: this is a class, not a comodore quirk.
 - **fix (needs-Max on the shape):** either (a) a new census fact —
   powercap/RAPL presence is directly observable on the medium, which boots
   the same kernel — and narrow the chooser to point at `power/thermald`

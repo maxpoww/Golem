@@ -315,13 +315,18 @@ pkgs.writeShellApplication {
     # teaches hardens the real install for free, because they are the
     # same code path.
     #
-    # The bootloader follows the firmware (both are now supported): UEFI
-    # installs systemd-boot to the ESP, BIOS installs GRUB to the disk via
-    # the BIOS-boot partition. This was a hard FAIL in round 1 (systemd-boot
-    # is UEFI-only and BIOS support did not exist); round 2 made BIOS a real
-    # path, so it is an ok line now, not a blocker.
+    # The bootloader follows the firmware, and since #92 it is GRUB on
+    # BOTH: UEFI installs GRUB-EFI to the ESP (at the removable fallback
+    # path — #94, because firmware deletes NVRAM entries), BIOS installs
+    # GRUB to the disk via the BIOS-boot partition. This was a hard FAIL
+    # in round 1 (systemd-boot is UEFI-only and BIOS support did not
+    # exist); round 2 made BIOS a real path, so it is an ok line now.
+    # ⚠ This string is the OPERATOR'S RECORD of what is about to happen —
+    # it said "systemd-boot" for a day after the chooser stopped picking
+    # it (caught on the asus's rehearsal, 2026-09-15). If the bootloader
+    # decision moves again, this line moves with it.
     if [[ "$firmware" == uefi ]]; then
-      check_ok "firmware: booted UEFI — systemd-boot to the ESP"
+      check_ok "firmware: booted UEFI — GRUB-EFI to the ESP"
     else
       check_ok "firmware: booted BIOS/legacy — GRUB to $disk (BIOS-boot partition)"
     fi
@@ -760,7 +765,7 @@ pkgs.writeShellApplication {
       t0=$SECONDS
       if drv=$(nix eval --offline --no-write-lock-file --raw \
           ${overrideArgs} \
-          "path:$seed#nixosConfigurations.golem-target.config.system.build.toplevel.drvPath" \
+          "path:$seed#nixosConfigurations.golem-minimal.config.system.build.toplevel.drvPath" \
           2>"$logdir/eval.err"); then
         check_ok "eval: the target system instantiates in $(( SECONDS - t0 ))s → $drv"
         echo "$drv" > "$logdir/toplevel.drv"
@@ -803,14 +808,96 @@ pkgs.writeShellApplication {
 
     echo "##golem 5/6 install"
     if [[ -z "$system" ]]; then
-      echo "building golem-target (this is the long part)…"
-      system=$(nix build --offline --no-write-lock-file --no-link --print-out-paths \
-        ${overrideArgs} \
-        "path:$seed#nixosConfigurations.golem-target.config.system.build.toplevel")
+      # THE PRODUCT PATH (8e, option A — Max 2026-09-18): install the BAKED
+      # toplevel that matches this machine's chosen leaf-list, by DIRECT COPY
+      # (nixos-install --system <baked>). No rebuild → the eval-mismatch that
+      # broke the from-seed build (dirty version ≠ the baked one) cannot
+      # happen. The chooser is deterministic, so a machine whose hardware
+      # matches a baked fixture resolves to that fixture's exact leaf-list;
+      # /etc/golem/baked-manifest.json maps leaf-list → the baked toplevel.
+      # --impure: choose.nix is pure nix (no inputs), but importing it by
+      # ABSOLUTE path needs impure mode (same as the modules.nix eval above).
+      leaves_json=$(nix eval --impure --no-write-lock-file --json \
+        --expr "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).golem.hardware; }).leaves" \
+        2>/dev/null || true)
+      if [[ -r /etc/golem/baked-manifest.json ]]; then
+        # exact leaf-list match → the IDEAL baked toplevel for this hardware.
+        # Only ATTEMPTED when the chooser actually produced a leaf-list; if it
+        # threw (an unbaked hypervisor/GPU hits choose.nix's `refuse`) or the
+        # facts file was unreadable, leaves_json is empty and we fall straight
+        # through to the floor below.
+        if [[ -n "$leaves_json" ]]; then
+          system=$(jq -r --argjson want "$leaves_json" \
+            '.[] | select(.leaves == $want) | .toplevel' \
+            /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+        fi
+        # NEVER-FAIL (Max's L3): no exact match — OR the chooser could not run
+        # at all (threw / bad facts → empty leaves_json) — falls to the generic
+        # FLOOR for this firmware (gpu/auto, boots on any GPU), still a DIRECT
+        # COPY. The floor needs ONLY $firmware, never the leaves, so it MUST sit
+        # OUTSIDE the leaves_json guard: gating the floor on a successful
+        # chooser was a never-fail HOLE — a chooser throw skipped the floor and
+        # fell through to an offline source build that dies on a stranger's
+        # machine. Now unknown/unresolvable hardware installs+boots on generic
+        # drivers and can rebuild to its ideal config later.
+        if [[ -z "$system" || "$system" == "null" ]]; then
+          system=$(jq -r --arg fw "$firmware" \
+            '.[] | select(.isFloor == true and .firmware == $fw) | .toplevel' \
+            /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+          [[ -n "$system" && "$system" != "null" ]] && \
+            echo "no exact baked match — using the generic FLOOR (firmware=$firmware, boots on anything)"
+        fi
+      fi
+      if [[ -n "$system" && "$system" != "null" && -e "$system" ]]; then
+        echo "installing the BAKED toplevel — direct copy, offline:"
+        echo "  $system"
+      else
+        # Last resort only (should be unreachable — the floor always matches):
+        # a from-seed build. Offline this needs the deps present; a networked
+        # medium can fetch them.
+        echo "no baked match/floor — building golem-minimal from the seed…"
+        system=$(nix build --offline --no-write-lock-file --no-link --print-out-paths \
+          ${overrideArgs} \
+          "path:$seed#nixosConfigurations.golem-minimal.config.system.build.toplevel")
+      fi
     fi
     echo "installing system: $system"
 
     run nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy
+
+    # ── 5b. Make gen-1 USABLE (the opt-A/baked path installs a GENERIC
+    # toplevel that never imported this machine's machine.nix, so its owner
+    # has no password and no key — the machine boots to a login nobody can
+    # pass). Golem sets no users.mutableUsers, so the NixOS default (true)
+    # holds: /etc/shadow and ~/.ssh are NOT reasserted on activation, so an
+    # imperative password + authorized_keys set here PERSIST on the generic
+    # system — it is loginable on first boot, offline, with no rebuild. The
+    # seed's machine.nix still carries the DECLARATIVE answers (owner,
+    # hostname, hashedPassword, keys), so the first `rebuild-golem` makes them
+    # permanent AND swaps the generic hardware config for this box's measured
+    # one. Harmless on the from-seed path (same values, re-applied). The
+    # hostname stays the baked default until that first rebuild — cosmetic,
+    # not a login blocker.
+    if [[ -n "$passhash" && "$passhash" != "!unhashed" ]]; then
+      # -e: the value is ALREADY a hash — the surface hashed it the moment it
+      # was typed (a plaintext password has never reached this script).
+      if printf '%s:%s\n' "$owner" "$passhash" \
+           | nixos-enter --root /mnt -c 'chpasswd -e' 2>"$logdir/personalize.err"; then
+        check_ok "owner: password applied to $owner on the generic system (loginable at first boot)"
+      else
+        check_warn "owner: could not set $owner's password on the generic system — first login will need a rebuild (personalize.err has the trace)"
+      fi
+    fi
+    if [[ -n "$labkey" ]]; then
+      # sshd's default AuthorizedKeysFile reads ~/.ssh/authorized_keys, which
+      # is user-owned mutable state (not reasserted by activation), so the key
+      # is live at first boot. Ownership is fixed by the chown -R below.
+      sshdir="/mnt/home/$owner/.ssh"
+      run install -d -m 700 "$sshdir"
+      printf '%s\n' "$labkey" > "$sshdir/authorized_keys"
+      run chmod 600 "$sshdir/authorized_keys"
+      check_ok "owner: SSH key authorized for $owner on the generic system (reachable at first boot)"
+    fi
 
     # The seed is the installed machine's own flake (golem.flakeDir), so it
     # must belong to the owner, not to root — rebuild-golem runs as them.

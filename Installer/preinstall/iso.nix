@@ -35,7 +35,7 @@ in
     # The lab tools (PLAN.md): the census probe — shared with the full
     # system on purpose (same probe everywhere is reuse, not ISO-mixing) —
     # and the raw-evidence collector that feeds the fixture corpus.
-    ../../system/hardware-detect.nix
+    "${golem}/system/hardware-detect.nix"
     ./evidence.nix
     # The machine audits itself at boot and leaves the verdict in
     # /var/log/golem-audit/ — this module also owns the getty helpLine,
@@ -64,7 +64,19 @@ in
   # through the same lib.golem.mkTarget the installer will build.
   environment.etc."golem/src".source = golem;
   environment.etc."golem/inputs".source = offlineSeed;
-  system.extraDependencies = [ offlineSeed ];
+  # 8e — bake the ALL-IN hardware matrix onto the medium (Max, 2026-09-18,
+  # the Omarchy model): every class's minimal closure in the store, so the
+  # install is a LOCAL COPY, no network. The union is ~6.6 GiB → ~4 GiB
+  # compressed ISO (fits an 8 GB stick with room). A machine whose exact
+  # combo isn't a listed fixture still installs offline — the heavy
+  # driver/kernel/firmware paths are all here, so its toplevel assembles from
+  # these baked components; anything unclassifiable lands on gpu/auto (the
+  # floor that boots on anything).
+  system.extraDependencies = [ offlineSeed golem.packages.x86_64-linux.bakedMatrix ];
+  # The manifest golem-install reads to pick the baked toplevel matching a
+  # machine's chosen leaf-list (install by DIRECT COPY, no rebuild — 8e opt A).
+  environment.etc."golem/baked-manifest.json".source =
+    golem.packages.x86_64-linux.bakedManifest;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   environment.systemPackages = [ hw-decide hw-postinstall-questions install setup ];
 
@@ -155,12 +167,39 @@ in
   system.nixos.distroName = lib.mkForce "";
   system.nixos.label = lib.mkForce "";
 
-  # "Install" boots the same system plus a marker the install flow will
-  # ride later (systemd unit gated on ConditionKernelCommandLine).
+  # "Install" boots the same system plus the marker the install flow rides,
+  # and — the 8e product half (Max, 2026-09-18: "autoarranque") — autostarts
+  # the guided surface in PRODUCT mode on tty1. The base (Start) boot leaves
+  # tty1 to the audit banner and a TYPED `golem-setup` (rehearse-safe); only
+  # this specialisation drops a stranger straight into the real installer.
+  # Everything here is a separate toplevel, so none of it touches Start.
   specialisation.install.configuration = {
     isoImage.prependToMenuLabel = lib.mkForce "Install";
     isoImage.golemMenuIndent = lib.mkForce 0;
     boot.kernelParams = [ "golem.install" ];
+
+    # The autostart lives in the LOGIN-SHELL init, guarded to the physical
+    # console's first VT, NOT a systemd service: the surface is a full-screen
+    # interactive TUI that needs tty1 as its controlling terminal, and fighting
+    # getty for /dev/tty1 with a service is the fragile path.
+    #   loginShellInit, not environment.etc."profile.d/…": NixOS's /etc/profile
+    #   does NOT source /etc/profile.d/*.sh (only /etc/bashrc sources the one
+    #   bash-completion file), so a profile.d drop-in is never read and the
+    #   autostart silently no-ops (caught in the VM gate, 2026-09-18). This
+    #   option is appended straight into /etc/profile, which the autologin's
+    #   login shell DOES source.
+    # The `tty` guard keeps SSH logins on their pty landing in a plain shell —
+    # the dev box's automation must never be dropped into the installer — and
+    # the surface is RUN, not exec'd, so backing out returns a shell instead of
+    # locking the console. A completed install reboots from inside the surface,
+    # so the success path never returns here. GOLEM_SURFACE_STARTED makes it
+    # once-per-login (a nested login shell won't relaunch).
+    environment.loginShellInit = ''
+      if [ "$(tty)" = "/dev/tty1" ] && [ -z "$GOLEM_SURFACE_STARTED" ]; then
+        export GOLEM_SURFACE_STARTED=1
+        golem-setup-install
+      fi
+    '';
   };
 
   # The kernel's default console loglevel (4) lets err-level lines paint
@@ -224,7 +263,10 @@ in
   # the same stick).
   # black.png: 16x16 solid black (inkscape-generated, eyeball-verified),
   # stretched to fill by both loaders — kills the NixOS artwork.
-  isoImage.grubTheme = pkgs.callPackage ./grub-theme.nix { };
+  # The theme moved to system/Modular/boot/grub-theme.nix (#68) so the
+  # medium and an INSTALLED machine draw the same Golem menu. The medium
+  # keeps its proven geometry (the defaults — a box that hugs "Install").
+  isoImage.grubTheme = pkgs.callPackage "${golem}/system/Modular/boot/grub-theme.nix" { };
   isoImage.efiSplashImage = ./black.png;
   isoImage.splashImage = ./black.png;
 }

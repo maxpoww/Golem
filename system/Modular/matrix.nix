@@ -84,6 +84,7 @@ let
         "boot/grub-efi.nix" "cpu/intel-microcode.nix" "gpu/intel-legacy.nix"
         "memory/zram-tier1.nix" "swap/hibernation.nix" "disk/policy.nix"
         "power/laptop.nix" "power/thermald.nix" "quirks/broadcom-wl.nix"
+        "quirks/facetimehd.nix"
       ];
     }
     {

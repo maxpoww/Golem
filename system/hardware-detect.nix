@@ -402,6 +402,21 @@
           case "$(cat "$d/class")" in 0x0280*) broadcom_wifi=true; break ;; esac
         done
 
+        # ── FaceTime HD camera: the webcam a stranger cannot guess ──────
+        # The Broadcom 720p FaceTime HD camera (PCI 0x14e4:0x1570, class
+        # 0x0480 multimedia) in 2013+ Intel Macs needs the out-of-tree
+        # facetimehd module + an ISP firmware blob nixpkgs extracts from
+        # Apple's driver. Detect it by exact device id so the installed
+        # system enables the camera unasked (quirks/facetimehd.nix). The
+        # medium never needs the webcam; the installed system does.
+        # PROVEN on the MacBookAir6,2 (2026-09-18): /dev/video0 captures.
+        facetimehd=false
+        for d in /sys/bus/pci/devices/*; do
+          [[ -r "$d/vendor" && -r "$d/device" ]] || continue
+          [[ "$(cat "$d/vendor")" == "0x14e4" && "$(cat "$d/device")" == "0x1570" ]] \
+            && { facetimehd=true; break; }
+        done
+
         # ── Emit ─────────────────────────────────────────────────────────
         # nvidia-only facts appear only on nvidia machines: a facts file is
         # data a human should be able to read top to bottom, so intel boxes
@@ -438,6 +453,7 @@
           [[ "$vm_guest" != "none" ]] && echo "    vmGuest = \"$vm_guest\";"
           [[ "$has_fp" == true ]] && echo "    fingerprint = true;"
           [[ "$broadcom_wifi" == true ]] && echo "    broadcomWifi = true;"
+          [[ "$facetimehd" == true ]] && echo "    hasFacetimeHD = true;"
           (( panel_dpi > 0 )) && echo "    panelDpi = $panel_dpi;"
           cat <<EOF
             hasBluetooth = $has_bt;

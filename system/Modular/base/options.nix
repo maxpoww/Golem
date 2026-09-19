@@ -105,6 +105,7 @@
       default = "uefi";
     };
     broadcomWifi = lib.mkOption { type = lib.types.bool; default = false; };
+    hasFacetimeHD = lib.mkOption { type = lib.types.bool; default = false; };
     chassis = lib.mkOption {
       type = lib.types.enum [ "unknown" "laptop" "desktop" ];
       default = "unknown";
