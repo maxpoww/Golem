@@ -124,6 +124,48 @@ let
       ];
     }
     {
+      # #98: the REAL Slim Pro 9i, from its committed fixture — the box
+      # proven on metal 2026-09-18 (nvidia RTX 4050 + tier3). The synthetic
+      # `nvidia-hybrid-ada` row above hard-codes ramMB/cores and omits
+      # gpu2Health / panelDpi / hasBluetooth; this row imports the DETECTED
+      # fact-set, so a probe or chooser change that would regress the lenovo
+      # fails CI in seconds. Note gpu="intel" + gpu2="nvidia"(working) is the
+      # OFFLOAD path (i915 primary, nvidia idle) — a different chooser INPUT
+      # than the synthetic gpu="nvidia" row, and the one the metal took.
+      name = "fixture-lenovo-slim-pro-9-16irp8";
+      facts = {
+        imports = [ ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix ];
+        # What the install flow creates on this laptop (hibernation is
+        # locked): a disk swap, sized by lib.golem.swapForHibernationMB.
+        swapDevices = [ { device = "/dev/disk/by-label/swap"; } ];
+      };
+      expect = cfg: [
+        (ex "intel primary (Broadwell+) picks iHD"
+          (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
+        (ex "intel microcode on" cfg.hardware.cpu.intel.updateMicrocode)
+        (ex "nvidia offload driver active" (lib.elem "nvidia" cfg.services.xserver.videoDrivers))
+        (ex "open kmod on turing+" (cfg.hardware.nvidia.open == true))
+        (ex "THE suspend fix present" cfg.hardware.nvidia.powerManagement.enable)
+        (ex "PRIME offload with the detected ids"
+          (cfg.hardware.nvidia.prime.offload.enable
+           && cfg.hardware.nvidia.prime.nvidiaBusId == "PCI:1:0:0"
+           && cfg.hardware.nvidia.prime.intelBusId == "PCI:0:2:0"))
+        (ex "gpu2 WORKING → no failing-dGPU hold/off (unlike the asus)"
+          (!(cfg.systemd.services ? golem-dgpu-hold)
+           && !(cfg.systemd.services ? golem-dgpu-off)))
+        (ex "32GB tier: zram 25%" (cfg.zramSwap.memoryPercent == 25))
+        (ex "32GB tier: swappiness 10" (cfg.boot.kernel.sysctl."vm.swappiness" == 10))
+        (ex "resume wired to the swap device"
+          (cfg.boot.resumeDevice == "/dev/disk/by-label/swap"))
+        (ex "laptop + swap: lid suspends-then-hibernates"
+          (cfg.services.logind.settings.Login.HandleLidSwitch == "suspend-then-hibernate"))
+        (ex "hasBluetooth → bluez/blueman on" cfg.services.blueman.enable)
+        (ex "239 DPI panel: generated eDP scale rule at 1.6"
+          (lib.hasInfix ''output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6''
+            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text))
+      ];
+    }
+    {
       name = "nvidia-desktop-ada"; # no iGPU → direct drive, no PRIME
       facts.golem.hardware = { gpu = "nvidia"; nvidiaGen = "turing+"; ramMB = 32768; cores = 16; cpuVendor = "amd"; chassis = "desktop"; };
       expect = cfg: [

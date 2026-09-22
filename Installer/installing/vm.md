@@ -21,6 +21,60 @@ machine files: one dated entry per session, Mode line
   `vmbios`). New stages get fresh disks — a stage-0 proof starts from
   zero, a stage-climb proof continues an existing disk on purpose.
 
+## 2026-09-22 — RECUT I2 — the #62–#101 queue frozen into a fresh ISO — GATE: menu + boot + census PASS; install-to-disk owed on metal
+
+**Mode:** gate (ISO build + markers + UEFI boot + census). Install-to-disk NOT
+run here — the dev sandbox's SSH key is not the golem-vm-loop key, so
+`golem-install` could not be driven; the install FLOW is unchanged from the 8e
+gate below, which proved it end to end.
+
+The round-I2 close, first half: work the queue, build a fresh ISO carrying every
+source fix earned since the last cut, and prove the ONE piece of new work the
+recut itself owed — the medium's OWN grub (#89/#95/#92, "the ISO side owed at
+the recut").
+
+**Built:** `golem-installer.iso`, 3.0 GiB (fits an 8 GB stick), from a CLEAN
+tree — `git write-tree` of the staged index -> `git archive` -> `nix build
+.#iso --override-input golem path:<clean>` (the #96 rule: never
+`path:$HOME/Golem`, which bakes the 70 GB working tree).
+
+**Markers verified on the artifact:**
+- `nixosConfigurations.golem-installer.pkgs.grub2_efi.patches` carries
+  `grub-quiet.patch` + `grub-item-align.patch` ONCE each. The first build
+  FAILED — "Reversed (or previously applied) patch detected!". The overlay had
+  patched BOTH `grub2` and `grub2_efi`, but `grub2_efi = grub2.override
+  { efiSupport = true; }` already inherits the fixpoint's patched `grub2`, so
+  patching it again double-applied. Fix: the shared overlay patches ONLY
+  `grub2`; `grub2_efi` inherits (which is why the installed EFI machines always
+  built fine). Recorded so the next person does not re-earn it.
+- The seed on the medium (`/etc/golem/src -> hosts/target/`) holds ONLY
+  `default.nix` — no comodore drops (the #102 leak, git-rm'd + gitignored).
+
+**UEFI GATE PASS (`-vga std`, headless, screendumped):**
+- **The menu reads like Golem** — `Start` / `Install` centred (item_align now
+  honoured by the patched medium grub), the selection bar hugging `Start`, a
+  clean black background. Before this recut the medium's UEFI grub was stock
+  NixOS (left-aligned, blue bar). #89/#95/#92's ISO side is now a fact on the
+  medium, not just in source.
+- **Start boots clean** — no kernel spam (quiet), `<<< Golem installer —
+  minimal cut >>>`, autologin `nixos`, the census ran (tier1 for the 4 GB VM:
+  zram zstd/prio-100, swappiness 180; virtio gpu, modesetting/fbdev; 6 GiB
+  hibernation swap, resume by-label), SSH advertised key-only.
+
+**Source proven before the cut:** matrices GREEN — facts-matrix 21 permutations
+(incl the new `fixture-lenovo-slim-pro-9-16irp8` row, #98), chooser-matrix,
+minimal-matrix 8 composed (built the grub overlay + pciutils, #97, into the
+toplevels).
+
+**OWED — the round does not close until:** install-to-disk on THIS ISO is gated
+(partition -> offline copy -> the installed disk boots its own now-patched grub
+menu -> login), then the stick is reflashed + metal-verified. What this recut
+changes vs 8e is what it INSTALLS (patched grub on the installed system too,
+pciutils in the closure) and the seed's cleanliness — not the install flow.
+
+**Verdict:** the recut carries the round's markers and boots + presents
+correctly in the VM. Install-to-disk + metal + reflash pending.
+
 ## 2026-09-18 — 8e USABLE INSTALL — gen-1 loginable (password + SSH key) on the opt-A generic system — GATE PASS
 
 **Mode:** real-install + installed-boot + login (Max: "take on the usable-install

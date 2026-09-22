@@ -24,6 +24,46 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
+> **RECUT I2 BUILT 2026-09-22 — VM-gated on menu + boot + census (see vm.md);
+> install-to-disk + metal + reflash still owed before the round closes.** A
+> fresh `golem-installer.iso` (3.0 GiB, clean-tree build) FREEZES the fixes
+> below. The one piece of NEW work the recut itself owed — the medium's own
+> grub (#89/#95/#92, "the ISO side owed at the recut") — is done: `iso.nix`
+> imports the shared `boot/grub-patch-overlay.nix`, and the medium's UEFI menu
+> renders centred + silent like the machines it installs (screendump-verified).
+> Also folded + marker-verified: #96 facetimehd, #97 pciutils, #98 the lenovo
+> facts-matrix row, and #102 below. These entries move to Applied once the
+> stick is reflashed and metal-verified.
+
+### 102. THE COMODORE'S PER-MACHINE FILES WERE COMMITTED AGAIN — a leaked install-drop that pollutes CI and would ship in the ISO seed — [FOUND + FIXED 2026-09-22 · the recut · fba74c5's recurrence, closed structurally with a gitignore]
+Preparing the recut, `hosts/target/` held FOUR committed files —
+`golem-hardware.nix`, `hardware-configuration.nix`, `machine.nix`,
+`modules.nix` — all the COMODORE's (Pentium T4200 / 1931 MB / BIOS, its
+hostname AND its hashed password). Both `hosts/target/default.nix` and
+`flake.nix` say plainly that the published repo has NONE of these ("`nix flake
+check` on the plain repo must stay green"); they materialise only when an
+install DROPS them into a seeded checkout. Committed here they:
+- **broke facts-matrix (#98's procedure half):** `mkTarget` composes
+  `golemModules ++ [ ./hosts/target ]`, so the comodore's facts leaked into
+  EVERY matrix row — the `floor` row especially, whose whole point is "no
+  detection → safe defaults".
+- **would ship in the ISO seed:** `git archive` includes tracked files, so the
+  installer's `/etc/golem/src` would carry the comodore's hostname + password.
+- **kept RECURRING:** fba74c5 removed them once ("swept into tracking AGAIN
+  during the #44 build"); the comodore session (6efe957) re-committed them,
+  because `.gitignore` deliberately UN-ignored `hosts/target/` (the drops had
+  to be committable on an installed machine's seed — the old assumption).
+- **fix — git-rm + a narrowed gitignore:** removed the four from tracking; the
+  `.gitignore` now re-ignores the per-machine drops (golem-hardware /
+  hardware-configuration / machine / modules / postinstall-questions) while
+  keeping `default.nix` tracked. SAFE because the installed seed is a PLAIN COPY
+  (`install.nix` `cp -a`, no `git init`), so its path-flake self-rebuild reads
+  the drops from DISK — it never needed them git-tracked. #88's "unknown"
+  `configurationRevision` is the tell: a git seed, even dirty, yields dirtyRev,
+  not "unknown". The shipped `.gitignore` is inert in the seed (no git there).
+  If #35b ever makes the seed git-based, the install flow force-adds them.
+- **where:** `.gitignore`, `hosts/target/` (four files removed). **size:** done.
+
 ### 101. 8e USABLE INSTALL — gen-1 is loginable (password + SSH key) on the opt-A generic system, verified — [2026-09-18 · Max: "take on the usable-install piece next"]
 The opt-A direct-copy installs a GENERIC baked toplevel that never imports this
 machine's machine.nix, so its owner had no password and no key — the machine

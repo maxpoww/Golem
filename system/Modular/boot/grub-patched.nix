@@ -12,6 +12,9 @@
 #    gfxmenu has no equivalent for; without it the theme cannot centre a
 #    label inside its own selection bar.
 #
+# The overlay itself lives in ./grub-patch-overlay.nix so the ISO medium can
+# import the SAME one (#92 lockstep, one layer down — see that file's header).
+#
 # Cost, stated plainly: a patched grub is not in cache.nixos.org, so it
 # compiles once per store. Deliver the closure from the dev box (see
 # Installer/installing/tools/deliver-live.sh) and the target's own
@@ -22,16 +25,7 @@ let
   distro = config.system.nixos.distroName;
 in
 {
-  nixpkgs.overlays = [
-    (final: prev: {
-      grub2 = prev.grub2.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          ./grub-quiet.patch
-          ./grub-item-align.patch
-        ];
-      });
-    })
-  ];
+  nixpkgs.overlays = [ (import ./grub-patch-overlay.nix) ];
 
   # #95 — THE MENU'S WORDS. NixOS names the submenu
   # "<distro> - All configurations" and each entry "<distro> -

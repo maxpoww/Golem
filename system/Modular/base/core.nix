@@ -17,7 +17,12 @@
   nixpkgs.config.allowUnfree = true;
 
   # A system monitor on EVERY Golem, minimal included (Max, 2026-09-18).
-  environment.systemPackages = [ pkgs.btop ];
+  # pciutils (#97): the rule-6 / GPU driver-binding audit asks for
+  # `lspci -nnk`, but pciutils shipped only in the fat/desktop set — so the
+  # literal command failed on a freshly installed minimal (the lenovo nvidia
+  # audit had to read sysfs instead). A few hundred KB, on every Golem, so
+  # every future hardware audit can just run lspci.
+  environment.systemPackages = [ pkgs.btop pkgs.pciutils ];
 
   # /bin/sh and /usr/bin/env on FRESH roots — nixos-init makes the
   # classic activation a no-op, and greetd's worker execve's a

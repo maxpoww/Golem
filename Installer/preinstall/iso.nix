@@ -269,4 +269,15 @@ in
   isoImage.grubTheme = pkgs.callPackage "${golem}/system/Modular/boot/grub-theme.nix" { };
   isoImage.efiSplashImage = ./black.png;
   isoImage.splashImage = ./black.png;
+
+  # #89/#95/#92, the ISO side owed at the recut: the medium's UEFI GRUB was
+  # stock, so it FLASHED grub's banner+cursor and IGNORED the theme's
+  # `item_align` (staying left-aligned) while every installed machine was
+  # already silent and centred. Import the SAME patch overlay the installed
+  # bootloader leaves use (grub-patched.nix), so `pkgs.grub2_efi` — which
+  # iso-image-golem.nix builds the medium's EFI grub from — carries the quiet
+  # + item_align patches. After this, all four boot surfaces (ISO BIOS/UEFI,
+  # installed BIOS/UEFI) show the same Golem menu; the ISO's BIOS syslinux is
+  # the one bespoke sibling (already silent+centred, round 8).
+  nixpkgs.overlays = [ (import "${golem}/system/Modular/boot/grub-patch-overlay.nix") ];
 }

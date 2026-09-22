@@ -14,10 +14,27 @@ raw.jsonl
 # The daemon's identity (private key, device id, pinned peer certs) is not
 # here to ignore: it lives in ~/.local/share/golem-connectd/.
 # hosts/target/ is NOT build output — it is the installed-Golem host shape
-# (spec §6), and the per-machine files the installer drops there must be
-# committable in the seeded checkout.
+# (spec §6). `default.nix` here IS distro source: it imports whatever
+# per-machine files an install drops beside it (guarded by pathExists). The
+# DROPS themselves are NOT source — they are the last machine an
+# install/decide run touched (its hostname AND its hashed password), so if
+# tracked in THIS repo they leak into the published tree and the shipped ISO
+# seed, and they pollute facts-matrix (#98; fba74c5 removed them once and
+# they kept coming back precisely because they were committable). They stay
+# OUT of git here.
+#   Safe to ignore: an installed machine's seed is a PLAIN COPY (install.nix
+#   `cp -a`, no `git init`), so its path-flake self-rebuild reads these from
+#   DISK — it never needed them git-tracked (#88's "unknown" configuration
+#   revision is the tell that the seed has no .git). This rule is the
+#   dev/published repo's; the seed has no git for it to affect. If #35b ever
+#   makes the seed git-based, the install flow force-adds them there.
 target/
 !hosts/target/
+hosts/target/golem-hardware.nix
+hosts/target/hardware-configuration.nix
+hosts/target/machine.nix
+hosts/target/modules.nix
+hosts/target/postinstall-questions.json
 
 # deliver-live.sh working files (per-run logs and scratch state)
 Installer/installing/tools/deliver-live.log
