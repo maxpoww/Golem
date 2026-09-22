@@ -197,7 +197,14 @@ in
     environment.loginShellInit = ''
       if [ "$(tty)" = "/dev/tty1" ] && [ -z "$GOLEM_SURFACE_STARTED" ]; then
         export GOLEM_SURFACE_STARTED=1
-        golem-setup-install
+        # sudo: the surface must run as root, or golem-install dies at its first
+        # privileged step (mkdir /var/log/golem-install, install.nix) BEFORE any
+        # log exists — the TUI then shows only "the install stopped" over an
+        # empty log (changes.md #103, found driving the product install to disk
+        # in the VM). The nixos user has passwordless sudo on the medium
+        # (installation-cd), and `sudo golem-setup` is already the lab idiom
+        # (the getty helpLine), so sudo resolves the same way here.
+        sudo golem-setup-install
       fi
     '';
   };

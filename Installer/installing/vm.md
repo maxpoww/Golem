@@ -72,8 +72,27 @@ menu -> login), then the stick is reflashed + metal-verified. What this recut
 changes vs 8e is what it INSTALLS (patched grub on the installed system too,
 pciutils in the closure) and the seed's cleanliness — not the install flow.
 
-**Verdict:** the recut carries the round's markers and boots + presents
-correctly in the VM. Install-to-disk + metal + reflash pending.
+**INSTALL-TO-DISK, then driven anyway (2026-09-22, same session, `-vga std`):**
+drove the full guided TUI (English) to "Install Golem?" — it STOPPED before
+partitioning. Root cause found: the product autostart runs golem-install as the
+unprivileged `nixos` user, so it dies before its logdir (**#103**). Re-ran the
+same answers file with **`sudo`** → the install completed: format → fs → seed →
+probe → **BAKED toplevel direct-copy, offline** (`…-nixos-system-Golem-26.05.
+20260829.c5c4a43`) → bootloader → "installation finished!" → 6/6. Booted the
+installed disk (removable EFI, #94) → clean quiet boot to `Golem login:` →
+**login as `max` works**. So the recut installs correctly end-to-end when
+golem-install has root; #103 is the only defect and needs its fix + a re-cut.
+
+**#103 FIXED + RE-GATED (same session):** `iso.nix` loginShellInit now runs
+`sudo golem-setup-install` (Max's call). Rebuilt the ISO, booted "Install" →
+the autostart TUI came up as root, drove it (English) → ENTER on "Install
+Golem?" → the install ran to completion and **rebooted at 6/6 with NO manual
+sudo** (reboot is the done trigger; a failure shows "stopped" + a shell). Fresh
+target disk grew to 5 GB. The TUI-driven full product install now works.
+
+**Verdict:** the recut carries the round's markers, boots + presents correctly,
+and installs to disk end-to-end via the PRODUCT AUTOSTART to a loginable system
+(#101/#103). OPEN: reflash + metal.
 
 ## 2026-09-18 — 8e USABLE INSTALL — gen-1 loginable (password + SSH key) on the opt-A generic system — GATE PASS
 

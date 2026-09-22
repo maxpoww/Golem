@@ -35,6 +35,45 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 103. THE PRODUCT INSTALLER'S AUTOSTART RAN golem-install WITHOUT ROOT — the TUI-driven install died before its own logdir — [FOUND + FIXED + VM-VERIFIED 2026-09-22 · the recut's install-to-disk VM gate · rides the recut]
+The 8e "Install" autostart (`iso.nix` loginShellInit → `golem-setup-install`)
+runs as the autologin **`nixos`** user, and step_go (`mockup/install-cli:3618`)
+invokes `golem-install … --yes` with **no sudo**. golem-install needs root (it
+repartitions the disk and writes `/var/log/golem-install`), so it dies at the
+first privileged step — `mkdir -p /var/log/golem-install` (`install.nix:184`) —
+BEFORE the logdir and the ERR trap that would record why. The TUI's read-loop
+then DISCARDS golem-install's output (`install-cli:3663-3667`, "the log stays
+off the screen"), so a stranger sees only "The install stopped — the log is
+above" over an empty log. This is exactly why **"TUI-driven full product
+install" was still OWED**: the 8e gate proved golem-install via SSH-driven
+INDIVIDUAL flags (as root) and proved the autostart LAUNCHES, but never drove
+the product autostart to a finished install.
+- **PROVEN at the recut gate (2026-09-22, VM):** drove the full guided TUI
+  (language→user→password) to "Install Golem?" → stop; `vda` unpartitioned,
+  logdir empty. Re-ran the SAME answers file by hand as `nixos`
+  (`golem-install --answers /tmp/golem-answers --disk /dev/vda --yes`) → same
+  stop. Prefixed **`sudo`** → the install ran to completion: format → fs →
+  seed → probe → **BAKED toplevel direct-copy, offline** → bootloader →
+  "installation finished!" → 6/6. Booted the installed disk (removable EFI,
+  #94) → clean quiet boot to `Golem login:` → **login as `max` works**
+  (#101 usable-install, now proven on the recut). So the recut installs
+  perfectly; the ONLY defect is the missing privilege.
+- **fix (Max chose 2026-09-22: "sudo the whole autostart"):** `iso.nix`
+  loginShellInit now runs **`sudo golem-setup-install`** — the whole product
+  surface runs as root, so golem-install has the privilege it needs whichever
+  step reaches for it. The medium's `nixos` user has passwordless sudo, and
+  `sudo golem-setup` was already the lab idiom (the getty helpLine), so sudo
+  resolves the same way. Simplest of the three (vs sudo-in-step_go or a
+  self-elevating golem-install); the surface is an installer, root is fine.
+- **VERIFIED (recut #2, VM, 2026-09-22):** rebuilt the ISO with the fix, booted
+  "Install" → the autostart TUI came up (as root), drove it (English) to
+  "Install Golem?" → ENTER → the install ran to completion and **rebooted at
+  6/6 with NO manual sudo** (a failed install shows "stopped" + a shell; a
+  reboot is the 6/6 done trigger, step_go). The fresh target disk grew to 5 GB
+  (a real system written). The TUI-driven full product install is no longer
+  owed — it works.
+- **where:** `iso.nix` (loginShellInit). **size:** one line, done.
+
 ### 102. THE COMODORE'S PER-MACHINE FILES WERE COMMITTED AGAIN — a leaked install-drop that pollutes CI and would ship in the ISO seed — [FOUND + FIXED 2026-09-22 · the recut · fba74c5's recurrence, closed structurally with a gitignore]
 Preparing the recut, `hosts/target/` held FOUR committed files —
 `golem-hardware.nix`, `hardware-configuration.nix`, `machine.nix`,
