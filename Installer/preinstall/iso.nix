@@ -184,15 +184,18 @@ in
     # interactive "Start" console's furniture; on the Install boot the TUI owns
     # the screen, so blank them. mkOverride beats the base's mkForce so nothing
     # of the getty prints before the surface clears the screen.
-    #   The ONE line that survived greeting-blanking was agetty's own autologin
-    #   banner — "golem-installer login: nixos (automatic login)" — which sat on
-    #   screen for the ~1 s the login shell takes to sudo, spawn the wrapper and
-    #   parse the 4k-line TUI before its first clear (Max saw it on metal:
-    #   "still some splash… 'golem-install etc etc' like one line"). The
-    #   loginShellInit below now clears the console the instant the shell starts,
-    #   collapsing that window to nothing — see the printf there.
+    #   The ONE line that survives greeting-blanking is agetty's OWN autologin
+    #   banner — "golem-installer login: nixos (automatic login)" (agetty prints
+    #   the format "%s%s (automatic login)"; the hostname is `golem-installer`,
+    #   which is the "golem-install" Max read on metal). No agetty flag silences
+    #   the "(automatic login)" notice, but `--nohostname` drops the hostname and
+    #   `--noissue` the issue, so the flash — on the slow asus it shows for the
+    #   ~1-2 s the login shell takes to reach the loginShellInit clear below (a
+    #   headless VM boots fast enough that the clear wins and it never renders at
+    #   all) — no longer says "golem-install". The clear still covers the rest.
     services.getty.greetingLine = lib.mkOverride 10 "";
     services.getty.helpLine = lib.mkOverride 10 "";
+    services.getty.extraArgs = lib.mkForce [ "--nohostname" "--noissue" ];
 
     # The autostart lives in the LOGIN-SHELL init, guarded to the physical
     # console's first VT, NOT a systemd service: the surface is a full-screen

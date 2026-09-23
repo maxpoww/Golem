@@ -35,6 +35,32 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 113. METAL FOLLOW-UPS: WHITE FLYING NAMES · PRE-MENU SPLASH · THE LOGIN HOSTNAME — [2026-09-23 · Max: "make the names white" + "there is a splash before the menu (start | install)" + "the golem-install login is still there before the 'press ENTER…'"]
+Three metal findings from the flying-names ISO:
+- **The flying names go white.** They rendered in `C_DIM` gray like the
+  "copying" verb. `paint_bar` gained a 4th arg — the filename — drawn in
+  `C_VALUE` (the palette's brightest ink, the same white the answered values
+  wear), while "copying" stays dim scaffolding. The `##golem` parser splits
+  "copying <name>" into verb + name. **where:** `mockup/install-cli`.
+- **The pre-menu splash.** On UEFI, GRUB printed "Loading graphical boot
+  menu… / Press 't' to use the text boot menu…" before the Start|Install menu.
+  Removed those echoes from the vendored grub.cfg (`iso-image-golem.nix`);
+  `clear` still wipes firmware output, so it's black → menu. Text fallback is
+  still 't', unadvertised. **where:** `iso-image-golem.nix`.
+- **The login line that says "golem-install".** DIAGNOSED in a headless VM:
+  greeting-blanking works (evaluated `""`), and the surviving line is agetty's
+  OWN autologin banner "golem-installer login: nixos (automatic login)" — it
+  prints the format "%s%s (automatic login)", the hostname `golem-installer`
+  being what Max read as "golem-install". The VM boots fast enough that the
+  loginShellInit clear (#111) wins and it never renders (frame 1 of text is
+  already "Press ENTER"); the slow asus shows it for ~1-2 s first. No agetty
+  flag silences the "(automatic login)" notice, so `--nohostname --noissue`
+  (`services.getty.extraArgs`, install specialisation) at least drops the
+  hostname + issue — the flash no longer says "golem-install". The clear still
+  covers the rest. If the residual "login: nixos" flash still bugs Max, the
+  definitive fix is `--skip-login --login-program` (a tty-aware launcher, no
+  agetty banner at all) — deferred as more invasive. **where:** `iso.nix`.
+
 ### 112. FLYING FILENAMES — THE WINDOWS-XP COPY FEELING — [DONE 2026-09-23 · Max: "i would like to see file names moving faster, like 'copying python3'… the name changing every ms… a feeling of dinamicity… windows xp used to do that. if that is possible, and cost nothing."]
 The copy phase used to label the bar "copying 800/830" — a moving count. Max
 wanted the XP feeling instead: real package names flying past fast. **How, for

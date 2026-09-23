@@ -3506,7 +3506,7 @@ driver_count() {
 # caption is a spinner, and a spinner is the thing this installer refuses to
 # make anyone watch. tr is byte-based and would mangle the multibyte blocks,
 # so the runs are built with a space-fill and a parameter-expansion swap.
-paint_bar() {                    # $1 cur  $2 max  $3 label
+paint_bar() {                    # $1 cur  $2 max  $3 label  $4 bright tail (opt)
   # Bar is 42 cells wide (Max, 2026-09-23: "the status bar should be 50%
   # longer" — 28 → 42; "wider" meant the same axis, span more of the line,
   # not a taller multi-row bar). Fits an 80-col console with room for the
@@ -3519,6 +3519,11 @@ paint_bar() {                    # $1 cur  $2 max  $3 label
     "$C_ACCENT" "$f" "$C_DIM" "$e" "$NORM" \
     "$C_VALUE" "$pct" "$NORM" \
     "$C_DIM" "${3^}" "$NORM"
+  # $4 is the flying filename during the copy (Max, 2026-09-23: "make the names
+  # white"). It rides in C_VALUE — the palette's brightest ink, the same white
+  # the answered values wear — right after the dim "Copying" verb, so the name
+  # reads as the content and the verb as scaffolding.
+  [ -n "${4:-}" ] && printf ' %s%s%s' "$C_VALUE" "$4" "$NORM"
   return 0
 }
 
@@ -3598,7 +3603,7 @@ step_go() {
 
   # The question is answered; the guide line becomes the bar.
   printf '%s[1A\r%s[2K' "$esc" "$esc"
-  local cmd line rest frac cur max label rc=0 done=no prepared=no
+  local cmd line rest frac cur max label flyname rc=0 done=no prepared=no
   local rehearsed=no findings="" addr=""
   if [ "$FAKE_INSTALL" = yes ]; then
     cmd='for p in "1/6 format" "2/6 fs" "3/6 seed" "4/6 probe" "5/6 install" "6/6 done"; do echo "##golem $p"; sleep 0.6; done'
@@ -3659,6 +3664,7 @@ step_go() {
         # engine or a phrase-style marker still draws something.
         rest=${line#\#\#golem }
         frac=${rest%% *}; cur=${frac%%/*}; max=${frac##*/}; label=${rest#* }
+        flyname=""
         case $label in
           format)  label=$(t ph_format) ;;
           fs)      label=$(t ph_fs) ;;
@@ -3666,11 +3672,15 @@ step_go() {
           probe)   label=$(t ph_probe) ;;
           eval)    label=$(t ph_eval) ;;
           install) label=$(t go_ing) ;;
+          # The copy phase flies the closure's filenames past (#112). Split the
+          # marker "copying <name>" so the verb stays dim scaffolding and the
+          # NAME rides bright in paint_bar's $4 (Max: "make the names white").
+          copying\ *) flyname=${label#copying }; label=copying ;;
         esac
         # Done is cur==max, not a magic word — the final phase reads
         # "Installed" in the owner's language, and this is the reboot trigger.
-        [ "$cur" = "$max" ] && { label=$(t go_done); done=yes; }
-        paint_bar "$cur" "$max" "$label" ;;
+        [ "$cur" = "$max" ] && { label=$(t go_done); done=yes; flyname=""; }
+        paint_bar "$cur" "$max" "$label" "$flyname" ;;
       *) ;;                      # the log itself stays off the screen —
                                  # it is on the terminal scrollback if a
                                  # phase dies and someone needs it

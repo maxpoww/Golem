@@ -410,12 +410,11 @@ let
         set timeout=${toString grubEfiTimeout}
 
         clear
-        # This message will only be viewable on the default (UEFI) console.
-        echo ""
-        echo "Loading graphical boot menu..."
-        echo ""
-        echo "Press 't' to use the text boot menu on this console..."
-        echo ""
+        # No "Loading graphical boot menu…" pre-menu text (Max, on metal
+        # 2026-09-23: "there is a splash before the menu"). `clear` wipes the
+        # firmware's own output so the screen is black, then the graphical menu
+        # comes up directly. The text-menu fallback is still 't', just no longer
+        # advertised — on the hardware we ship to, gfxterm always comes up.
 
         ${grubMenuCfg}
 
