@@ -35,6 +35,23 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 111. THE LAST SPLASH LINE + A LONGER STATUS BAR — [DONE 2026-09-23 · Max, on metal: "there is still some splash before the 'press enter to select language', i saw something like 'golem-install etc etc' like one line" + "the status bar should be 50% longer and 50% wider"]
+Two metal findings from the reverted-centering install:
+- **The one surviving splash line.** #109 blanked the getty greeting, but one
+  line still sat before "Press ENTER": agetty's autologin banner
+  `golem-installer login: nixos (automatic login)` (the hostname is
+  `golem-installer` — that's the "golem-install etc etc" Max read). It stayed
+  on screen for the ~1 s the login shell takes to sudo, spawn the wrapper and
+  parse the 4k-line TUI before its first screen-clear. **fix:** `iso.nix`
+  `loginShellInit` now clears the console (`printf '\033[H\033[2J\033[3J'`)
+  the instant the shell starts, before that gap — pure escape, no binary
+  needed. Black boot straight into the installer, for real this time.
+- **The status bar 50% longer.** `paint_bar` width 28 → 42 cells. Asked Max
+  what "50% wider" meant for a one-row bar (a terminal can't do half a row);
+  he picked **same axis, just longer** — not a taller multi-row bar. Still one
+  row, fits 80 cols with the margin + "  NN%  " + label. **where:**
+  `mockup/install-cli` (paint_bar), `iso.nix` (loginShellInit). **size:** done.
+
 ### 110. CENTRE THE INSTALLER — TRIED, REVERTED — [REVERTED 2026-09-23 · Max, seeing it on metal: "it sucks, it is poorly centered, we dont need to deal with it now, fuck it, lets go back to the classic left aligned."]
 Max wanted the installer's content in the CENTRE of the screen, like the boot
 menu. Built it: `mockup/install-cli` read the console geometry (`stty size`)

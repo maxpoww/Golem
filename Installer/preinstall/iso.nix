@@ -183,9 +183,14 @@ in
     # (audit.nix skips it on golem.install) and the help lines are the
     # interactive "Start" console's furniture; on the Install boot the TUI owns
     # the screen, so blank them. mkOverride beats the base's mkForce so nothing
-    # of the getty prints before the surface clears the screen. (The one line
-    # left is agetty's own "login: nixos (automatic login)", cleared instantly
-    # by the TUI.)
+    # of the getty prints before the surface clears the screen.
+    #   The ONE line that survived greeting-blanking was agetty's own autologin
+    #   banner — "golem-installer login: nixos (automatic login)" — which sat on
+    #   screen for the ~1 s the login shell takes to sudo, spawn the wrapper and
+    #   parse the 4k-line TUI before its first clear (Max saw it on metal:
+    #   "still some splash… 'golem-install etc etc' like one line"). The
+    #   loginShellInit below now clears the console the instant the shell starts,
+    #   collapsing that window to nothing — see the printf there.
     services.getty.greetingLine = lib.mkOverride 10 "";
     services.getty.helpLine = lib.mkOverride 10 "";
 
@@ -208,6 +213,13 @@ in
     environment.loginShellInit = ''
       if [ "$(tty)" = "/dev/tty1" ] && [ -z "$GOLEM_SURFACE_STARTED" ]; then
         export GOLEM_SURFACE_STARTED=1
+        # Kill agetty's autologin banner ("golem-installer login: nixos
+        # (automatic login)") the instant we log in, before the ~1 s of
+        # sudo + wrapper + TUI-parse it would otherwise stay on screen. Pure
+        # escape (clear-screen, clear-scrollback, home) so it needs no binary
+        # on PATH; the TUI clears again when it draws, so this only covers the
+        # gap. This is what makes the Install boot land on a black screen.
+        printf '\033[H\033[2J\033[3J'
         # sudo: the surface must run as root, or golem-install dies at its first
         # privileged step (mkdir /var/log/golem-install, install.nix) BEFORE any
         # log exists — the TUI then shows only "the install stopped" over an

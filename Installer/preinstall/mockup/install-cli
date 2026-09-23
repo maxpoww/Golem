@@ -3507,7 +3507,11 @@ driver_count() {
 # make anyone watch. tr is byte-based and would mangle the multibyte blocks,
 # so the runs are built with a space-fill and a parameter-expansion swap.
 paint_bar() {                    # $1 cur  $2 max  $3 label
-  local w=28 fill f e pct
+  # Bar is 42 cells wide (Max, 2026-09-23: "the status bar should be 50%
+  # longer" — 28 → 42; "wider" meant the same axis, span more of the line,
+  # not a taller multi-row bar). Fits an 80-col console with room for the
+  # margin, the "  NN%  " gap and a short phase label after it.
+  local w=42 fill f e pct
   fill=$(( $1 * w / $2 )); pct=$(( $1 * 100 / $2 ))
   f=$(printf "%${fill}s" ''); f=${f// /█}
   e=$(printf "%$(( w - fill ))s" ''); e=${e// /░}
