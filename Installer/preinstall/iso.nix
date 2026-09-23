@@ -62,10 +62,11 @@ in
   disabledModules = [ "installer/cd-dvd/iso-image.nix" ];
   imports = [
     ./iso-image-golem.nix
-    # The boot bar (Max, 2026-09-23: "show our bar everywhere") — Plymouth
-    # styled as the OPTIONS status bar, so the medium's own boot fills with the
-    # accent bar instead of a black screen, same as an installed Golem.
-    "${golem}/system/Modular/boot/plymouth.nix"
+    # NOTE: the boot bar (Plymouth) is deliberately NOT imported here. Max,
+    # 2026-09-23: "keep it ONLY on the installed Golem boot, only there." The
+    # medium keeps its quiet black boot; the bar rides in via the base
+    # composition (system/Modular/composition.nix), so it lands on installs but
+    # not on the stick itself.
     # The lab tools (PLAN.md): the census probe — shared with the full
     # system on purpose (same probe everywhere is reuse, not ISO-mixing) —
     # and the raw-evidence collector that feeds the fixture corpus.

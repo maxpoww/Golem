@@ -57,4 +57,16 @@ in
   # note). The bar is just progress now (Max dropped the flying service line),
   # so we no longer re-enable systemd.show_status — base's quiet stays quiet.
   boot.kernelParams = lib.mkAfter [ "splash" ];
+
+  # BOOT ONLY (Max, 2026-09-23: "i want it only on the installed golem boot …
+  # for example i[t] happen[s] also on shutdown, or reboot. that should not
+  # happen"). Plymouth ships shutdown-side units that re-show the splash on
+  # poweroff / reboot / halt / kexec; mask them so the bar appears on the way
+  # UP and nowhere else. The way DOWN stays the base's quiet black screen.
+  systemd.suppressedSystemUnits = [
+    "plymouth-poweroff.service"
+    "plymouth-reboot.service"
+    "plymouth-halt.service"
+    "plymouth-kexec.service"
+  ];
 }
