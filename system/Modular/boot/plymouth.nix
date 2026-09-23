@@ -58,6 +58,21 @@ in
   # so we no longer re-enable systemd.show_status — base's quiet stays quiet.
   boot.kernelParams = lib.mkAfter [ "splash" ];
 
+  # #117 — THE GPU DRM MUST BE IN THE INITRD, or the bar never paints on an
+  # INSTALLED system (the I2-close VM gate, 2026-09-23: the install booted to
+  # `Golem login:` with a black screen the whole way — Max's "no bar on installed
+  # Golem"). The minimal installed initrd carries storage + input modules but no
+  # display driver, so Plymouth has no DRM device in early boot; it only gets one
+  # once the main system loads the module, by which time getty already owns the
+  # console. (The installer MEDIUM never hit this — installation-cd ships a fat
+  # initrd.) Force-load the lab's display drivers early: `bochs` (the VM's std
+  # VGA), `i915` (every intel machine incl. the GMA/Arrandale ones and the
+  # nvidia-offload intel primary), `amdgpu` (the Renoir thinkpad), `virtio_gpu`
+  # (other VMs). A module with no matching device probes, finds nothing, and
+  # no-ops — harmless. nouveau/radeon are left out on purpose (nouveau fights the
+  # proprietary nvidia bind; the failing-radeon machine displays on its intel).
+  boot.initrd.kernelModules = [ "bochs" "i915" "amdgpu" "virtio_gpu" ];
+
   # BOOT ONLY (Max, 2026-09-23: "i want it only on the installed golem boot …
   # for example i[t] happen[s] also on shutdown, or reboot. that should not
   # happen"). Plymouth ships shutdown-side units that re-show the splash on

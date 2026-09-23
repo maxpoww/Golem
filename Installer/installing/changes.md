@@ -35,6 +35,20 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Golem, blank until login"]
+The baked-Plymouth fix (#116c verified `plymouth-start` + the theme in the
+installed closure) was necessary but NOT sufficient. On the I2-close gate the
+installed system booted straight to `Golem login:` with a black screen — the bar
+never painted. Root cause: the minimal installed **initrd has no display driver**
+(ahci/ata_piix/hid_*… but no `bochs`/`i915`/`virtio_gpu`), so Plymouth has no DRM
+device in early boot; the GPU module only loads in the main system, after getty
+takes the console. The installer MEDIUM never showed this because installation-cd
+ships a fat initrd. **fix:** `boot.initrd.kernelModules = [ "bochs" "i915"
+"amdgpu" "virtio_gpu" ]` in `boot/plymouth.nix` — force-load the lab's display
+drivers early (a no-matching-device module no-ops). nouveau/radeon left out
+(nouveau fights the proprietary-nvidia bind; the failing-radeon machine displays
+on its intel). **where:** `boot/plymouth.nix`. **size:** done, re-gated.
+
 ### 116. THE BAR EVERYWHERE — a Plymouth boot bar styled as the OPTIONS status bar — [DONE 2026-09-23 · Max: "can we add the same bar as the status bar loading on boot? … lets show our bar everywhere" · chose bar + flying service names, on installed Golem + the installer stick]
 The quiet boot (base/core.nix) gives a black screen from kernel handoff to the
 compositor; now it fills with the accent bar. A `script`-module Plymouth theme
