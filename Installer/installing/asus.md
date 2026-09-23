@@ -126,3 +126,10 @@ less — the flow this install just validated end to end).
 **PASS** (headline). First roster machine of the I2 close. Owed to complete the
 §6/§8 record: `is-system-running`, failed-unit count, hostname · root device ·
 memory tier · self-rebuild — the DockMenu audit numbers.
+
+## 2026-09-23 — I3 roster machine 1 — recut I3 (myi6i3f2…, #118 verify + #119)
+
+**Mode:** real-install, recut I3. **Install: 3m 34s.** The #118 two-bar flow
+(copy → verify "sana" → gated "retira el USB y pulsa ENTER") ran on metal. PASS.
+Follow-up: Max wants a blank line between the bars and the verdict → fixed (rides
+a fast install-cli-only recut before the rest of the roster).
