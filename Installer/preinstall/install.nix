@@ -427,10 +427,36 @@ pkgs.writeShellApplication {
     # to a translated string at display time (changes.md #18b — literal
     # English here painted "Evaluating the system" onto a Spanish run).
     echo "##golem 1/6 format"
-    run swapoff -a || true
-    run cryptsetup close golem 2>/dev/null || true
+    # Release the target disk COMPLETELY before wiping, or wipefs dies
+    # "Device or resource busy" on a disk that already holds an OS. The old
+    # three lines only touched /mnt and a hardcoded LUKS name "golem", so on
+    # the FIRST real metal install (the asus's dogfood Golem, changes.md #105,
+    # 2026-09-23) they missed the partition the live medium had auto-mounted
+    # elsewhere, and wipefs failed at 1/6 (16%). Tear down whatever sits on
+    # THIS disk, wherever it landed — swap, mounts, LVM, LUKS/dm — best-effort;
+    # `run wipefs` stays the gate that proves the disk is finally free.
+    run swapoff -a 2>/dev/null || true
     run umount -R /mnt 2>/dev/null || true
-    run wipefs -a "$disk"
+    # every mounted partition of THIS disk, deepest mountpoint first (the
+    # medium auto-mounts old filesystems at /run/media/… etc, not /mnt)
+    while read -r _m; do
+      [ -n "$_m" ] && { umount -R "$_m" 2>/dev/null || umount -l "$_m" 2>/dev/null || true; }
+    done < <(lsblk -nro MOUNTPOINT "$disk" 2>/dev/null | grep -v '^$' | sort -r)
+    # device-mapper backed by this disk: LVM down, then remove crypt/dm leaves
+    # (a re-install over an encrypted or LVM Golem, deepest first)
+    vgchange -an 2>/dev/null || true
+    while read -r _dm; do
+      dmsetup remove -f "$_dm" 2>/dev/null || true
+    done < <(lsblk -nrpo NAME,TYPE "$disk" 2>/dev/null | awk '$2 ~ /crypt|lvm|dm|raid|mpath/ {print $1}' | sort -r)
+    cryptsetup close golem 2>/dev/null || true
+    udevadm settle 2>/dev/null || true
+    # The gate. If the disk is STILL busy after all that, say so plainly and
+    # dump the holders to the transcript — never the cryptic "died at $@".
+    if ! run wipefs -a "$disk"; then
+      note "wipefs failed — $disk still busy after release; holders below"
+      { echo "--- lsblk ---"; lsblk "$disk"; echo "--- fuser ---"; fuser -mv "$disk"* 2>&1; } >> "$TR" 2>&1 || true
+      check_fail "could not free $disk to wipe it — something still holds it (transcript.txt has lsblk + fuser)"
+    fi
     run sgdisk --zap-all "$disk"
 
     if [[ "$luks" == true ]]; then

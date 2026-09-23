@@ -35,6 +35,27 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 105. THE INSTALLER COULDN'T WIPE A DISK THAT ALREADY HELD AN OS — wipefs died "busy" at 16% on the FIRST real metal install — [FOUND + FIXED 2026-09-23 · the asus, Max's first product install from the recut stick · rides the recut]
+Max installed from the recut stick onto the asus's internal disk (its own fat
+dogfood Golem) and it stopped at 1/6 (16%). `status`: `error: line 136 (exit
+1)`; `transcript`: `run swapoff -a / cryptsetup close golem / umount -R /mnt /
+wipefs -a /dev/sda → died`. The format phase's disk-release was naive — it only
+did `umount -R /mnt` and closed a HARDCODED LUKS name "golem", so it never
+touched the partition the LIVE MEDIUM had AUTO-MOUNTED elsewhere
+(`/run/media/…`). wipefs refuses a disk with any partition still busy, so the
+install died before it wrote a single byte (disk intact — nothing lost).
+- **fix (`install.nix` format phase):** release the target disk COMPLETELY
+  before wipefs — swapoff; umount every mounted partition of THIS disk wherever
+  it landed (`lsblk -o MOUNTPOINT`, deepest first); `vgchange -an` then `dmsetup
+  remove -f` every crypt/lvm/dm/raid leaf backed by the disk (a re-install over
+  an encrypted or LVM Golem); `udevadm settle`; THEN wipefs. wipefs is now a
+  guarded gate: on failure it dumps `lsblk` + `fuser` to the transcript and
+  fails with a plain "could not free $disk" instead of the cryptic "died at $@".
+- **why the VM never caught it:** the VM's target disk is a blank virtio — there
+  is nothing to auto-mount. The first disk that ALREADY held an OS was the asus,
+  on metal — exactly why the round runs on real hardware.
+- **where:** `Installer/preinstall/install.nix`. **size:** done; rides the recut.
+
 ### 104. THE MEDIUM BOOTED LOUD — the kernel + systemd log spilled over the screen after Start/Install — [FOUND + FIXED + VM-VERIFIED 2026-09-23 · Max's eyes on the first metal boot of the recut · rides the recut]
 Max, booting the recut stick on metal (menu + census confirmed good): *"the only
 thing we need is to make the boot silent. i don't want to see all those letters
