@@ -107,3 +107,22 @@ untouched on the internal disk. The #33 failing-dGPU leaf is now proven
 INSTALLED (not just built), on the exact machine that taught the lab
 what a failing dGPU is. Next: the dell (BIOS + intel-legacy, keyboard-
 less — the flow this install just validated end to end).
+
+## 2026-09-23 — I2 CLOSE, roster machine 1 — the final recut (nqm2f3qav…, post nix-flake-update)
+
+**Mode:** real-install + installed-boot, from the frozen final I2 recut
+(`nqm2f3qav40q3cvv8hxq6zsr1rpramws`, the #117-fixed cut).
+
+- **Install: 3m 26s** (Max, at the machine).
+- **Boot bar (#117) — PASS ON METAL.** The Plymouth OPTIONS bar renders on the
+  INSTALLED boot ("shows well") — real Intel Haswell `i915`, the first hardware
+  test of the initrd-DRM fix. Closes the VM-only (bochs) caveat: the installed
+  boot bar is real. The whole #116/#117 arc — accent-orange, thick, no words,
+  boot-only, no shutdown splash — lands on metal.
+- Carries the round's install UX (#103–#115): skip-login autostart (no banner),
+  the steady 42-cell bar with white flying filenames, silent boot.
+
+### Verdict
+**PASS** (headline). First roster machine of the I2 close. Owed to complete the
+§6/§8 record: `is-system-running`, failed-unit count, hostname · root device ·
+memory tier · self-rebuild — the DockMenu audit numbers.
