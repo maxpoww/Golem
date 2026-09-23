@@ -54,6 +54,22 @@ owns tty1; we only changed what it execs. **Not** a service.
   clean "Press ENTER", menu clean, and with no login step there is no banner to
   render at any boot speed. **size:** done. Supersedes #113's `--nohostname`
   half (kept, harmless) for the login banner.
+- **114a — the PATH regression this introduced, and its fix (2026-09-23 · Max:
+  "after pressing enter on 'install golem?' the installer restart → 'press ENTER
+  to choose your language'").** Dropping the login shell also dropped the PATH it
+  supplied: agetty's env has no system profile, so `sudo`'s old `secure_path`
+  (which carried `/run/current-system/sw/bin`) was gone. install-cli's confirm
+  step runs the bare `golem-install` (a systemPackage) → command-not-found →
+  install-cli falls off its end → getty respawns the surface → the restart Max
+  saw. **fix:** `installSurface` exports `PATH=/run/current-system/sw/bin:$PATH`
+  (+ HOME/USER/LOGNAME, mirroring the root session `sudo` set up) before
+  `exec`ing the surface. **Verified END-TO-END in a headless VM** (40 GB virtio
+  target so the fit check passes): drove language→…→you→confirm, ENTER on
+  "Install Golem?" → the install RAN — bar to 79%, the white flying filenames
+  churning (libxau-1.0.12 → perl5.42.0-HTML-Parser-3), no restart. Also
+  incidentally confirmed: #113 white names live, #111 wider bar, tty2 login path
+  works. (Diagnosis note: a 12 GB VM disk trips a legit pre-flight `FAIL fit:
+  … closure ~19 GiB` — that also restarts, but is disk-size, not this bug.)
 
 ### 113. METAL FOLLOW-UPS: WHITE FLYING NAMES · PRE-MENU SPLASH · THE LOGIN HOSTNAME — [2026-09-23 · Max: "make the names white" + "there is a splash before the menu (start | install)" + "the golem-install login is still there before the 'press ENTER…'"]
 Three metal findings from the flying-names ISO:
