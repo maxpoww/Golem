@@ -178,6 +178,17 @@ in
     isoImage.golemMenuIndent = lib.mkForce 0;
     boot.kernelParams = [ "golem.install" ];
 
+    # Black boot → straight into the installer (Max, 2026-09-23: "get rid of
+    # the splash before Press ENTER"). The greeting, the census banner
+    # (audit.nix skips it on golem.install) and the help lines are the
+    # interactive "Start" console's furniture; on the Install boot the TUI owns
+    # the screen, so blank them. mkOverride beats the base's mkForce so nothing
+    # of the getty prints before the surface clears the screen. (The one line
+    # left is agetty's own "login: nixos (automatic login)", cleared instantly
+    # by the TUI.)
+    services.getty.greetingLine = lib.mkOverride 10 "";
+    services.getty.helpLine = lib.mkOverride 10 "";
+
     # The autostart lives in the LOGIN-SHELL init, guarded to the physical
     # console's first VT, NOT a systemd service: the surface is a full-screen
     # interactive TUI that needs tty1 as its controlling terminal, and fighting

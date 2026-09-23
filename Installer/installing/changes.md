@@ -35,6 +35,36 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 110. THE INSTALLER IS CENTRED ON THE SCREEN — [DONE 2026-09-23 · Max: "the installation should appear on the center of the screen" · look verified on metal by Max]
+Max wanted the installer's content ("Press ENTER to select your language" and
+every step) in the CENTRE of the screen, like the boot menu, instead of hugging
+the top-left corner. `mockup/install-cli` now reads the console geometry
+(`stty size`) and centres its fixed-width column: `IND` is the horizontal
+margin (every row — breadcrumb, picker, prompt, review — prints at IND, so
+setting it once centres the whole block), and `screen` vertically centres each
+block via `vcenter` (top padding, with a scroll guard so the tall review never
+smears the picker's in-place cursor redraw). `compute_layout` runs once in the
+main body, after TTY is decided, so the geometry is real. The full hardware
+census is off step 1 (it was the audit banner, now suppressed there by #109);
+the Review still carries the system + hardware summary. **where:**
+`mockup/install-cli` (compute_layout, vcenter, screen, IND). **size:** done;
+first version, Max tunes the exact offsets on metal.
+
+### 109. THE SPLASH BEFORE THE INSTALLER — the tty "loaded" before Press ENTER — [FOUND + FIXED 2026-09-23 · Max, after installing: "there is a splash before the 'press enter to select your language' like the tty loading before the installer. can we get rid of that?"]
+On the INSTALL boot, after the silent black boot, the getty greeting + helpLine
+and the audit's census banner printed to tty1 — then the guided TUI cleared the
+screen over them. That flash of console furniture is the "splash". On the Start
+(live) boot it belongs; on Install the surface owns the screen and the review
+shows the census anyway, so it is pure noise.
+- **fix:** `audit.nix` skips the census banner when `golem.install` is on the
+  kernel cmdline (the `owns-console` race-guard stayed; this is the certain
+  one). The Install specialisation (`iso.nix`) blanks
+  `services.getty.greetingLine` + `helpLine` with `mkOverride 10` (beating the
+  base `mkForce`). The one line left is agetty's own "login: nixos (automatic
+  login)", cleared instantly by the TUI. Black boot → straight into the
+  installer.
+- **where:** `audit.nix`, `iso.nix`. **size:** done.
+
 ### 108. GOLEM'S SHELL IS PLAIN BASH NOW, NOT ZSH — [DECIDED + DONE + VM-VERIFIED 2026-09-23 · Max, after installing on the asus: "we don't need the shell teaking on Golem. lets use plain bash, minimal configuration. classic good old shell."]
 `base/zsh.nix` brought zsh (autosuggestions + syntax highlighting) and the home
 layer's starship / eza / bat / fzf / zoxide / aliases — "Golem's zsh" was even

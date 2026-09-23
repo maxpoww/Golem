@@ -113,8 +113,13 @@
       # by the raw-mode tty (#28, MacBook round 3). golem-setup drops this
       # marker while it holds tty1; the audit's files are always there to
       # cat, so skipping the banner costs nothing.
+      # …and never on the INSTALL boot (Max, 2026-09-23): there the guided
+      # installer autostarts and shows the census itself (the review screen), so
+      # this boot banner is just a flash before the TUI clears the screen — the
+      # "splash before Press ENTER". The `golem.install` cmdline marks that boot.
       if [ -w /dev/tty1 ] && [ -s "$out/decision.json" ] \
-         && [ ! -e /run/golem-setup.owns-console ]; then
+         && [ ! -e /run/golem-setup.owns-console ] \
+         && ! grep -qsF golem.install /proc/cmdline; then
         {
           echo
           echo "-------- Golem census: this machine --------"
