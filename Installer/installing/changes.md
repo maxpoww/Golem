@@ -60,6 +60,16 @@ install.
     system toplevel valid, kernel+initrd present, fstab root/ESP correct, the
     seed + rebuild machinery there, the owner loginable (hash/key). A FAILED
     check says what's wrong BEFORE the reboot — the reliability payoff.
+- **THE VERDICT, refined (Max, 2026-09-23):** the verify bar SHOWS the checking
+  (same bar idiom — flying effect + %), fast, 7–8 s max; it does NOT print
+  per-check results on screen. One calm final line: all-pass → "la instalación
+  está sana — remove the USB and press ENTER"; anything off → "instalación
+  terminada — …" (neutral, still true — it did finish; we just do not claim
+  "sana"). §10 stays satisfied two ways: "sana" is only ever said when it is,
+  and the REAL results go to the LOG (screen calm, log honest — "terminada" is
+  the soft tell to read the log). Critical failures are already caught upstream
+  by golem-install's check_fail (format/fs/copy), so this pre-flight is the
+  subtle would-it-boot layer.
 - **Rejected too:** efibootmgr `--bootnext` (UEFI-only; #94 NVRAM untrustworthy).
 - **where (when applied):** `mockup/install-cli` step_go (second bar + the
   gated-ENTER reboot) + a small offline health-check the surface runs on /mnt
