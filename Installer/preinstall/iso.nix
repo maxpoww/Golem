@@ -255,6 +255,12 @@ in
   #   APPENDS to these (list merge), so both entries boot silently.
   boot.consoleLogLevel = 0;
   boot.initrd.verbose = false;
+  # SysRq ON, on the MEDIUM only (#118 reboot): the guided install ends by
+  # rebooting AFTER the user pulls the USB, and the installer runs FROM that USB
+  # — so the reboot cannot exec `systemctl` off the gone stick. install-cli
+  # reboots through `echo b > /proc/sysrq-trigger` instead (a kernel trigger, no
+  # store access), which needs sysrq enabled. Harmless on an ephemeral medium.
+  boot.kernel.sysctl."kernel.sysrq" = 1;
   boot.kernelParams = [
     "quiet"
     "loglevel=0"
