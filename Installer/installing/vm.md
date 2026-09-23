@@ -21,6 +21,34 @@ machine files: one dated entry per session, Mode line
   `vmbios`). New stages get fresh disks — a stage-0 proof starts from
   zero, a stage-climb proof continues an existing disk on purpose.
 
+## 2026-09-23 — RECUT I2 CLOSE — fresh lock + #102–#116 folded — GATE: menu + autostart + install-to-disk + installed-boot ALL PASS; boot-bar-on-installs bug CAUGHT
+
+**Mode:** gate + real-install + installed-boot (headless, `-vga std`, screendumped,
+40 GB virtio target). ISO `98g35kfamj9khcvjcbiahwbd74m4llkm` (HEAD after
+`nix flake update` — waverunner/waveview→Sep-16, home-manager→Sep-13, nixpkgs
+unchanged). Markers verified on the recut's own `golem-setup`: #111 w=42 bar,
+#115 in-place paint (no flicker), #113 white flying names, #110 centering
+reverted (0 `compute_layout`); + #114 skip-login launcher, #97 pciutils, and the
+baked (installed) side carries `plymouth-start` + `golem-plymouth-theme`.
+- **PASS — menu:** Start/Install renders centred on black.
+- **PASS — autostart:** Install boot lands straight on "Pulsa ENTER…", NO agetty
+  banner (the #114 skip-login launcher).
+- **PASS — install-to-disk:** drove language→…→confirm; ENTER ran `golem-install`
+  to **100%** — the 42-cell orange bar (steady, no flicker) with white filenames
+  flying ("Copying etc-systemd-coredump-con" at 94%), then `systemctl reboot`.
+- **PASS — installed boot:** rebooted from vda → GRUB-EFI → **`<<< Welcome to
+  Golem 26.05… >>>` / `Golem login:`**. The full loop works on the official recut.
+- **BUG CAUGHT — the boot bar does NOT render on the installed system.** Black
+  until login; mid-screen empty for the whole 5–24 s boot window. Root cause
+  confirmed: the minimal installed **initrd has no GPU/DRM module** (ahci,
+  ata_piix, hid_*… but no `bochs`/`i915`/`virtio_gpu`), so Plymouth has no display
+  in the initrd and never paints — the DRM only loads in the main system, after
+  getty. This is exactly Max's earlier "no bar on installed Golem, blank until
+  login": the baked-plymouth fix (#116) was necessary but not sufficient. The
+  installer MEDIUM showed the bar only because installation-cd ships a broad
+  initrd module set. **Fix owed:** put the GPU DRM in the installed initrd →
+  finding #117.
+
 ## 2026-09-22 — RECUT I2 — the #62–#101 queue frozen into a fresh ISO — GATE: menu + boot + census PASS; install-to-disk owed on metal
 
 **Mode:** gate (ISO build + markers + UEFI boot + census). Install-to-disk NOT
