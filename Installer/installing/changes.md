@@ -24,8 +24,17 @@ surface items are `I<round>-<n>`.
 
 ## Queued for the next ISO
 
-> **RECUT I2 BUILT 2026-09-22 — VM-gated on menu + boot + census (see vm.md);
-> install-to-disk + metal + reflash still owed before the round closes.** A
+> **I2 CLOSED / I3 OPEN 2026-09-23.** I2's install-to-disk gate PASSED and the
+> boot bar (#116/#117) was proven on real i915 (asus 3m26s + acer 3m46s, both
+> boot-bar-on-metal). Rather than run the rest of the I2 roster with a known
+> reboot-loop bug (#118), Max folded #118 (verify bar + gated reboot) + #119
+> (Diagnosing) and the fresh lock into a **recut I3** — one clean roster on the
+> complete image (the §2 spirit: every machine meets the SAME final ISO). I3 is
+> VM-gated end to end (menu · autostart · install-to-disk · installed boot bar ·
+> the #118 two-bar verify → gated reboot). The roster now runs on I3.
+>
+> **[archived I2 status]** RECUT I2 BUILT 2026-09-22 — VM-gated on menu + boot +
+> census; install-to-disk + metal proven on asus + acer. A
 > fresh `golem-installer.iso` (3.0 GiB, clean-tree build) FREEZES the fixes
 > below. The one piece of NEW work the recut itself owed — the medium's own
 > grub (#89/#95/#92, "the ISO side owed at the recut") — is done: `iso.nix`
