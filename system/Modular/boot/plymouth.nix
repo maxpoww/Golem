@@ -26,7 +26,13 @@ let
       d=$out/share/plymouth/themes/golem
       mkdir -p "$d"
       cp ${./golem-plymouth/golem.script} "$d/golem.script"
-      magick -size 1x1 xc:'#d7af87' "$d/accent.png"   # fg 180
+      # The accent is NOT xterm #180's true #d7af87 — the console renders fg 180
+      # as the VGA fallback #AA5500 (sampled off the installer bar, srgb 170,85,0),
+      # and THAT orange is the bar Max sees. Plymouth draws true colour, so we
+      # hard-code the orange the surface actually shows, or the boot bar and the
+      # installer bar are two different colours (Max, 2026-09-23: "the color is
+      # not the [one] we want").
+      magick -size 1x1 xc:'#AA5500' "$d/accent.png"
       magick -size 1x1 xc:'#3a3a3a' "$d/track.png"     # dim track
       {
         echo "[Plymouth Theme]"

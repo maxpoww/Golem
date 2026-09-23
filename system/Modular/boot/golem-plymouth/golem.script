@@ -16,7 +16,11 @@ screen_width  = Window.GetWidth();
 screen_height = Window.GetHeight();
 
 bar_width  = Math.Int(screen_width * 0.42);
-bar_height = 8;
+# Match the installer bar's THICKNESS: its █ blocks measure ~15px on an 800px
+# screen (Max, 2026-09-23: the boot bar "thickness is not the same (less)"), so
+# scale to ~1.9% of the screen height instead of the old thin 8px.
+bar_height = Math.Int(screen_height * 0.019);
+if (bar_height < 10) bar_height = 10;
 bar_x = Math.Int((screen_width - bar_width) / 2);
 bar_y = Math.Int(screen_height / 2);
 
