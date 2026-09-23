@@ -1,0 +1,71 @@
+# Golem's boot bar — the OPTIONS status bar, at boot.
+#
+# Max, 2026-09-23: "can we add the same bar as the status bar loading on boot?
+# … lets show our bar everywhere." One accent bar filling on a dim track, with
+# the service that is starting flying past underneath — the boot echo of the
+# installer's flying filenames. No spinner, no logo: the bar IS the surface.
+#
+# Colours match the surface palette (install-cli fg()): the one accent is
+# xterm-256 #180 ≈ (0.843, 0.686, 0.529); the track is a dim grey; the flying
+# line is soft white, the brightest ink, like the answered values.
+
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+
+screen_width  = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+bar_width  = Math.Int(screen_width * 0.42);
+bar_height = 8;
+bar_x = Math.Int((screen_width - bar_width) / 2);
+bar_y = Math.Int(screen_height / 2);
+
+# ── the dim track: full width, always there ──────────────────────────────
+track_image  = Image("track.png").Scale(bar_width, bar_height);
+track_sprite = Sprite(track_image);
+track_sprite.SetPosition(bar_x, bar_y, 1);
+
+# ── the accent fill: grows left→right with boot progress ─────────────────
+fill_source = Image("accent.png");
+fill_sprite = Sprite();
+
+fun draw_fill(fraction) {
+  w = Math.Int(bar_width * fraction);
+  if (w < 2) w = 2;
+  if (w > bar_width) w = bar_width;
+  fill_sprite.SetImage(fill_source.Scale(w, bar_height));
+  fill_sprite.SetPosition(bar_x, bar_y, 2);
+}
+draw_fill(0.0);
+
+Plymouth.SetBootProgressFunction(
+  fun (duration, progress) {
+    draw_fill(progress);
+  });
+
+# ── the flying service line, centred just under the bar ──────────────────
+# systemd forwards each unit's "Starting …/Started …" here as a message while
+# it boots (needs systemd.show_status on — the module re-enables it, and
+# Plymouth, not the console, is what shows it).
+status_sprite = Sprite();
+
+fun show_status(text) {
+  status_image = Image.Text(text, 0.80, 0.80, 0.80);
+  status_sprite.SetImage(status_image);
+  status_sprite.SetPosition(
+    Math.Int((screen_width - status_image.GetWidth()) / 2),
+    bar_y + bar_height + 16,
+    2);
+}
+
+Plymouth.SetMessageFunction(   fun (text) { show_status(text); });
+Plymouth.SetUpdateStatusFunction(fun (text) { show_status(text); });
+
+# On the password prompt (LUKS), keep the bar but let the prompt draw over it;
+# on quit, fade the bar out so the handoff to the compositor is clean.
+Plymouth.SetQuitFunction(
+  fun () {
+    fill_sprite.SetOpacity(0);
+    track_sprite.SetOpacity(0);
+    status_sprite.SetOpacity(0);
+  });

@@ -15,6 +15,12 @@
     ./base/users.nix
     ./base/locale.nix
     ./base/console.nix
+    # The boot bar (Max, 2026-09-23: "show our bar everywhere") — Plymouth
+    # styled as the OPTIONS status bar, so every installed Golem fills its boot
+    # screen with the accent bar instead of black. Loader-agnostic (it is the
+    # splash, not GRUB), so it belongs in the always-chosen base, not the
+    # hardware-chosen boot leaves. Carries the #65 tax (`splash`) — see the file.
+    ./boot/plymouth.nix
     ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix

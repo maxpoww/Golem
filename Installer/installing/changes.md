@@ -35,6 +35,27 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 116. THE BAR EVERYWHERE — a Plymouth boot bar styled as the OPTIONS status bar — [DONE 2026-09-23 · Max: "can we add the same bar as the status bar loading on boot? … lets show our bar everywhere" · chose bar + flying service names, on installed Golem + the installer stick]
+The quiet boot (base/core.nix) gives a black screen from kernel handoff to the
+compositor; now it fills with the accent bar. A `script`-module Plymouth theme
+(`boot/golem-plymouth/golem.script`) draws the one accent (#d7af87 = fg 180)
+filling on a dim track, with the service that is starting flying past
+underneath — the boot echo of the installer's flying filenames. `boot/
+plymouth.nix` packages the theme (two 1px colour tiles the script scales),
+enables `boot.plymouth`, and re-adds `splash` + `systemd.show_status=auto`
+(mkAfter, so they beat base's `show_status=false`). Wired into the base
+composition (every installed Golem) AND the installer `iso.nix` (the stick's own
+boot). **VERIFIED in a headless VM** (bochs-drm): the boot came up with the
+accent bar half-filled and "plymouth-read-write.service" flying beneath it —
+exactly the look. **THE #65 TAX:** base drops `splash`/`fbcon=map:1` because the
+acer's single fb0 made `fbcon=map:1` fatal; this re-adds `splash` ONLY (never
+the mapping) — Plymouth renders via DRM/KMS with a text fallback, so it does not
+take the console away the way the mapping did. The oldest lab GPUs (GM45 GMA)
+are the metal to watch. All 8 effect-matrix fixtures still evaluate.
+**where:** `boot/plymouth.nix`, `boot/golem-plymouth/golem.script`,
+`composition.nix`, `iso.nix`. **size:** done; refinements (bar thickness,
+segmented block look, tuning which units fly) are Max's call on metal.
+
 ### 115. THE STATUS BAR FLICKER — [DONE 2026-09-23 · Max, install working on metal: "the status bar flickers, it is not constant, but it does"]
 `paint_bar` repaints ~20×/s (the flying-names copy loop). Each repaint did two
 things that flicker: it erased the WHOLE line with `[2K` before redrawing, and
