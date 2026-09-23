@@ -418,3 +418,15 @@ self-sufficient by construction.
   install → boot → self-rebuild — with the seed carrying everything by
   construction. `jd9lgha3…` is the reflash candidate for the acer (the
   first blessed metal, stage 0).
+
+## 2026-09-23 — I3c — the USB-pull reboot (#118 sysrq) — GATE PASS (real ejection test)
+
+**Mode:** real-install + USB-removal simulation. Max hit an I/O-error/getty-loop
+on the asus: at the verdict he pulled the USB, then ENTER — but the installer
+runs FROM the USB, so `systemctl reboot` exec'd off a gone device. Fix: reboot
+through `echo b > /proc/sysrq-trigger` (a kernel trigger, no store access), sysrq
+enabled on the medium. **GATE:** drove the install to the verdict, then
+`eject -f isocd` on the qemu monitor (= physically pulling the stick) — install-cli
+HELD at the verdict, no crash. ENTER → the machine rebooted, OVMF skipped the gone
+DVD-ROM (Boot0001) and booted the disk (Boot0002) → **`Golem login:`**. The USB-pull
+→ ENTER → into-Golem flow works with the stick already out. #118 reboot CLOSED.
