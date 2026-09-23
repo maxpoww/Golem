@@ -157,3 +157,20 @@ keyboard catching what SSH cannot, precisely the first-install lesson.
 Live-fixed #65 on the frozen stick (seed update, marked); #63/#64/#65
 source fixes ship in the round-I2 cut. **Stage 1 (the desktop) is next,
 as a rebuild on top of this working stage 0.**
+
+## 2026-09-23 — I2 CLOSE, roster machine 2 — the final recut (nqm2f3qav…)
+
+**Mode:** real-install + installed-boot, final I2 recut (#117-fixed).
+- **Install: 3m 46s** (Max, at the machine).
+- **Boot bar (#117) — PASS.** Renders on the installed boot ("shows well") on
+  Broadwell HD 5500 (`i915`). **And the #65 test: NO regression** — the boot bar
+  re-adds `splash` (only `splash`, never `fbcon=map:1`), and the acer — the exact
+  machine #65 was found on — boots to the bar, not a dead console. The
+  `splash`-is-safe-if-you-skip-the-mapping call holds on the machine that made it.
+- **FOUND — #118 (the auto-reboot boots the USB again):** the install's final
+  `systemctl reboot` re-enters the installer if the USB is still in and the
+  firmware boots removable-first — unattended, it loops instead of landing in
+  Golem. See changes.md #118.
+
+### Verdict
+**PASS** on the install + boot bar; #118 filed. Roster 2/N of the I2 close.

@@ -35,6 +35,29 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 118. THE AUTO-REBOOT BOOTS THE USB AGAIN — an unattended install loops back into the installer — [FOUND 2026-09-23 · the acer, I2-close roster · Max: "if the user is not there the pc will boot to the usb again instead of booting to Golem. how do we handle that?"]
+At 100% `golem-install` finishes and install-cli does `systemctl reboot` (step_go
+— "the full bar IS the signal, reboot immediate", Max 2026-09-06). But the USB is
+still in, and most firmwares boot removable media before the internal disk — so
+the reboot re-enters the INSTALLER, and unattended it loops instead of landing in
+Golem. Breaks the 8e "reliable as fuck, never fail" promise for a walk-away
+install.
+- **RECOMMENDED FIX — `poweroff`, not `reboot`.** Universal (UEFI *and* BIOS,
+  which rules out efibootmgr tricks); no loop possible. The bar fills to
+  "Installed", the machine powers OFF. The user returns, pulls the stick, powers
+  on → Golem. This is the standard installer move for exactly this reason; it
+  also can't half-succeed the way an NVRAM BootNext can (#94: the acer's own
+  firmware deletes boot entries).
+- **Rejected:** efibootmgr `--bootnext` to the installed entry (UEFI-only, so it
+  abandons the BIOS half of the roster, and #94 showed the NVRAM is not to be
+  trusted); "remove the medium and press ENTER" (does nothing for the
+  unattended case, which is the whole point).
+- **where (when applied):** `mockup/install-cli` step_go (`systemctl reboot` →
+  `systemctl poweroff`), maybe a one-line "Installed — remove the USB" before it
+  for a present user. **PROCESS:** §2 — this rides the NEXT recut, not a
+  mid-roster reburn; the current roster is attended, so the loop doesn't block
+  it. **size:** small, pending Max's OK on poweroff.
+
 ### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Golem, blank until login"]
 The baked-Plymouth fix (#116c verified `plymouth-start` + the theme in the
 installed closure) was necessary but NOT sufficient. On the I2-close gate the
