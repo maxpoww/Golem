@@ -37,6 +37,18 @@ let
   installSurface = pkgs.writeShellScript "golem-install-surface" ''
     if [ "$(${pkgs.coreutils}/bin/tty)" = /dev/tty1 ]; then
       printf '\033[H\033[2J\033[3J'
+      # agetty's environment has NO system profile on PATH — a login shell used
+      # to supply it. Without this, install-cli's confirm step runs the bare
+      # `golem-install` (systemPackages, i.e. /run/current-system/sw/bin), it is
+      # command-not-found, install-cli falls off its end and exits, and getty
+      # respawns the surface — the "pressing ENTER on 'install golem?' restarts
+      # to Press ENTER" regression Max hit. The wrapper still prefixes its own
+      # runtime tools; this just puts the system profile behind them.
+      # HOME/USER/LOGNAME mirror the root session the old `sudo` set up, so any
+      # tool reading them (nix's ~/.config, anything expecting $HOME) behaves as
+      # before — belt to the PATH brace.
+      export PATH=/run/current-system/sw/bin:$PATH
+      export HOME=/root USER=root LOGNAME=root
       exec ${setup}/bin/golem-setup-install
     fi
     exec ${pkgs.shadow}/bin/login
