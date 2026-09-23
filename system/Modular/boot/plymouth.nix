@@ -53,13 +53,8 @@ in
     theme = "golem";
   };
 
-  # Plymouth needs `splash`; systemd.show_status must reach Plymouth for the
-  # flying service line. Both go through mkAfter so they land LAST on the kernel
-  # cmdline and win over base/core.nix's `systemd.show_status=false` (systemd
-  # takes the last occurrence). We never add fbcon=map:1 (see the #65 note).
-  boot.kernelParams = lib.mkAfter [
-    "splash"
-    "systemd.show_status=auto"
-    "rd.systemd.show_status=auto"
-  ];
+  # Plymouth needs `splash` (and only splash — never fbcon=map:1, see the #65
+  # note). The bar is just progress now (Max dropped the flying service line),
+  # so we no longer re-enable systemd.show_status — base's quiet stays quiet.
+  boot.kernelParams = lib.mkAfter [ "splash" ];
 }
