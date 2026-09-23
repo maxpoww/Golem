@@ -15,7 +15,7 @@
     ./base/users.nix
     ./base/locale.nix
     ./base/console.nix
-    ./base/zsh.nix
+    ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix
     # The seal (#56) rides with selfrebuild: every unattended rebuild

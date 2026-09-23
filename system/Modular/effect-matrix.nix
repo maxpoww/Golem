@@ -43,7 +43,7 @@ let
         (ex "disk policy: fstrim on" c.services.fstrim.enable)
         (ex "self-rebuild loop: flakeAttr golem-minimal" (c.golem.flakeAttr == "golem-minimal"))
         (ex "self-rebuild loop: flakeDir set" (c.golem.flakeDir != null))
-        (ex "zsh is the owner's shell" (c.users.users.${c.golem.owner}.shell.pname or "" == "zsh"))
+        (ex "bash is the owner's shell (#108: plain bash, not zsh)" (lib.hasPrefix "bash" (c.users.users.${c.golem.owner}.shell.pname or "")))
         (ex "sshd on, key-only" (c.services.openssh.enable && !c.services.openssh.settings.PasswordAuthentication))
         (ex "NO nvidia driver anywhere" (!lib.elem "nvidia" c.services.xserver.videoDrivers))
         (ex "MINIMAL: no hyprland" (!c.programs.hyprland.enable))

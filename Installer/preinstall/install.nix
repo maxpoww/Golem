@@ -905,6 +905,9 @@ pkgs.writeShellApplication {
       # failed `find` under pipefail would kill the whole install (it did, the
       # first VM gate) — so neutralise it: no dir yet just counts as 0.
       copied=$( { find /mnt/nix/store -mindepth 1 -maxdepth 1 2>/dev/null || true; } | wc -l )
+      # the store carries .links (and maybe .lock) beyond the closure, so the
+      # count can nudge one past total — clamp it so it reads N/N, not 1020/1019.
+      [[ "$copied" -gt "$total" ]] && copied=$total
       pct=$(( 20 + 75 * copied / total )); [[ "$pct" -gt 95 ]] && pct=95
       # A moving COUNT, not a filename: robust under pipefail (no ls|head
       # SIGPIPE, no SC2012) and it advances, which is the whole point —

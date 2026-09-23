@@ -9,7 +9,7 @@
   users.users.${config.golem.owner} = {
     isNormalUser = true;
     description = lib.mkDefault "Max";
-    shell = pkgs.zsh;
+    shell = pkgs.bashInteractive;
     extraGroups = [
       "networkmanager"
       "wheel"

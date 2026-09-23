@@ -35,6 +35,25 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 108. GOLEM'S SHELL IS PLAIN BASH NOW, NOT ZSH — [DECIDED + DONE + VM-VERIFIED 2026-09-23 · Max, after installing on the asus: "we don't need the shell teaking on Golem. lets use plain bash, minimal configuration. classic good old shell."]
+`base/zsh.nix` brought zsh (autosuggestions + syntax highlighting) and the home
+layer's starship / eza / bat / fzf / zoxide / aliases — "Golem's zsh" was even
+called the stage-0 IDENTITY (2026-09-10, base/ port). Max reversed it after the
+first real install: plain bash, minimal, the classic shell.
+- **done:** `base/zsh.nix` → `base/shell.nix` (the owner's home-manager config,
+  empty but for `home.stateVersion` — no prompt theme, no plugins, no aliases);
+  `base/users.nix` sets `shell = pkgs.bashInteractive`; `composition.nix` imports
+  `shell.nix`; `effect-matrix.nix` asserts bash (`hasPrefix "bash"` on
+  `shell.pname`, which is "bash-interactive"). `home/zsh.nix` kept on disk (the
+  fat config still imports it), just no longer in the minimal path.
+- **VM-PROVEN:** installed → booted the disk → `Golem login: max` → the classic
+  `[max@Golem:~]$` bash prompt; `echo $0` → `-bash`. minimal-matrix green (8
+  composed).
+- **left for Max:** the FAT dogfood config (`system/configuration.nix`) still
+  has zsh — his own machine, his call to flip.
+- **where:** `base/shell.nix` (new), `base/zsh.nix` (removed), `base/users.nix`,
+  `composition.nix`, `effect-matrix.nix`. **size:** done; rides the recut.
+
 ### 107. THE INSTALL BAR FROZE AT 83% AND SAID "READING THE DEVICE" TWICE — [FOUND + FIXED + VM-VERIFIED 2026-09-23 · the asus install · Max: "the status bar sounld be dinamic … is just no plecent"]
 Max, watching the first metal install: the bar jumped 16→44→66 then sat at 83%
 for 2m30s (the system copy), and "reading the device" appeared BOTH before the
@@ -47,7 +66,9 @@ install and again at 66%.
   closure's store paths land in /mnt and emits fine markers 20→95% with a live
   "copying N/total" count. VM-PROVEN: the bar climbed 20% → 48% "Copying
   389/1026" → done + reboot, moving the whole time. (Rehearse is untouched — it
-  exits before the install phase.)
+  exits before the install phase.) The count is CLAMPED to N/N — Max saw
+  "copying 1020/1019" because the store's `.links` dir (and maybe `.lock`) tips
+  the /mnt count one past the closure; clamp so it never overshoots (2026-09-23).
 - **⚠ the gate caught a regression:** `find /mnt/nix/store` runs BEFORE
   nixos-install creates that dir, so `find` exits 1, and under `pipefail` the
   whole install died at 20% ("died line 859: wc -l"). Fixed by neutralising the
