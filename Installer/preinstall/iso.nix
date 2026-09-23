@@ -209,12 +209,31 @@ in
     '';
   };
 
-  # The kernel's default console loglevel (4) lets err-level lines paint
-  # over the installer surface — the HP's sleeping Radeon fails every
-  # runtime resume and says so in red, mid-reveal (changes.md #17a). Only
-  # crit-and-worse may reach the screen; dmesg and the journal keep
-  # everything.
-  boot.consoleLogLevel = 3;
+  # Silent boot (Max, on metal 2026-09-23: "Golem boot is black screen until
+  # booted — I don't want to see all those letters after I pick Start or
+  # Install"). The medium now boots as quietly as an INSTALLED Golem: the same
+  # log-quieting kernel params base/core.nix uses. This is the SAFE set — it
+  # does NOT include fbcon=map:1 / splash, which take the display away and left
+  # the first metal machine's minimal console a DEAD black screen (#65); these
+  # only silence the log, the framebuffer console still exists.
+  #   consoleLogLevel 0 also keeps the HP's red Radeon resume errors off the
+  #   installer surface (the old #17a reason for lowering it — 0 is stricter
+  #   than the previous 3). dmesg + the journal still keep everything.
+  #   The Install specialisation's `boot.kernelParams = [ "golem.install" ]`
+  #   APPENDS to these (list merge), so both entries boot silently.
+  boot.consoleLogLevel = 0;
+  boot.initrd.verbose = false;
+  boot.kernelParams = [
+    "quiet"
+    "loglevel=0"
+    "rd.systemd.show_status=false"
+    "rd.systemd.log_level=0"
+    "systemd.show_status=false"
+    "systemd.log_level=0"
+    "rd.udev.log_level=0"
+    "udev.log_level=0"
+    "vt.global_cursor_default=0"
+  ];
 
   # English-on-fresh-boot as a GUARANTEE, not an accident (#6): without
   # the pin the tty is English only because the kernel default happens to

@@ -35,6 +35,27 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 104. THE MEDIUM BOOTED LOUD — the kernel + systemd log spilled over the screen after Start/Install — [FOUND + FIXED + VM-VERIFIED 2026-09-23 · Max's eyes on the first metal boot of the recut · rides the recut]
+Max, booting the recut stick on metal (menu + census confirmed good): *"the only
+thing we need is to make the boot silent. i don't want to see all those letters
+after i pick start or install.. Golem boot is black screen until booted."* The
+medium (installation-cd-minimal + `iso.nix`) only lowered `consoleLogLevel` and
+never carried the quiet kernel cmdline the INSTALLED system has
+(`base/core.nix`), so its boot spilled the kernel + systemd log to the
+framebuffer. Fix: `iso.nix` now carries the same log-quieting params —
+`quiet loglevel=0 {rd.,}systemd.show_status=false {rd.,}systemd.log_level=0
+{rd.,}udev.log_level=0 vt.global_cursor_default=0` + `consoleLogLevel=0` +
+`initrd.verbose=false`. This is the SAFE set: NOT `fbcon=map:1`/`splash`, which
+take the display away and left the first metal machine's minimal console a DEAD
+black screen (#65) — these only silence the log, the framebuffer console stays.
+The Install specialisation's `golem.install` param APPENDS (list merge), so both
+entries boot silently. `consoleLogLevel=0` also keeps the HP's red Radeon resume
+errors off the installer surface (the #17a reason for the old `=3`, now stricter).
+- **VM-PROVEN (2026-09-23):** Start → **pure black** through the whole boot (no
+  kernel/systemd letters) → the census banner lands clean, console fully usable.
+- **where:** `iso.nix`. **size:** done. **owed:** Max's eyes on the reflashed
+  stick (the metal that asked for it).
+
 ### 103. THE PRODUCT INSTALLER'S AUTOSTART RAN golem-install WITHOUT ROOT — the TUI-driven install died before its own logdir — [FOUND + FIXED + VM-VERIFIED 2026-09-22 · the recut's install-to-disk VM gate · rides the recut]
 The 8e "Install" autostart (`iso.nix` loginShellInit → `golem-setup-install`)
 runs as the autologin **`nixos`** user, and step_go (`mockup/install-cli:3618`)
