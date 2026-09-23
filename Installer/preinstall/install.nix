@@ -891,29 +891,46 @@ pkgs.writeShellApplication {
 
     # Stream the copy (Max, 2026-09-23, on metal: the bar froze here for 2m30s
     # and "installing" is 90% of the wall-clock). nixos-install runs in the
-    # background; we watch its closure's store paths land in /mnt and emit
-    # fine-grained markers 20→95% with the NAME of the path being copied, so the
-    # surface's bar creeps and says what it is doing instead of sitting at one
-    # number (changes.md #107). The log goes to a file, not the read-loop.
+    # background; the bar's PERCENT tracks the real copy (store paths landing in
+    # /mnt), and the LABEL flies the closure's package NAMES past fast — the
+    # Windows-XP feeling Max asked for (2026-09-23: "file names moving faster…
+    # a feeling of dynamicity"). The names are the REAL things being copied,
+    # captured ONCE from the same closure query the count uses, so the churn
+    # costs nothing: no extra disk I/O (the find that measures real progress
+    # still runs only every ~2 s), just an in-memory list cycled ~20×/s.
     total=$( { nix-store -qR "$system" 2>/dev/null || true; } | wc -l ); [[ "$total" -ge 1 ]] || total=1
+    # The closure's store-path NAMES, hash prefix stripped. mapfile'd ONCE — NOT
+    # `ls | head` per tick, which is the only reason the label used to be a bare
+    # count (SIGPIPE under pipefail, SC2012); an array read has neither problem.
+    mapfile -t names < <( { nix-store -qR "$system" 2>/dev/null || true; } \
+      | sed -E 's#.*/[a-z0-9]{32}-##' )
+    [[ "''${#names[@]}" -ge 1 ]] || names=( "$system" )
+    nname=''${#names[@]}
     printf '%s\n' "run    nixos-install --root /mnt --system $system --no-root-password --no-channel-copy" >> "$TR"
     nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy \
       >>"$logdir/nixos-install.log" 2>&1 &
     ipid=$!
+    i=0; tick=0; copied=0; pct=20
     while kill -0 "$ipid" 2>/dev/null; do
-      # /mnt/nix/store doesn't exist until nixos-install creates it, and a
-      # failed `find` under pipefail would kill the whole install (it did, the
-      # first VM gate) — so neutralise it: no dir yet just counts as 0.
-      copied=$( { find /mnt/nix/store -mindepth 1 -maxdepth 1 2>/dev/null || true; } | wc -l )
-      # the store carries .links (and maybe .lock) beyond the closure, so the
-      # count can nudge one past total — clamp it so it reads N/N, not 1020/1019.
-      [[ "$copied" -gt "$total" ]] && copied=$total
-      pct=$(( 20 + 75 * copied / total )); [[ "$pct" -gt 95 ]] && pct=95
-      # A moving COUNT, not a filename: robust under pipefail (no ls|head
-      # SIGPIPE, no SC2012) and it advances, which is the whole point —
-      # "copying 340/1017" reads as real progress.
-      echo "##golem $pct/100 copying $copied/$total"
-      sleep 2
+      # Real progress, measured only ~every 2 s (every 40 ticks): /mnt/nix/store
+      # doesn't exist until nixos-install creates it, and a failed `find` under
+      # pipefail would kill the whole install (it did, the first VM gate) — so
+      # neutralise it, no dir yet just counts as 0. Keeping the find OFF the
+      # per-tick path is what makes the fast name churn cost nothing on disk.
+      if (( tick % 40 == 0 )); then
+        copied=$( { find /mnt/nix/store -mindepth 1 -maxdepth 1 2>/dev/null || true; } | wc -l )
+        # .links (and maybe .lock) sit beyond the closure, so the count can
+        # nudge past total — clamp it; cap the bar at 95 (100 is the reboot).
+        [[ "$copied" -gt "$total" ]] && copied=$total
+        pct=$(( 20 + 75 * copied / total )); [[ "$pct" -gt 95 ]] && pct=95
+      fi
+      # Fly one name by per tick, wrapping the list; truncated so the 42-cell
+      # bar + "  NN%  " + name never overflows an 80-col console and smears the
+      # in-place redraw. The percent still says how far along the real copy is.
+      nm=''${names[i]}; nm=''${nm:0:24}; i=$(( (i + 1) % nname ))
+      echo "##golem $pct/100 copying $nm"
+      tick=$(( tick + 1 ))
+      sleep 0.05
     done
     if ! wait "$ipid"; then
       note "nixos-install failed — see nixos-install.log"

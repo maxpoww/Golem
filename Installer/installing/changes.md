@@ -35,6 +35,24 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 112. FLYING FILENAMES — THE WINDOWS-XP COPY FEELING — [DONE 2026-09-23 · Max: "i would like to see file names moving faster, like 'copying python3'… the name changing every ms… a feeling of dinamicity… windows xp used to do that. if that is possible, and cost nothing."]
+The copy phase used to label the bar "copying 800/830" — a moving count. Max
+wanted the XP feeling instead: real package names flying past fast. **How, for
+free:** the closure's store-path NAMES are captured ONCE (mapfile) from the very
+`nix-store -qR "$system"` query install.nix already runs to size the bar — hash
+prefix stripped with `sed -E 's#.*/[a-z0-9]{32}-##'`. The copy loop now ticks at
+~20/s and flies one name per tick as the label (wrapping the list, each name
+truncated to 24 chars so a 42-cell bar + "  NN%  " + name never overflows 80
+cols). The bar's PERCENT still tracks the REAL copy — `find /mnt/nix/store`
+still runs only every ~2 s (40 ticks), kept OFF the per-tick path, so the fast
+churn adds zero disk I/O. The names are the actual things being installed, just
+shown faster than they literally land — the honest XP illusion. The old
+count-only label existed only because a per-tick `ls|head` would SIGPIPE under
+pipefail (SC2012); an in-memory array has neither problem. install-cli needs no
+change — "copying <name>" passes through its `##golem` parser and renders
+capitalised. **where:** `install.nix` (the 5b copy loop). **size:** done; churn
+rate is `sleep 0.05` (~20/s), a one-line tweak if Max wants faster/slower.
+
 ### 111. THE LAST SPLASH LINE + A LONGER STATUS BAR — [DONE 2026-09-23 · Max, on metal: "there is still some splash before the 'press enter to select language', i saw something like 'golem-install etc etc' like one line" + "the status bar should be 50% longer and 50% wider"]
 Two metal findings from the reverted-centering install:
 - **The one surviving splash line.** #109 blanked the getty greeting, but one
