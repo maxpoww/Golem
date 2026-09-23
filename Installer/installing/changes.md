@@ -35,6 +35,17 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 115. THE STATUS BAR FLICKER — [DONE 2026-09-23 · Max, install working on metal: "the status bar flickers, it is not constant, but it does"]
+`paint_bar` repaints ~20×/s (the flying-names copy loop). Each repaint did two
+things that flicker: it erased the WHOLE line with `[2K` before redrawing, and
+it drew the filename in a SECOND `printf` — so every frame the bar and the name
+blanked and redrew, which at 20 Hz reads as flicker. Rewrote it as ONE `printf`
+that redraws over itself from column 0 (`\r`, identical blocks landing on
+identical blocks — invisible) and clears only the LEFTOVER past the new content
+with a trailing `[K`. No blank frame, so the bar is rock-steady while the name
+still changes underneath. **where:** `mockup/install-cli` (`paint_bar`).
+**size:** done.
+
 ### 114. THE DEFINITIVE NO-BANNER AUTOSTART — no agetty line at all — [DONE 2026-09-23 · Max: "do the definitive fix, no banner at all"]
 #113 could only shorten agetty's autologin line (it hardcodes "(automatic
 login)"; no flag mutes it). The definitive fix drops autologin on the Install

@@ -3511,19 +3511,28 @@ paint_bar() {                    # $1 cur  $2 max  $3 label  $4 bright tail (opt
   # longer" — 28 → 42; "wider" meant the same axis, span more of the line,
   # not a taller multi-row bar). Fits an 80-col console with room for the
   # margin, the "  NN%  " gap and a short phase label after it.
-  local w=42 fill f e pct
+  local w=42 fill f e pct tail=''
   fill=$(( $1 * w / $2 )); pct=$(( $1 * 100 / $2 ))
   f=$(printf "%${fill}s" ''); f=${f// /█}
   e=$(printf "%$(( w - fill ))s" ''); e=${e// /░}
-  printf '\r%s[2K%s%s%s%s%s%s   %s%3d%%%s   %s%s%s' "$esc" "$IND" \
+  # $4 is the flying filename during the copy (Max, 2026-09-23: "make the names
+  # white"): C_VALUE, the palette's brightest ink, right after the dim "Copying"
+  # verb so the name reads as content and the verb as scaffolding.
+  [ -n "${4:-}" ] && tail=" $C_VALUE$4$NORM"
+  # ONE write, drawn IN PLACE, and NO full-line erase (Max, 2026-09-23: "the
+  # status bar flickers"). The old paint erased the whole line ([2K) and then
+  # drew the name in a SECOND printf, so at ~20 repaints/s the bar and name
+  # blanked-then-redrew every frame — that is the flicker. Here the line is
+  # redrawn over itself from column 0 with a single \r (identical blocks land on
+  # identical blocks, invisibly), and only the LEFTOVER past the new content is
+  # cleared, with a trailing [K — no blank frame, so the bar sits rock-steady
+  # while the name still changes underneath it.
+  printf '\r%s%s%s%s%s%s   %s%3d%%%s   %s%s%s%s%s[K' \
+    "$IND" \
     "$C_ACCENT" "$f" "$C_DIM" "$e" "$NORM" \
     "$C_VALUE" "$pct" "$NORM" \
-    "$C_DIM" "${3^}" "$NORM"
-  # $4 is the flying filename during the copy (Max, 2026-09-23: "make the names
-  # white"). It rides in C_VALUE — the palette's brightest ink, the same white
-  # the answered values wear — right after the dim "Copying" verb, so the name
-  # reads as the content and the verb as scaffolding.
-  [ -n "${4:-}" ] && printf ' %s%s%s' "$C_VALUE" "$4" "$NORM"
+    "$C_DIM" "${3^}" "$NORM" \
+    "$tail" "$esc"
   return 0
 }
 
