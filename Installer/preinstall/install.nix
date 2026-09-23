@@ -426,7 +426,7 @@ pkgs.writeShellApplication {
     # Phase markers carry a KEY, not label text: the surface maps the key
     # to a translated string at display time (changes.md #18b — literal
     # English here painted "Evaluating the system" onto a Spanish run).
-    echo "##golem 1/6 format"
+    echo "##golem 5/100 format"
     # Release the target disk COMPLETELY before wiping, or wipefs dies
     # "Device or resource busy" on a disk that already holds an OS. The old
     # three lines only touched /mnt and a hardcoded LUKS name "golem", so on
@@ -547,7 +547,7 @@ pkgs.writeShellApplication {
     # would do, or it can never be diffed against a real run's transcript
     # (the first VM calibration recorded the shadow path here, which is a
     # transcript lying about the install it rehearses).
-    echo "##golem 2/6 fs"
+    echo "##golem 10/100 fs"
     run mount /dev/disk/by-label/golem /mnt
     # The ESP is mounted only on UEFI (plain or LUKS). On BIOS there is no
     # ESP: /boot lives on the root fs GRUB already reads, so nothing to mount.
@@ -565,14 +565,14 @@ pkgs.writeShellApplication {
     # Real work in both modes: the rehearsal copies into its shadow tree,
     # which is what lets step 5 evaluate the seed exactly as the real
     # install would.
-    echo "##golem 3/6 seed"
+    echo "##golem 14/100 seed"
     mkdir -p "$seed"
     cp -a "$src"/. "$seed"/
     chmod -R u+w "$seed"
     note "seed: $(du -sm "$seed" | cut -f1) MiB at $seed"
 
     # ── 4. The three dropped files ────────────────────────────────────
-    echo "##golem 4/6 probe"
+    echo "##golem 18/100 probe"
     mkdir -p "$seed/hosts/target"
     golem-hw-detect > "$seed/hosts/target/golem-hardware.nix"
 
@@ -781,7 +781,7 @@ pkgs.writeShellApplication {
       # measurement: a machine that cannot evaluate its own system cannot
       # run a product install's build step either, and that is worth
       # knowing before any disk is touched.
-      echo "##golem 5/6 eval"
+      echo "##golem 20/100 eval"
       if [[ "$ram_ok" != true ]]; then
         # The ram check above already FAILed; running the eval anyway
         # would thrash the machine into the exact swap spiral the check
@@ -832,7 +832,7 @@ pkgs.writeShellApplication {
       exit 0
     fi
 
-    echo "##golem 5/6 install"
+    echo "##golem 20/100 install"
     if [[ -z "$system" ]]; then
       # THE PRODUCT PATH (8e, option A — Max 2026-09-18): install the BAKED
       # toplevel that matches this machine's chosen leaf-list, by DIRECT COPY
@@ -889,7 +889,33 @@ pkgs.writeShellApplication {
     fi
     echo "installing system: $system"
 
-    run nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy
+    # Stream the copy (Max, 2026-09-23, on metal: the bar froze here for 2m30s
+    # and "installing" is 90% of the wall-clock). nixos-install runs in the
+    # background; we watch its closure's store paths land in /mnt and emit
+    # fine-grained markers 20→95% with the NAME of the path being copied, so the
+    # surface's bar creeps and says what it is doing instead of sitting at one
+    # number (changes.md #107). The log goes to a file, not the read-loop.
+    total=$( { nix-store -qR "$system" 2>/dev/null || true; } | wc -l ); [[ "$total" -ge 1 ]] || total=1
+    printf '%s\n' "run    nixos-install --root /mnt --system $system --no-root-password --no-channel-copy" >> "$TR"
+    nixos-install --root /mnt --system "$system" --no-root-password --no-channel-copy \
+      >>"$logdir/nixos-install.log" 2>&1 &
+    ipid=$!
+    while kill -0 "$ipid" 2>/dev/null; do
+      # /mnt/nix/store doesn't exist until nixos-install creates it, and a
+      # failed `find` under pipefail would kill the whole install (it did, the
+      # first VM gate) — so neutralise it: no dir yet just counts as 0.
+      copied=$( { find /mnt/nix/store -mindepth 1 -maxdepth 1 2>/dev/null || true; } | wc -l )
+      pct=$(( 20 + 75 * copied / total )); [[ "$pct" -gt 95 ]] && pct=95
+      # A moving COUNT, not a filename: robust under pipefail (no ls|head
+      # SIGPIPE, no SC2012) and it advances, which is the whole point —
+      # "copying 340/1017" reads as real progress.
+      echo "##golem $pct/100 copying $copied/$total"
+      sleep 2
+    done
+    if ! wait "$ipid"; then
+      note "nixos-install failed — see nixos-install.log"
+      check_fail "nixos-install failed ($logdir/nixos-install.log has the trace)"
+    fi
 
     # ── 5b. Make gen-1 USABLE (the opt-A/baked path installs a GENERIC
     # toplevel that never imported this machine's machine.nix, so its owner
@@ -939,7 +965,7 @@ pkgs.writeShellApplication {
     # The 6/6 marker is the surface's REBOOT TRIGGER: golem-setup restarts
     # the machine only after seeing it, so it must mean "nixos-install
     # succeeded", never "the script got to the end of prepare".
-    echo "##golem 6/6 done"
+    echo "##golem 100/100 done"
     echo "── done ─────────────────────────────────────────"
     echo "  installed to $disk; seed checkout at /home/$owner/Golem"
     echo "  reboot and remove the medium."

@@ -486,7 +486,7 @@ S[en:e_host]='Letters, digits and dashes.'
 S[en:ph_format]='formatting the drive'
 S[en:ph_fs]='filesystems'
 S[en:ph_seed]='copying Golem'
-S[en:ph_probe]='reading the device'
+S[en:ph_probe]='hardware profile'
 S[en:ph_eval]='evaluating the system'
 S[en:audit_bad]='audit incomplete — the decisions could not be shown'
 S[en:reh_bar]='rehearsed'
@@ -558,7 +558,7 @@ S[es:e_host]='Letras, números y guiones.'
 S[es:ph_format]='formateando el disco'
 S[es:ph_fs]='sistemas de archivos'
 S[es:ph_seed]='copiando Golem'
-S[es:ph_probe]='leyendo el dispositivo'
+S[es:ph_probe]='perfil de hardware'
 S[es:ph_eval]='evaluando el sistema'
 S[es:audit_bad]='auditoría incompleta — no se pudieron mostrar las decisiones'
 S[es:reh_bar]='ensayado'
@@ -630,7 +630,7 @@ S[fr:e_host]='Lettres, chiffres et tirets.'
 S[fr:ph_format]='formatage du disque'
 S[fr:ph_fs]='systèmes de fichiers'
 S[fr:ph_seed]='copie de Golem'
-S[fr:ph_probe]='lecture de l’appareil'
+S[fr:ph_probe]='profil matériel'
 S[fr:ph_eval]='évaluation du système'
 S[fr:audit_bad]='audit incomplet — les décisions n’ont pas pu être affichées'
 S[fr:reh_bar]='répété'
@@ -702,7 +702,7 @@ S[de:e_host]='Buchstaben, Ziffern und Bindestriche.'
 S[de:ph_format]='Laufwerk formatieren'
 S[de:ph_fs]='Dateisysteme'
 S[de:ph_seed]='Golem kopieren'
-S[de:ph_probe]='Gerät lesen'
+S[de:ph_probe]='Hardware-Profil'
 S[de:ph_eval]='System auswerten'
 S[de:audit_bad]='Prüfung unvollständig — die Entscheidungen konnten nicht angezeigt werden'
 S[de:reh_bar]='geprobt'
@@ -774,7 +774,7 @@ S[it:e_host]='Lettere, cifre e trattini.'
 S[it:ph_format]='formattazione del disco'
 S[it:ph_fs]='file system'
 S[it:ph_seed]='copia di Golem'
-S[it:ph_probe]='lettura del dispositivo'
+S[it:ph_probe]='profilo hardware'
 S[it:ph_eval]='valutazione del sistema'
 S[it:audit_bad]='verifica incompleta — impossibile mostrare le decisioni'
 S[it:reh_bar]='provato'
@@ -846,7 +846,7 @@ S[pt:e_host]='Letras, algarismos e hífenes.'
 S[pt:ph_format]='a formatar o disco'
 S[pt:ph_fs]='sistemas de ficheiros'
 S[pt:ph_seed]='a copiar o Golem'
-S[pt:ph_probe]='a ler o dispositivo'
+S[pt:ph_probe]='perfil de hardware'
 S[pt:ph_eval]='a avaliar o sistema'
 S[pt:audit_bad]='auditoria incompleta — não foi possível mostrar as decisões'
 S[pt:reh_bar]='ensaiado'
@@ -3284,7 +3284,14 @@ reveal_gpus() {
     short=$(gpu_short "$nm")
     case $h in
       working) hw_row "GPU $n" "$short${drv:+ · $drv} — $(t gpu_use)" ;;
-      failing) hw_row "GPU $n" "$short — $(t gpu_dead)" ;;
+      # A second GPU that failed the wake-test is LISTED like any other part —
+      # its name + driver, NO verdict (Max, 2026-09-23, on the asus's old dGPU):
+      # "tested, didn't wake up" read like a bug on real metal, but the machine
+      # is fine precisely BECAUSE Golem never installs a driver for it or powers
+      # it on. Only the GPU driving the screen earns a "working" line; we make
+      # no claim about the second one either way — showing hardware is not a
+      # promise that it works (changes.md #106).
+      failing) hw_row "GPU $n" "$short${drv:+ · $drv}" ;;
       *)       hw_row "GPU $n" "$short${drv:+ · $drv}" ;;
     esac
   done

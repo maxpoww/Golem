@@ -35,6 +35,51 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 107. THE INSTALL BAR FROZE AT 83% AND SAID "READING THE DEVICE" TWICE — [FOUND + FIXED + VM-VERIFIED 2026-09-23 · the asus install · Max: "the status bar sounld be dinamic … is just no plecent"]
+Max, watching the first metal install: the bar jumped 16→44→66 then sat at 83%
+for 2m30s (the system copy), and "reading the device" appeared BOTH before the
+install and again at 66%.
+- **the freeze:** 6 equal phases (~16.7% each), but the copy — phase 5 — is
+  ~90% of the wall-clock, so it parked at 83%. Fix: the `##golem` markers moved
+  to a PERCENT scale (`<pct>/100 <key>`, weighted toward the copy: format 5,
+  fs 10, seed 14, probe 18, install 20→95, done 100), and the copy now STREAMS
+  — `nixos-install` runs in the background while `install.nix` watches its
+  closure's store paths land in /mnt and emits fine markers 20→95% with a live
+  "copying N/total" count. VM-PROVEN: the bar climbed 20% → 48% "Copying
+  389/1026" → done + reboot, moving the whole time. (Rehearse is untouched — it
+  exits before the install phase.)
+- **⚠ the gate caught a regression:** `find /mnt/nix/store` runs BEFORE
+  nixos-install creates that dir, so `find` exits 1, and under `pipefail` the
+  whole install died at 20% ("died line 859: wc -l"). Fixed by neutralising the
+  pipeline (`{ find … || true; } | wc -l`) so a missing dir just counts 0. This
+  is exactly why the VM gates every change before metal.
+- **the double "reading the device":** the census says it once up front; phase
+  4 (`nixos-generate-config`, "probe") re-used the exact phrase at 66%. Fix:
+  `ph_probe` renamed to "hardware profile" (all 6 languages) — "reading the
+  device" now appears once, before the install, as Max asked.
+- **where:** `install.nix` (markers + streaming copy), `mockup/install-cli`
+  (ph_probe). **size:** done.
+
+### 106. "TESTED, DIDN'T WAKE UP" READ LIKE A BUG ON METAL — a second GPU is now LISTED, not judged — [FOUND + FIXED 2026-09-23 · the asus's old dGPU · Max's call after the first install]
+Max, on the asus's first install: the census showed its old nvidia dGPU as
+"tested, didn't wake up" and he hated it — it reads like a failure when the
+machine is actually FINE. Golem is being unusually diligent: it powers on a
+second GPU to check its health (#17c), and a failing/asleep dGPU "doesn't
+wake". Golem's answer is the RIGHT one — never bind a driver to it or power it
+on, so a flaky dGPU (the thing that bricks other distros' installs) can't hang
+the machine — but the WORDING reported a save as a failure.
+- **fix (Max's call):** a second GPU that fails the wake-test is LISTED like
+  any other part — its name + driver, NO verdict (`install-cli` hw_row: the
+  `failing` case is now the same as the default). Only the GPU DRIVING THE
+  SCREEN earns a "working" line; showing hardware is not a promise it works, so
+  Golem neither claims nor scares. `S[*:gpu_dead]` ("tested, didn't wake up")
+  is now unused.
+- **note:** other distros never show this because they don't TEST — they load
+  a driver and you meet the black screen at runtime if the chip is dead. Golem
+  catches it up front and stays away from it; the message just needed to sound
+  like the save it is.
+- **where:** `mockup/install-cli`. **size:** done.
+
 ### 105. THE INSTALLER COULDN'T WIPE A DISK THAT ALREADY HELD AN OS — wipefs died "busy" at 16% on the FIRST real metal install — [FOUND + FIXED 2026-09-23 · the asus, Max's first product install from the recut stick · rides the recut]
 Max installed from the recut stick onto the asus's internal disk (its own fat
 dogfood Golem) and it stopped at 1/6 (16%). `status`: `error: line 136 (exit
