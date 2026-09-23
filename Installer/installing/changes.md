@@ -35,20 +35,20 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
-### 110. THE INSTALLER IS CENTRED ON THE SCREEN — [DONE 2026-09-23 · Max: "the installation should appear on the center of the screen" · look verified on metal by Max]
-Max wanted the installer's content ("Press ENTER to select your language" and
-every step) in the CENTRE of the screen, like the boot menu, instead of hugging
-the top-left corner. `mockup/install-cli` now reads the console geometry
-(`stty size`) and centres its fixed-width column: `IND` is the horizontal
-margin (every row — breadcrumb, picker, prompt, review — prints at IND, so
-setting it once centres the whole block), and `screen` vertically centres each
-block via `vcenter` (top padding, with a scroll guard so the tall review never
-smears the picker's in-place cursor redraw). `compute_layout` runs once in the
-main body, after TTY is decided, so the geometry is real. The full hardware
-census is off step 1 (it was the audit banner, now suppressed there by #109);
-the Review still carries the system + hardware summary. **where:**
-`mockup/install-cli` (compute_layout, vcenter, screen, IND). **size:** done;
-first version, Max tunes the exact offsets on metal.
+### 110. CENTRE THE INSTALLER — TRIED, REVERTED — [REVERTED 2026-09-23 · Max, seeing it on metal: "it sucks, it is poorly centered, we dont need to deal with it now, fuck it, lets go back to the classic left aligned."]
+Max wanted the installer's content in the CENTRE of the screen, like the boot
+menu. Built it: `mockup/install-cli` read the console geometry (`stty size`)
+and centred its fixed-width column — `IND` as the horizontal margin,
+`compute_layout` computing it once after TTY is decided, and `screen` →
+`vcenter` padding the top to centre each block vertically (with a scroll guard
+for the tall review). On metal it looked poorly centred, and Max called it off:
+**back to classic left-aligned.** `install-cli` restored to its pre-#110 state
+(`IND='  '`, `screen` just `printf '\n'` — the version with #106/#107 intact);
+`compute_layout`/`vcenter` removed entirely. Not a look worth chasing now — if
+we ever want it, it needs real per-screen line counts, not a fixed guess.
+NOTE: the census-off-step-1 move rode in on #109 (the audit banner is what was
+on step 1), not on this — that stays; only the centring is reverted. **where:**
+`mockup/install-cli`. **size:** reverted, net zero.
 
 ### 109. THE SPLASH BEFORE THE INSTALLER — the tty "loaded" before Press ENTER — [FOUND + FIXED 2026-09-23 · Max, after installing: "there is a splash before the 'press enter to select your language' like the tty loading before the installer. can we get rid of that?"]
 On the INSTALL boot, after the silent black boot, the getty greeting + helpLine

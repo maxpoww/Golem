@@ -996,44 +996,7 @@ filter() {
 # receipt: at the end of the install the whole transcript is on screen and
 # the summary screen the TUI needed a whole tile for is just what you
 # already read, still there.
-# The installer lives in a fixed-width column CENTRED on the screen, like the
-# boot menu — not hugging the left edge (Max, 2026-09-23: "the installation
-# should appear on the center of the screen"). IND is that column's left
-# margin: every row (breadcrumb, picker, prompt, review) prints at IND, so
-# setting it once centres the whole block horizontally, and PAD_TOP centres it
-# vertically. CW is the column width, wide enough for the widest review row.
-# Real values are read from the console at runtime by compute_layout (below,
-# after TTY is known); these are the sane fallbacks it starts from.
-CW=52
-TERM_ROWS=40; TERM_COLS=80
-IND='  '; PAD_TOP=0
-
-# Read the console geometry and set the centring margins. Called once from the
-# main body after TTY is decided (stty size needs the real terminal).
-compute_layout() {
-  if [ "$TTY" = yes ]; then
-    local r c
-    read -r r c < <(stty size 2>/dev/null || echo '')
-    [ "${r:-0}" -ge 1 ] 2>/dev/null && TERM_ROWS=$r
-    [ "${c:-0}" -ge 1 ] 2>/dev/null && TERM_COLS=$c
-  fi
-  local m=$(( (TERM_COLS - CW) / 2 )); (( m < 2 )) && m=2
-  IND=$(printf '%*s' "$m" '')
-}
-
-# Vertically centre a block of $1 lines: print the top padding so the block
-# sits in the middle of the screen. Called by each step right after screen(),
-# before it draws — the picker's own in-place redraw then happens below the
-# padding, which is printed once and never touched again.
-vcenter() {
-  PAD_TOP=$(( (TERM_ROWS - $1) / 2 )); (( PAD_TOP < 0 )) && PAD_TOP=0
-  # Scroll guard: keep room for up to ~20 lines below the padding, so the
-  # tallest screen (the review + its census) never scrolls the in-place
-  # redraw off the top of a short console.
-  (( PAD_TOP + 20 > TERM_ROWS )) && PAD_TOP=$(( TERM_ROWS - 20 ))
-  (( PAD_TOP < 0 )) && PAD_TOP=0
-  local i; for (( i = 0; i < PAD_TOP; i++ )); do printf '\n'; done
-}
+IND='  '
 
 # ONE STEP ON SCREEN, AND ONLY THE CURRENT ONE (Max, 2026-09-05). Each step
 # opens by clearing what came before it, so what a stranger is looking at is
@@ -1051,9 +1014,9 @@ vcenter() {
 # is understood, and a brand name is a word in a language the reader may not
 # have — the exact thing the rotating line exists to avoid. The invitation
 # is the first thing on screen because it is the only thing worth reading.
-screen() {                       # $1 = the block's line count, for centring
+screen() {
   [ "$TTY" = yes ] && printf '%s[2J%s[H' "$esc" "$esc"
-  vcenter "${1:-10}"
+  printf '\n'
 }
 
 LABELW=13
@@ -4036,10 +3999,6 @@ trap cancel_install INT TERM
 case $(tty 2>/dev/null) in
   /dev/tty[0-9]*) [ "$(id -u)" = 0 ] && dmesg -n 3 || : ;;
 esac
-
-# Centre the installer's column on the console (Max, 2026-09-23) — read the
-# real geometry here, after TTY is decided and the terminal is live.
-compute_layout
 
 # ── the step machine ─────────────────────────────────────────────────────
 #
