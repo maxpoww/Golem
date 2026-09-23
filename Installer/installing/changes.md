@@ -35,6 +35,16 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 119. "READING THIS DEVICE" → "DIAGNOSING THIS DEVICE" — the census status line — [DONE 2026-09-23 · Max: "i dont like 'reading this device', lets say 'Diagnosing device'"]
+The census-status line (shown while the audit reads the machine behind the
+questions) said "Reading this device" / "Device read". "Diagnosing" is the truer
+verb — the census reads AND decides — and it rhymes with the #118 verify bar:
+Golem DIAGNOSES the device, then VERIFIES the install (the "careful, double-
+checks itself" positioning). Changed `reading`→"Diagnosing this device" and its
+`read_ok` counterpart→"Device diagnosed", all 6 languages, kept parallel.
+**where:** `mockup/install-cli` (S[*:reading], S[*:read_ok]). **PROCESS:** rides
+the next recut (§2). **size:** done.
+
 ### 118. THE AUTO-REBOOT BOOTS THE USB AGAIN — an unattended install loops back into the installer — [FOUND 2026-09-23 · the acer, I2-close roster · Max: "if the user is not there the pc will boot to the usb again instead of booting to Golem. how do we handle that?"]
 At 100% `golem-install` finishes and install-cli does `systemctl reboot` (step_go
 — "the full bar IS the signal, reboot immediate", Max 2026-09-06). But the USB is
