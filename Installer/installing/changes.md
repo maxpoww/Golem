@@ -42,21 +42,30 @@ still in, and most firmwares boot removable media before the internal disk — s
 the reboot re-enters the INSTALLER, and unattended it loops instead of landing in
 Golem. Breaks the 8e "reliable as fuck, never fail" promise for a walk-away
 install.
-- **RECOMMENDED FIX — `poweroff`, not `reboot`.** Universal (UEFI *and* BIOS,
-  which rules out efibootmgr tricks); no loop possible. The bar fills to
-  "Installed", the machine powers OFF. The user returns, pulls the stick, powers
-  on → Golem. This is the standard installer move for exactly this reason; it
-  also can't half-succeed the way an NVRAM BootNext can (#94: the acer's own
-  firmware deletes boot entries).
-- **Rejected:** efibootmgr `--bootnext` to the installed entry (UEFI-only, so it
-  abandons the BIOS half of the roster, and #94 showed the NVRAM is not to be
-  trusted); "remove the medium and press ENTER" (does nothing for the
-  unattended case, which is the whole point).
-- **where (when applied):** `mockup/install-cli` step_go (`systemctl reboot` →
-  `systemctl poweroff`), maybe a one-line "Installed — remove the USB" before it
-  for a present user. **PROCESS:** §2 — this rides the NEXT recut, not a
-  mid-roster reburn; the current roster is attended, so the loop doesn't block
-  it. **size:** small, pending Max's OK on poweroff.
+- **poweroff — REJECTED by Max:** doesn't actually fix it. The user comes back,
+  powers ON with the USB still in → it boots the USB anyway. poweroff just delays
+  the loop.
+- **THE FIX (Max, 2026-09-23) — a SECOND bar + a GATED reboot, and a positioning
+  turn.** After the copy bar hits 100%, a second bar runs: "comprobando
+  instalación" (~5–6 s of REAL post-install checks on /mnt), then "la instalación
+  está sana — remove the USB and press ENTER" → ENTER reboots. Gated on a
+  keypress, so **unattended it HOLDS at the message and never loops** — that is
+  the fix. Present, you pull the stick then press ENTER → Golem.
+  - **WHY, the brand turn:** Golem will not beat Omarchy on install TIME (~10 s).
+    So it competes on TRUST instead — "Golem takes a few minutes, but it is
+    stable, double-checked." The verify bar IS that promise, made visible.
+  - **§10 — it must be REAL, not a 5 s spinner.** "success without verification is
+    the lie this lab exists to prevent." The check is the §6 first-boot audit run
+    OFFLINE on /mnt as a "will this boot?" pre-flight: bootloader on the ESP,
+    system toplevel valid, kernel+initrd present, fstab root/ESP correct, the
+    seed + rebuild machinery there, the owner loginable (hash/key). A FAILED
+    check says what's wrong BEFORE the reboot — the reliability payoff.
+- **Rejected too:** efibootmgr `--bootnext` (UEFI-only; #94 NVRAM untrustworthy).
+- **where (when applied):** `mockup/install-cli` step_go (second bar + the
+  gated-ENTER reboot) + a small offline health-check the surface runs on /mnt
+  (or golem-install emits its verdict). **PROCESS:** §2 — rides the NEXT recut,
+  not a mid-roster reburn; the current roster is attended, so it doesn't block.
+  **size:** medium; design agreed, build pending.
 
 ### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Golem, blank until login"]
 The baked-Plymouth fix (#116c verified `plymouth-start` + the theme in the
