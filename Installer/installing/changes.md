@@ -35,6 +35,26 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 114. THE DEFINITIVE NO-BANNER AUTOSTART — no agetty line at all — [DONE 2026-09-23 · Max: "do the definitive fix, no banner at all"]
+#113 could only shorten agetty's autologin line (it hardcodes "(automatic
+login)"; no flag mutes it). The definitive fix drops autologin on the Install
+boot entirely: tty1's getty runs `--skip-login --login-program ${installSurface}`,
+so agetty prompts for nothing, prints NOTHING, and execs `installSurface` (a new
+`writeShellScript` in iso.nix) as root — `--skip-login` never drops privilege, so
+no sudo either. On tty1 it clears and `exec`s `${setup}/bin/golem-setup-install`;
+on any other VT it falls through to the real `login`, so tty2-6 stay a normal
+debuggable console. There is no login shell on tty1 now, so the old
+`environment.loginShellInit` autostart (and its #103 sudo dance) is gone — the
+launcher IS the autostart and the first thing on the console. The old design's
+"no systemd service for tty1" caution still holds and is respected: getty still
+owns tty1; we only changed what it execs. **Not** a service.
+- **where:** `iso.nix` (`installSurface` let-binding + the `specialisation.install`
+  getty overrides: `autologinUser = mkForce null`, `loginProgram`, `extraArgs +=
+  --skip-login`). **verified:** headless VM — Install autostarts straight to a
+  clean "Press ENTER", menu clean, and with no login step there is no banner to
+  render at any boot speed. **size:** done. Supersedes #113's `--nohostname`
+  half (kept, harmless) for the login banner.
+
 ### 113. METAL FOLLOW-UPS: WHITE FLYING NAMES · PRE-MENU SPLASH · THE LOGIN HOSTNAME — [2026-09-23 · Max: "make the names white" + "there is a splash before the menu (start | install)" + "the golem-install login is still there before the 'press ENTER…'"]
 Three metal findings from the flying-names ISO:
 - **The flying names go white.** They rendered in `C_DIM` gray like the

@@ -23,6 +23,24 @@ let
     let s = builtins.getEnv "GOLEM_LAB_WIFI_SSID";
     in if s != "" then s else "HOLA";
   labWifiPsk = builtins.getEnv "GOLEM_LAB_WIFI_PSK";
+
+  # The Install boot's tty1 launcher — the DEFINITIVE no-banner autostart
+  # (Max, 2026-09-23: "do the definitive fix, no banner at all"). The install
+  # specialisation runs getty with `--skip-login --login-program ${this}`, so
+  # agetty prompts for nothing, prints no autologin banner at all, and execs
+  # THIS as root (skip-login never drops privilege — which is exactly what
+  # golem-install needs from its first step, so no sudo either). On tty1 we
+  # clear and BECOME the surface; on any other VT we hand off to the real
+  # login, so tty2-6 stay a normal, debuggable console. This replaces the old
+  # autologin + loginShellInit path, whose one unavoidable artefact was
+  # agetty's own "golem-installer login: nixos (automatic login)" line.
+  installSurface = pkgs.writeShellScript "golem-install-surface" ''
+    if [ "$(${pkgs.coreutils}/bin/tty)" = /dev/tty1 ]; then
+      printf '\033[H\033[2J\033[3J'
+      exec ${setup}/bin/golem-setup-install
+    fi
+    exec ${pkgs.shadow}/bin/login
+  '';
 in
 {
   # The boot menu is ours: upstream iso-image.nix hardcodes rows (Options
@@ -184,55 +202,26 @@ in
     # interactive "Start" console's furniture; on the Install boot the TUI owns
     # the screen, so blank them. mkOverride beats the base's mkForce so nothing
     # of the getty prints before the surface clears the screen.
-    #   The ONE line that survives greeting-blanking is agetty's OWN autologin
-    #   banner — "golem-installer login: nixos (automatic login)" (agetty prints
-    #   the format "%s%s (automatic login)"; the hostname is `golem-installer`,
-    #   which is the "golem-install" Max read on metal). No agetty flag silences
-    #   the "(automatic login)" notice, but `--nohostname` drops the hostname and
-    #   `--noissue` the issue, so the flash — on the slow asus it shows for the
-    #   ~1-2 s the login shell takes to reach the loginShellInit clear below (a
-    #   headless VM boots fast enough that the clear wins and it never renders at
-    #   all) — no longer says "golem-install". The clear still covers the rest.
+    #   installation-cd's autologin left ONE unavoidable line — agetty's own
+    #   "golem-installer login: nixos (automatic login)" (it hardcodes the
+    #   "(automatic login)" notice; no flag mutes it). So the Install boot drops
+    #   autologin entirely: tty1's getty runs --skip-login --login-program, and
+    #   agetty prints NOTHING and execs installSurface (the let-binding) as root
+    #   — no login shell, no banner, ever. installSurface clears tty1 and becomes
+    #   the surface; other VTs fall through to the real login. greeting/help/issue
+    #   are blanked too (belt to --noissue); the Start boot keeps all of them.
+    services.getty.autologinUser = lib.mkForce null;
+    services.getty.loginProgram = lib.mkForce "${installSurface}";
+    services.getty.extraArgs = lib.mkForce [ "--skip-login" "--nohostname" "--noissue" ];
     services.getty.greetingLine = lib.mkOverride 10 "";
     services.getty.helpLine = lib.mkOverride 10 "";
-    services.getty.extraArgs = lib.mkForce [ "--nohostname" "--noissue" ];
 
-    # The autostart lives in the LOGIN-SHELL init, guarded to the physical
-    # console's first VT, NOT a systemd service: the surface is a full-screen
-    # interactive TUI that needs tty1 as its controlling terminal, and fighting
-    # getty for /dev/tty1 with a service is the fragile path.
-    #   loginShellInit, not environment.etc."profile.d/…": NixOS's /etc/profile
-    #   does NOT source /etc/profile.d/*.sh (only /etc/bashrc sources the one
-    #   bash-completion file), so a profile.d drop-in is never read and the
-    #   autostart silently no-ops (caught in the VM gate, 2026-09-18). This
-    #   option is appended straight into /etc/profile, which the autologin's
-    #   login shell DOES source.
-    # The `tty` guard keeps SSH logins on their pty landing in a plain shell —
-    # the dev box's automation must never be dropped into the installer — and
-    # the surface is RUN, not exec'd, so backing out returns a shell instead of
-    # locking the console. A completed install reboots from inside the surface,
-    # so the success path never returns here. GOLEM_SURFACE_STARTED makes it
-    # once-per-login (a nested login shell won't relaunch).
-    environment.loginShellInit = ''
-      if [ "$(tty)" = "/dev/tty1" ] && [ -z "$GOLEM_SURFACE_STARTED" ]; then
-        export GOLEM_SURFACE_STARTED=1
-        # Kill agetty's autologin banner ("golem-installer login: nixos
-        # (automatic login)") the instant we log in, before the ~1 s of
-        # sudo + wrapper + TUI-parse it would otherwise stay on screen. Pure
-        # escape (clear-screen, clear-scrollback, home) so it needs no binary
-        # on PATH; the TUI clears again when it draws, so this only covers the
-        # gap. This is what makes the Install boot land on a black screen.
-        printf '\033[H\033[2J\033[3J'
-        # sudo: the surface must run as root, or golem-install dies at its first
-        # privileged step (mkdir /var/log/golem-install, install.nix) BEFORE any
-        # log exists — the TUI then shows only "the install stopped" over an
-        # empty log (changes.md #103, found driving the product install to disk
-        # in the VM). The nixos user has passwordless sudo on the medium
-        # (installation-cd), and `sudo golem-setup` is already the lab idiom
-        # (the getty helpLine), so sudo resolves the same way here.
-        sudo golem-setup-install
-      fi
-    '';
+    # No environment.loginShellInit autostart anymore: tty1 has no login shell
+    # on the Install boot — getty execs installSurface directly (above), which
+    # IS the autostart. SSH logins get a plain shell as before (installSurface's
+    # tty guard only fires on /dev/tty1; an SSH pty falls through to login). The
+    # surface runs as root (skip-login), so the old `sudo` and the #103
+    # privilege dance are gone; golem-install's first privileged step just works.
   };
 
   # Silent boot (Max, on metal 2026-09-23: "Golem boot is black screen until
