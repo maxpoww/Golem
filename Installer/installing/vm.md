@@ -46,8 +46,14 @@ baked (installed) side carries `plymouth-start` + `golem-plymouth-theme`.
   getty. This is exactly Max's earlier "no bar on installed Golem, blank until
   login": the baked-plymouth fix (#116) was necessary but not sufficient. The
   installer MEDIUM showed the bar only because installation-cd ships a broad
-  initrd module set. **Fix owed:** put the GPU DRM in the installed initrd →
-  finding #117.
+  initrd module set. → finding #117.
+- **RE-GATE (same session, #117 fix):** `boot.initrd.kernelModules = [ bochs
+  i915 amdgpu virtio_gpu ]` added; ISO `nqm2f3qav40q3cvv8hxq6zsr1rpramws`.
+  Installed fresh from it, booted from vda → **the orange bar now PAINTS on the
+  installed boot** (early window ~4–8 s, thick, dim track + accent fill), then
+  hands off to `Golem login:`. #117 CLOSED. The install flow re-passed
+  identically. **This ISO is the round's final I2 recut** — ready for reflash +
+  the roster.
 
 ## 2026-09-22 — RECUT I2 — the #62–#101 queue frozen into a fresh ISO — GATE: menu + boot + census PASS; install-to-disk owed on metal
 
