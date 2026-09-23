@@ -85,7 +85,7 @@ install.
   gated-ENTER reboot) + a small offline health-check the surface runs on /mnt
   (or golem-install emits its verdict). **PROCESS:** §2 — rides the NEXT recut,
   not a mid-roster reburn; the current roster is attended, so it doesn't block.
-  **size:** medium; design agreed, build pending.
+  **size:** medium — **BUILT + VM-gated 2026-09-23** (I3): copy bar → verify bar (6 real /mnt checks: bootloader·system·kernel·fstab·seed·account, results to verify.txt) → "La instalación está sana — retira el USB y pulsa ENTER"; it HELD static (no auto-reboot), ENTER rebooted. The unattended USB-loop is gone.
 
 ### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Golem, blank until login"]
 The baked-Plymouth fix (#116c verified `plymouth-start` + the theme in the

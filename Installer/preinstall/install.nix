@@ -982,12 +982,66 @@ pkgs.writeShellApplication {
     fi
 
     echo
-    # The 6/6 marker is the surface's REBOOT TRIGGER: golem-setup restarts
-    # the machine only after seeing it, so it must mean "nixos-install
-    # succeeded", never "the script got to the end of prepare".
+    # 100/100 = the copy bar is full ("Installed"). It is NO LONGER the reboot
+    # trigger (#118) — the verify below runs, then the surface waits for ENTER.
     echo "##golem 100/100 done"
+
+    # ── #118 — VERIFY the install: the second bar, a real offline pre-flight ──
+    # "will this boot?" asked on /mnt BEFORE the reboot, not hoped for after it.
+    # Results go to the LOG; the surface shows only the bar and, at the end, the
+    # verdict (§10 — never claim healthy unless it is; "terminada" is the soft
+    # tell to read the log). Golem does not race the clock — it double-checks.
+    # /mnt is still mounted here (the script never unmounts).
+    vlog="$logdir/verify.txt"; : > "$vlog"
+    vfail=0
+    sys=$(readlink -f /mnt/nix/var/nix/profiles/system 2>/dev/null || true)
+
+    echo "##verify 12/100 bootloader"
+    if [ -e /mnt/boot/EFI/BOOT/BOOTX64.EFI ] || [ -d /mnt/boot/grub ] || [ -d /mnt/boot/loader ]; then
+      echo "ok   bootloader on the ESP" >> "$vlog"
+    else echo "FAIL no bootloader on /mnt/boot" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 28/100 system"
+    if [ -n "$sys" ] && [ -e "$sys" ]; then
+      echo "ok   system profile → $sys" >> "$vlog"
+    else echo "FAIL system profile missing" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 44/100 kernel"
+    if [ -n "$sys" ] && [ -e "$sys/kernel" ] && [ -e "$sys/initrd" ]; then
+      echo "ok   kernel + initrd present" >> "$vlog"
+    else echo "FAIL kernel/initrd missing" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 60/100 fstab"
+    if grep -qE '[[:space:]]/[[:space:]]' /mnt/etc/fstab 2>/dev/null; then
+      echo "ok   fstab has a root entry" >> "$vlog"
+    else echo "FAIL fstab has no root entry" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 76/100 seed"
+    if [ -e /mnt/etc/golem/src ] || [ -e "/mnt/home/$owner/Golem" ]; then
+      echo "ok   seed + rebuild machinery present" >> "$vlog"
+    else echo "FAIL seed missing (self-rebuild owed)" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 92/100 account"
+    ahash=$( { grep "^$owner:" /mnt/etc/shadow 2>/dev/null || true; } | cut -d: -f2 )
+    if [ "''${ahash:0:1}" = '$' ] || [ -s "/mnt/home/$owner/.ssh/authorized_keys" ]; then
+      echo "ok   owner is loginable (password and/or key)" >> "$vlog"
+    else echo "FAIL owner not loginable" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    sleep 1
+
+    echo "##verify 100/100 done"
+    if [ "$vfail" -eq 0 ]; then
+      echo "##verify-verdict sana";      echo "verdict: sana (0 failed)" >> "$vlog"
+    else
+      echo "##verify-verdict terminada"; echo "verdict: terminada ($vfail failed — see above)" >> "$vlog"
+    fi
+
     echo "── done ─────────────────────────────────────────"
     echo "  installed to $disk; seed checkout at /home/$owner/Golem"
-    echo "  reboot and remove the medium."
+    echo "  verify: $vlog"
   '';
 }

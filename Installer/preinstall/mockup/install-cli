@@ -454,6 +454,10 @@ S[en:go_keys]='ENTER to install  ·  ESC back'
 S[en:go_ing]='installing'
 S[en:go_done]='Installed'
 S[en:go_fail]='The install stopped — the log is above.'
+S[en:v_ing]='verifying'
+S[en:v_sana]='the installation is healthy'
+S[en:v_done]='installation finished'
+S[en:v_remove]='remove the USB and press ENTER'
 S[en:f_keys]='ENTER to continue'
 S[en:e_name]='Letters and digits, starting with a letter.'
 S[en:e_pass]='Type a password.'
@@ -535,6 +539,10 @@ S[es:go_keys]='ENTER para instalar  ·  ESC volver'
 S[es:go_ing]='instalando'
 S[es:go_done]='Instalado'
 S[es:go_fail]='La instalación se detuvo — el registro está arriba.'
+S[es:v_ing]='comprobando'
+S[es:v_sana]='la instalación está sana'
+S[es:v_done]='instalación terminada'
+S[es:v_remove]='retira el USB y pulsa ENTER'
 S[es:f_keys]='ENTER para continuar'
 S[es:e_name]='Letras y números, empezando por una letra.'
 S[es:e_pass]='Escribe una contraseña.'
@@ -607,6 +615,10 @@ S[fr:go_keys]='ENTER pour installer  ·  ESC retour'
 S[fr:go_ing]='installation'
 S[fr:go_done]='Installé'
 S[fr:go_fail]='L’installation s’est arrêtée — le journal est au-dessus.'
+S[fr:v_ing]='vérification'
+S[fr:v_sana]='l’installation est saine'
+S[fr:v_done]='installation terminée'
+S[fr:v_remove]='retire l’USB et appuie sur ENTER'
 S[fr:f_keys]='ENTER pour continuer'
 S[fr:e_name]='Lettres et chiffres, en commençant par une lettre.'
 S[fr:e_pass]='Saisissez un mot de passe.'
@@ -679,6 +691,10 @@ S[de:go_keys]='ENTER zum Installieren  ·  ESC zurück'
 S[de:go_ing]='installiere'
 S[de:go_done]='Installiert'
 S[de:go_fail]='Die Installation hielt an — das Protokoll steht oben.'
+S[de:v_ing]='Überprüfung'
+S[de:v_sana]='die Installation ist in Ordnung'
+S[de:v_done]='Installation abgeschlossen'
+S[de:v_remove]='USB entfernen und ENTER drücken'
 S[de:f_keys]='ENTER zum Fortfahren'
 S[de:e_name]='Buchstaben und Ziffern, beginnend mit einem Buchstaben.'
 S[de:e_pass]='Gib ein Passwort ein.'
@@ -751,6 +767,10 @@ S[it:go_keys]='ENTER per installare  ·  ESC indietro'
 S[it:go_ing]='installazione'
 S[it:go_done]='Installato'
 S[it:go_fail]='L’installazione si è fermata — il log è sopra.'
+S[it:v_ing]='verifica'
+S[it:v_sana]='l’installazione è integra'
+S[it:v_done]='installazione terminata'
+S[it:v_remove]='rimuovi la USB e premi INVIO'
 S[it:f_keys]='ENTER per continuare'
 S[it:e_name]='Lettere e cifre, iniziando con una lettera.'
 S[it:e_pass]='Scrivi una password.'
@@ -823,6 +843,10 @@ S[pt:go_keys]='ENTER para instalar  ·  ESC voltar'
 S[pt:go_ing]='a instalar'
 S[pt:go_done]='Instalado'
 S[pt:go_fail]='A instalação parou — o registo está acima.'
+S[pt:v_ing]='a verificar'
+S[pt:v_sana]='a instalação está saudável'
+S[pt:v_done]='instalação terminada'
+S[pt:v_remove]='remove a USB e pressiona ENTER'
 S[pt:f_keys]='ENTER para continuar'
 S[pt:e_name]='Letras e algarismos, começando por uma letra.'
 S[pt:e_pass]='Escreva uma palavra-passe.'
@@ -3614,8 +3638,13 @@ step_go() {
   printf '%s[1A\r%s[2K' "$esc" "$esc"
   local cmd line rest frac cur max label flyname rc=0 done=no prepared=no
   local rehearsed=no findings="" addr=""
+  # #118 — the second bar (verify) + the gated reboot: `installed` marks the
+  # copy bar full, `verify_*` render the pre-flight bar, `verdict` is sana|
+  # terminada. The reboot no longer fires at 100% — it waits for ENTER on the
+  # verdict, so an unattended install HOLDS instead of looping back into the USB.
+  local installed=no verify_started=no verdict="" vrest vfrac vcur vmax vname
   if [ "$FAKE_INSTALL" = yes ]; then
-    cmd='for p in "1/6 format" "2/6 fs" "3/6 seed" "4/6 probe" "5/6 install" "6/6 done"; do echo "##golem $p"; sleep 0.6; done'
+    cmd='for p in "5/100 format" "10/100 fs" "14/100 seed" "18/100 probe" "20/100 eval" "60/100 copying glibc-2.40" "90/100 copying python3-3.11" "100/100 done"; do echo "##golem $p"; sleep 0.4; done; for v in "12/100 bootloader" "28/100 system" "44/100 kernel" "60/100 fstab" "76/100 seed" "92/100 account" "100/100 done"; do echo "##verify $v"; sleep 0.7; done; echo "##verify-verdict sana"'
   else
     # The surface runs as root on the medium (helpLine says sudo); the
     # answers file already carries every choice, including the LUKS
@@ -3686,10 +3715,22 @@ step_go() {
           # NAME rides bright in paint_bar's $4 (Max: "make the names white").
           copying\ *) flyname=${label#copying }; label=copying ;;
         esac
-        # Done is cur==max, not a magic word — the final phase reads
-        # "Installed" in the owner's language, and this is the reboot trigger.
-        [ "$cur" = "$max" ] && { label=$(t go_done); done=yes; flyname=""; }
+        # cur==max = the copy bar is full ("Installed"). It NO LONGER reboots
+        # (#118) — the reboot waits for ENTER on the verify verdict below.
+        [ "$cur" = "$max" ] && { label=$(t go_done); installed=yes; flyname=""; }
         paint_bar "$cur" "$max" "$label" "$flyname" ;;
+      # #118 — the verify bar (the SECOND bar) and its verdict.
+      '##verify-verdict '*)
+        verdict=${line#\#\#verify-verdict } ;;
+      '##verify '*)
+        # First ##verify drops to a new line under the copy bar; each one draws
+        # the pre-flight bar with the check flying (dim verb + white name — the
+        # same idiom as the copy). "done" clears the flying name.
+        [ "$verify_started" = yes ] || { printf '\n'; verify_started=yes; }
+        vrest=${line#\#\#verify }
+        vfrac=${vrest%% *}; vcur=${vfrac%%/*}; vmax=${vfrac##*/}; vname=${vrest#* }
+        [ "$vname" = done ] && vname=""
+        paint_bar "$vcur" "$vmax" "$(t v_ing)" "$vname" ;;
       *) ;;                      # the log itself stays off the screen —
                                  # it is on the terminal scrollback if a
                                  # phase dies and someone needs it
@@ -3697,13 +3738,24 @@ step_go() {
   done < <(eval "$cmd" 2>&1) || rc=1
 
   printf '\n'
-  if [ "$done" = yes ]; then
-    # No "restarting…" line: the full bar IS the signal, and the reboot is
-    # immediate at 100% (Max, 2026-09-06). The machine goes down mid-breath
-    # — the last thing on screen is a complete bar reading "Installed", and
-    # the next thing is Golem. A message announcing a reboot that happens
-    # the same instant is a message nobody finishes reading. The fake path
-    # has nothing to reboot, so it just leaves the full bar up.
+  if [ -n "$verdict" ]; then
+    # #118 — the verdict + the GATED reboot. sana|terminada is the calm signal;
+    # the real check results live in the log (§10: never claim healthy unless it
+    # is — "terminada" is the soft tell to read the log). The reboot is gated on
+    # ENTER: present, you pull the USB then press it; UNATTENDED it HOLDS here
+    # and never loops back into the installer (Max, the acer, #118).
+    local vline
+    [ "$verdict" = sana ] && vline=$(t v_sana) || vline=$(t v_done)
+    printf '%s%s%s%s  —  %s%s%s\n' "$IND" "$C_VALUE" "${vline^}" "$NORM" "$C_DIM" "$(t v_remove)" "$NORM"
+    show_cursor
+    if [ "$FAKE_INSTALL" != yes ]; then
+      while :; do read_key || break; [ "$KEY" = ENTER ] && break; done
+      systemctl reboot
+    fi
+    return 0
+  fi
+  if [ "$installed" = yes ]; then
+    # No verify markers (an older engine) — fall back to the immediate reboot.
     show_cursor
     [ "$FAKE_INSTALL" = yes ] || systemctl reboot
     return 0
