@@ -442,3 +442,40 @@ drove to the verdict, `eject -f isocd` (pull the stick) — held, no crash — E
 the top-200 console band was BLACK across 8 rapid frames (no "sysrq:"/"Restarting"
 flash), and ~1 s later the INSTALLED disk's GRUB ("Start Golem") was on screen.
 Silent black → Golem. #118 reboot messages CLOSED.
+
+## 2026-09-24 — I3f — FIRST BIOS install to `Golem login:` — #120 confirmed, #122 FOUND + FIXED + GATED
+
+**Mode:** real-install + installed-boot, on a **SeaBIOS** VM (the gate had only ever
+run UEFI/OVMF — which is exactly why the BIOS-only bugs below slipped through).
+`-machine pc,accel=kvm -m 2048 -smp 2`, IDE disk (`/dev/sda`), ISO `id=isocd`,
+headless `-vga std` screendumped, HMP over a unix monitor. ISO: clean-tree I3f
+(`2w512y5sn7kh49rjijl1yd0vd664a3lx-golem-installer.iso`, 3.1 GiB) — `git write-tree`
+of the staged `flake.nix` fix → `git archive` → `nix build .#iso --override-input
+golem path:<clean>`.
+
+- **PASS — #120 (RAM floor):** on a 2 GB SeaBIOS box the install PROCEEDED past the
+  confirm (install bar rendering, brightness ~0.011 not the 0.0009 restart) —
+  `< 3300 MB` no longer refuses the direct-copy install. Copy ran to
+  `##golem 100/100 done`, verify `12→100`.
+- **FOUND — #122 (ESP emergency):** first boot of the installed disk hung 90 s on
+  `A start job is running for /dev/disk/by-label/ESP`, then emergency (root locked).
+  Diagnosed by re-booting with `console=ttyS0 systemd.show_status=true
+  systemd.log_level=info` appended in the GRUB editor and reading the serial log.
+  Root cause: the baked toplevel's `bakedFakeDisk` declared an ESP `/boot` mount for
+  BOTH firmwares; a BIOS disk has no ESP. See changes.md #122.
+- **FIX proven at config level:** rebuilt floor + qemu BIOS toplevels' baked
+  `/etc/fstab` → root by-label golem + envfs binds, **NO ESP** (UEFI floor still has
+  `/boot ESP vfat`).
+- **PASS — real install (I3f, non-interactive):** `golem-install --disk /dev/sda
+  --yes` from the installer's tty2 → `lsblk`: `sda1` bios-boot (no fs) + `sda2` swap
+  + `sda3` ext4 `golem`, **no ESP partition**. Installed toplevel
+  (`w87r2p2v…-nixos-system-Golem`, the qemu-bios leaf match) baked fstab: no `/boot`;
+  `local-fs.target.wants` **EMPTY** (no `boot.mount`). (verdict was `terminada`, not
+  `sana`, only because `--yes` set no password → the account check fails; not a boot
+  issue.)
+- **PASS — installed boot:** eject ISO → reset → GRUB "Start Golem" → Plymouth bar →
+  **`<<< Welcome to Golem 26.05.20260829.c5c4a43 (x86_64) - tty1 >>>` / `Golem
+  login:`**. No hang, no emergency. **First BIOS install anywhere to reach the login
+  prompt in this era.** #122 CLOSED.
+- **STILL OPEN — #121** (medium's "No EFI environment detected." decompressor splash
+  on the BIOS/isolinux handover): I3f still shows it; cosmetic, not touched.

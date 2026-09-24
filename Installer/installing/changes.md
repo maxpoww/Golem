@@ -44,6 +44,29 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 122. THE INSTALLED BIOS GOLEM BOOTS TO EMERGENCY — the baked toplevel carried a UEFI ESP /boot mount onto a disk that has no ESP — [FOUND + FIXED 2026-09-24 · the BIOS VM gate, unmasked by #120 · would have hit the comodore next]
+With #120 the comodore install now COMPLETES — so for the first time a BIOS
+install reached first boot, in a SeaBIOS VM. It didn't boot: GRUB → kernel →
+Plymouth bar → then a 90 s hang, `A start job is running for
+/dev/disk/by-label/ESP (…/1min 30s)`, then emergency mode ("root account is
+locked" — no shell). The 8e install is a DIRECT COPY of a baked toplevel, and the
+bake applied `bakedFakeDisk` — a fixed placeholder that unconditionally declared
+`fileSystems."/boot" = by-label/ESP vfat` (flake.nix). The `firmware` fact drove
+the BOOTLOADER (grub-bios vs grub-efi) but NOT this mount, so every baked BIOS
+toplevel shipped an ESP `/boot` unit. A BIOS install makes NO ESP (bios-boot +
+swap + root — install.nix's own layout), so `boot.mount` waits forever on a
+by-label/ESP that never appears → `local-fs.target` fails → emergency. Latent
+since the 8e model: no BIOS install had ever reached first boot (they died at the
+RAM floor, #120). The UEFI floor was fine — UEFI installs DO make the ESP.
+**fix:** `bakedFakeDisk` is now `fw:` — it emits the `/boot` ESP entry only for
+`fw == "uefi"` (via `lib.optionalAttrs`), mirroring install.nix's synthesized
+hardware-config, which already omits `/boot` on BIOS. **where:** `flake.nix`
+(`bakedFakeDisk`, `mkBakedEntry`). **size:** small, done. **gate (I3f, SeaBIOS
+VM, end-to-end):** floor+qemu BIOS toplevels' baked fstab now have NO ESP (UEFI
+keeps it); `golem-install --yes` → bios-boot/swap/golem layout, `local-fs.target.
+wants` EMPTY (no `boot.mount`); reboot → **`Golem login:`** on tty1, no hang, no
+emergency. This + #120 are the two halves of "the comodore boots."
+
 ### 121. THE MEDIUM'S BIOS BOOT SHOWS THE KERNEL DECOMPRESSOR ("No EFI environment detected.") — [FOUND 2026-09-24 · the comodore, I3 BIOS metal · Max: "the 'not EFI environment detected' splash before the installer … we already worked on it"]
 #93 hid this on the INSTALLED system's GRUB with `gfxpayloadBios = "keep"` (hand
 over in graphics so the real-mode stub's VGA-text write lands in invisible

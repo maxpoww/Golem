@@ -146,9 +146,19 @@
       # its own machine.nix + measured hardware-configuration.nix — assembles
       # from these baked components at install). by-label golem/ESP matches
       # what golem-install actually creates. Same shape effect-matrix uses.
-      bakedFakeDisk = {
-        fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
-        fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
+      bakedFakeDisk = fw: {
+        # UEFI mounts the ESP at /boot; BIOS/GRUB has NO ESP — /boot lives on the
+        # root ext4 GRUB already reads (install.nix's BIOS layout is bios-boot +
+        # swap + root, no ESP). A baked BIOS toplevel that carries the ESP /boot
+        # mount hangs first boot for 90 s on a by-label/ESP device that never
+        # appears, then drops to emergency (BIOS VM gate, 2026-09-24). Firmware-
+        # split here matches the synthesized hardware-config in install.nix, which
+        # only emits the /boot entry for UEFI.
+        fileSystems = {
+          "/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+        } // bakedLib.optionalAttrs (fw == "uefi") {
+          "/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
+        };
         # THE FLOOR'S "boots on anything" initrd (8e HOLE C, 2026-09-18): a baked
         # toplevel is installed by DIRECT COPY, so it NEVER runs
         # nixos-generate-config to measure this machine's disk controller. With
@@ -187,7 +197,7 @@
         let leaves = (import ./system/Modular/choose.nix { inherit facts; }).leaves; in {
           inherit name firmware isFloor leaves;
           key = bakedLib.concatStringsSep ":" leaves;
-          toplevel = (mkMinimal facts [ bakedFakeDisk ]).config.system.build.toplevel;
+          toplevel = (mkMinimal facts [ (bakedFakeDisk firmware) ]).config.system.build.toplevel;
         };
       # COVERAGE: every class in BOTH firmwares (firmware picks grub-bios vs
       # grub-efi → a different leaf-list), plus the floor in both. So any
