@@ -127,17 +127,23 @@ keeps it); `golem-install --yes` → bios-boot/swap/golem layout, `local-fs.targ
 wants` EMPTY (no `boot.mount`); reboot → **`Golem login:`** on tty1, no hang, no
 emergency. This + #120 are the two halves of "the comodore boots."
 
-### 121. THE MEDIUM'S BIOS BOOT SHOWS THE KERNEL DECOMPRESSOR ("No EFI environment detected.") — [FOUND 2026-09-24 · the comodore, I3 BIOS metal · Max: "the 'not EFI environment detected' splash before the installer … we already worked on it"]
+### 121. THE MEDIUM'S BIOS BOOT SHOWS THE KERNEL DECOMPRESSOR ("No EFI environment detected.") — [FOUND + FIXED 2026-09-24 · the comodore, I3 BIOS metal · Max escalated: "we need to fix that. some users will just turn off the pc as they see that."]
 #93 hid this on the INSTALLED system's GRUB with `gfxpayloadBios = "keep"` (hand
 over in graphics so the real-mode stub's VGA-text write lands in invisible
 memory). But the MEDIUM boots BIOS via isolinux/syslinux (the vendored
 iso-image-golem.nix), which hands over in TEXT mode — so the kernel decompressor
 console ("early console in extract_kernel", "Decompressing Linux… No EFI
 environment detected.", "Booting the kernel…") is visible before the installer.
-Reproduced in a SeaBIOS VM. **fix (owed):** the isolinux path has no
-gfxpayload=keep equivalent — either quiet the decompressor on the medium, or move
-the medium's BIOS boot to GRUB so #93 applies. **where:** `iso-image-golem.nix` /
-the medium's BIOS kernel handover. **size:** medium; cosmetic, not blocking.
+Reproduced in a SeaBIOS VM. **fix:** the isolinux `vga=` IS the gfxpayload=keep
+equivalent — `vga=788` (800x600x16 VESA LFB) in the medium's `boot.kernelParams`
+makes syslinux set a linear framebuffer as vid_mode, so real-mode setup boots the
+kernel into GRAPHICS and the decompressor's 0xB8000 text writes are never scanned
+out (same mechanism as #93, different lever). UEFI ignores `vga=` (boots the EFI
+stub on GOP/efifb, already graphics). No `fbcon=map:1` — the #65 dead-screen trap.
+**VM-gated (I3l vs I3k, SeaBIOS):** I3k's decompression window showed the full "No
+EFI…" text (bright 0.033); I3l's is BLACK (0.0) — gone — and the Start/Install menu
++ the language surface still render clean on the fb console. **where:**
+`Installer/preinstall/iso.nix` (the medium's kernelParams). **size:** small, done.
 
 ### 120. THE 8e INSTALL REFUSED THE COMODORE (1970 MB) — the local-eval RAM floor fired on a direct-copy install — [FOUND + FIXED 2026-09-24 · the comodore, I3 BIOS metal · the install failed, "diagnose instant", restart]
 On the comodore the install died instantly at the confirm and restarted. The log:

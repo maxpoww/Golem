@@ -293,6 +293,20 @@ in
     "rd.udev.log_level=0"
     "udev.log_level=0"
     "vt.global_cursor_default=0"
+    # #121 — the BIOS "No EFI environment detected." splash. That line (and
+    # "Decompressing Linux…", "early console in extract_kernel") is the kernel
+    # DECOMPRESSOR writing to VGA TEXT memory (0xB8000) BEFORE printk exists, so
+    # quiet/loglevel can't touch it. The installed GRUB hides it by handing over
+    # in graphics (gfxpayloadBios="keep", #93) — in a graphics mode the text
+    # buffer is not scanned out, so the writes are invisible. syslinux resets to
+    # TEXT before booting the kernel, so the medium's BIOS boot shows it (Max,
+    # 2026-09-24: "some users will just turn off the pc as they see that").
+    # `vga=788` (800x600x16 VESA LFB) makes syslinux set a linear framebuffer as
+    # vid_mode, so real-mode setup boots the kernel into graphics and the
+    # decompressor's 0xB8000 writes never appear. UEFI ignores vga= (it boots via
+    # the EFI stub on GOP/efifb, already graphics — so no change there). fbcon
+    # keeps the console on fb0; no fbcon=map:1 (the #65 dead-screen trap).
+    "vga=788"
   ];
 
   # English-on-fresh-boot as a GUARANTEE, not an accident (#6): without
