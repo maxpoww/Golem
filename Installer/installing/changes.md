@@ -44,6 +44,26 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 123. THE LAB DOOR — every installed Golem is SSH-reachable by the dev box (until the first FINISHED ISO) — [DONE 2026-09-24 · Max: "an installed Golem should let you go in via ssh and test — that is the whole idea of the lab. all the isos should do that; we close the ssh only when we finish, on the first finished Golem iso. now, do it."]
+The BIOS+Intel Plymouth investigation (below) stalled on "read me the console" — no
+good over a broken-shift HP console. The lab is built to avoid exactly that: an
+installed machine joins the lab wifi and the dev box SSHes in. But `base/ssh.nix`
+ships sshd key-only with NO key authorized ("no lab keys on shipped images",
+GolemSecurity phase 3), and the 8e install is a DIRECT COPY of a baked toplevel —
+it never sees machine.nix's `--lab-ssh`. So a normal install was unreachable.
+**fix:** new base module `system/Modular/lab/lab-door.nix` (imported by
+composition.nix, so EVERY baked gen-1 AND the fat config carry it): authorizes the
+dev box's keys (`dev-lab` = this box's id_ed25519, + `golem-vm-loop`) for owner AND
+root, and bakes an autoconnect `golem-lab` NM profile for the open lab wifi (HOLA,
+retries=0) straight into the toplevel (not machine.nix, which gen-1 never runs). So
+a fresh install is reachable the moment it boots — `ssh max@<ip>` from the dev box
+(both on 192.168.1.x). **scope:** DELIBERATELY overrides the "no lab keys" rule for
+the lab period — Max's call. **DELETE `lab/lab-door.nix` + its composition.nix
+import at the first finished Golem ISO.** Verified in the baked comodore toplevel:
+key in `authorized_keys.d/{max,root}`, profile `ssid=HOLA autoconnect`. **where:**
+`system/Modular/lab/lab-door.nix` (new), `composition.nix`. **size:** small, done;
+recut = I3h.
+
 ### 122. THE INSTALLED BIOS GOLEM BOOTS TO EMERGENCY — the baked toplevel carried a UEFI ESP /boot mount onto a disk that has no ESP — [FOUND + FIXED 2026-09-24 · the BIOS VM gate, unmasked by #120 · would have hit the comodore next]
 With #120 the comodore install now COMPLETES — so for the first time a BIOS
 install reached first boot, in a SeaBIOS VM. It didn't boot: GRUB → kernel →

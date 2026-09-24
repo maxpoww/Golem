@@ -24,6 +24,11 @@
     ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix
+    # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
+    # SSH-reachable by the dev box + auto-joins the lab wifi, so testing happens
+    # over SSH not the console. DELETE this line (and lab/lab-door.nix) at the
+    # first FINISHED Golem ISO — see the file's header.
+    ./lab/lab-door.nix
     # The seal (#56) rides with selfrebuild: every unattended rebuild
     # is gated on the blessed manifest. Shared with the fat path,
     # already leaf-shaped.
