@@ -53,6 +53,28 @@ let
     fi
     exec ${pkgs.shadow}/bin/login
   '';
+
+  # A SILENT reboot for the end of the install (Max, 2026-09-24: "sysrq: emergency
+  # sync / sysrq: resetting … i dont want there"). The install reboots AFTER the
+  # user pulls the USB, and the installer runs FROM that USB — so the reboot can
+  # neither exec off the gone stick nor use SysRq (the SysRq handler force-raises
+  # the console loglevel, so `echo b`/`echo s` always print "sysrq: …"). This
+  # tiny STATIC helper (no libs, so install-cli copies it into RAM before the
+  # pull) does the two syscalls directly: sync() flushes the TARGET disk, then
+  # reboot(RB_AUTOBOOT). The kernel's only line, "Restarting system", is
+  # KERN_EMERG (level 0) which the medium's consoleLogLevel=0 suppresses — so the
+  # handoff is black-to-Golem, no messages.
+  golemReboot = pkgs.runCommandCC "golem-reboot"
+    { buildInputs = [ pkgs.glibc.static ]; }
+    ''
+      mkdir -p $out/bin
+      cat > r.c <<'EOF'
+      #include <unistd.h>
+      #include <sys/reboot.h>
+      int main(void) { sync(); sync(); return reboot(RB_AUTOBOOT); }
+      EOF
+      $CC -static -O2 -s -o $out/bin/golem-reboot r.c
+    '';
 in
 {
   # The boot menu is ours: upstream iso-image.nix hardcodes rows (Options
@@ -113,7 +135,7 @@ in
   environment.etc."golem/baked-manifest.json".source =
     golem.packages.x86_64-linux.bakedManifest;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  environment.systemPackages = [ hw-decide hw-postinstall-questions install setup ];
+  environment.systemPackages = [ hw-decide hw-postinstall-questions install setup golemReboot ];
 
   # ── All-hardware firmware on the medium (Max, 2026-09-06: "all-in") ────
   # installation-cd-minimal ships almost no firmware to stay small, which

@@ -3636,6 +3636,11 @@ step_go() {
 
   # The question is answered; the guide line becomes the bar.
   printf '%s[1A\r%s[2K' "$esc" "$esc"
+  # #118 reboot — copy the SILENT reboot helper into RAM NOW, while the USB is
+  # still in. At the end we exec it from /run (tmpfs), so the final reboot needs
+  # nothing off the stick the user has by then pulled. It is a static binary, so
+  # the copy is self-contained; best-effort — the sysrq path is the fallback.
+  cp -L /run/current-system/sw/bin/golem-reboot /run/golem-reboot 2>/dev/null && chmod 0755 /run/golem-reboot 2>/dev/null || true
   local cmd line rest frac cur max label flyname rc=0 done=no prepared=no
   local rehearsed=no findings="" addr=""
   # #118 — the second bar (verify) + the gated reboot: `installed` marks the
@@ -3753,20 +3758,17 @@ step_go() {
     show_cursor
     if [ "$FAKE_INSTALL" != yes ]; then
       while :; do read_key || break; [ "$KEY" = ENTER ] && break; done
-      # Reboot WITHOUT the stick (Max, 2026-09-23): the installer runs FROM the
-      # USB, so by now the user has pulled it — `systemctl reboot` would exec a
-      # binary off a device that is gone (I/O error, then getty loops trying to
-      # reload the surface). Reboot through the KERNEL instead: echo to
-      # /proc/sysrq-trigger is a bash BUILTIN writing a kernel file — no store
-      # access at all — so it reboots with the medium already out. `s` syncs the
-      # TARGET disk first (present, it is where we just installed); the read -t
-      # is a builtin pause to let the sync land; `b` reboots now. The medium is
-      # gone, so the firmware boots the installed disk → Golem. (kernel.sysrq is
-      # enabled on the medium in iso.nix.)
+      # Reboot WITHOUT the stick, and SILENTLY (Max: the installer runs FROM the
+      # USB, so by now the user has pulled it — `systemctl reboot` would exec off
+      # a gone device). The RAM-cached static helper does sync() + reboot(2)
+      # directly: no stick, no SysRq, and its only kernel line ("Restarting
+      # system", KERN_EMERG) is hushed by consoleLogLevel=0. Black → Golem.
+      exec /run/golem-reboot 2>/dev/null
+      # Fallbacks if the helper was not cached: SysRq (prints "sysrq: …" but
+      # reboots without the stick), then systemctl (dev runs, stick still in).
       echo s > /proc/sysrq-trigger 2>/dev/null || true
       read -rt 2 _ 2>/dev/null || true
       echo b > /proc/sysrq-trigger 2>/dev/null || true
-      # If sysrq is somehow off, fall back (stick may still be in on a dev run).
       systemctl reboot 2>/dev/null || true
     fi
     return 0
