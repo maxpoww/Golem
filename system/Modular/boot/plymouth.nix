@@ -71,7 +71,29 @@ in
   # (other VMs). A module with no matching device probes, finds nothing, and
   # no-ops — harmless. nouveau/radeon are left out on purpose (nouveau fights the
   # proprietary nvidia bind; the failing-radeon machine displays on its intel).
-  boot.initrd.kernelModules = [ "bochs" "i915" "amdgpu" "virtio_gpu" ];
+  # ...but AVAILABLE, not force-loaded (#124). `boot.initrd.kernelModules`
+  # force-loads via systemd-modules-load.service, which is WantedBy=sysinit.target
+  # — and switch-root waits for sysinit, so a slow GPU probe (the HP's Radeon
+  # ~9 s) would STILL gate the boot even under the systemd initrd. As
+  # availableKernelModules they ride udev instead: udev coldplugs the GPU and
+  # loads its driver IN PARALLEL with storage, gating nothing, and Plymouth (under
+  # the systemd initrd) waits for the DRM device before it paints. So the disk
+  # appears immediately and the bar still comes up, on whatever GPU the box has.
+  boot.initrd.availableKernelModules = [ "bochs" "i915" "amdgpu" "virtio_gpu" ];
+
+  # #124 — the SYSTEMD INITRD, or #117 above SLOWS the boot badly. The classic
+  # (script) initrd modprobes those GPU drivers SYNCHRONOUSLY, IN ORDER, BEFORE
+  # udev coldplugs storage — so on the HP (SSH into the installed box, 2026-09-24)
+  # the heavy amdgpu/Radeon vga_switcheroo probe blocked the initrd ~13 s before
+  # AHCI even loaded; the root disk appeared at ~15 s and the whole boot took 48 s,
+  # with systemd's device-wait "A start job is running for …" text leaking to the
+  # bare console (no bar was covering it — Plymouth had raced ahead of i915). The
+  # systemd initrd loads modules through udev IN PARALLEL, so GPU init no longer
+  # blocks the disk (fast boot AND the bar), and it orders plymouth-start AFTER a
+  # DRM device appears, so the bar stops racing the GPU (the boot-1-paints /
+  # boot-2-black flake). The quiet-boot rd.systemd.* params (base/core.nix) are
+  # already the systemd-initrd spelling.
+  boot.initrd.systemd.enable = true;
 
   # BOOT ONLY (Max, 2026-09-23: "i want it only on the installed golem boot …
   # for example i[t] happen[s] also on shutdown, or reboot. that should not

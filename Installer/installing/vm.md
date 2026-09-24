@@ -479,3 +479,24 @@ golem path:<clean>`.
   prompt in this era.** #122 CLOSED.
 - **STILL OPEN — #121** (medium's "No EFI environment detected." decompressor splash
   on the BIOS/isolinux handover): I3f still shows it; cosmetic, not touched.
+
+## 2026-09-24 — I3j — SYSTEMD INITRD + udev-loaded GPU (#124) — GATE PASS, boot ordering fixed
+
+**Mode:** real-install + installed-boot + **SSH-into-the-install** (the lab door,
+#123 — hostfwd 2222/2223→22, my baked `dev-lab` key). SeaBIOS VM, `-vga std`. This
+gate answered a metal finding: SSH into the installed **HP** showed the #117 boot bar
+force-loads GPU drivers in the classic initrd, which run BEFORE udev loads the disk —
+amdgpu/Radeon blocked the initrd ~13 s, root disk at ~15 s, **48 s boot**, and the
+device-wait "start job" text leaked to the console. Fix #124: systemd initrd + GPU as
+`availableKernelModules` (udev, not force-load).
+
+- **I3i (systemd initrd, GPU still force-loaded):** installed clean, booted to login,
+  **bar paints + fills** — but SSH showed disk `sda` at **3.7 s**, initrd 4.9 s (the
+  force-load via systemd-modules-load still gated switch-root). Caught it before metal.
+- **I3j (systemd initrd + GPU via `availableKernelModules`):** installed clean;
+  reboot → **bar paints** (`card0 = bochs-drm`, udev-loaded) → `Golem login:`. SSH:
+  **disk `sda` at 1.05 s** (was 3.7 s), **initrd 2.0 s** (was 4.9 s), **total 5.8 s**;
+  `modules-load.d` carries no GPU (udev-driven). Storage no longer waits behind the
+  GPU — the ordering fix that kills the metal 48 s boot.
+- **OWED (metal):** the real 48 s→~6 s proof on the HP — reflash I3j, I SSH in and
+  measure `systemd-analyze` before is on record (47.9 s).

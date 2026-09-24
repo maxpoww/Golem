@@ -44,6 +44,26 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 124. THE BOOT BAR WAS SLOWING THE BOOT — GPU-in-initrd blocked storage → 48 s boot + the "start job" text → SYSTEMD INITRD + udev-loaded GPU — [DONE 2026-09-24 · SSH into the installed HP · Max: "so systemd is faster overall? lets do it … if the bar is screwing our boot, screw it" → then, keep it: systemd initrd gets both]
+The comodore/HP "no bar + a lot of 'A start job is running for…'" wasn't the bar
+failing — it was the bar's #117 FORCE-LOAD of GPU drivers in the initrd. SSH'd into
+the installed HP (the [[golem-lab-door]] paying off): the classic (script) initrd
+modprobes `i915`/`amdgpu` SYNCHRONOUSLY, IN ORDER, BEFORE udev loads the disk
+driver, so the heavy amdgpu/Radeon `vga_switcheroo` probe blocked the initrd ~13 s;
+AHCI didn't load until 13.5 s, the root disk appeared at ~15 s, boot took **48 s**,
+and systemd's device-wait text leaked to the bare console (Plymouth had raced ahead
+of i915 and wasn't covering it). So the bar was fighting the boot. **fix:** (1)
+`boot.initrd.systemd.enable = true` — the systemd initrd loads modules via udev in
+PARALLEL and orders plymouth-start after a DRM device; (2) move the GPU drivers from
+`boot.initrd.kernelModules` (force-load → gated `sysinit.target` → gated switch-root,
+so the slow probe STILL blocked even under systemd initrd) to
+`boot.initrd.availableKernelModules` (udev-loaded, gates nothing). **VM-gated (I3j,
+SeaBIOS, SSH into the install):** disk `sda` now appears at **1.05 s** (was 3.7 s
+under force-load), initrd **2.0 s** (was 4.9 s), total boot **5.8 s** — and the bar
+still paints (`card0 = bochs-drm`, udev-loaded) and it reaches `Golem login:`. The
+metal 48 s→~6 s proof is owed on the HP (I'll SSH in and measure). **where:**
+`system/Modular/boot/plymouth.nix`. **size:** small, done; recut = I3j.
+
 ### 123. THE LAB DOOR — every installed Golem is SSH-reachable by the dev box (until the first FINISHED ISO) — [DONE 2026-09-24 · Max: "an installed Golem should let you go in via ssh and test — that is the whole idea of the lab. all the isos should do that; we close the ssh only when we finish, on the first finished Golem iso. now, do it."]
 The BIOS+Intel Plymouth investigation (below) stalled on "read me the console" — no
 good over a broken-shift HP console. The lab is built to avoid exactly that: an
