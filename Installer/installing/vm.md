@@ -430,3 +430,15 @@ enabled on the medium. **GATE:** drove the install to the verdict, then
 HELD at the verdict, no crash. ENTER → the machine rebooted, OVMF skipped the gone
 DVD-ROM (Boot0001) and booted the disk (Boot0002) → **`Golem login:`**. The USB-pull
 → ENTER → into-Golem flow works with the stick already out. #118 reboot CLOSED.
+
+## 2026-09-24 — I3d — SILENT reboot (static helper) — GATE PASS
+
+Max, after the asus install: the sysrq reboot printed "sysrq: emergency sync" +
+"sysrq: resetting" (the SysRq handler force-raises the console loglevel, so
+loglevel=0 can't hush them). Fix: a tiny STATIC `golem-reboot` (sync()+reboot(2))
+copied into /run (RAM) while the USB is in, exec'd at ENTER. reboot(2)'s only line
+("Restarting system", KERN_EMERG) is suppressed by consoleLogLevel=0. **GATE:**
+drove to the verdict, `eject -f isocd` (pull the stick) — held, no crash — ENTER →
+the top-200 console band was BLACK across 8 rapid frames (no "sysrq:"/"Restarting"
+flash), and ~1 s later the INSTALLED disk's GRUB ("Start Golem") was on screen.
+Silent black → Golem. #118 reboot messages CLOSED.
