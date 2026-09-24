@@ -44,6 +44,26 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 125. THE GENERAL BOOT PASS — skip legacy serial probing + don't wait on the network — [DONE 2026-09-24 · Max: "make a second pass for general purposes on general boot of Golem … the best booting process you can do (reliable + fast as possible)"]
+On top of #124 (systemd initrd + udev GPU), two more GENERAL boot wins profiled over
+SSH on the comodore/HP metal — portable, not comodore-specific:
+1. **`8250.nr_uarts=0`** — skip the legacy 8250 serial-port autoconfig. On old
+   chipsets that probe runs slow loopback/IRQ tests on every port; `ttyS0-3` alone
+   ate **~22 s** of udev work on BOTH old lab machines, dragging the initrd's device
+   settle and congesting userspace udev (which delays the disk/swap device units the
+   boot waits on). Golem is a desktop OS with no serial console (tty0 VGA is
+   untouched), so nothing is lost. BASE = installed systems only; the installer
+   MEDIUM keeps its serial for lab diagnostics.
+2. **`NetworkManager-wait-online` off** — nothing in a desktop boot should block on
+   the network being UP. NM connects in the background; `multi-user` must not wait on
+   link/DHCP/a slow wifi dongle (that wait was ~10 s on the comodore's rtl8187).
+   Standard hygiene; the auto-upgrade's own `golem-wait-online` gate is unaffected.
+**VM-gated (I3k):** install clean → boot **5.49 s** → bar paints (`card0=bochs-drm`,
+udev) → `Golem login:`; SSH confirms `8250.nr_uarts=0` applied, **no `ttyS`
+devices/units**, wait-online **masked**. No regression. Metal (old-chipset) speedup
+owed once the comodore is reliably reachable. **where:**
+`system/Modular/boot/boot-speed.nix` (new), `composition.nix`. **size:** small, done.
+
 ### 124. THE BOOT BAR WAS SLOWING THE BOOT — GPU-in-initrd blocked storage → 48 s boot + the "start job" text → SYSTEMD INITRD + udev-loaded GPU — [DONE 2026-09-24 · SSH into the installed HP · Max: "so systemd is faster overall? lets do it … if the bar is screwing our boot, screw it" → then, keep it: systemd initrd gets both]
 The comodore/HP "no bar + a lot of 'A start job is running for…'" wasn't the bar
 failing — it was the bar's #117 FORCE-LOAD of GPU drivers in the initrd. SSH'd into

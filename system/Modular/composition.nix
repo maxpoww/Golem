@@ -21,6 +21,9 @@
     # splash, not GRUB), so it belongs in the always-chosen base, not the
     # hardware-chosen boot leaves. Carries the #65 tax (`splash`) — see the file.
     ./boot/plymouth.nix
+    # The general fast+reliable boot pass (#125): skip legacy serial probing,
+    # don't block the boot on the network. Rides with plymouth/#124 on the boot.
+    ./boot/boot-speed.nix
     ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix
