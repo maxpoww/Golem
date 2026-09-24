@@ -388,6 +388,15 @@ pkgs.writeShellApplication {
     eval_is_local=true
     if [[ "$prepare_only" == true || "$skip_prepare" == true ]]; then
       eval_is_local=false
+    elif [[ -r /etc/golem/baked-manifest.json ]]; then
+      # 8e (the all-in medium): the product install is a DIRECT COPY of a baked
+      # toplevel (below: `nixos-install --system <baked>`) — it evaluates and
+      # BUILDS NOTHING on the machine, so the local-eval RAM floor does not apply.
+      # The floor toplevel matches any firmware, so the fallback that WOULD eval
+      # never runs on an 8e medium. Without this the comodore (1970 MB) was
+      # REFUSED a copy that never thrashes it — the RAM guard firing on the wrong
+      # verb, exactly the #note above (found on BIOS metal 2026-09-24).
+      eval_is_local=false
     fi
     if (( ram_mb < 3300 )); then
       ram_ok=false

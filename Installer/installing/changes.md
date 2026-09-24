@@ -44,6 +44,33 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 121. THE MEDIUM'S BIOS BOOT SHOWS THE KERNEL DECOMPRESSOR ("No EFI environment detected.") — [FOUND 2026-09-24 · the comodore, I3 BIOS metal · Max: "the 'not EFI environment detected' splash before the installer … we already worked on it"]
+#93 hid this on the INSTALLED system's GRUB with `gfxpayloadBios = "keep"` (hand
+over in graphics so the real-mode stub's VGA-text write lands in invisible
+memory). But the MEDIUM boots BIOS via isolinux/syslinux (the vendored
+iso-image-golem.nix), which hands over in TEXT mode — so the kernel decompressor
+console ("early console in extract_kernel", "Decompressing Linux… No EFI
+environment detected.", "Booting the kernel…") is visible before the installer.
+Reproduced in a SeaBIOS VM. **fix (owed):** the isolinux path has no
+gfxpayload=keep equivalent — either quiet the decompressor on the medium, or move
+the medium's BIOS boot to GRUB so #93 applies. **where:** `iso-image-golem.nix` /
+the medium's BIOS kernel handover. **size:** medium; cosmetic, not blocking.
+
+### 120. THE 8e INSTALL REFUSED THE COMODORE (1970 MB) — the local-eval RAM floor fired on a direct-copy install — [FOUND + FIXED 2026-09-24 · the comodore, I3 BIOS metal · the install failed, "diagnose instant", restart]
+On the comodore the install died instantly at the confirm and restarted. The log:
+`error: exit 1` → `golem-install: ram: this machine has 1970 MB — installing Golem
+needs about 4 GB of RAM`. The RAM floor (< 3300 MB) exists to gate the LOCAL EVAL
+(which thrashes a small box), and it correctly WARNS-not-fails for
+`--prepare-only`/`--skip-prepare` (eval-free). But the 8e PRODUCT install is ALSO
+eval-free — it is a DIRECT COPY of a baked toplevel (`nixos-install --system
+<baked>`, the all-in matrix) — and set neither flag, so `eval_is_local` stayed
+true and it refused a copy that never evaluates. This is why the asus (UEFI, 8 GB)
+installed but the comodore (BIOS, 1.9 GB) did not — and it was never caught
+because the gate only ever ran UEFI on a 4 GB VM. **fix:** `eval_is_local=false`
+when `/etc/golem/baked-manifest.json` exists (the 8e medium always has a baked
+match or the firmware floor, so the eval fallback never runs). **where:**
+`install.nix` (the ram check). **size:** small, done; BIOS-gated.
+
 ### 119. "READING THIS DEVICE" → "DIAGNOSING THIS DEVICE" — the census status line — [DONE 2026-09-23 · Max: "i dont like 'reading this device', lets say 'Diagnosing device'"]
 The census-status line (shown while the audit reads the machine behind the
 questions) said "Reading this device" / "Device read". "Diagnosing" is the truer
