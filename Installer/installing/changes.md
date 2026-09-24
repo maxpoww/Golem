@@ -44,6 +44,26 @@ surface items are `I<round>-<n>`.
 > facts-matrix row, and #102 below. These entries move to Applied once the
 > stick is reflashed and metal-verified.
 
+### 126. THE FIRST BOOT FSCK-RECOVERS — the install left the target dirty — [DONE 2026-09-24 · SSH into the comodore I3l install: 57 s first boot, initrd 30 s]
+SSH'd into a fresh comodore install and the first boot was 57 s — the initrd
+`systemd-fsck: golem: recovering journal` chewed ~14 s (ext4 journal recovery on a
+spinning HDD). Cause: `golem-install` leaves the target mounted and the product
+reboot (install-cli → golem-reboot: sync + reboot(2)) never unmounts it, so the
+root fs is dirty and the FIRST boot — the user's first impression — has to recover.
+**fix:** `sync; umount -R /mnt` at the end of install.nix (after verify, the last
+read of /mnt). Best-effort; a failure falls back to the old dirty path, never
+blocks the reboot. Same clean-unmount the SSH-driven lab installs already relied on
+(the "sync; umount -R /mnt before quit" harness rule), now on the product path.
+**VM-gated (I3m→ SSH into the install):** first boot's fsck is now `golem: clean`
+(no "recovering journal"), install still completes clean, bar + login unaffected.
+**ALSO TRIED + DROPPED — login-decouple:** the login prompt also waits on
+`network.target` (NM ~11 s on the comodore's dongle → getty at ~25 s not ~13 s),
+but that ordering is baked into NixOS from BOTH sides (user-sessions' base
+`After=network.target` AND `network.target`'s own `Before=systemd-user-sessions/
+sshd/multi-user`) — a `.after` mkForce only adds a redundant drop-in, doesn't remove
+it. Overriding NixOS's whole networking order for a slow-link-only gain isn't worth
+it; the dongle is the dongle. **where:** `install.nix` (end). **size:** small, done.
+
 ### 125. THE GENERAL BOOT PASS — skip legacy serial probing + don't wait on the network — [DONE 2026-09-24 · Max: "make a second pass for general purposes on general boot of Golem … the best booting process you can do (reliable + fast as possible)"]
 On top of #124 (systemd initrd + udev GPU), two more GENERAL boot wins profiled over
 SSH on the comodore/HP metal — portable, not comodore-specific:

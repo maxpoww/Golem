@@ -1049,6 +1049,19 @@ pkgs.writeShellApplication {
       echo "##verify-verdict terminada"; echo "verdict: terminada ($vfail failed — see above)" >> "$vlog"
     fi
 
+    # #126 — CLEAN-UNMOUNT the target so the FIRST boot doesn't fsck-recover.
+    # The install reboots via golem-reboot (sync + reboot(2), no unmount), so the
+    # root ext4 was left mounted+dirty — the first boot then spent ~14 s in the
+    # initrd "recovering journal" (systemd-fsck on a spinning HDD), the worst
+    # possible moment (the user's first impression, measured on the comodore).
+    # Unmounting here (after verify, which was the last read of /mnt) leaves the
+    # clean flag set, so first-boot fsck skips recovery. Best-effort — a failure
+    # just falls back to the old dirty path, never blocks the reboot. Same clean
+    # -sync-before-reboot the SSH-driven lab installs already relied on (changes.md
+    # "sync; umount -R /mnt before quit"), now on the product path.
+    sync
+    umount -R /mnt 2>/dev/null || true
+
     echo "── done ─────────────────────────────────────────"
     echo "  installed to $disk; seed checkout at /home/$owner/Golem"
     echo "  verify: $vlog"
