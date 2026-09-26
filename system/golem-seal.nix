@@ -126,9 +126,19 @@ in
     type = lib.types.package;
     description = "The seed seal-check tool the root apply helpers gate on.";
   };
+  # The re-seal tool, exposed so a TRUSTED unattended channel can re-baseline
+  # the manifest without a human bless. Only auto-update uses it, and only
+  # after a clean fast-forward pull from upstream (the trust root) — never on
+  # a local edit. The interactive `golem-bless` on $PATH is unchanged; this is
+  # the same package, referenced by store path.
+  options.golem.seal.bless = lib.mkOption {
+    type = lib.types.package;
+    description = "The seed re-seal tool (golem-bless), for trusted unattended re-baselining.";
+  };
 
   config = lib.mkIf (flakeDir != null) {
     golem.seal.check = sealCheck;
+    golem.seal.bless = bless;
     environment.systemPackages = [ bless ];
   };
 }

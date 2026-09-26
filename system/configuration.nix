@@ -22,6 +22,7 @@
     ./hardware/virt-guest.nix
     ./hardware-detect.nix
     ./hardware-runtime.nix
+    ./golem-brightness.nix   # brightness that follows the connected panel, not a name
     ./golem-seal.nix
     ./waverunner-apply.nix
     ./postinstall.nix
@@ -472,9 +473,8 @@
       # Stopgap kit (die when their Arc-2 OPTIONS modules ship):
       pavucontrol           # audio GUI
       networkmanagerapplet  # network GUI (nm-connection-editor)
-      brightnessctl         # hyprland.lua's brightness keys exec it; must
-                            # exist system-wide, not ride the user's
-                            # launcher-installed list (empty on fresh Golem)
+      # brightnessctl + golem-brightness come from ./golem-brightness.nix now
+      # (system-wide, not the user's launcher list). The keys call the latter.
     ] ++ lib.optional (config.golem.flakeDir != null)
       (pkgs.writeShellScriptBin "rebuild-golem" ''
         set -euo pipefail

@@ -459,12 +459,32 @@ pkgs.writeShellApplication {
     done < <(lsblk -nrpo NAME,TYPE "$disk" 2>/dev/null | awk '$2 ~ /crypt|lvm|dm|raid|mpath/ {print $1}' | sort -r)
     cryptsetup close golem 2>/dev/null || true
     udevadm settle 2>/dev/null || true
-    # The gate. If the disk is STILL busy after all that, say so plainly and
-    # dump the holders to the transcript — never the cryptic "died at $@".
-    if ! run wipefs -a "$disk"; then
-      note "wipefs failed — $disk still busy after release; holders below"
+    # The gate — with RETRIES that KILL holders. On a RE-INSTALL the medium
+    # re-grips the disk in the window right after teardown: systemd's GPT
+    # auto-mount (systemd-gpt-auto-generator) re-mounts an old "Linux root"
+    # partition and auto-swaps a swap partition by GPT type, a udev probe
+    # re-opens it, or LVM re-assembles — so a single wipefs races that and
+    # dies ("Device or resource busy"), the error trap fires, and getty
+    # respawns the surface back to the language step (Max's MacBook, #106,
+    # 2026-09-25). So: try wipefs; if busy, kill every process on the disk,
+    # redo swapoff/umount/vgchange, settle, and retry — up to 4 times —
+    # before giving up with a full holder dump. (#105 was one un-retried pass.)
+    _wiped=false
+    for _try in 1 2 3 4; do
+      if wipefs -a "$disk" >>"$TR" 2>&1; then _wiped=true; break; fi
+      note "wipefs try $_try: $disk still busy — killing holders, re-tearing down"
+      fuser -k "$disk"* 2>/dev/null || true
+      swapoff -a 2>/dev/null || true
+      while read -r _m; do umount -l "$_m" 2>/dev/null || true; done \
+        < <(lsblk -nro MOUNTPOINT "$disk" 2>/dev/null | grep -v '^$' | sort -r)
+      vgchange -an 2>/dev/null || true
+      udevadm settle 2>/dev/null || true
+      sleep 1
+    done
+    if [[ "$_wiped" != true ]]; then
+      note "wipefs failed after 4 tries — $disk still busy; holders below"
       { echo "--- lsblk ---"; lsblk "$disk"; echo "--- fuser ---"; fuser -mv "$disk"* 2>&1; } >> "$TR" 2>&1 || true
-      check_fail "could not free $disk to wipe it — something still holds it (transcript.txt has lsblk + fuser)"
+      check_fail "could not free $disk to wipe it after 4 tries — something still holds it (transcript.txt has lsblk + fuser)"
     fi
     run sgdisk --zap-all "$disk"
 
@@ -861,10 +881,23 @@ pkgs.writeShellApplication {
         # threw (an unbaked hypervisor/GPU hits choose.nix's `refuse`) or the
         # facts file was unreadable, leaves_json is empty and we fall straight
         # through to the floor below.
+        # Match on BOTH the leaf-list AND the chosen language (the language is
+        # baked into the toplevel now — 2026-09-25 — since a direct-copy install
+        # never rebuilds). Prefer the exact {leaves, locale}; if this language
+        # wasn't baked (only the common set is), fall back to the en_US variant
+        # of the same leaf-list so the machine still boots (English, not C) —
+        # the language is then the only thing a later rebuild owes.
         if [[ -n "$leaves_json" ]]; then
-          system=$(jq -r --argjson want "$leaves_json" \
-            '.[] | select(.leaves == $want) | .toplevel' \
+          system=$(jq -r --argjson want "$leaves_json" --arg loc "$locale" \
+            '.[] | select(.leaves == $want and .locale == $loc) | .toplevel' \
             /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+          if [[ -z "$system" || "$system" == "null" ]]; then
+            system=$(jq -r --argjson want "$leaves_json" \
+              '.[] | select(.leaves == $want and .locale == "en_US.UTF-8") | .toplevel' \
+              /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+            [[ -n "$system" && "$system" != "null" ]] && \
+              echo "language $locale not baked — using the en_US variant of this hardware (language deferred to a later rebuild)"
+          fi
         fi
         # NEVER-FAIL (Max's L3): no exact match — OR the chooser could not run
         # at all (threw / bad facts → empty leaves_json) — falls to the generic
@@ -876,9 +909,15 @@ pkgs.writeShellApplication {
         # machine. Now unknown/unresolvable hardware installs+boots on generic
         # drivers and can rebuild to its ideal config later.
         if [[ -z "$system" || "$system" == "null" ]]; then
-          system=$(jq -r --arg fw "$firmware" \
-            '.[] | select(.isFloor == true and .firmware == $fw) | .toplevel' \
+          # Floor for this firmware, in the chosen language, else the en_US floor.
+          system=$(jq -r --arg fw "$firmware" --arg loc "$locale" \
+            '.[] | select(.isFloor == true and .firmware == $fw and .locale == $loc) | .toplevel' \
             /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+          if [[ -z "$system" || "$system" == "null" ]]; then
+            system=$(jq -r --arg fw "$firmware" \
+              '.[] | select(.isFloor == true and .firmware == $fw and .locale == "en_US.UTF-8") | .toplevel' \
+              /etc/golem/baked-manifest.json 2>/dev/null | head -1)
+          fi
           [[ -n "$system" && "$system" != "null" ]] && \
             echo "no exact baked match — using the generic FLOOR (firmware=$firmware, boots on anything)"
         fi
@@ -988,6 +1027,27 @@ pkgs.writeShellApplication {
       run chown -R "$uid:$gid" "/mnt/home/$owner"
     else
       echo "note: user '$owner' not found in the installed system — seed left root-owned" >&2
+    fi
+
+    # ── 5c. SEED the console keyboard (2026-09-25). The LANGUAGE is now BAKED
+    # into the toplevel we just copied — the installer matched {leaves, locale},
+    # so /etc/locale.conf and the session LANG are already pt_PT with NO rebuild
+    # (the 2026-09-24 install-time `nixos-rebuild` was removed: it ran a full
+    # kernel/initrd build that ground for 8 min and died on the 2 GB comodore —
+    # exactly the target build 8e exists to avoid). The console keymap is NOT a
+    # baked dimension, so the installer writes it the same way it writes the
+    # password + SSH key above: a plain /etc file that activation does not
+    # reassert (base/console.nix leaves vconsole.conf unmanaged on the minimal).
+    # Instant, no build, works on any hardware. Localized user dirs (Descargas…)
+    # are created on first login by base/user-dirs.nix. Timezone + hostname stay
+    # generic until a later rebuild — cosmetic, not a boot or language blocker.
+    echo "##golem 97/100 finishing setup"
+    vcon="/mnt/etc/vconsole.conf"
+    if printf 'KEYMAP=%s\n' "$kb_console" > "$vcon" 2>/dev/null; then
+      [[ -n "$kb_font" ]] && printf 'FONT=%s\n' "$kb_font" >> "$vcon" 2>/dev/null || true
+      check_ok "keyboard: console keymap '$kb_console' seeded (mutable /etc, survives activation; XKB/desktop keymap arrives with the desktop leaf)"
+    else
+      check_warn "keyboard: could not write $vcon"
     fi
 
     echo

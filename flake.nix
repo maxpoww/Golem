@@ -160,6 +160,21 @@
         } // bakedLib.optionalAttrs (fw == "uefi") {
           "/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
         };
+        # HIBERNATION RESUME AT GEN-1 (2026-09-26 audit, .150/.149/.242). The
+        # swap partition is created + labeled "swap" on every install path
+        # (mkswap -L swap; GPT type 8200), and systemd-gpt-auto swaps it ON at
+        # boot — but gpt-auto does NOT emit a `resume=` kernel param, so the
+        # DIRECT-COPY gen-1 booted with resume=NONE / /sys/power/resume 0:0:
+        # hibernate then power-on gave a FRESH boot, losing the session. The
+        # swap/hibernation.nix leaf would set resumeDevice, but only from
+        # config.swapDevices, which bakedFakeDisk leaves empty (gpt-auto owns
+        # swapon). So point resume straight at the label the installer always
+        # writes. This adds ONLY the resume= cmdline param — no swap .device
+        # dependency, so it cannot reproduce the 90 s by-label-mount hang the
+        # ESP note above warns about; and the label is guaranteed present
+        # because the swap is a locked install decision. by-label works for
+        # both firmwares and both plain/LUKS layouts (all mkswap -L swap).
+        boot.resumeDevice = "/dev/disk/by-label/swap";
         # THE FLOOR'S "boots on anything" initrd (8e HOLE C, 2026-09-18): a baked
         # toplevel is installed by DIRECT COPY, so it NEVER runs
         # nixos-generate-config to measure this machine's disk controller. With
@@ -194,11 +209,25 @@
         gpu = "auto"; cpuVendor = "unknown"; ramMB = 0;
         chassis = "unknown"; firmware = fw; vmGuest = "none"; hasBluetooth = false;
       };
-      mkBakedEntry = { name, firmware, isFloor, facts }:
+      # THE LANGUAGE DIMENSION (2026-09-25). A baked toplevel is installed by
+      # DIRECT COPY — no rebuild — so the chosen language has to be BAKED IN, not
+      # applied by a target-side `nixos-rebuild` (that convergence ran a full
+      # kernel/initrd rebuild and died on the 2 GB comodore — exactly the
+      # target build 8e exists to avoid). Each locale variant SHARES the whole
+      # closure (kernel, initrd, packages, and — via base/locale.nix's fixed
+      # supportedLocales — one locale-archive); only /etc/locale.conf + the
+      # session LANG differ, a few tiny paths. So this multiplies the MANIFEST,
+      # not the ISO size. Keep it to the languages actually offered/tested; an
+      # unbaked choice falls back to the en_US baked (boots, English) below.
+      bakeLocales = (import ./system/golem-locales.nix).baked;   # memory-safe core; `.all` is the archive
+      mkBakedEntry = { name, firmware, isFloor, facts, locale }:
         let leaves = (import ./system/Modular/choose.nix { inherit facts; }).leaves; in {
-          inherit name firmware isFloor leaves;
-          key = bakedLib.concatStringsSep ":" leaves;
-          toplevel = (mkMinimal facts [ (bakedFakeDisk firmware) ]).config.system.build.toplevel;
+          inherit name firmware isFloor leaves locale;
+          key = bakedLib.concatStringsSep ":" (leaves ++ [ locale ]);
+          toplevel = (mkMinimal facts [
+            (bakedFakeDisk firmware)
+            { golem.locale.defaultLocale = locale; }
+          ]).config.system.build.toplevel;
         };
       # COVERAGE: every class in BOTH firmwares (firmware picks grub-bios vs
       # grub-efi → a different leaf-list), plus the floor in both. So any
@@ -206,14 +235,16 @@
       # unmatched falls to the floor for its firmware.
       bakedRaw =
         (bakedLib.concatMap (f:
-          map (fw: mkBakedEntry {
-            name = "${f.name}-${fw}"; firmware = fw; isFloor = false;
-            facts = (bakedFacts f.path) // { firmware = fw; };
-          }) bakedFirmwares) bakedFixtures)
-        ++ map (fw: mkBakedEntry {
-             name = "floor-${fw}"; firmware = fw; isFloor = true;
-             facts = bakedFloorFacts fw;
-           }) bakedFirmwares;
+          bakedLib.concatMap (fw:
+            map (loc: mkBakedEntry {
+              name = "${f.name}-${fw}-${loc}"; firmware = fw; isFloor = false;
+              facts = (bakedFacts f.path) // { firmware = fw; }; locale = loc;
+            }) bakeLocales) bakedFirmwares) bakedFixtures)
+        ++ bakedLib.concatMap (fw:
+             map (loc: mkBakedEntry {
+               name = "floor-${fw}-${loc}"; firmware = fw; isFloor = true;
+               facts = bakedFloorFacts fw; locale = loc;
+             }) bakeLocales) bakedFirmwares;
       # Dedupe by leaf-list KEY for the linkFarm (many collapse — intel-legacy-
       # bios recurs across hp/comodore/etc.); its CLOSURE is what
       # system.extraDependencies bakes onto the medium. The MANIFEST keeps every
@@ -226,7 +257,7 @@
         (map (e: { name = e.key; path = e.toplevel; }) bakedUnique);
       bakedManifest = nixpkgs.legacyPackages.${system}.writeText "golem-baked-manifest.json"
         (builtins.toJSON (map (e: {
-          inherit (e) name firmware isFloor leaves;
+          inherit (e) name firmware isFloor leaves locale;
           toplevel = "${e.toplevel}";
         }) bakedRaw));
     in

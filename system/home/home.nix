@@ -57,6 +57,7 @@
     papirus-icon-theme
     phinger-cursors
     wl-clipboard
+    xdg-user-dirs      # localizes ~/Downloads → ~/Transferências etc. (see below)
 
     ffmpegthumbnailer # Video previews
     unar              # Archive previews
@@ -502,18 +503,39 @@
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-asana.svg".source = ./webapp-asana.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-vercel.svg".source = ./webapp-vercel.svg;
 
-  # XDG User Directories
-  xdg.userDirs = {
-    enable = true;
-    createDirectories = true;
-    download = "$HOME/Downloads";
-    documents = "$HOME/Documents";
-    desktop = "$HOME/Desktop";
-    pictures = "$HOME/Pictures";
-    music = "$HOME/Music";
-    videos = "$HOME/Videos";
-    templates = "$HOME/Templates";
-    publicShare = "$HOME/Public";
+  # XDG User Directories — localized, not hardcoded English.
+  #
+  # home-manager's xdg.userDirs writes fixed names ("$HOME/Downloads"), which
+  # gave a Portuguese install English folders — the thing Max called out. The
+  # names must follow the chosen language (Transferências, Documentos, …), and
+  # for languages we don't want to hand-maintain a table for. So we DON'T let
+  # home-manager own the file (a store symlink would also fight the update);
+  # instead xdg-user-dirs-update generates ~/.config/user-dirs.dirs from the
+  # session LANG using the tool's own authoritative translations, and creates
+  # the folders. It respects a user's later renames (no --force), and on an
+  # already-English machine (Max's) leaves the existing folders untouched.
+  xdg.userDirs.enable = false;
+
+  systemd.user.services.golem-user-dirs = {
+    Unit = {
+      Description = "Localize XDG user dirs to the session language";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      # Source /etc/locale.conf so LANG is the system's chosen locale even
+      # before the user manager imports the session environment — that is what
+      # picks the translation. gettext needs a non-C LC_MESSAGES, which LANG
+      # provides.
+      ExecStart = "${pkgs.writeShellScript "golem-user-dirs" ''
+        set -a
+        # shellcheck disable=SC1091
+        [ -r /etc/locale.conf ] && . /etc/locale.conf
+        set +a
+        exec ${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update
+      ''}";
+    };
+    Install.WantedBy = [ "default.target" ];
   };
 
   # ── Default apps (roadmap S5) ─────────────────────────────────────────

@@ -11,7 +11,7 @@
   # two firmware halves cannot drift apart. See #89, #92, #94b.
   imports = [ ./grub-patched.nix ];
 
-  boot.loader.timeout = 3;
+  boot.loader.timeout = 1;   # 1s menu then auto-boot "Start Golem" (was 3; Max 2026-09-25)
   boot.loader.grub = {
     enable = true;
     efiSupport = false;

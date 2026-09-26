@@ -12,7 +12,15 @@
 # and CAPTURES 1280x720 YUYV frames (1,843,200 bytes). The per-sensor
 # calibration (facetimehd/1871_01XX.dat) is NOT shipped and NOT needed —
 # capture works without it. (Lab: the MacBook — the boss fight, #5's camera.)
-{ lib, ... }:
+#
+# COLD-BOOT PLL GLITCH (2026-09-25, seen on the .242 install): the very
+# first probe after a cold boot sometimes fails the ISP PLL lock — dmesg
+# shows "Failed to lock S2 PLL" then "magic value: 00000000", and the
+# camera enumerates but never captures. A second probe locks it. So we
+# re-bind the driver to the device once at boot (re-runs probe), the same
+# sysfs lever gpu2/failing uses — no module-path fragility, no-op if the
+# driver never bound, safe because nothing opens the camera this early.
+{ pkgs, lib, ... }:
 
 {
   hardware.facetimehd.enable = true;
@@ -23,4 +31,23 @@
   # leaves compose on the MacBook without a module-system conflict.)
   nixpkgs.config.allowUnfreePredicate =
     pkg: lib.getName pkg == "facetimehd-firmware";
+
+  systemd.services.golem-facetimehd-relock = {
+    description = "Re-bind the FaceTime HD camera so its ISP PLL locks (cold-boot glitch)";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-udev-settle.service" ];   # after the initial autoload
+    before = [ "graphical.target" ];             # camera ready before any desktop session
+    path = [ pkgs.coreutils ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      drv=/sys/bus/pci/drivers/facetimehd
+      for dev in "$drv"/0000:*; do
+        [ -e "$dev" ] || continue
+        b=''${dev##*/}
+        echo "$b" > "$drv/unbind" 2>/dev/null || true
+        sleep 1
+        echo "$b" > "$drv/bind" 2>/dev/null || true
+      done
+    '';
+  };
 }
