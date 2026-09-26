@@ -9,9 +9,8 @@
 #   nix build .#checks.x86_64-linux.minimal-matrix
 #
 # Full nixos+home-manager evals (minutes, like facts-matrix) — the price
-# of testing what we actually install. The nvidia machines are absent:
-# they REFUSE at choose time (chooser-matrix owns that), so they cannot
-# be composed until their leaves land.
+# of testing what we actually install. Primary-nvidia machines are
+# covered by SYNTHETIC fixtures (2026-09-26) until one is captured on metal.
 { lib, pkgs, mkMinimal }:
 
 let
@@ -130,6 +129,34 @@ let
         (ex "AMD laptop: thermald OFF (intel-only daemon)" (!c.services.thermald.enable))
         (ex "tier2 (7159 MB): swappiness 60" (c.boot.kernel.sysctl."vm.swappiness" == 60))
         (ex "UEFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
+      ];
+    }
+    {
+      name = "SYNTHETIC nvidia-only desktop, turing (primary nvidia — hardware video decode, gpu/nvidia/vaapi.nix)";
+      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-turing/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "nvidia driver on (primary)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
+        (ex "turing+: open module package" (c.hardware.nvidia.package == c.boot.kernelPackages.nvidiaPackages.stable))
+        (ex "primary: NO PRIME offload" (!c.hardware.nvidia.prime.offload.enable))
+        (ex "video decode: nvidia-vaapi-driver shipped"
+          (lib.any (p: (p.pname or "") == "nvidia-vaapi-driver") c.hardware.graphics.extraPackages))
+        (ex "video decode: LIBVA → nvidia" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "nvidia"))
+        (ex "video decode: NVD_BACKEND direct" (c.environment.sessionVariables.NVD_BACKEND or "" == "direct"))
+        (ex "Firefox media sandbox NOT disabled" (!(c.environment.sessionVariables ? MOZ_DISABLE_RDD_SANDBOX)))
+      ];
+    }
+    {
+      name = "SYNTHETIC nvidia-only desktop, pre-turing (primary nvidia — hardware video decode, gpu/nvidia/vaapi.nix)";
+      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-pre-turing/facts.nix { }).golem.hardware;
+      expect = c: [
+        (ex "nvidia driver on (primary)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
+        (ex "pre-turing: legacy_580 package" (c.hardware.nvidia.package == c.boot.kernelPackages.nvidiaPackages.legacy_580))
+        (ex "primary: NO PRIME offload" (!c.hardware.nvidia.prime.offload.enable))
+        (ex "video decode: nvidia-vaapi-driver shipped"
+          (lib.any (p: (p.pname or "") == "nvidia-vaapi-driver") c.hardware.graphics.extraPackages))
+        (ex "video decode: LIBVA → nvidia" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "nvidia"))
+        (ex "video decode: NVD_BACKEND direct" (c.environment.sessionVariables.NVD_BACKEND or "" == "direct"))
+        (ex "Firefox media sandbox NOT disabled" (!(c.environment.sessionVariables ? MOZ_DISABLE_RDD_SANDBOX)))
       ];
     }
     {

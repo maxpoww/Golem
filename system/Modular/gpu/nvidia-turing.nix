@@ -5,5 +5,5 @@
 { ... }:
 
 {
-  imports = [ ./nvidia/turing-driver.nix ];
+  imports = [ ./nvidia/turing-driver.nix ./nvidia/vaapi.nix ];
 }

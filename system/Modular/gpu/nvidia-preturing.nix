@@ -4,5 +4,5 @@
 { ... }:
 
 {
-  imports = [ ./nvidia/preturing-driver.nix ];
+  imports = [ ./nvidia/preturing-driver.nix ./nvidia/vaapi.nix ];
 }
