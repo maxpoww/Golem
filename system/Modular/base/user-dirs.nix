@@ -18,7 +18,11 @@ in {
   home-manager.users.${owner} = {
     home.packages = [ pkgs.xdg-user-dirs ];
 
-    systemd.user.services.golem-user-dirs = {
+    # mkDefault: the desktop's home layer (system/home/home.nix) defines this
+    # SAME service (After graphical-session instead of default.target). When
+    # that layer is wired in (golem-desktop), let ITS version win; this base
+    # one applies on the headless minimal, which has no home layer. (2026-09-26)
+    systemd.user.services.golem-user-dirs = lib.mkDefault {
       Unit = {
         Description = "Localize XDG user dirs to the session language";
         # Runs once the user manager is up (any login — SSH or console — starts it).

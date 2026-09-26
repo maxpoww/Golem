@@ -8,7 +8,7 @@
 # (a desktop leaf fighting a gpu/memory leaf) also surfaces here.
 #
 #   nix build .#checks.x86_64-linux.desktop-matrix
-{ lib, pkgs, mkMinimal }:
+{ lib, pkgs, mkMinimal, waverunner, waveview }:
 
 let
   fakeDisk = {
@@ -97,7 +97,36 @@ let
     then "test-chrome cut ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
     else throw "desktop-matrix test-chrome failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
-  report = (map runRow rows) ++ [ testChrome ];
+  # THE REAL OPTIONS DESKTOP: compose the home layer (waverunner's bar/dock +
+  # OPTIONS surfaces, hyprland.lua, Beam) onto a fixture — the same wiring the
+  # golem-desktop attr uses — and force the full eval. Catches a home-layer /
+  # leaf compose break on source, before a metal recut. (Heavier: pulls the
+  # waverunner/waveview/Beam closures into eval.)
+  realDesktop =
+    let
+      c = (mkMinimal (builtins.head rows).facts [
+        fakeDisk
+        desktop
+        waverunner.nixosModules.notification-service
+        ({ config, ... }: {
+          home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
+          home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+        })
+      ]).config;
+      owner = c.golem.owner;
+      checks = [
+        (ex "real desktop: waverunner (OPTIONS bar/dock) enabled for the owner"
+          (c.home-manager.users.${owner}.programs.waverunner.enable or false))
+        (ex "real desktop: still has the system compositor (hyprland + greetd)"
+          (c.programs.hyprland.enable && c.services.greetd.enable))
+      ];
+      failed = builtins.filter (e: !e.ok) checks;
+    in
+    if failed == [ ]
+    then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
+    else throw "desktop-matrix real-desktop failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
+
+  report = (map runRow rows) ++ [ testChrome realDesktop ];
 in
 pkgs.runCommand "golem-desktop-matrix"
   { passAsFile = [ "report" ]; report = lib.concatStringsSep "\n" report; }

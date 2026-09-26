@@ -383,7 +383,7 @@
         # Hyprland under uwsm, greetd, uinput — before a metal climb.
         desktop-matrix = import ./system/Modular/desktop-matrix.nix {
           lib = nixpkgs.lib;
-          inherit pkgs mkMinimal;
+          inherit pkgs mkMinimal waverunner waveview;
         };
 
         # The keyboard table's names, against the packages that consume
@@ -493,6 +493,18 @@
               }
               ./system/Modular/composition.nix
               ./system/Modular/desktop/default.nix
+              # THE REAL OPTIONS DESKTOP — the home layer, a faithful port of the
+              # fat golemModules wiring (this flake, ~L76-88): waverunner's dock /
+              # bar / OPTIONS surfaces + options-notify, hyprland.lua, Beam. The
+              # waverunner & waveview flake inputs are in scope only here (not in a
+              # leaf), so they are passed to home.nix via extraSpecialArgs.
+              # waverunner-packages (the owner's launcher-installed app list) is
+              # deliberately NOT wired — it is one machine's state, not the distro.
+              waverunner.nixosModules.notification-service
+              ({ config, ... }: {
+                home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
+                home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+              })
               ./hosts/target/golem-hardware.nix
               ./hosts/target/hardware-configuration.nix
               ./hosts/target/machine.nix

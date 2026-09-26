@@ -28,6 +28,16 @@
     description = "The machine's single human user — one knob for the installer.";
   };
 
+  # Lean image (the ISO) vs a full install. The home layer reads it to drop the
+  # owner's launcher-installed app list + dev extras on lean builds. Declared
+  # here (was fat-config-only in system/configuration.nix) so the Modular home
+  # layer composes into golem-desktop; a real installed desktop leaves it OFF.
+  options.golem.lean = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = "Ship only what the system needs (the ISO turns this on); a full install leaves it off and grows its own list.";
+  };
+
   # Post-install answers (id → chosen option id), set only by the
   # generated system/postinstall-generated.nix. Declared here so the
   # gpu2/failing leaf evaluates on stage-0 minimal (no desktop to ask
