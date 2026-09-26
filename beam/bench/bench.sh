@@ -10,7 +10,11 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd); beam=$(dirname "$here")
 RUNS=${1:-5}
 ver=$(grep -oE '"version": *"[^"]+"' "$beam/sources.json" | grep -oE '[0-9][0-9.]*[0-9]')
-BEAMBUILD=${BEAM_BUILD:-$(for d in $(ls -dt /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { echo "$d"; break; }; done)}
+# default: the Beam this machine actually runs (its policies/prefs are what we measure); else the newest in the store
+# (/etc/profiles on the host; from a toolbox the host's /etc is under /run/host/etc)
+INSTALLED=""; for pf in /etc/profiles/per-user/$USER/bin/firefox /run/host/etc/static/profiles/per-user/$USER/bin/firefox; do
+  d=$(readlink -f "$pf" 2>/dev/null || true); d=${d%/bin/firefox}; [ -n "$d" ] && [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { INSTALLED=$d; break; }; done
+BEAMBUILD=${BEAM_BUILD:-${INSTALLED:-$(for d in $(ls -dt /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { echo "$d"; break; }; done)}}
 STOCK=${STOCK_BUILD:-$(ls -d /nix/store/*-firefox-bin-unwrapped-"$ver" 2>/dev/null | head -1)}
 [ -n "$BEAMBUILD" ] && [ -n "$STOCK" ] || { echo "need Beam + stock $ver builds in the store"; exit 2; }
 LDP=$(strings "$BEAMBUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')
@@ -126,7 +130,9 @@ head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam.cfg"; cat "$beam/golem-chrome.
 SET=${BENCH_SET:-stock beam}
 if [ -n "${BENCH_ALT_SCRIPT:-}" ]; then head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam-alt.cfg"; cat "$BENCH_ALT_SCRIPT" >> "$W/beam-alt.cfg"; fi
 head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam-nocfg.cfg"   # wrapper header only, no Golem script
+CHROME_BIN=${CHROME_BIN:-$(for d in /nix/store/*-google-chrome-1*/; do echo "$(basename "$d" | sed 's/.*google-chrome-//') $d"; done | sort -V | tail -1 | cut -d' ' -f2)bin/google-chrome-stable}
 for v in $SET; do case $v in
+  chrome) [ -x "$CHROME_BIN" ] || { echo "no Chrome found"; exit 2; }; echo "chrome=$CHROME_BIN" ;;
   stock) mkfarm "$SL" "$W/stock" "" 1 ;;
   beam|beam-noprefs|beam-nocss|beam-drop-*|beam-paint) mkfarm "$BL" "$W/$v" "$W/beam.cfg" 0 ;;
   beam-alt) mkfarm "$BL" "$W/$v" "$W/beam-alt.cfg" 0 ;;
@@ -208,6 +214,33 @@ mkprof(){ # mkprof <variant> <dir>
   [ "$1" = beam-nocss ] || { mkdir -p "$2/chrome"; cp "$beam/userChrome.css" "$beam/userContent.css" "$2/chrome/"; } }
 run(){ # run <variant> <profile> <out|"">  (out empty = warm-up)
   local farm="$W/$1" out=${3:-}
+  if [ "$1" = chrome ]; then   # Chrome driven over CDP, same sequence as the hook's sites mode
+    local port=$(( 9600 + RANDOM % 300 ))
+    HOME="$2" timeout ${BENCH_TIMEOUT:-120} "$CHROME_BIN" --headless=new --no-first-run --no-default-browser-check --user-data-dir="$2/ud" --remote-debugging-port=$port about:blank >"$2.log" 2>&1 & local cpid=$!
+    for i in $(seq 50); do curl -s "http://127.0.0.1:$port/json/version" >/dev/null && break; sleep 0.2; done
+    [ -n "$out" ] && BEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" /usr/bin/node "$here/cdp-driver.mjs" $port "$out" "$here/proctree.py" $cpid "${BENCH_URLS//@LOCAL@/$BASE}" >>"$2.log" 2>&1 || sleep 8
+    kill $cpid 2>/dev/null || true; wait $cpid 2>/dev/null || true; return 0
+  fi
+  if [ -n "${BENCH_URLS:-}" ] && [ -n "$out" ]; then   # Beam/stock in sites mode: same external meter as Chrome
+    HOME="$2" XDG_CACHE_HOME="$2/.cache" LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
+    BEAM_BENCH="$out" BEAM_BENCH_HTTP="$BASE" BEAM_BENCH_URLS="${BENCH_URLS//@LOCAL@/$BASE}" BEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" \
+      timeout ${BENCH_TIMEOUT:-120} "$farm/firefox" --headless --no-remote -profile "$2" about:blank >"$2.log" 2>&1 & local fpid=$!
+    local p0="" p1=""
+    while kill -0 $fpid 2>/dev/null; do
+      st=$(grep -o '"stage":"[a-z-]*"' "$out" 2>/dev/null | tail -1 || true)
+      if [ -z "$p0" ] && [ "$st" = '"stage":"sites-start"' ]; then p0=$(python3 "$here/proctree.py" $fpid); fi
+      if [ -z "$p1" ] && [ "$st" = '"stage":"measure"' ]; then p1=$(python3 "$here/proctree.py" $fpid); fi
+      sleep 0.1
+    done
+    if [ -n "$p0" ] && [ -n "$p1" ]; then python3 - "$out" "$p0" "$p1" <<'PYE'
+import json,sys
+r=json.load(open(sys.argv[1])); a=json.loads(sys.argv[2]); b=json.loads(sys.argv[3])
+r["ext"]={"cpuMs":b["cpuMs"]-a["cpuMs"],"anonMB":b["anonMB"],"rssMB":b["rssMB"],"procs":b["procs"]}
+json.dump(r,open(sys.argv[1],"w"))
+PYE
+    fi
+    return 0
+  fi
   HOME="$2" XDG_CACHE_HOME="$2/.cache" LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
   BEAM_BENCH="$out" BEAM_BENCH_HTTP="$BASE" BEAM_BENCH_RESTORE="${BEAM_BENCH_RESTORE:-}" BEAM_BENCH_BACK="${BENCH_BACK:-}" BEAM_BENCH_QUICK="${BENCH_QUICK:-}" BEAM_BENCH_URLS="${BENCH_URLS:+${BENCH_URLS//@LOCAL@/$BASE}}" BEAM_BENCH_SWITCH="${BENCH_SWITCH:-}" BEAM_BENCH_CLICK="${BENCH_CLICK:-}" BEAM_BENCH_PROXY="${pxbase:-}" BEAM_BENCH_CLICKHOST="${BENCH_CLICK_HOST:-}" BEAM_BENCH_CLICKHOST2="${BENCH_CLICK_HOST2:-}" \
     timeout ${BENCH_TIMEOUT:-120} "$farm/firefox" --headless --no-remote -profile "$2" ${out:+about:blank} >"$2.log" 2>&1 || true
@@ -215,6 +248,7 @@ run(){ # run <variant> <profile> <out|"">  (out empty = warm-up)
   [ -n "${BENCH_DEBUG:-}" ] && { echo "--- $1 stderr tail ---"; grep -vE "Fontconfig|^\s*$" "$2.log" | tail -15; } || true
 }
 for v in $SET; do
+  if [ $v = chrome ]; then mkdir -p "$W/tpl-chrome"; run chrome "$W/tpl-chrome" ""; echo "chrome template ready"; continue; fi
   mkprof $v "$W/tpl-$v"
   # warm-up: first run installs policy extensions etc.; quit after 25s (untimed)
   ( HOME="$W/tpl-$v" LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
@@ -324,7 +358,12 @@ for k,lab in (("fcp","first contentful paint ms"),("dcl","DOMContentLoaded ms"),
     ok=[u for u in urls if all(m(v,u,k) is not None for v in V)]
     print(f"{'SUM over '+str(len(ok))+' sites loaded by all':44}"+"".join(f"{sum(m(v,u,k) for u in ok):>13}" for v in V))
 cpu={v:[r["r"].get("cpuMsTotal") for r in rows if r["variant"]==v and r["r"].get("cpuMsTotal")] for v in V}
-mem={v:[r["r"].get("memEnd",{}).get("memMB") for r in rows if r["variant"]==v and r["r"].get("memEnd")] for v in V}
+mem={v:[r["r"].get("memEnd",{}).get("memMB") for r in rows if r["variant"]==v and (r["r"].get("memEnd") or {}).get("memMB") is not None] for v in V}
+ext=lambda v,k:[ (r["r"].get("ext") or {}).get(k) for r in rows if r["variant"]==v and (r["r"].get("ext") or {}).get(k) is not None]
+print("\n-- same external meter for every browser (/proc, whole process tree) --")
+for k,lab in (("cpuMs","CPU ms over the page set"),("anonMB","memory: private (RssAnon) MB"),("rssMB","memory: RSS MB (overcounts shared)"),("procs","processes")):
+    print(f"{lab:44}"+"".join(f"{str(round(st.median(ext(v,k))) if ext(v,k) else None):>13}" for v in V))
+print("\n-- browser-internal meters (not comparable across engines) --")
 print("\n"+f"{'total CPU ms (all sites, all procs)':44}"+"".join(f"{str(round(st.median(cpu[v])) if cpu[v] else None):>13}" for v in V))
 print(f"{'memory at end MB':44}"+"".join(f"{str(round(st.median(mem[v])) if mem[v] else None):>13}" for v in V))
 PYX

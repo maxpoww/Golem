@@ -77,12 +77,20 @@ try {
           w.setTimeout(function(){ try{ mm.removeMessageListener("bb:perf",h); }catch(e){} cb({err:"no-perf"}); },4000);
         };
         var site=function(){
-          if(k>=urls.length){ bbProc().then(function(p){ R.memEnd=p; R.cpuMsTotal=Math.round(p.cpuMs-cpu0.cpuMs); R.stage="done"; bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} }); return; }
+          // "measure" + a 4s hold: the harness reads CPU/memory from /proc NOW, with the same meter
+          // it uses for Chrome (proctree.py), before the browser quits
+          if(k>=urls.length){ bbProc().then(function(p){ R.memEnd=p; R.cpuMsTotal=Math.round(p.cpuMs-cpu0.cpuMs); R.stage="measure"; bbWrite(R);
+            w.setTimeout(function(){ R.stage="done"; bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} },4000); }); return; }
           var u=urls[k++];
           NET.n=0; NET.kb=0; NET.n3=0; NET.kb3=0; NET.hosts={}; try{ NET.host=Services.io.newURI(u).host.replace(/^www\./,""); }catch(e){ NET.host=""; }
           loadOne(u,function(ms){ w.setTimeout(function(){ perf(function(p){ var once=false; if(once) return; once=true; p.url=u; p.wallMs=ms; p.resp=NET.n; p.respKB=Math.round(NET.kb); p.resp3p=NET.n3; p.resp3pKB=Math.round(NET.kb3); p.hosts3p=NET.hosts; R.sites.push(p); bbWrite(R); site(); }); },2500); });
         };
-        w.setTimeout(function(){ bbProc().then(function(p){ cpu0=p; site(); }); },3500);
+        // start the way a user would: ONE tab, overview dismissed (as every other mode does —
+        // without it Beam loaded every page BEHIND its startup overview, content not painting)
+        w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
+          try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
+        w.setTimeout(function(){ R.preSites={ov:w.document.documentElement.hasAttribute("golem-ov"), tabs:gb.tabs.length, active:gb.selectedBrowser.docShellIsActive};
+          bbProc().then(function(p){ cpu0=p; R.stage="sites-start"; bbWrite(R); site(); }); },(function(){ try{ return parseInt(Services.env.get("BEAM_BENCH_SETTLE"))||3500; }catch(e){ return 3500; } })());
         return;
       }
       // ---- BACK mode (BEAM_BENCH_BACK=reps): for each kind of page: open it, go to another page,
