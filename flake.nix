@@ -219,15 +219,38 @@
       # session LANG differ, a few tiny paths. So this multiplies the MANIFEST,
       # not the ISO size. Keep it to the languages actually offered/tested; an
       # unbaked choice falls back to the en_US baked (boots, English) below.
-      bakeLocales = (import ./system/golem-locales.nix).baked;   # memory-safe core; `.all` is the archive
+      # TEST CUT (2026-09-26, UNCOMMITTED): bake the desktop-test system
+      # (Hyprland + autostart Chrome, desktop/test-chrome.nix) instead of the
+      # minimal, so the ISO installs straight to a driver/A-V test desktop.
+      # en_US only keeps the heavier desktop bake sane. Flip to false to
+      # restore the normal minimal bake — do NOT commit this = true.
+      bakeDesktopTest = false;
+      bakeLocales = if bakeDesktopTest
+        then [ "en_US.UTF-8" ]
+        else (import ./system/golem-locales.nix).baked;   # memory-safe core; `.all` is the archive
       mkBakedEntry = { name, firmware, isFloor, facts, locale }:
         let leaves = (import ./system/Modular/choose.nix { inherit facts; }).leaves; in {
           inherit name firmware isFloor leaves locale;
           key = bakedLib.concatStringsSep ":" (leaves ++ [ locale ]);
-          toplevel = (mkMinimal facts [
+          toplevel = (mkMinimal facts ([
             (bakedFakeDisk firmware)
             { golem.locale.defaultLocale = locale; }
-          ]).config.system.build.toplevel;
+          ] ++ bakedLib.optionals bakeDesktopTest [
+            # the desktop stage + the test-chrome autostart, baked into gen-1
+            ./system/Modular/desktop/default.nix
+            ./system/Modular/desktop/test-chrome.nix
+            {
+              golem.flakeAttr = "golem-desktop-test";
+              # NO maintenance spine on the test rig: the desktop is already
+              # baked into gen-1, so first-boot's full rebuild only pegs the CPU
+              # (load ~12, "system too slow") and fights the graphical session —
+              # THE "can't reach graphical" bug (2026-09-26). Turn it off; the
+              # baked desktop just runs.
+              systemd.services.golem-first-boot.enable = bakedLib.mkForce false;
+              systemd.services.golem-autoupdate.enable = bakedLib.mkForce false;
+              systemd.timers.golem-autoupdate.enable = bakedLib.mkForce false;
+            }
+          ])).config.system.build.toplevel;
         };
       # COVERAGE: every class in BOTH firmwares (firmware picks grub-bios vs
       # grub-efi → a different leaf-list), plus the floor in both. So any
@@ -355,6 +378,14 @@
           inherit pkgs mkMinimal;
         };
 
+        # The stage-1 DESKTOP effect matrix (Phase B): compose the desktop
+        # bundle onto real fixtures and assert the composed desktop config —
+        # Hyprland under uwsm, greetd, uinput — before a metal climb.
+        desktop-matrix = import ./system/Modular/desktop-matrix.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs mkMinimal;
+        };
+
         # The keyboard table's names, against the packages that consume
         # them. facts-matrix proves an evaluated config says what we meant;
         # it cannot prove `console.keyMap = "gb"` is a keymap that exists.
@@ -434,6 +465,63 @@
                 home-manager.useUserPackages = true;
               }
               ./system/Modular/composition.nix
+              ./hosts/target/golem-hardware.nix
+              ./hosts/target/hardware-configuration.nix
+              ./hosts/target/machine.nix
+            ]
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/modules.nix)
+              ./hosts/target/modules.nix;
+          };
+
+          # STAGE 1 — the same machine PLUS the desktop bundle (spec.md's stage
+          # ladder). A stage-0 install climbs by setting golem.flakeAttr =
+          # "golem-desktop" in its machine.nix and running rebuild-golem: same
+          # seed, same hardware leaves, + desktop/*. No reinstall, no new
+          # mechanism — the existing self-rebuild loop (base/loop, base/selfrebuild).
+          golem-desktop = nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              {
+                system.configurationRevision =
+                  self.rev or self.dirtyRev or "unknown";
+              }
+              home-manager.nixosModules.home-manager
+              {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+              }
+              ./system/Modular/composition.nix
+              ./system/Modular/desktop/default.nix
+              ./hosts/target/golem-hardware.nix
+              ./hosts/target/hardware-configuration.nix
+              ./hosts/target/machine.nix
+            ]
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/modules.nix)
+              ./hosts/target/modules.nix;
+          };
+
+          # TEST-ONLY (2026-09-26): the desktop stage PLUS the test-chrome
+          # autostart (Hyprland → Chrome with VA-API + CDP). This is the attr
+          # the desktop-test bake pins golem.flakeAttr to, so the installed
+          # machine's first-boot/rebuild reproduces the driver/A-V test desktop.
+          # Not a production stage — delete when the real desktop lands.
+          golem-desktop-test = nixpkgs.lib.nixosSystem {
+            inherit system;
+            modules = [
+              {
+                system.configurationRevision =
+                  self.rev or self.dirtyRev or "unknown";
+              }
+              home-manager.nixosModules.home-manager
+              {
+                home-manager.useGlobalPkgs = true;
+                home-manager.useUserPackages = true;
+              }
+              ./system/Modular/composition.nix
+              ./system/Modular/desktop/default.nix
+              ./system/Modular/desktop/test-chrome.nix
               ./hosts/target/golem-hardware.nix
               ./hosts/target/hardware-configuration.nix
               ./hosts/target/machine.nix

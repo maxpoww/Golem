@@ -1,0 +1,107 @@
+# The DESKTOP-STAGE effect matrix (Phase B, 2026-09-26) — the stage-1 twin of
+# effect-matrix.nix. Compose a real fixture's hardware leaves PLUS the desktop
+# bundle via mkMinimal and assert the composed desktop config: not "the file
+# imports hyprland.nix" but "the composed stage-1 system really enables Hyprland
+# under uwsm, greetd launching it as the owner, uinput on". A desktop leaf whose
+# values drift fails HERE, on source, before a metal climb. Runs the desktop
+# leaves TOGETHER with the machine's hardware leaves, so a compose conflict
+# (a desktop leaf fighting a gpu/memory leaf) also surfaces here.
+#
+#   nix build .#checks.x86_64-linux.desktop-matrix
+{ lib, pkgs, mkMinimal }:
+
+let
+  fakeDisk = {
+    nixpkgs.hostPlatform = "x86_64-linux";
+    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
+  };
+  desktop = ../../system/Modular/desktop/default.nix;
+
+  ex = name: ok: { inherit name ok; };
+
+  rows = [
+    {
+      name = "lenovo desktop stage (intel+nvidia — the richest GPU class)";
+      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).golem.hardware;
+    }
+    {
+      name = "thinkpad desktop stage (AMD Renoir — the amd class)";
+      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).golem.hardware;
+    }
+  ];
+
+  # Same assertions for every class — the desktop skeleton is hardware-agnostic;
+  # the point is that it COMPOSES cleanly on each and sets what it promises.
+  expect = c: [
+    (ex "hyprland enabled" c.programs.hyprland.enable)
+    (ex "hyprland under uwsm" c.programs.hyprland.withUWSM)
+    (ex "hyprland xwayland on" c.programs.hyprland.xwayland.enable)
+    (ex "greetd enabled" c.services.greetd.enable)
+    (ex "greetd starts hyprland via uwsm"
+      (lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command))
+    (ex "greetd session runs as the owner"
+      (c.services.greetd.settings.default_session.user == c.golem.owner))
+    (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)
+    (ex "xserver on for XWayland xkb" c.services.xserver.enable)
+    (ex "owner joined uinput + adbusers at the desktop stage"
+      (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
+        && lib.elem "adbusers" c.users.users.${c.golem.owner}.extraGroups))
+    # base groups still present (extraGroups MERGED, not replaced)
+    (ex "base groups survive the merge (wheel, video)"
+      (lib.elem "wheel" c.users.users.${c.golem.owner}.extraGroups
+        && lib.elem "video" c.users.users.${c.golem.owner}.extraGroups))
+    # audio: pipewire replaces pulseaudio
+    (ex "pipewire on, pulseaudio off" (c.services.pipewire.enable && !c.services.pulseaudio.enable))
+    (ex "pipewire pulse + alsa shims" (c.services.pipewire.pulse.enable && c.services.pipewire.alsa.enable))
+    (ex "rtkit on (realtime audio)" c.security.rtkit.enable)
+    # bluetooth: these fixtures have a radio → blueman + bluez on
+    (ex "bluetooth on (census hasBluetooth)" (c.hardware.bluetooth.enable && c.services.blueman.enable))
+    # fonts: the Nerd Font ships, sans-serif pinned to DejaVu
+    (ex "JetBrains Mono Nerd Font shipped"
+      (lib.any (p: lib.hasInfix "jetbrains-mono" (p.pname or p.name or "")) c.fonts.packages))
+    (ex "sans-serif pinned to DejaVu" (c.fonts.fontconfig.defaultFonts.sansSerif == [ "DejaVu Sans" ]))
+  ];
+
+  runRow = row:
+    let
+      c = (mkMinimal row.facts [ fakeDisk desktop ]).config;
+      failed = builtins.filter (e: !e.ok) (expect c);
+    in
+    if failed == [ ]
+    then "${row.name} ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
+    else throw "desktop-matrix row '${row.name}' failed: ${
+      lib.concatMapStringsSep "; " (e: e.name) failed}";
+
+  # The TEST cut: desktop + the test-chrome autostart (NOT in default.nix).
+  # Compose it and assert the owner's Chrome lands via home-manager with the
+  # VA-API flag, forcing the full eval (home config included).
+  testChrome =
+    let
+      testLeaf = ../../system/Modular/desktop/test-chrome.nix;
+      c = (mkMinimal (builtins.head rows).facts [ fakeDisk desktop testLeaf ]).config;
+      owner = c.golem.owner;
+      hm = c.home-manager.users.${owner};
+      checks = [
+        (ex "test-chrome: chromium/google-chrome enabled for the owner" hm.programs.chromium.enable)
+        (ex "test-chrome: VaapiVideoDecoder flag present"
+          (lib.any (a: lib.hasInfix "VaapiVideoDecoder" a) hm.programs.chromium.commandLineArgs))
+        (ex "test-chrome: CDP port for SSH-driven tests"
+          (lib.any (a: lib.hasInfix "remote-debugging-port=9222" a) hm.programs.chromium.commandLineArgs))
+        (ex "test-chrome: hyprland.conf autostarts chrome"
+          (lib.hasInfix "exec-once = google-chrome" hm.xdg.configFile."hypr/hyprland.conf".text))
+      ];
+      failed = builtins.filter (e: !e.ok) checks;
+    in
+    if failed == [ ]
+    then "test-chrome cut ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
+    else throw "desktop-matrix test-chrome failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
+
+  report = (map runRow rows) ++ [ testChrome ];
+in
+pkgs.runCommand "golem-desktop-matrix"
+  { passAsFile = [ "report" ]; report = lib.concatStringsSep "\n" report; }
+  ''
+    cp "$reportPath" $out
+    echo "desktop-matrix: ${toString (builtins.length rows)} desktop stages composed & asserted" >&2
+  ''

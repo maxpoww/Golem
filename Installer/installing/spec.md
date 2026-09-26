@@ -122,6 +122,15 @@ Contracts:
 - **Stage 1 (desktop):** + `desktop/*`, applied by rebuild. Done =
   waverunner desktop functional at that machine's GPU class, DockMenu
   harness green, a human hour survived.
+  - **Hardware gate (2026-09-26):** the desktop is Hyprland, which needs
+    **OpenGL ES 3.x**. That excludes pre-GLES3 GPUs — Intel gen ≤ 5/6 and
+    dead dGPUs. Confirmed floor machines that STAY stage-0 (headless, never
+    graduate to Hyprland): **comodore** (GMA 4500, gen 4, +1.9 GB RAM) and
+    **HP Pavilion dm4** (Intel Ironlake, gen 5 — kernel: `Found ironlake`;
+    its Radeon HD 6370M is dead, accel disabled). Desktop-capable: Intel
+    gen 7+ (Haswell/Broadwell — macbook, acer, asus), modern AMD (thinkpad
+    Renoir), nvidia (lenovo). A graphical session for the floor, if ever
+    wanted, must be a lighter compositor (gles2 / framebuffer), not Hyprland.
 - **Stage 2 (programs):** + owner-chosen `programs/*` through the dock
   and the Modules feature. Done = install/uninstall round-trips clean
   (the #37–#61 invariants hold on this machine).
