@@ -72,6 +72,7 @@
             self.rev or self.dirtyRev or "unknown";
         }
         ./system/configuration.nix
+        ./beam   # Beam: Golem's browser (Mozilla build + policies + chrome script + security update lane)
         home-manager.nixosModules.home-manager
         waverunner.nixosModules.notification-service
         ({ config, ... }: {

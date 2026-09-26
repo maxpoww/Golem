@@ -1,0 +1,122 @@
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+/* GOLEM debloat — FUNCTIONAL hides only, no restyling. The look is
+   Firefox default; this just removes chrome that has no button and
+   should not exist in a windows/tabs/search browser. */
+
+/* hamburger, extensions puzzle, account, Firefox View, menubar */
+#PanelUI-button,
+#unified-extensions-button,
+#fxa-toolbar-menu-button,
+#firefox-view-button,
+#toolbar-menubar {
+  display: none !important;
+}
+
+/* "Customize toolbar…" — layout is pref-owned */
+.viewCustomizeToolbar { display: none !important; }
+
+/* the hover link-target preview at the bottom-left */
+#statuspanel { display: none !important; }
+
+/* no scrollbars (kept from before — you liked this) */
+* { scrollbar-width: none !important; }
+
+/* Firefox's own window controls stay hidden — the browser floats without a
+   titlebar, and the macOS traffic-light controls were cut (Max, 2026-09-18), so
+   it carries no window buttons. */
+.titlebar-buttonbox-container,
+#window-controls,
+.titlebar-close {
+  display: none !important;
+}
+
+
+
+
+/* ------------------------------------------------------------------
+   SIDEBAR AUTO-HIDE — slide the genuine EXPANDED sidebar off-screen.
+
+   The chrome script forces the launcher expanded (real full-width tab
+   rows, titles, close-X on the right). Here it is slid off-screen,
+   leaving a ~4px opaque sliver to hover; hover slides the whole thing
+   in over the page.
+
+   Sliver must be OPAQUE (the sidebar's dark bg) to capture hover — a
+   transparent edge falls through to web content. position:absolute
+   pulls it out of flow so the page uses the full width.
+   ------------------------------------------------------------------ */
+#browser { position: relative !important; }
+
+#sidebar-container {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 285px !important;
+  min-width: 285px !important;
+  max-width: 285px !important;
+  /* The colour is always the adaptive one; VISIBILITY is via opacity. CLOSED =
+     opacity 0, so the whole sidebar (background AND the tab edge that used to
+     peek) is fully invisible — yet it still catches hover, because opacity:0
+     elements still receive pointer events, keeping the 14px catch strip live. */
+  background-color: color-mix(in srgb,
+    var(--lwt-sidebar-background-color, var(--lwt-accent-color, rgb(29, 32, 38))) 95%,
+    transparent) !important;
+  opacity: 0 !important;
+  transform: translateX(-271px) !important;   /* 14px invisible catch strip */
+  transition: transform 180ms ease, opacity 150ms ease !important;
+  z-index: 10 !important;
+}
+
+#sidebar-container:hover {
+  transform: translateX(0) !important;
+  opacity: 1 !important;   /* fade the whole sidebar in when opened */
+  /* Colour comes from the base rule (adaptive --lwt-sidebar-background-color /
+     --lwt-accent-color). No drop-shadow: a blurred one bleeds up over the top
+     edge as a dark band; the sliding panel already reads as "on top". */
+}
+
+/* When the window is UNFOCUSED, Hyprland dims it 30% (dim_strength 0.3), but
+   #sidebar-container is a CSS-transform layer that escapes that window-level
+   dim — so the revealed sidebar stayed bright while the top bar darkened.
+   Apply the same 30% here (brightness 0.7 == a 0.3 dim) when the window is
+   inactive, so the sidebar dims in lockstep with the toolbar. If it ends up
+   slightly too dark/light, nudge this one number. */
+#sidebar-container:-moz-window-inactive { filter: brightness(0.7) !important; }
+
+#sidebar-launcher-splitter,
+#sidebar-splitter { display: none !important; }
+
+/* The full-width divider under the toolbar IS Firefox's chrome/content
+   separator, --chrome-content-separator-color — a ~1px line ≈6% white over the
+   bar (measured rgb ~56, dead-on the variable's value). The catch: a plain
+   `:root { ...: transparent !important }` LOSES the cascade to Firefox's own
+   :root rule (the computed value stays default). Overriding it on #main-window
+   (id specificity) wins. Verified by pixel sampling: the boundary row is then
+   uniform with its neighbours — line gone. (Also drop FF156's content-elevation
+   shadow so nothing else marks the boundary.) */
+.browserContainer { box-shadow: none !important; }
+#main-window, #navigator-toolbox, #nav-bar,
+#browser, #tabbrowser-tabbox, #tabbrowser-tabpanels {
+  --chrome-content-separator-color: transparent !important;
+}
+
+/* ===================== TOP BAR COLOUR =====================
+   Match the sidebar's rgb(41,45,54) (a cold, blueish dark). The top bar's
+   visible background is painted by a NATIVE-appearance element under the
+   transparent chrome, so plain background-color won't show — kill the native
+   appearance first, then paint the colour. (Inactive: Hyprland dims the whole
+   window, matching the sidebar's brightness(0.7), so the two stay level.)
+   ⚠ Keep this value == the #sidebar-container background above. */
+/* DISABLED for the Adaptive Tab Bar Colour (ATBC) trial — our fixed colour
+   would override the extension. To restore the solid cold-dark toolbar,
+   uncomment the rule below (remove the comment markers around it).
+#navigator-toolbox, #nav-bar, #nav-bar-customization-target,
+.browser-toolbar, .toolbar-items {
+  -moz-default-appearance: none !important;
+  appearance: none !important;
+  background-color: rgb(29, 32, 38) !important;
+  background-image: none !important;
+}
+*/

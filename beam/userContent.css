@@ -1,0 +1,10 @@
+@namespace url("http://www.w3.org/1999/xhtml");
+* { scrollbar-width: none !important; }
+
+/* New tab / blank pages — paint the background the BAR COLOUR so a new tab
+   matches the toolbar and sidebar (new tabs open about:blank here). Verified
+   by pixel. ⚠ Keep this rgb() in sync with the bar colour in userChrome.css
+   (#sidebar-container + #navigator-toolbox) if you retune the shade. */
+@-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
+  :root, html, body { background-color: rgb(29, 32, 38) !important; }
+}

@@ -8,6 +8,7 @@
 
 {
   imports = [
+    ../../beam/home.nix   # Beam: prefs, look, and the golem profile
     ./zsh.nix
     waverunner.homeManagerModules.default
   ];
