@@ -83,8 +83,11 @@
           # cuts live in userChrome.css + browser.uiCustomization.state.
           DisableDeveloperTools = true;
           DisableFirefoxAccounts = true;
-          PasswordManagerEnabled = false;
-          OfferToSaveLogins = false;
+          # Password saving ON (Max, 2026-09-26: "turn on saving passwords").
+          # Local only: Firefox accounts/sync are disabled below, so logins
+          # never leave the machine (logins.json, encrypted with key4.db).
+          PasswordManagerEnabled = true;
+          OfferToSaveLogins = true;
           DisableProfileImport = true;
           DontCheckDefaultBrowser = true;
           DisableSetDesktopBackground = true;

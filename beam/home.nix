@@ -44,22 +44,14 @@ EOF
     user_pref("general.smoothScroll.msdPhysics.enabled", true);
     user_pref("apz.overscroll.enabled", true);
 
-    // --- THE most important value here. Do not remove. ---
-    // Default is -1 (auto-detect). MEASURED 2026-09-11 with an
-    // rAF frame-timing harness:
-    //     layout.frame_rate = -1   ->  60.0 fps  (detects "59 Hz")
-    //     layout.frame_rate = 165  -> 163.2 fps  (detects "166 Hz")
-    // Chromium on the identical test scores 151.8 fps, so with this
-    // set Firefox is the faster browser on this machine; without it,
-    // it runs at a third of the panel's rate.
-    //
-    // Cause: wlr-randr reports eDP-1's PREFERRED mode as 60Hz and
-    // 165Hz merely as current. Auto-detect appears to believe the
-    // preferred mode. Pinning bypasses that.
-    //
-    // Caveat: this is hardcoded to eDP-1's rate. If an external
-    // monitor with a different refresh is ever used, revisit it.
-    user_pref("layout.frame_rate", 165);
+    // --- Display rate: PER MACHINE, set by Beam itself (golem-chrome.js). ---
+    // History: 2026-09-11 this pinned layout.frame_rate=165 because auto-detect
+    // (-1) believes the panel's PREFERRED mode (60) and ran Max's 165 Hz panel
+    // at a third of its rate. A distro can't pin one number: on a 60 Hz laptop
+    // 165 renders ~3 frames per one shown. Since 2026-09-26 Beam asks the
+    // compositor (hyprctl monitors -j) at startup and sets the pref LIVE to the
+    // real rate — 165 here, 60/120/144 elsewhere. Nothing to set in this file.
+    // (If detection ever fails, Firefox's own -1 applies; golem-media.json says.)
 
     // --- Touchpad: LINE mode (1), not pixel (2) — changed for FF156.
     // Pixel mode was the 155 choice (1:1 tracking, good speed). On 156

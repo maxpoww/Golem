@@ -1251,6 +1251,215 @@ try {
   }
 
   // =================================================================
+  // PER-MACHINE DISPLAY RATE (2026-09-26, speed pass; Max: "speed first").
+  // layout.frame_rate was hardcoded to 165 (Max's panel) for EVERY Golem machine: a
+  // 60 Hz laptop rendered ~3 frames per one shown (CPU wasted, uneven scrolling), and
+  // Firefox's own auto-detect (-1) believes the panel's PREFERRED mode, which on many
+  // high-refresh laptops is 60 -> a third of the panel. Golem controls the OS, so Beam
+  // asks the compositor: hyprctl monitors -j -> the focused monitor's real rate. The
+  // pref is LIVE (proven headless: 30 -> 29 fps, 90 -> 89 fps in one session), so it
+  // is set as soon as the answer arrives. If hyprctl is unavailable nothing is set
+  // (Firefox's default stays). Pacing prefs (vsync off etc.) are unchanged.
+  // =================================================================
+  var FR_PREF="layout.frame_rate", frState=null;
+  function frDecide(list){
+    try{
+      if(!list || !list.length) return null;
+      var m=null; list.forEach(function(x){ if(x && x.focused) m=x; });
+      if(!m) list.forEach(function(x){ if(x && (!m || (+x.refreshRate||0)>(+m.refreshRate||0))) m=x; });
+      var r=Math.round(+m.refreshRate||0); if(r<30 || r>480) return null;
+      return {rate:r, vrr:!!m.vrr, name:String(m.name||"")};
+    }catch(e){ return null; }
+  }
+  async function frDetect(){
+    var S=ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs").Subprocess;
+    var cands=[]; try{ var e=Services.env.get("GOLEM_HYPRCTL"); if(e) cands.push(e); }catch(e2){}
+    try{ var p=await S.pathSearch("hyprctl"); if(p) cands.push(p); }catch(e3){}
+    cands.push("/run/current-system/sw/bin/hyprctl");
+    for(var i=0;i<cands.length;i++){
+      try{ var pr=await S.call({command:cands[i], arguments:["monitors","-j"]}); var txt=await pr.stdout.readString(); await pr.wait();
+           var d=frDecide(JSON.parse(txt)); if(d){ d.source=cands[i]; return d; } }catch(e4){}
+    }
+    return null;
+  }
+  function frApply(){
+    frDetect().then(function(d){ if(!d) return; frState=d; try{ Services.prefs.setIntPref(FR_PREF,d.rate); }catch(e){} OVLOG("display: "+d.name+" "+d.rate+"Hz vrr="+d.vrr); },function(){});
+  }
+  try{ frApply(); }catch(e){}   // at autoconfig time: before the first window
+
+  // =================================================================
+  // PER-MACHINE CODECS (2026-09-26, speed pass). Modern chips decode H.264, VP9 and AV1
+  // in hardware; older ones (HD 5500, HD 5000, GM45 ...) only H.264 (or nothing), yet
+  // YouTube serves VP9/AV1 by default -> software decode: stutter, fans, scroll jank.
+  // Golem already ships h264ify for Chrome webapps on legacy machines; Beam does the
+  // same itself: read each codec's hardware support from Firefox's decoder report
+  // (gfxInfo.CodecSupportInfo, filled by the media process: "VP9 SWDEC HWDEC"), and where
+  // VP9 / AV1 are known NOT to be hardware, tell STREAMING sites they are unsupported
+  // (MediaSource.isTypeSupported, patched before any page script runs) so they fall back
+  // to H.264 — plain video files still play (media.webm.enabled=false would have killed
+  // those; media.mediasource.vp9.enabled is dead in 156, measured). A codec the report
+  // does not list yet is UNKNOWN -> untouched (the previous session's answer stays);
+  // re-checked a minute in and after a video starts, when the report is complete.
+  // (mediaCapabilities.decodingInfo(...).powerEfficient looked like the obvious probe and
+  // was WRONG on real hardware: it answers for the browser process, where video is never
+  // decoded, so it said "no hardware" on a machine that decodes everything in hardware —
+  // measured live 2026-09-26. It is kept only to make Firefox instantiate its decoders.)
+  // Modern machines: nothing changes. Persisted as BOOL prefs (golem.beam.codecBlock.vp9 /
+  // .av1) so the NEXT start applies it from the very first page; re-probed every start.
+  // (Bools, not one string: Firefox strips STRING prefs from web content processes for
+  // privacy, so the content side could never read a string list — measured.)
+  // Kill switch: golem.beam.preferHwCodecs=false.
+  // =================================================================
+  var CB_PREF="golem.beam.codecBlock.", CB_ON="golem.beam.preferHwCodecs", CB_CODECS=["vp9","av1"], cbState=null;
+  function cbCaps(){   // {h264:{known,hw,sw}, vp9:..., av1:...} from the decoder report
+    var out={};
+    try{ var g=Components.classes["@mozilla.org/gfx/info;1"].getService(Components.interfaces.nsIGfxInfo);
+      String(g.CodecSupportInfo||"").split("\n").forEach(function(line){ var p=line.trim().split(" "); if(!p[0]) return;
+        out[p[0].toLowerCase()]={known:true, hw:p.indexOf("HWDEC")!==-1, sw:p.indexOf("SWDEC")!==-1}; }); }catch(e){}
+    return out;
+  }
+  function cbDecide(caps){   // block a codec for streaming only on positive evidence it is not hardware
+    var b=[]; CB_CODECS.forEach(function(c){ var x=caps && caps[c]; if(x && x.known && !x.hw) b.push(c); }); return b;
+  }
+  async function cbProbe(win){   // makes Firefox instantiate its decoders (fills the report); its own verdict is NOT trusted
+    var mc=win.navigator.mediaCapabilities, caps={};
+    var list=[["h264",'video/mp4; codecs="avc1.640028"'],["vp9",'video/webm; codecs="vp09.00.10.08"'],["av1",'video/mp4; codecs="av01.0.08M.08"']];
+    for(var i=0;i<list.length;i++){
+      try{ var r=await mc.decodingInfo({type:"media-source", video:{contentType:list[i][1], width:1920, height:1080, bitrate:4000000, framerate:30}});
+           caps[list[i][0]]={supported:!!r.supported, powerEfficient:!!r.powerEfficient}; }
+      catch(e){ caps[list[i][0]]={supported:false, powerEfficient:false, error:String(e)}; }
+    }
+    return caps;
+  }
+  function cbApply(reason){
+    var caps=cbCaps(), block=cbDecide(caps);
+    CB_CODECS.forEach(function(c){ if(caps[c] && caps[c].known){ try{ Services.prefs.setBoolPref(CB_PREF+c, block.indexOf(c)!==-1); }catch(e){} } });
+    cbState={caps:caps, block:block, reason:reason, persisted:CB_CODECS.map(function(c){ return c+"="+Services.prefs.getBoolPref(CB_PREF+c,false); }).join(" ")};
+    OVLOG("codecs("+reason+"): "+JSON.stringify(caps)+" -> block "+(block.join(",")||"nothing"));
+    return cbState;
+  }
+  // content side: patch MediaSource.isTypeSupported in every new DOCUMENT, per the persisted list.
+  // (Keyed by document, not window: a browser's outer window object is reused across page
+  // loads, so a per-window "done" mark patched only the first page — measured.)
+  var CB_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
+    "(function(){var dbg=function(w,e){try{sendAsyncMessage('golem:cbdbg',{where:w,err:String(e)});}catch(x){}};try{"+
+    "var P=Services.prefs,done=new WeakSet();"+
+    "function patch(d){try{if(!d||done.has(d))return;done.add(d);var w=d.defaultView;if(!w)return;var on=true;try{on=P.getBoolPref('golem.beam.preferHwCodecs');}catch(e){}if(!on)return;"+
+    "var parts=[];try{if(P.getBoolPref('golem.beam.codecBlock.vp9'))parts.push('vp0?9');}catch(e){}try{if(P.getBoolPref('golem.beam.codecBlock.av1'))parts.push('av01');}catch(e){}if(!parts.length)return;"+
+    "var re=new RegExp('(^|[^a-z0-9])('+parts.join('|')+')','i');var u=w.wrappedJSObject,MS=u.MediaSource;if(!MS)return;var orig=MS.isTypeSupported;"+
+    "Components.utils.exportFunction(function(t){if(re.test(String(t)))return false;return orig.call(MS,t);},MS,{defineAs:'isTypeSupported'});dbg('patched',parts.join(','));}catch(e){dbg('patch',e);}}"+
+    "addEventListener('DOMWindowCreated',function(e){try{patch(e.target);}catch(x){dbg('event',x);}},true);try{patch(content.document);}catch(e){dbg('initial',e);}"+
+    "}catch(e){dbg('load',e);}})();");
+  function cbInit(win){
+    if(win.__golemCbInit) return; win.__golemCbInit=true;
+    try{ win.messageManager.addMessageListener("golem:cbdbg",function(m){ (win.__golemCbDbg=win.__golemCbDbg||[]).push(m.data.where+": "+m.data.err); if(win.__golemCbDbg.length>20) win.__golemCbDbg.shift(); }); }catch(e){}
+    try{ win.messageManager.loadFrameScript(CB_FS,true); }catch(e){ OVLOG("codec framescript:"+e); }
+    win.__golemCbProbe=cbProbe(win).then(function(probe){ var st=cbApply("startup"); st.probe=probe; return st; },
+                                         function(e){ var st=cbApply("startup"); st.probeError=String(e); return st; });
+    win.setTimeout(function(){ cbApply("60s"); },60000);                                   // the report is usually complete by now
+    win.addEventListener("DOMAudioPlaybackStarted",function(){ win.setTimeout(function(){ cbApply("playback"); },5000); },true);
+  }
+
+  // =================================================================
+  // CPU SHARE — THE TAB YOU LOOK AT WINS (2026-09-26, Max: "one more effort, faster").
+  // Firefox's Linux process priority manager only sets oom_score_adj; every Beam process
+  // runs at the same CPU priority, so a busy background tab competes equally with the
+  // one on screen (measured live: all nice 0). Chrome on Linux has the same gap.
+  // Golem's dock launches every app in its own systemd user scope with the cpu
+  // controller delegated (waverunner launch.rs). Inside that scope Beam makes two
+  // cgroups, fg and bg: everything starts in fg; content processes whose tabs are ALL
+  // background (not selected in any window, not playing sound) move to bg, which has
+  // cpu.weight 20 vs 100 — a 5:1 share whenever they compete, full CPU when nothing
+  // competes. Reversible (a process moves back the moment its tab is picked), no root.
+  // SAFETY: refuses to touch a cgroup it does not own outright (every process in it must
+  // descend from Beam) — a Beam launched the old way sits in the compositor's cgroup and
+  // does nothing. Kill switch golem.beam.cpuShare=false (moves everything back to fg).
+  // =================================================================
+  var CS_ON="golem.beam.cpuShare", CS_WEIGHT="golem.beam.cpuShare.bgWeight";
+  var csState={status:"idle"};
+  function csOn(){ try{ return Services.prefs.getBoolPref(CS_ON,true); }catch(e){ return true; } }
+  function csWeight(){ try{ var w=Services.prefs.getIntPref(CS_WEIGHT,20); return Math.max(1,Math.min(100,w)); }catch(e){ return 20; } }
+  function csFile(path){ var f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath(path); return f; }
+  function csRead(path){ try{ return ovReadText(csFile(path)); }catch(e){ return null; } }
+  function csWrite(path,text){   // cgroupfs: plain write, no create/truncate (a temp+rename would fail here)
+    var fos=Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);
+    fos.init(csFile(path),0x02,0o644,0); fos.write(text,text.length); fos.close();
+  }
+  function csScopeDir(){   // this process's own cgroup, as a cgroupfs directory; null if not a real absolute path
+    var c=csRead("/proc/self/cgroup")||"", line=null; c.split("\n").forEach(function(l){ if(l.indexOf("0::")===0) line=l; }); if(!line) return null;
+    var p=line.slice(3).trim(); if(p.charAt(0)!=="/" || p.indexOf("..")!==-1) return null; return "/sys/fs/cgroup"+p;
+  }
+  function csPids(dir){ var t=csRead(dir+"/cgroup.procs"); return t ? t.split("\n").map(function(x){ return parseInt(x,10); }).filter(function(n){ return n>0; }) : []; }
+  function csParent(pid){ var st=csRead("/proc/"+pid+"/stat"); if(!st) return 0; var i=st.lastIndexOf(")"); var pp=parseInt(st.slice(i+2).split(" ")[1],10); return pp>0?pp:0; }
+  function csArgv0(pid){ try{ var c=csRead("/proc/"+pid+"/cmdline")||""; return c.split("\u0000")[0]||""; }catch(e){ return ""; } }
+  function csOwnsAll(pids){   // every pid is Beam's: a descendant of this process, one of its own ancestors, or a
+    // program from Beam's own install directory (Firefox re-parents its crashhelper to the
+    // session manager at startup — measured live: it was the one "foreign" pid; its cmdline
+    // starts with that directory, and cmdline stays readable where /proc/pid/exe is not)
+    var self=Services.appinfo.processID, anc={}, a=self, hops=0, home="";
+    try{ home=Services.dirsvc.get("GreD",Components.interfaces.nsIFile).path; }catch(e){}
+    while(a>1 && hops++<64){ anc[a]=true; a=csParent(a); }   // the launch wrappers (sh, systemd-run, timeout) sit in the scope above us
+    return pids.every(function(pid){ if(anc[pid]) return true; var p=pid, h=0; while(p>1 && h++<64){ if(p===self) return true; p=csParent(p); if(!p) break; } return !!home && csArgv0(pid).indexOf(home+"/")===0; });
+  }
+  async function csSetup(win){
+    try{
+      if(!csOn()){ csState={status:"off"}; return false; }
+      var dir=csScopeDir(); if(!dir){ csState={status:"no-scope"}; return false; }
+      if(!(dir.slice(-6)===".scope" || dir.slice(-7)===".scope/")){ csState={status:"no-scope", scope:dir}; return false; }   // only a transient scope of our own, never a compositor/service cgroup
+      var has=function(list){ return (" "+String(list||"").replace(/\s+/g," ")+" ").indexOf(" cpu ")!==-1; };
+      var ctrl=csRead(dir+"/cgroup.controllers")||""; if(!has(ctrl)){ csState={status:"no-cpu", scope:dir, controllers:ctrl.trim()}; return false; }
+      var pids=csPids(dir); if(!csOwnsAll(pids)){ csState={status:"shared-scope", scope:dir, procs:pids.length}; return false; }
+      var fg=dir+"/fg", bg=dir+"/bg";
+      await win.IOUtils.makeDirectory(fg,{ignoreExisting:true}); await win.IOUtils.makeDirectory(bg,{ignoreExisting:true});
+      pids.forEach(function(pid){ try{ csWrite(fg+"/cgroup.procs",String(pid)); }catch(e){} });   // the scope root must be empty before +cpu
+      if(!has(csRead(dir+"/cgroup.subtree_control"))) csWrite(dir+"/cgroup.subtree_control","+cpu");
+      csWrite(bg+"/cpu.weight",String(csWeight()));
+      csState={status:"active", scope:dir, fgDir:fg, bgDir:bg, weight:csWeight(), fg:0, bg:0, moves:0};
+      OVLOG("cpushare: active in "+dir+" (bg weight "+csWeight()+")");
+      return true;
+    }catch(e){ csState={status:"error", error:String(e)}; OVLOG("cpushare setup:"+e); return false; }
+  }
+  // Which content processes may go to the back: {fg:[pids], bg:[pids]} from tab facts.
+  // A process hosting ANY on-screen or sounding tab stays in front.
+  function csPlan(tabs){
+    var fg={}, all={};
+    tabs.forEach(function(t){ if(!(t.pid>0)) return; all[t.pid]=true; if(t.selected || t.soundPlaying) fg[t.pid]=true; });
+    var out={fg:[], bg:[]}; Object.keys(all).forEach(function(k){ (fg[k]?out.fg:out.bg).push(parseInt(k,10)); }); return out;
+  }
+  function csTabs(){
+    var tabs=[]; try{ var en=Services.wm.getEnumerator("navigator:browser"); while(en.hasMoreElements()){ var w=en.getNext(); if(!w.gBrowser) continue;
+      Array.prototype.forEach.call(w.gBrowser.tabs,function(t){ var pid=0; try{ var b=t.linkedBrowser, wg=b.browsingContext&&b.browsingContext.currentWindowGlobal; pid=(wg&&wg.osPid)||(b.frameLoader&&b.frameLoader.remoteTab&&b.frameLoader.remoteTab.osPid)||0; }catch(e){}
+        tabs.push({pid:pid, selected:!!t.selected, soundPlaying:!!t.soundPlaying}); }); } }catch(e){}
+    return tabs;
+  }
+  function csApply(reason){
+    if(csState.status!=="active") return;
+    try{
+      var plan=csOn() ? csPlan(csTabs()) : {fg:csPids(csState.bgDir), bg:[]};   // switched off → everything back to front
+      var inBg={}; csPids(csState.bgDir).forEach(function(p){ inBg[p]=true; });
+      var inFg={}; csPids(csState.fgDir).forEach(function(p){ inFg[p]=true; });
+      var moves=0;
+      plan.bg.forEach(function(p){ if(!inBg[p] && inFg[p]){ try{ csWrite(csState.bgDir+"/cgroup.procs",String(p)); moves++; }catch(e){} } });
+      plan.fg.forEach(function(p){ if(inBg[p]){ try{ csWrite(csState.fgDir+"/cgroup.procs",String(p)); moves++; }catch(e){} } });
+      csState.fg=csPids(csState.fgDir).length; csState.bg=csPids(csState.bgDir).length; csState.moves+=moves; csState.last=reason;
+    }catch(e){ OVLOG("cpushare apply:"+e); }
+  }
+  function csInit(win){
+    if(win.__golemCsInit) return; win.__golemCsInit=true;
+    var later=function(reason,ms){ return function(){ win.setTimeout(function(){ csApply(reason); },ms); }; };
+    csSetup(win).then(function(ok){
+      if(!ok) return;
+      csApply("start");
+      try{ win.gBrowser.tabContainer.addEventListener("TabSelect",later("select",250)); }catch(e){}
+      win.addEventListener("DOMAudioPlaybackStarted",later("sound",100),true);
+      win.addEventListener("DOMAudioPlaybackStopped",later("silence",1500),true);
+      win.addEventListener("activate",later("focus",250));
+      win.setInterval(function(){ csApply("sweep"); },30000);   // new processes start in front; catch the ones whose tab went to the back since
+      try{ Services.prefs.addObserver(CS_ON,{observe:function(){ csApply("pref"); }}); }catch(e){}
+    });
+  }
+
+  // =================================================================
   // MEDIA REPORT (2026-09-26). Golem runs on varied hardware. Firefox tests each machine's
   // video driver itself at startup and turns hardware decoding on when it works; this only
   // RECORDS what it decided, per machine, so a machine silently decoding video on the CPU
@@ -1275,6 +1484,9 @@ try {
     ["media.ffmpeg.vaapi.enabled","media.hardware-video-decoding.enabled","media.hardware-video-decoding.force-enabled"].forEach(function(p){ try{ if(Services.prefs.getPrefType(p)) r[p]=Services.prefs.getBoolPref(p); }catch(e){} });
     try{ r.LIBVA_DRIVER_NAME=Services.env.get("LIBVA_DRIVER_NAME")||null; }catch(e){}
     if(nvOnly()){ r.nvidiaOnly={decode:nvMode, stamp:nvStamp(), crashesThisSession:nvState.crashes}; }
+    r.display=frState ? {name:frState.name, rate:frState.rate, vrr:frState.vrr, source:frState.source, applied:Services.prefs.getIntPref(FR_PREF,-1)} : {detected:false, frameRatePref:Services.prefs.getIntPref(FR_PREF,-1)};
+    r.cpuShare=csState;
+    if(cbState){ r.codecPolicy={decoderReport:cbState.caps||null, blockForStreaming:cbState.block, decidedAt:cbState.reason, persisted:cbState.persisted, on:Services.prefs.getBoolPref(CB_ON,true)}; }
     return r;
   }
   // ---- NVIDIA HW DECODE + FALLBACK (2026-09-26, Max: "build the nvidia only... and a
@@ -1722,16 +1934,19 @@ try {
           r.hold.atSwitch={tint:root.getAttribute("golem-tint"), accent:cs("--lwt-accent-color")};
           step("hold-golem-at-switch", r.hold.pending && gb.selectedTab===tp && r.hold.atSwitch.accent===golem["--lwt-accent-color"]);
           root.style.setProperty("--lwt-accent-color",red);        // ATBC re-writes the old colour
-          win.setTimeout(function(){
-            r.hold.whileOld=cs("--lwt-accent-color");
+          var tw=Date.now(); (function whileOld(){ var v=cs("--lwt-accent-color"); if((v===red || v==="") && Date.now()-tw<1500){ win.setTimeout(whileOld,50); return; }   // the hold restores Golem's colour on the next observer turn (a starved core needs longer than one fixed delay)
+            r.hold.whileOld=v; r.hold.whileOldAfterMs=Date.now()-tw;
             // never the OLD tab's red: Golem while loading, or the new page's own colour once it
             // has reported (a fast local page reports within this window — that is correct)
             step("hold-never-old-colour", r.hold.whileOld!==red && r.hold.whileOld!=="");
             step("hold-no-stale-remember", !tp.__golemBar || tp.__golemBar.a!==red);
             root.style.setProperty("--lwt-accent-color","rgb(10, 120, 200)");   // the new page reports
-            win.setTimeout(function(){
-              r.hold.reported={accent:cs("--lwt-accent-color"), tint:root.getAttribute("golem-tint")};
-              step("hold-follows-page", r.hold.reported.accent==="rgb(10, 120, 200)" && r.hold.reported.tint===null);
+            // "follows the page" = the hold is released and the bar shows a real page colour: the
+            // synthetic blue, or the test page's own colour when ATBC's genuine report lands after it
+            var golemAcc=gtTheme([29,32,38]).vars["--lwt-accent-color"], isPage=function(a,tint){ return tint===null && a!=="" && a!==red && a!==golemAcc; };
+            var t1=Date.now(); (function follow(){ var acc=cs("--lwt-accent-color"), tint=root.getAttribute("golem-tint"); if(!isPage(acc,tint) && Date.now()-t1<1500){ win.setTimeout(follow,50); return; }
+              r.hold.reported={accent:acc, tint:tint, afterMs:Date.now()-t1};
+              step("hold-follows-page", isPage(acc,tint));
               root.style.setProperty("--lwt-accent-color",red);
               win.setTimeout(function(){
                 sel(tl);                                              // → an already-LOADED tab
@@ -1739,11 +1954,113 @@ try {
                 step("hold-not-on-loaded-tab", !r.hold.loaded.held && r.hold.loaded.tint===null);
                 fin();
               },100);
-            },100);
-          },150);
+            })();
+          })();
         },100);
       })();
     }catch(e){ step("hold-threw:"+e,false); done(); }
+  }
+
+  // CPU-share self-test. Everywhere: the plan (which processes go to the back) and the
+  // SAFETY refusal — in a shared or unreadable cgroup nothing is created or moved. On the
+  // host (BEAM_SELFTEST_HOST=1: launched in its own scope, pinned to one core): the groups
+  // exist with the weight, a background tab's process is in bg, the selected one in fg,
+  // and a fixed chunk of foreground work runs measurably faster while a background tab
+  // spins, than with the kill switch off (everything back in front, equal shares).
+  function csTest(win,r,step,done){
+    try{
+      var plan=csPlan([{pid:11,selected:true},{pid:11,selected:false},{pid:12,selected:false,soundPlaying:true},{pid:13,selected:false},{pid:0,selected:false}]);
+      step("cpushare-plan", plan.fg.sort().join()==="11,12" && plan.bg.join()==="13");
+      var host=""; try{ host=Services.env.get("BEAM_SELFTEST_HOST"); }catch(e){}
+      r.cpuShare=JSON.parse(JSON.stringify(csState));
+      if(!host){
+        step("cpushare-refuses-foreign-cgroup", ["no-scope","shared-scope","no-cpu","off"].indexOf(csState.status)!==-1);
+        done(); return;
+      }
+      step("cpushare-active-in-own-scope", csState.status==="active");
+      if(csState.status!=="active"){ done(); return; }
+      step("cpushare-bg-weight-set", (csRead(csState.bgDir+"/cpu.weight")||"").trim()===String(csState.weight));
+      var gb=win.gBrowser, home=gb.selectedTab;
+      var SPIN="data:text/html,<script>var b=new Blob(['for(;;){}'],{type:'text/javascript'});new Worker(URL.createObjectURL(b));document.title='spinning'</script>";
+      var WORK="data:text/html,"+encodeURIComponent("<script>var t0=performance.now();var x=0;for(var i=0;i<6e7;i++){x=(x*31+i)%1000003;}document.title='work:'+Math.round(performance.now()-t0)</script>");
+      var bgTab=gb.addTrustedTab(SPIN,{inBackground:true});
+      var pidOf=function(t){ try{ return t.linkedBrowser.browsingContext.currentWindowGlobal.osPid; }catch(e){ return 0; } };
+      var sel=function(t){ try{ gb.selectedTab=t; }catch(e){} if(gb.selectedTab!==t){ try{ gb.tabContainer.selectedIndex=Array.prototype.indexOf.call(gb.tabs,t); }catch(e){} } };
+      var work1=function(cb){ var t=gb.addTrustedTab(WORK,{inBackground:true}); sel(t); csApply("test"); var t0=Date.now(); (function wait(){ var m=/work:(\d+)/.exec(String((t.linkedBrowser&&t.linkedBrowser.contentTitle)||t.label||"")); if(m){ var v=parseInt(m[1],10); try{ gb.removeTab(t); }catch(e){} cb(v); return; } if(Date.now()-t0>60000){ cb(-1); return; } win.setTimeout(wait,200); })(); };
+      var work=function(cb){ var v=[]; (function next(){ if(v.length===3){ v.sort(function(a,b){ return a-b; }); cb(v[1], v); return; } work1(function(x){ v.push(x); next(); }); })(); };   // median of 3
+      win.setTimeout(function(){
+        csApply("test");
+        var bgPid=pidOf(bgTab), inBg=csPids(csState.bgDir), inFg=csPids(csState.fgDir);
+        r.cpuShare.bgPid=bgPid; r.cpuShare.inBg=inBg; r.cpuShare.fgCount=inFg.length;
+        step("cpushare-background-tab-in-bg", bgPid>0 && inBg.indexOf(bgPid)!==-1);
+        step("cpushare-selected-tab-in-fg", inFg.indexOf(pidOf(gb.selectedTab))!==-1);
+        work(function(withShare,allA){
+          Services.prefs.setBoolPref(CS_ON,false); csApply("test-off");
+          var stillBg=csPids(csState.bgDir).length;
+          work(function(equal,allB){
+            Services.prefs.clearUserPref(CS_ON); csApply("test-on");
+            r.cpuShare.workMsWithShare=withShare; r.cpuShare.workMsEqual=equal; r.cpuShare.runs={withShare:allA, equal:allB}; r.cpuShare.bgAfterOff=stillBg;
+            step("cpushare-off-moves-all-back", stillBg===0);
+            // a clear, repeatable win for the foreground while a background tab burns a whole core
+            // (the ideal 5:1 is diluted by Beam's own painting/UI, which share the front group)
+            step("cpushare-foreground-work-faster", withShare>0 && equal>0 && withShare<0.85*equal);
+            try{ gb.removeTab(bgTab); }catch(e){} sel(home); done();
+          });
+        });
+      },2500);
+    }catch(e){ step("cpushare-threw:"+e,false); done(); }
+  }
+
+  // Per-machine display-rate self-test: the decision, the LIVE apply (rAF cadence follows the
+  // pref within one session), and — when hyprctl is reachable — the pref equals the panel's rate.
+  function frTest(win,r,step,done){
+    try{
+      var a=frDecide([{name:"eDP-1",refreshRate:59.94,focused:true,vrr:false},{name:"DP-1",refreshRate:144,focused:false}]);
+      var b=frDecide([{name:"eDP-1",refreshRate:60,focused:false},{name:"DP-1",refreshRate:144,focused:false}]);
+      step("display-picks-focused", !!a && a.rate===60 && a.name==="eDP-1");
+      step("display-no-focus-picks-max", !!b && b.rate===144);
+      step("display-rejects-junk", frDecide([])===null && frDecide([{refreshRate:1000,focused:true}])===null && frDecide(null)===null);
+      var gb=win.gBrowser, b0=gb.selectedBrowser, prev=Services.prefs.getIntPref(FR_PREF,-1);
+      var fps=function(){ return new Promise(function(res){ var mm=b0.messageManager, h=function(m){ mm.removeMessageListener("fr:fps",h); res(m.data.fps); }; mm.addMessageListener("fr:fps",h);
+        mm.loadFrameScript("data:application/javascript,"+encodeURIComponent("(function(){var n=0,t0=0;function f(t){if(!t0)t0=t;if(++n<61)content.requestAnimationFrame(f);else sendAsyncMessage('fr:fps',{fps:Math.round(60000/(t-t0))});}content.requestAnimationFrame(f);})();"),false);
+        win.setTimeout(function(){ res(-1); },6000); }); };
+      Services.prefs.setIntPref(FR_PREF,30);
+      win.setTimeout(function(){ fps().then(function(f30){ Services.prefs.setIntPref(FR_PREF,90);
+        win.setTimeout(function(){ fps().then(function(f90){
+          r.display={f30:f30, f90:f90, detected:frState, prefBefore:prev};
+          step("display-rate-applies-live", f30>0 && Math.abs(f30-30)<=6 && Math.abs(f90-90)<=10);
+          if(frState) step("display-hyprctl-rate-applied", prev===frState.rate && frState.rate>=30); else step("display-hyprctl-unavailable-skipped", true);
+          Services.prefs.setIntPref(FR_PREF, frState?frState.rate:prev);
+          done(); }); },400); }); },400);
+    }catch(e){ step("display-threw:"+e,false); done(); }
+  }
+  // Per-machine codec self-test: the decision, and what a PAGE actually sees. Headless has
+  // no hardware decode at all -> VP9 and AV1 must read unsupported to streaming sites,
+  // H.264 supported; with the kill switch off, everything supported again.
+  function cbTest(win,r,step,done){
+    try{
+      var K=function(hw){ return {known:true,hw:hw,sw:true}; };
+      step("codecs-modern-untouched", cbDecide({h264:K(true),vp9:K(true),av1:K(true)}).length===0);
+      step("codecs-broadwell-blocks-vp9-av1", cbDecide({h264:K(true),vp9:K(false),av1:K(false)}).join(",")==="vp9,av1");
+      step("codecs-8thgen-blocks-av1-only", cbDecide({h264:K(true),vp9:K(true),av1:K(false)}).join(",")==="av1");
+      step("codecs-unknown-untouched", cbDecide({}).length===0 && cbDecide({h264:K(true)}).length===0);
+      var gb=win.gBrowser, b=gb.selectedBrowser;
+      var PAGE="data:text/html,<script>document.title=[MediaSource.isTypeSupported('video/webm; codecs=%22vp09.00.10.08%22'),MediaSource.isTypeSupported('video/mp4; codecs=%22avc1.640028%22'),MediaSource.isTypeSupported('video/mp4; codecs=%22av01.0.08M.08%22')].join()</script>";
+      var see=function(cb){ b.loadURI(Services.io.newURI(PAGE),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()}); win.setTimeout(function(){ cb(String(b.contentTitle||"")); },1200); };
+      var pr=win.__golemCbProbe || Promise.resolve(null);
+      pr.then(function(st){
+        r.codecs={state:st};
+        var caps=(st&&st.caps)||{}, blocked=function(c){ return !!(caps[c]&&caps[c].known&&!caps[c].hw); };
+        var expect=[!blocked("vp9"), true, !blocked("av1")].join();
+        step("codecs-report-read", !!st && !!caps.h264 && caps.h264.known);
+        step("codecs-decision-matches-report", !!caps.vp9 && caps.vp9.known && (st.block.indexOf("vp9")!==-1)===(!caps.vp9.hw));   // headless: no hardware → blocked; real hardware → untouched
+        see(function(t1){ r.codecs.page=t1; r.codecs.expect=expect; r.codecs.dbg=win.__golemCbDbg||null;
+          step("codecs-page-follows-policy", t1===expect);
+          Services.prefs.setBoolPref(CB_ON,false);
+          see(function(t2){ r.codecs.pageOff=t2; step("codecs-kill-switch-restores", t2==="true,true,true"); Services.prefs.clearUserPref(CB_ON); done(); });
+        });
+      });
+    }catch(e){ step("codecs-threw:"+e,false); done(); }
   }
 
   // NVIDIA decode self-test (no nvidia here, so the pure logic): the decision + the crash watch.
@@ -1879,7 +2196,7 @@ try {
         try{
           ovOpen(win); ovSwitchTo(win,t2);
           win.setTimeout(function(){
-            step("switch-selected", gb.selectedTab===t2); step("switch-sane", sane() && !root.hasAttribute("golem-ov-pin")); gtSelfTest(win,r,step,function(){ ovRaceTest(win,r,step,function(){ ovBlankTest(win,r,step,function(){ gtPlaceholderTest(win,r,step,function(){ gtHoldTest(win,r,step,function(){ bwTest(win,r,step,function(){ mrTest(win,r,step,function(){ nvTest(win,r,step,done); }); }); }); }); }); }); }); }, 700);
+            step("switch-selected", gb.selectedTab===t2); step("switch-sane", sane() && !root.hasAttribute("golem-ov-pin")); gtSelfTest(win,r,step,function(){ ovRaceTest(win,r,step,function(){ ovBlankTest(win,r,step,function(){ gtPlaceholderTest(win,r,step,function(){ gtHoldTest(win,r,step,function(){ bwTest(win,r,step,function(){ mrTest(win,r,step,function(){ nvTest(win,r,step,function(){ frTest(win,r,step,function(){ cbTest(win,r,step,function(){ csTest(win,r,step,done); }); }); }); }); }); }); }); }); }); }); }, 700);
         }catch(e){ step("switch-threw:"+e,false); done(); }
       }, 300);
       }catch(e){ step("open-phase-threw:"+e,false); done(); } }, 400);
@@ -1931,6 +2248,8 @@ try {
       try{ gtPlaceholderWatch(w); }catch(e){ OVLOG("placeholder:"+e); }
       if(!OV_SELFTEST){ try{ bwInit(w); }catch(e){ OVLOG("warm init:"+e); } }   // the selftest drives it directly
       try{ mrInit(w); }catch(e){}
+      try{ cbInit(w); }catch(e){ OVLOG("codec init:"+e); }
+      try{ csInit(w); }catch(e){ OVLOG("cpushare init:"+e); }
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
     },1100); }catch(e){}
