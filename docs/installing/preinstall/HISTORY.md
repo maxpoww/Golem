@@ -53,4 +53,4 @@ installing rounds: BIOS-on-metal, and the MacBook boss fight.
 `~/Golem/Installer/installing/` — the installing rounds: real installs
 across the lab, the desktop dogfooded per GPU generation, the DockMenu
 harness at every first boot. The finding number line continues there
-and in `~/GolemOne/System/FlowShell/DockMenu/FINDINGS.md`.
+and in `~/Golem/docs/shell/dockmenu/FINDINGS.md`.

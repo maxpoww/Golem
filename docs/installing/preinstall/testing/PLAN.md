@@ -33,7 +33,7 @@ far (the dell/hp/comodore installs sign that line), and the MacBook —
 Apple EFI + Broadcom `wl` installed — remains the boss fight.
 
 **Successors:** the lab records and the maintainer documentation live at
-`~/GolemOne/Install/Preinstall/` (docs at the root, the full testing
+`~/Golem/docs/installing/preinstall/` (docs at the root, the full testing
 archive under `testing/`); the live program continues in
 `Installer/installing/` — the installing rounds. The implementation
 stays HERE (this directory is the flake the ISO builds from; `fixtures/`

@@ -43,7 +43,7 @@ ASUS X550LC · i5-4200U Haswell (2c/4t) · Intel Haswell-ULT iGPU (boot
 display) + **GF117M nvidia dGPU that FAILS its wake test** · UEFI ·
 7384 MB · internal 298 GB Toshiba = **the lab's dogfooded fat Golem
 (kept, untouched)**. Preinstall + first-install history:
-`~/GolemOne/Install/Preinstall/testing/asus.md` and
+`~/Golem/docs/installing/preinstall/testing/asus.md` and
 [FirstInstall.md](FirstInstall.md).
 
 ## Round I2 — stage 0 on an EXTERNAL drive — 2026-09-11 — PASS; the #33 hold service live on the machine that invented the question

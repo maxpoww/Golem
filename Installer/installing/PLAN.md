@@ -1,7 +1,7 @@
 # Installing — the wired-install phase
 
 > The successor program to preinstall (GRADUATED 2026-09-10 — records
-> and maintainer docs at `~/GolemOne/Install/Preinstall/`, the
+> and maintainer docs at `~/Golem/docs/installing/preinstall/`, the
 > implementation still at `../preinstall/`). Preinstall proved Golem can
 > read a machine, ask the right questions, and assemble a system.
 > Installing proves the system it assembles — MODULAR, minimal-first,

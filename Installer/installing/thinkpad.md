@@ -3,7 +3,7 @@
 Lenovo ThinkPad E15 Gen 2 · AMD Ryzen 7 4700U (8c/8t) · Renoir Vega
 iGPU (single GPU) · UEFI · 238.5 GB NVMe (**Windows — guarded**) ·
 7159 MB · RTL8822CE wifi. Preinstall history:
-`~/GolemOne/Install/Preinstall/testing/thinkpad.md`.
+`~/Golem/docs/installing/preinstall/testing/thinkpad.md`.
 
 ## 2026-09-18 — THE AMD PATH ON REAL METAL — installed to an EXTERNAL 2 TB HDD, Windows untouched, PASS
 

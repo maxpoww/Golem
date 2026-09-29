@@ -95,7 +95,7 @@ First-boot audit checklist: hostname, root device,
 cmdline, owner uid 1000 + populated profile, `waverunner-apply.path` +
 `golem-postinstall-apply.path` active, the seed's `flake.lock` pinning
 the intended waverunner, zero failed units. Then the DockMenu harness
-(`~/GolemOne/System/FlowShell/DockMenu/harness/aging-check.sh` +
+(`~/Golem/docs/shell/dockmenu/harness/aging-check.sh` +
 `state-census.sh`) — first-boot state is free dogfood data.
 
 ## After the round

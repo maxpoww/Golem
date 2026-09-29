@@ -649,7 +649,7 @@ then chromium: "chromium have not icon").
 - **size:** landed.
 
 ### 49+50. DockMenu aging pass: corrupt-store rescue + notif history cap/image sweep — [FIXED · waverunner 8bb6c72 · drilled live]
-First fixes from the DockMenu reliability program (`~/GolemOne/DockMenu`
+First fixes from the DockMenu reliability program (`~/Golem/docs/shell/dockmenu`
 — full audit, invariants contract, census harness; see
 `Installer/installing/DockMenu.md`).
 - **#49:** a malformed JSON store read as empty and the NEXT write

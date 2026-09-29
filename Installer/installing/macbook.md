@@ -5,7 +5,7 @@ wifi + BCM2046 BT · **BCM 720p FaceTime HD camera (14e4:1570)** · Apple EFI ·
 ~3858 MB · Apple SSD (held **macOS/APFS** until 2026-09-18 — the old
 "NixOS — guarded" note was wrong; installed Golem, PASS). The lab's boss fight
 (Broadcom + Apple EFI + the FaceTime HD webcam). Preinstall history:
-`~/GolemOne/Install/Preinstall/testing/macbook.md`.
+`~/Golem/docs/installing/preinstall/testing/macbook.md`.
 
 ## 2026-09-18 — THE BOSS FIGHT, WON — stage-0 metal, INSTALLED, PASS, with the webcam working
 

@@ -183,5 +183,5 @@ directions.
   speaking first, which is why it needs a far higher admission bar; the
   constitution's acceptance test explains the difference.
 - **Siblings:** [../Installer/installing/](../../../Installer/installing/) —
-  which machine ever sees any of this; `~/GolemOne/System/FlowShell/
+  which machine ever sees any of this; `~/Golem/docs/shell/
   DockMenu/` — the dock, same surface, same number line.

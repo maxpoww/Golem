@@ -2,7 +2,7 @@
 
 Same rig as preinstall's machine zero (`~/Golem/Installer/preinstall/
 run-vm.sh`; mechanics in the archived
-`~/GolemOne/Install/Preinstall/testing/vm.md`, which also holds this
+`~/Golem/docs/installing/preinstall/testing/vm.md`, which also holds this
 qcow2 family's prehistory — including the first BIOS install anywhere,
 2026-09-10). 4 GB on purpose: the tight-RAM class.
 

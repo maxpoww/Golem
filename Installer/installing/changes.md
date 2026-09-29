@@ -1,7 +1,7 @@
 # Changes — the Installing ledger
 
 The deferred queue for the next ISO, exactly as preinstall ran it
-(archived original: `~/GolemOne/Install/Preinstall/testing/changes.md`).
+(archived original: `~/Golem/docs/installing/preinstall/testing/changes.md`).
 **The number line is one line:** #1–#61 live in the preinstall archive
 and DockMenu's FINDINGS.md; this file continues at **#62**. Round-scoped
 surface items are `I<round>-<n>`.

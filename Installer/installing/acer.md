@@ -68,7 +68,7 @@ dell's old 465.8 G drive) was wiped.
 Acer Aspire E5-573 · i5-5200U Broadwell (2c/4t) · Intel HD 5500 ·
 QCA9377 wifi+BT · **boots UEFI** · 3833 MB RAM. Its census identity
 throughout the preinstall rounds
-(`~/GolemOne/Install/Preinstall/testing/acer.md`); Installing starts
+(`~/Golem/docs/installing/preinstall/testing/acer.md`); Installing starts
 here.
 
 ## The setup — a drive swap (Max, 2026-09-10)

@@ -3,7 +3,7 @@
 > Max, 2026-09-09: "we need Golem to be secure as fuck. super secure in
 > general for all users." This file is the model, the phases, and the
 > standing rules. Component-level detail for the dock lives in
-> `~/GolemOne/DockMenu/SECURITY.md`; findings carry changes.md numbers.
+> `~/Golem/docs/shell/dockmenu/SECURITY.md`; findings carry changes.md numbers.
 
 ## The threat model, in one paragraph
 
@@ -79,4 +79,4 @@ someone who isn't Max.
    protocol pinning, size caps, private-range refusal, timeouts —
    and defaults to OFF when it's a convenience.
 4. Every security property gets a drill or an assertion in a harness
-   (`~/GolemOne/DockMenu/harness/` today; grow per component).
+   (`~/Golem/docs/shell/dockmenu/harness/` today; grow per component).

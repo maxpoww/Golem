@@ -3,7 +3,7 @@
 Max's treasure. Intel GM45 whitebox · Pentium T4200 (2c/2t) · GMA 4500
 (Gen4) · BIOS/legacy · 1931 MB · no BT · wired-only (Marvell sky2) ·
 931 GB HGST (**Linux — guarded**). Preinstall history:
-`~/GolemOne/Install/Preinstall/testing/comodore.md`.
+`~/Golem/docs/installing/preinstall/testing/comodore.md`.
 
 ## Round I2 coda — 2026-09-15 — the lid that lies (#90), the boot that wasn't (#91), and the quiet boot (#89) — gens 3→5 in one morning
 

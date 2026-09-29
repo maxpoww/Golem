@@ -4,7 +4,7 @@ Lenovo Slim Pro 9 16IRP8 · i9-13905H Raptor Lake · **hybrid Intel Iris Xe +
 NVIDIA RTX 4050 Max-Q** · UEFI · 953.9 GB Samsung NVMe (internal, the dev box)
 · 32 GB RAM · Intel CNVi wifi. **This is the dev box** — it drives the lab and
 holds the records; its internal disk is never an install target. Preinstall
-history: `~/GolemOne/Install/Preinstall/testing/lenovo.md`.
+history: `~/Golem/docs/installing/preinstall/testing/lenovo.md`.
 
 ## 2026-09-18 — INSTALLED to an external 2 TB, from the running dev box — verified static; boot-audit OWED
 

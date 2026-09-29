@@ -3,7 +3,7 @@
 > 2026-09-09, Max: "take this machine and the ASUS as a map… GIVE ME THE
 > MOST POLISHED DOCK/APPMENUBOX POSSIBLE — bullet-proof in every install
 > and after 5 years of intense usage." The permanent project now lives at
-> **`~/GolemOne/DockMenu/`** — this file records its creation and what
+> **`~/Golem/docs/shell/dockmenu/`** — this file records its creation and what
 > the first full-stack pass found, because all of it is installer
 > experience.
 
@@ -17,7 +17,7 @@ any lab machine can be checked against in seconds.
 
 ## What was created
 
-- `~/GolemOne/DockMenu/README.md` — charter + the two-machine map
+- `~/Golem/docs/shell/dockmenu/README.md` — charter + the two-machine map
   (dev box = months-of-usage aging dataset; ASUS = fresh-install
   dataset) + the working method (find → fix at source → seed pipeline →
   verify live → census).
@@ -63,7 +63,7 @@ free dogfood data for DockMenu.
 ## 2026-09-09 late — the security pass
 
 Max: "this one can't be Golem's backdoor." Full threat model written
-(`~/GolemOne/DockMenu/SECURITY.md`). The privilege boundary
+(`~/Golem/docs/shell/dockmenu/SECURITY.md`). The privilege boundary
 (packages.list → root helper) audited SOUND — data-parsed, charset-gated,
 no injection, no privilege the user lacks. Three fixes staged in
 ~/launcher (ship when the in-flight plate refactor compiles): #53

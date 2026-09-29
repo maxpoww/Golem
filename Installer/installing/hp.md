@@ -3,7 +3,7 @@
 HP Pavilion dm4 · i5 M 460 Arrandale (2c/4t) · switchable Intel iGPU +
 **AMD Radeon HD 6370M dGPU (FAILING)** · BIOS · 3718 MB · 298 GB Toshiba
 (**Linux — guarded**). Preinstall history + the #17c failing-dGPU story:
-`~/GolemOne/Install/Preinstall/testing/hp.md`.
+`~/Golem/docs/installing/preinstall/testing/hp.md`.
 
 ## 2026-09-18 — stage-0 metal, clean-image — INSTALLED, PASS (constitution rule 2 turn) — and #87 confirmed on Arrandale
 
