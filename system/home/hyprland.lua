@@ -416,6 +416,15 @@ hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_S
 hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("golem-brightness set 5%+"),                       { locked = true, repeating = true, submap_universal = true })
 hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("golem-brightness set 5%-"),                       { locked = true, repeating = true, submap_universal = true })
 
+-- Keyboard backlight (MacBook, ThinkPad, most laptops with a lit keyboard). The
+-- device is matched by its kernel role, not a name: smc::kbd_backlight on a
+-- Mac, tpacpi::kbd_backlight on a ThinkPad, and the same glob covers the rest.
+-- Writable by the `input` group through brightnessctl's udev rule
+-- (golem-brightness.nix). Before this, the keys did nothing and the light
+-- stayed off (macbook, 2026-09-29).
+hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d '*::kbd_backlight' set 10%+"), { locked = true, repeating = true, submap_universal = true })
+hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d '*::kbd_backlight' set 10%-"), { locked = true, repeating = true, submap_universal = true })
+
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
 hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })

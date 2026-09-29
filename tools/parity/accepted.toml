@@ -15,6 +15,8 @@
 "misc:vfr_hold_ms"            = "needs the dev box's PATCHED Hyprland (vfr-hold.patch); Golem runs stock Hyprland. OPEN: parity.md P3"
 
 [bind]
+"main|-|XF86KbdBrightnessUp"   = "keyboard-light keys: Golem binds them for every laptop with a lit keyboard; the dev box's Lenovo has none (P1: one source would carry them)"
+"main|-|XF86KbdBrightnessDown" = "same as XF86KbdBrightnessUp"
 
 [rule]
 

@@ -84,3 +84,4 @@ failed units, and menubox launchers that run nothing.
 | 2026-09-29 | `command:easyeffects`, `command:kdeconnectd`: autostarts of programs Golem doesn't ship | removed from Golem's hyprland.lua |
 | 2026-09-29 | brightness keys: "Operation not permitted" once the helper existed | golem-brightness.nix ships brightnessctl's udev rule (group `video` can write the backlight) |
 | 2026-09-29 | `stale:waveview-plugin`: the macbook ran titlebars 0.78 while 1.80 was installed (plugins load once per session) | new parity check `stale:*` (running vs installed Hyprland, plugin, dock); fixed by a session restart |
+| 2026-09-29 | keyboard light off, its keys dead (macbook): XF86KbdBrightnessUp/Down were never bound | bound in Golem's hyprland.lua to `brightnessctl -d '*::kbd_backlight'` (any laptop); permission from brightnessctl's udev rule; systemd-backlight keeps the level across reboots |
