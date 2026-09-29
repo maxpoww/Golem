@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+"""golem-parity: how does a Golem machine's desktop DIFFER from the reference?
+
+The reference is the dev box's live session: the desktop as Max settled it.
+The target is any Golem machine (over ssh). Both are read from the RUNNING
+sessions by collect.sh, never from the config we think we shipped, so a
+difference here is one the user can feel.
+
+Every difference is either explained in accepted.toml (with a reason) or it is
+a FINDING, printed with a stable id (e.g. option:input:float_switch_override_focus)
+so it can be tracked in work/parity.md. Some checks need no reference at all:
+config errors, commands whose program is missing, a missing $SHELL, failed
+units. Those are findings on sight.
+
+  golem-parity max@192.168.1.149            compare the target to this machine
+  golem-parity max@192.168.1.149 --save     also write work/parity/<host>-<date>.md
+
+Born 2026-09-29: Super+E (a missing $SHELL) and focus-follows-mouse between
+tiled and floating windows both shipped because nothing compared the two.
+"""
+import datetime
+import json
+import os
+import re
+import subprocess
+import sys
+import tomllib
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+REPO = os.path.dirname(os.path.dirname(HERE))
+SSH = ["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
+       "-o", "UserKnownHostsFile=/dev/null", "-o", "LogLevel=ERROR", "-o", "ConnectTimeout=6"]
+
+
+def collect(target=None):
+    script = open(os.path.join(HERE, "collect.sh"), "rb").read()
+    cmd = (SSH + [target, "bash -s"]) if target else ["bash", "-s"]
+    out = subprocess.run(cmd, input=script, capture_output=True, timeout=120).stdout.decode(errors="replace")
+    sections, name = {}, None
+    for line in out.splitlines():
+        m = re.fullmatch(r"===(\w+)===", line)
+        if m:
+            name = m.group(1)
+            sections[name] = []
+        elif name:
+            sections[name].append(line)
+    return {k: "\n".join(v) for k, v in sections.items()}
+
+
+def options(snap):
+    """getoption objects, one per option, concatenated: {"option": n, "<type>": v, "set": b}."""
+    out, text, dec, i = {}, snap.get("options", ""), json.JSONDecoder(), 0
+    while True:
+        j = text.find("{", i)
+        if j < 0:
+            return out
+        try:
+            obj, i = dec.raw_decode(text, j)
+        except json.JSONDecodeError:
+            i = j + 1
+            continue
+        name = obj.pop("option", None)
+        obj.pop("set", None)
+        if name:
+            out[name] = json.dumps(next(iter(obj.values()), None))
+
+
+def binds(snap):
+    mods = {1: "SHIFT", 4: "CTRL", 8: "ALT", 64: "SUPER"}
+    out = {}
+    try:
+        data = json.loads(snap.get("binds", "[]"))
+    except json.JSONDecodeError:
+        return out
+    for b in data:
+        m = "+".join(n for bit, n in mods.items() if b["modmask"] & bit) or "-"
+        key = f'{b["submap"] or "main"}|{m}|{b["key"] or b["keycode"]}'
+        flags = ",".join(f for f in ("locked", "repeat", "release", "mouse") if b.get(f))
+        if str(b.get("submap_universal")).lower() == "true":
+            flags += ",universal"
+        out[key] = flags.strip(",")
+    return out
+
+
+def lua_rules(snap):
+    """name -> the rule's body (comments and whitespace stripped), so a changed
+    property inside a rule is a difference, not just a missing rule."""
+    out = {}
+    for m in re.finditer(r'hl\.window_rule\(\{(.*?)\n\}\)', snap.get("lua", ""), re.S):
+        body = re.sub(r"--[^\n]*", "", m.group(1))
+        name = re.search(r'name\s*=\s*"([^"]+)"', body)
+        if name:
+            out[name.group(1)] = " ".join(body.split())
+    return out
+
+
+def lua_motion(snap):
+    lua = snap.get("lua", "")
+    out = {}
+    for m in re.finditer(r'^hl\.curve\("([^"]+)",(.*)$', lua, re.M):
+        out[f"curve:{m.group(1)}"] = re.sub(r"\s+", " ", m.group(2)).strip()
+    for m in re.finditer(r'^hl\.animation\(\{\s*leaf\s*=\s*"([^"]+)",(.*)$', lua, re.M):
+        out[f"animation:{m.group(1)}"] = re.sub(r"\s+", " ", m.group(2)).strip()
+    return out
+
+
+def main():
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if len(args) != 1:
+        print(__doc__)
+        return 2
+    target = args[0]
+    accepted = tomllib.load(open(os.path.join(HERE, "accepted.toml"), "rb"))
+    acc = lambda kind, key: accepted.get(kind, {}).get(key)
+
+    ref, tgt = collect(), collect(target)
+    if "error" in tgt or "options" not in tgt:
+        print(f"target: {tgt.get('error', 'no data (ssh?)')}")
+        return 1
+    findings, explained = [], []
+
+    def diff(kind, a, b, label):
+        for k in sorted(set(a) | set(b)):
+            va, vb = a.get(k, "∅ absent"), b.get(k, "∅ absent")
+            if va == vb:
+                continue
+            fid = f"{kind}:{k}"
+            reason = acc(kind, k)
+            (explained if reason else findings).append(
+                (fid, f"{label} {k}: reference={va}  target={vb}", reason))
+
+    diff("option", options(ref), options(tgt), "option")
+    diff("bind", binds(ref), binds(tgt), "bind")
+    diff("rule", lua_rules(ref), lua_rules(tgt), "window rule")
+    diff("motion", lua_motion(ref), lua_motion(tgt), "motion")
+
+    # Reference-free: broken on sight.
+    errs = tgt.get("configerrors", "").strip()
+    if errs:
+        for line in errs.splitlines():
+            findings.append((f"configerror:{line[:60]}", f"config error: {line}", None))
+    for line in tgt.get("commands", "").splitlines():
+        status, _, cmd = line.partition("\t")
+        if status == "MISSING":
+            fid = f"command:{cmd.split()[0]}"
+            reason = acc("command", cmd.split()[0])
+            (explained if reason else findings).append((fid, f"command with no program: {cmd}", reason))
+    sh = tgt.get("shell", "")
+    if sh.startswith("MISSING"):
+        findings.append(("shell", f"$SHELL does not exist: {sh}", None))
+    for kind in ("failed_user", "failed_system"):
+        for line in tgt.get(kind, "").splitlines():
+            unit = line.split()[0] if line.split() else line
+            reason = acc("unit", unit)
+            (explained if reason else findings).append((f"unit:{unit}", f"failed unit ({kind[7:]}): {line}", reason))
+    # Menubox: every visible launcher must run something. Dead ones are grouped
+    # by program (72 stale Chrome webapps are one bug, not 72).
+    dead = {}
+    for line in tgt.get("menubox", "").splitlines():
+        status, did, prog = (line.split("\t") + ["", ""])[:3]
+        if status == "DEAD" and not acc("menubox", did):
+            dead.setdefault(prog, []).append(did)
+    for prog, ids in sorted(dead.items()):
+        shown = ", ".join(ids[:4]) + (f" … (+{len(ids) - 4})" if len(ids) > 4 else "")
+        findings.append((f"menubox-dead:{prog}", f"{len(ids)} menubox launcher(s) run a program that does not exist ({prog}): {shown}", None))
+
+    meta = dict(l.split("=", 1) for l in tgt.get("meta", "").splitlines() if "=" in l)
+    lines = [f"# golem-parity — {meta.get('host','?')} ({meta.get('product','?')}) vs reference",
+             f"_{datetime.datetime.now():%Y-%m-%d %H:%M}_ · {meta.get('hyprland','')}", "",
+             f"## Findings ({len(findings)})", ""]
+    lines += [f"- `{fid}` — {text}" for fid, text, _ in findings] or ["- none"]
+    lines += ["", f"## Explained by accepted.toml ({len(explained)})", ""]
+    lines += [f"- `{fid}` — {reason}" for fid, _, reason in explained] or ["- none"]
+    report = "\n".join(lines) + "\n"
+    print(report)
+    if "--save" in sys.argv:
+        d = os.path.join(REPO, "work", "parity")
+        os.makedirs(d, exist_ok=True)
+        p = os.path.join(d, f"{target.split('@')[-1]}-{datetime.date.today()}.md")
+        open(p, "w").write(report)
+        print(f"saved {p}")
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

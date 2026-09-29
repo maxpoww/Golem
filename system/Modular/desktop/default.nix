@@ -23,6 +23,10 @@
                             # update lane). Its home half (seam/home.nix) needs the
                             # golem-seam overlay this module provides — without it the
                             # home layer fails to evaluate (pkgs.golem-seam missing).
+    ../../golem-brightness.nix  # the brightness keys' helper: finds the backlight of the
+                            # connected panel (was only in the fat profile → the keys
+                            # ran a missing program on every install; golem-parity
+                            # finding, thinkpad 2026-09-29)
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
                             # waverunner's packages.list into hosts/target/apps.nix
                             # and rebuilds (without it installs fail silently —

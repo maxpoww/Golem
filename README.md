@@ -27,7 +27,7 @@ its documentation and worklog.
 | `golem-connectd/` | Rust daemon (phone link) | |
 | `docs/` | All design and maintainer documentation (below) | |
 | `work/` | The living worklog: `GRIND.md`, `NOTES.md`, `todo/` (incl. `issues.md`) | Scratch, not spec |
-| `tools/` | Dev scripts: `iso-smoke.sh`, `golem-mirror`, `loop/` (Gulum overnight loop) | |
+| `tools/` | Dev scripts: `parity/` (**golem-parity**: a Golem machine's live desktop vs the dev box's), `iso-smoke.sh`, `golem-mirror`, `loop/` (Gulum overnight loop) | Run `tools/parity/golem-parity max@<ip>` after every install/deploy; findings go in `work/parity.md` |
 
 ### `docs/`, following the Modes / Shell / Installing sketch ([docs/STRUCTURE-sketch.md](docs/STRUCTURE-sketch.md))
 

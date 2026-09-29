@@ -39,11 +39,9 @@ hl.exec_cmd("hyprctl setcursor phinger-cursors-light 24")
 hl.exec_cmd("/home/max/launcher/waverunner-dev")
 hl.exec_cmd("awww-daemon")
 hl.exec_cmd("waypaper --restore")
-hl.exec_cmd("easyeffects --gapplication-service")
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("blueman-applet")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
-hl.exec_cmd("kdeconnectd")
 end)
 
 
@@ -151,12 +149,16 @@ hl.config({
         inactive_opacity = 1.0,
         dim_inactive = true,
         dim_strength = 0.3,
+        -- How dark the screen goes behind a window carrying `dim_around`. Only
+        -- Golem's STAGE uses that rule, so this number is the stage's backdrop
+        -- and nothing else's.
+        dim_around   = 0.8,
 
 	shadow = {
             enabled      = true,
-            range        = 2,
+            range        = 14,
             render_power = 3,
-            color        = 0xee1a1a1a,
+            color        = 0x661a1a1a,
         },
 
         blur = {
@@ -195,7 +197,8 @@ hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1}   
 hl.curve("almostLinear",   { type = "bezier", points = { {0.5, 0.5},   {0.75, 1}    } })
 hl.curve("quick",          { type = "bezier", points = { {0.15, 0},    {0.1, 1}     } })
 
-hl.curve("easy",           { type = "spring", mass = 1, stiffness = 71.2633, dampening = 15.8273644 })
+-- 0.85⁴·0.9 the time of 71.2633/15.8273644 (same shape); waveview's SPRING_K/SPRING_C match — keep them equal
+hl.curve("easy",           { type = "spring", mass = 1, stiffness = 322.8714, dampening = 33.6891 })
 
 hl.animation({ leaf = "global",        enabled = true,  speed = 10,   bezier = "default" })
 hl.animation({ leaf = "border",        enabled = true,  speed = 5.39, bezier = "easeOutQuint" })
@@ -210,9 +213,9 @@ hl.animation({ leaf = "layersIn",      enabled = true,  speed = 4,    bezier = "
 hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "fade" })
 hl.animation({ leaf = "fadeLayersIn",  enabled = true,  speed = 1.79, bezier = "almostLinear" })
 hl.animation({ leaf = "fadeLayersOut", enabled = true,  speed = 1.39, bezier = "almostLinear" })
-hl.animation({ leaf = "workspaces",    enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
-hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 1.21, bezier = "almostLinear", style = "fade" })
-hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.94, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspaces",    enabled = true,  speed = 1.18, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 0.73, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.18, bezier = "almostLinear", style = "fade" })
 hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
 
 hl.config({
@@ -288,6 +291,13 @@ hl.config({
 
         follow_mouse = 2,
 
+        -- Click to focus, floating windows included. At the default (1) focus
+        -- jumps to whatever is under the cursor the moment it crosses between a
+        -- tiled and a floating window — so a floating window steals focus just
+        -- by being passed over, while tiled ones politely wait to be clicked.
+        -- Two different rules for the same act is one rule too many.
+        float_switch_override_focus = 0,
+
         sensitivity = 0, -- -1.0 - 1.0, 0 means no modification.
 
         touchpad = {
@@ -316,7 +326,44 @@ hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
 -- Pseudo through the Golem policy (tag + proportional size + frame rule),
 -- the same daemon path as the topbar pill — never the raw toggle.
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl pseudo-toggle"))
-hl.bind(mainMod .. " + J", hl.dsp.layout("movetoroot"))   
+-- STAGE mode: one task alone on screen at the stage rect, the deck of every
+-- other task in the gap beneath it. Toggling off puts the desktop back exactly
+-- as it was, focus included. The daemon owns all of it (see stage.rs).
+hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl stage-toggle"))
+hl.bind(mainMod .. " + J", hl.dsp.layout("movetoroot"))
+
+-- STAGE mode's keymap. While the stage owns the screen nothing should launch,
+-- close, tile or move anything — so the daemon switches to this submap, in
+-- which the ONLY binds are the way out. Everything else simply isn't bound, and
+-- ordinary typing still reaches the staged window (a submap changes binds, not
+-- input). The control keys stay live through `submap_universal = true`.
+--
+-- Super+Shift+Escape is a compositor-only escape hatch: `submap reset` needs no
+-- daemon, so a waverunner that dies mid-stage cannot strand the keyboard. (An
+-- empty submap can't be registered at all — Hyprland refuses it — so a submap
+-- always carries at least its own exit.)
+hl.define_submap("stage", function()
+    hl.bind(mainMod .. " + RETURN", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl stage-toggle"))
+    hl.bind(mainMod .. " + SHIFT + ESCAPE", hl.dsp.submap("reset"))
+    -- The overview is reachable from the stage (it is how you find the task you
+    -- want on it, and whatever you land on is handed straight to the stage), so
+    -- its key has to be here too: a submap hides the ordinary keymap, so the
+    -- Super+R bound further down would not fire.
+    hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end)
+    -- Super+[1-9] keeps meaning "go there", it is just the deck it aims at now:
+    -- the N-th tile while the stage shows one task, workspace N while it shows
+    -- a whole desk (the number the tile is labelled with). A number with no tile
+    -- does nothing. The daemon decides which — see `deck.rs::stage_pick`.
+    --
+    -- These live HERE rather than being bound by the daemon at runtime: a submap
+    -- can only be *defined*, and defining one that exists APPENDS to it, so a
+    -- second definition would leave two Super+Return binds and one press would
+    -- toggle the stage twice (measured 2026-09-12).
+    for i = 1, 9 do
+        hl.bind(mainMod .. " + " .. i,
+            hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl stage-pick " .. i))
+    end
+end)
 
 -- Move focus with mainMod + WASD
 hl.bind(mainMod .. " + A", hl.dsp.focus({ direction = "left" }))
@@ -351,25 +398,28 @@ end
 -- Move windows with mainMod + LMB drag
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 
-hl.bind("XF86PowerOff", hl.dsp.exec_cmd("systemctl hibernate"))
+-- The control keys below all carry `submap_universal = true`: they keep working
+-- inside any submap, which is what keeps volume/brightness/media alive while
+-- Golem's STAGE mode has taken every other bind away (see the "stage" submap).
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd("systemctl hibernate"), { submap_universal = true })
 
 -- Laptop multimedia keys for volume and LCD brightness
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true })
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true, submap_universal = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),      { locked = true, repeating = true, submap_universal = true })
 -- No `repeating` on these two: they are TOGGLES, not steps. Key repeat would
 -- flip mute on and off at repeat rate while the key is held, so the state you
 -- land on is whatever the last repeat happened to set. One press, one flip.
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true })
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true })
+hl.bind("XF86AudioMute",        hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),     { locked = true, submap_universal = true })
+hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"),   { locked = true, submap_universal = true })
 -- golem-brightness picks the backlight driving the CONNECTED panel (adapts to the
 -- hybrid-GPU mux) — no hardcoded intel_backlight/nvidia_0. See system/golem-brightness.nix.
-hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("golem-brightness set 5%+"),                       { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("golem-brightness set 5%-"),                       { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",  hl.dsp.exec_cmd("golem-brightness set 5%+"),                       { locked = true, repeating = true, submap_universal = true })
+hl.bind("XF86MonBrightnessDown",hl.dsp.exec_cmd("golem-brightness set 5%-"),                       { locked = true, repeating = true, submap_universal = true })
 
 -- Requires playerctl
 hl.bind("XF86AudioNext",  hl.dsp.exec_cmd("playerctl next"),       { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true })
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
+hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
 
@@ -381,6 +431,20 @@ hl.window_rule({
     name  = "floating-rounding",
     match = { float = true },
     rounding = 12,
+})
+
+---- Golem browser: a subtle border, only on Firefox ----
+-- Firefox floats BARE — no Golem titlebar, its own macOS traffic lights stand in
+-- (see golemBar.cpp `windowIsFirefox`). A full 3px frame reads too loud around a
+-- bare window, so thin it to a 1px hairline: present but quiet, macOS-like.
+-- Placed BEFORE the stage rule so a staged Firefox still drops to border_size=0
+-- (same priority, last-set-wins). NOTE: only border_size/rounding are per-window
+-- here — a window rule can't set a per-window COLOUR — so the hairline keeps the
+-- shell's dynamic border colour; muting that would need the waveview plugin.
+hl.window_rule({
+    name  = "browser-subtle-border",   -- Seam (Golem's browser) and a plain Firefox alike: both float bare with their own controls
+    match = { class = "^(firefox|seam)$" },
+    border_size = 1,
 })
 
 ---- Raise floating windows on focus ----
@@ -399,13 +463,22 @@ hl.window_rule({
     border_size = 0,
     rounding    = 0,
     opacity     = "1.0 override",
-    no_dim      = true,
 })
 hl.window_rule({
     name  = "no-gaps-f1",
     match = { float = false, workspace = "f[1]" },
     border_size = 0,
     rounding    = 0,
+})
+
+---- Shadow only where a window reads as a card: floating + golem-pseudo ----
+-- Tiled windows sit edge-to-edge in the layout, so a drop shadow there only
+-- muddies the gaps. Must come BEFORE golem-pseudo-frame (same priority, last
+-- set wins) so the tagged rule below can hand the shadow back.
+hl.window_rule({
+    name  = "no-shadow-tiled",
+    match = { float = false },
+    no_shadow = true,
 })
 
 ---- Golem pseudo: a framed window at a proportional default size ----
@@ -427,6 +500,34 @@ hl.window_rule({
     match = { tag = "golem-pseudo" },
     border_size = 3,
     rounding    = 12,
+    no_shadow   = false,
+})
+
+---- Golem STAGE: the staged window keeps its corners ----
+-- The staged task is tiled and maximized, so it matches the no-gaps rules above
+-- and loses its rounding — but on the stage it is a card sitting in its own
+-- inset, and it should read like one. Same trick as golem-pseudo-frame:
+-- waverunner tags the window, and this rule (AFTER the no-gaps rules — same
+-- priority, last set wins) hands the corners back. `rounding` and `border_size`
+-- are dynamic props, so they re-apply the moment the tag flips.
+--
+-- No border, deliberately (Max, 2026-09-05): the stage is the only thing on the
+-- screen, so nothing needs telling apart from anything else. The peach frame
+-- lives on the deck's tile instead, where it does have a job — saying which of
+-- the tiles is the one you are looking at.
+-- `dim_around` darkens the whole screen behind the staged window, at
+-- `decoration.dim_around` strength. It is what makes the stage read as the only
+-- thing running: the wallpaper drops away and the task is left alone in the
+-- dark. It costs nothing when the mode is off, because nothing else in the
+-- config ever carries this tag — and dropping the tag on exit takes the dim with
+-- it, so there is no state to restore.
+hl.window_rule({
+    name  = "golem-stage-frame",
+    match = { tag = "golem-stage" },
+    border_size = 0,
+    rounding    = 12,
+    no_shadow   = false,
+    dim_around  = true,
 })
 
 local suppressMaximizeRule = hl.window_rule({

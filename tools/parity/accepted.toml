@@ -1,0 +1,27 @@
+# Differences between a Golem machine and the reference (Max's dev box) that
+# are INTENDED. Every entry needs a reason. Anything golem-parity finds that is
+# not listed here is a finding. Add an entry only when the difference is a
+# decision, never to silence a bug. The open questions live in work/parity.md.
+#
+# Keys are the ids golem-parity prints, minus the kind prefix.
+
+[option]
+"decoration:active_opacity"   = "Golem ships opaque windows (1.0): 0.95 alpha-blends every window every frame and blocks fullscreen direct scanout — the 2026-09-02 perf pass for weak GPUs. The dev box keeps 0.95. OPEN: parity.md P2"
+"decoration:inactive_opacity" = "same decision as decoration:active_opacity"
+"render:direct_scanout"       = "Golem turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
+"input:kb_model"              = "the installer's keyboard answer (golem.keyboard.model) — per machine by design"
+"general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
+"gestures:workspace_swipe_one_empty" = "needs the dev box's PATCHED Hyprland (hyprland-workspace-swipe-one-empty.patch); Golem runs stock Hyprland. OPEN: parity.md P3"
+"misc:vfr_hold_ms"            = "needs the dev box's PATCHED Hyprland (vfr-hold.patch); Golem runs stock Hyprland. OPEN: parity.md P3"
+
+[bind]
+
+[rule]
+
+[motion]
+
+[command]
+
+[unit]
+
+[menubox]

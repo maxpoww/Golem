@@ -55,4 +55,11 @@ let
 in
 {
   environment.systemPackages = [ golem-brightness pkgs.brightnessctl ];
+
+  # brightnessctl's udev rule: the backlight becomes group-`video` writable, and
+  # the owner is in `video`. Without it the keys fail with "Operation not
+  # permitted": the logind fallback refuses because under uwsm the session's
+  # apps belong to the systemd-user MANAGER session, which has no seat
+  # (golem-parity, thinkpad 2026-09-29: the helper existed, the write didn't).
+  services.udev.packages = [ pkgs.brightnessctl ];
 }
