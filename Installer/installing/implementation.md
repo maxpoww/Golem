@@ -77,20 +77,46 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    chooser-matrix + minimal-matrix; every one BUILDS on source; the
    chooser refuses NOTHING a real lab machine presents. Green light for
    the offline installer.
-8e. ☐ **The offline self-installer** (Max's end goal) — bake the minimal
-   closure into the ISO + wire ENTER-runs-it-locally, so a stranger
-   flashes, answers, presses play, and it installs — no dev box.
-   Round I1's #63/#64/#65 fixes ride this recut.
-   - **Inherit #85's lesson:** when it decides "what still needs
-     installing?", ask the store DATABASE (`path-info --all`), never
-     `[ -e ]` on the path. A resumed install can meet a half-written path
-     from a previous death, and a filesystem test calls that present.
-   - **#67's rationale is now weaker, and that is good news:** the
-     comodore proved a throttled per-path delivery moves 2.96 GiB over a
-     USB dongle with zero drops. The offline installer is still the right
-     end state (no delivery at all), but it is no longer the only way to
-     reach these machines — so it does not have to be rushed to unblock
-     the small-RAM boxes.
+8e. ☐ **The self-installer — ALL-IN BAKED (the Omarchy model)** (Max's end
+   goal) — wire ENTER-runs-it-locally, so a stranger flashes, answers, presses
+   play, and it installs — **no dev box, no network needed**. **DECIDED (Max,
+   2026-09-18, after the math): BAKE the whole hardware matrix into the ISO;
+   the install is a LOCAL COPY of a pre-built closure, not a download.** DHH's
+   Omarchy installs in ~1 min for exactly this reason — the image carries the
+   system; install = partition + copy-off-the-stick + stamp machine bits, no
+   package resolution, no fetch. Online was the SLOW option (re-downloads
+   ~1.4 GiB every install; fails with no net). **BUILT + MEASURED 2026-09-18:**
+   the all-in ISO (every class incl nvidia + btop) = **2.91 GiB** — union is
+   6.64 GiB uncompressed, but the squashfs + the overlap with the medium's own
+   NixOS compress it to 2.91 GiB, **fitting an 8 GB stick with ~4.5 GiB to
+   spare.** The "50 G" fear was ~17x off. So GolemInstall.md §7's "curation
+   call" resolves to: **bake ALL in, no download line** (`flake.nix`
+   `bakedMatrix` -> `iso.nix` `system.extraDependencies`). Built via
+   `nix build .#iso --override-input golem path:<clean tree>`; the preinstall
+   flake was made self-contained (its `../../system/...` refs go through the
+   `golem` input now, so it builds from a copy).
+   The remaining work:
+   - **Bake the leaf-package union into the ISO** — add all class toplevels'
+     closures (the 6.69 GiB union: intel-legacy · Broadwell/iHD · AMD ·
+     nvidia-open · broadcom · facetimehd · every zram tier · quirks) to the
+     ISO store (`isoImage.storeContents` / `system.extraDependencies`). Then
+     `nixos-install --system <chosen>` COPIES locally — the exact chosen
+     toplevel if baked, else assembled offline from the baked components (the
+     heavy driver/kernel/firmware paths are all present, so the toplevel build
+     is cheap).
+   - **Graceful fallback (the reliability guarantee):** hardware outside the
+     baked set degrades to the iron-law generic/nouveau floor (boots on
+     anything) or an OPTIONAL online pull — never a failed/bricked install.
+     Staleness is a non-issue: the install is a bootstrap; first
+     `rebuild-golem` updates from the net.
+   - **wire `golem.install`** — the "Install" boot marker (iso.nix, already
+     reserved) autostarts `golem-setup` (answers) → `golem-install` (local
+     copy of the baked closure); "Start" stays a live/try boot. Gate on
+     `ConditionKernelCommandLine=golem.install`.
+   - **Inherit #85's lesson:** when it decides "what still needs installing?",
+     ask the store DATABASE (`path-info --all`), never `[ -e ]` on the path.
+   - Round I1's #63/#64/#65 (+ the whole #62–#98 queue) ride this recut.
+   - **btop** is now on every Golem (base/core.nix, 2026-09-18).
 
 ## Round I3 — stage 1 climbs (desktop)
 

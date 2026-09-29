@@ -49,7 +49,7 @@ continue the global number line (#62 onward); round-scoped items are
 
 ## The scoreboard
 
-*(state as of 2026-09-15, the comodore's quiet-boot morning)*
+*(state as of 2026-09-18, roster complete + the AMD path banked on metal — every GPU class now proven on installed hardware)*
 
 | # | Machine | In the module DB | Stage 0 on metal | Stage 1 | Notes |
 |---|---------|------------------|------------------|---------|-------|
@@ -58,9 +58,10 @@ continue the global number line (#62 onward); round-scoped items are
 | 2 | **asus** (UEFI, Haswell + failing GF117M) | ✅ | ✅ **PASS 09-11** — on an external USB drive; `gpu2/failing` live. **09-15: #92 swap DEFERRED** — the external drive no longer enumerates (no block dev, no USB bus entry, no errors) | ☐ | internal disk still holds the fat dogfood Golem — **it answers as `asus` too; check modules.nix + Hyprland before ANY write** |
 | 3 | comodore (BIOS, 1.9 GB, GMA 4500) | ✅ | ✅ **PASS 09-14** — audited clean, rejoined over a USB dongle, **self-rebuilt → gen 2 in <3 min on 1931 MB**; **09-15: gen 6**, quiet boot (#89) + lid quirk (#90) + graphics handoff (#93) all live-verified — "the message is gone, clean boot" | ☐ | **#67 answered here** (throttle); caught #85/#87/#88, then #89/#90/#91/#93 |
 | 4 | dell (BIOS, USB wifi, **no keyboard**) | ✅ (redundant with comodore) | ✗ blocked — USB-enumeration boot quirk; firmware mode unknown (F2/F12 unreachable). **#67 no longer blocks it** — retry under the throttle | ☐ | needs a USB keyboard, or stays parked |
-| 5 | hp (BIOS, failing radeon) | ✅ | ☐ not attempted | ☐ | guarded |
-| 6 | macbook (Apple EFI, Broadcom wl) | ✅ | ☐ not attempted | ☐ | guarded; the boss fight |
-| — | lenovo / thinkpad | ✅ | never — census/rehearsal metal only | — | guarded (dev box / Windows) |
+| 5 | **hp** (BIOS, Arrandale, failing radeon) | ✅ | ✅ **PASS 09-18** — clean-image stage-0 from the frozen ISO seed (stock engine, above the #66 floor); `running`, 0 failed, rejoined golem-lab by itself (#64); self-rebuild proven; **#87 confirmed on Arrandale** | ☐ | blessed + wiped 09-18 (disk held only the unrecorded 09-12 ghost Golem, no user data) |
+| 6 | **macbook** (Apple EFI, Broadcom wl, **FaceTime HD cam**) | ✅ | ✅ **PASS 09-18 — BOSS FIGHT WON**: GRUB-EFI booted Apple EFI (#94); internal BCM4360 up on `wl`, rejoined by itself (#5 live proof); **webcam captures 720p on installed metal** (facetimehd fw+calibration); running, 0 failed | ☐ | blessed + wiped (macOS erased); live-fix run (facetimehd = #96, rides the recut) |
+| — | **thinkpad** (UEFI, **AMD** Ryzen/Renoir, Windows) | ✅ | ✅ **PASS 09-18 — AMD path on metal**: installed to an **external 2 TB HDD** (Windows NVMe untouched); amd-ucode + radeonsi (no LIBVA) + no-thermald + **tier2**; grub-efi off the external ESP (no NVRAM); running, 0 failed | ☐ | Windows preserved for the dual-boot test; live-fix run (grub-efi) rides the recut |
+| — | **lenovo** (dev box, **nvidia** RTX 4050) | ✅ | ✅ **PASS 09-18: nvidia + tier3 on metal** — nvidia stage-0 on an external 2 TB (internal NVMe/Windows untouched); **RTX 4050 bound to the `nvidia` driver** (595.71.05, nvidia-smi + /dev/nvidia*, offload topology correct), running/0-failed, tier3, self-rebuild. Audited by the Fedora agent; source leg (chooser/minimal/kbd/tz matrices) also green | ☐ | internal never wiped (dev machine); [lenovo.md](lenovo.md); findings #97/#98 |
 
 **Module database: COMPLETE** — 8 fixtures, every hardware class the lab
 holds, each one chosen correctly AND built on source (intel/iHD,
@@ -78,7 +79,7 @@ the constitution's first rule.
   output is `hosts/target/modules.nix`.
 - Prehistory of this directory: [FirstInstall.md](FirstInstall.md) (the
   ASUS dogfood — the war that taught us the desktop is where bugs
-  live), [DockMenu.md](DockMenu.md), [issues.md](issues.md).
+  live), [DockMenu.md](DockMenu.md), [issues.md](../../work/todo/issues.md).
 
 ## Working agreements
 

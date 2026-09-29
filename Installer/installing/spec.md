@@ -2,8 +2,8 @@
 
 WHAT the Installing program builds and WHY it is shaped this way. The
 HOW-in-order is [implementation.md](implementation.md); the parent
-install spec remains `~/Golem/GolemInstall.md`; the app-bundle side is
-`~/Golem/GolemModules.md`.
+install spec remains `~/Golem/docs/installing/GolemInstall.md`; the app-bundle side is
+`~/Golem/docs/system/GolemModules.md`.
 
 ## The principle (Max, 2026-09-10)
 

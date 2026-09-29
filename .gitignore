@@ -46,3 +46,7 @@ Installer/installing/tools/.present
 
 # Seam update lane rollback pin (written by root at each update)
 seam/sources.json.prev
+
+# Actions research-agent run logs
+docs/shell/actions/work/*.log
+docs/shell/actions/work/.last-iteration.log

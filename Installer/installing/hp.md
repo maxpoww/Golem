@@ -5,6 +5,71 @@ HP Pavilion dm4 · i5 M 460 Arrandale (2c/4t) · switchable Intel iGPU +
 (**Linux — guarded**). Preinstall history + the #17c failing-dGPU story:
 `~/GolemOne/Install/Preinstall/testing/hp.md`.
 
+## 2026-09-18 — stage-0 metal, clean-image — INSTALLED, PASS (constitution rule 2 turn) — and #87 confirmed on Arrandale
+
+**Status in one line:** `hp` on `/dev/sda3`, `is-system-running: running`,
+**0 failed units**, rejoined `golem-lab` by itself, generation
+byte-identical to the toplevel built here. Stage 0 is real on the
+Arrandale / failing-dGPU machine.
+
+Blessed by Max ("wipe it"). The guarded Toshiba turned out to hold only the
+**unrecorded 2026-09-12 ghost Golem** (GPT bios-boot + swap + ext4 `golem`,
+no user data) — read-only inspection shown to Max before the blessing; the
+09-12 gap flag below is now moot (that install is gone).
+
+### Method — clean image, stock engine (hp is above the #66 floor)
+hp reports **3718 MB**, above the 3300 local-eval floor, so the shipping
+medium's **stock** `golem-install` ran it with no live patch — meaning the
+seed it dropped is the **frozen ISO source**, not the dev tree. The toplevel
+was built on the dev box **from hp's own pulled seed** (nixpkgs `c5c4a43`,
+no #92–#95 grub work), so this is a genuine clean-image round-I2 record,
+like the acer's I2 turn — not a live-fix run.
+- `--prepare-only --yes` (wiped `sda`: GPT bios-boot 1 MiB + swap 6 GiB
+  `09dbede8…` + ext4 `golem` 287 G), `--lab-ssh` + `--lab-wifi HOLA` baked
+  in. The engine dropped the four target files itself.
+- **Chosen list = the sweep's prediction, exactly:** grub-bios ·
+  intel-microcode · gpu/intel-legacy · **gpu2/failing** · zram-tier1 ·
+  hibernation · disk/policy · power/laptop · power/thermald.
+- **2.96 GiB / 1040 paths** built (clean seed) and delivered full-speed to
+  `/mnt` over hp's **internal** wifi (1170 Mbit/s — not #67's dongle class;
+  no throttle needed, zero drops), then `--skip-prepare --system` wrote
+  GRUB to the Toshiba (`ata-TOSHIBA_MQ01ABF032…`, i386-pc). "No error."
+
+### First-boot audit (tools/firstboot-audit.sh, over SSH)
+| | |
+|---|---|
+| hostname / root | `hp` on `/dev/sda3` |
+| generation | `3pvyglhpw94…-nixos-system-hp` — byte-identical to the built toplevel |
+| health | `running`, **0 failed units** |
+| boot time | 31.3 s (1.5 kernel + 8.5 initrd + 21.3 userspace) |
+| tier1, exact | zram0 **5.4 G prio 100** + 6 G disk swap · swappiness 180 · cache-pressure 50 · dirty 5 · page-cluster 0 · max-jobs 1 |
+| resume= | `by-uuid/09dbede8…` — wired · **#65** fbcon/splash = 0 |
+| owner | `max` uid 1000, shell **zsh** |
+| self-rebuild | `rebuild-golem` · seed · `modules.nix` all present |
+| MINIMAL | hyprland / greetd / waybar / waverunner all **absent** |
+| intel-legacy | `LIBVA_DRIVER_NAME="i965"` |
+| **#87** | `thermald` **inactive** — the silent no-op **confirmed on Arrandale** (predicted from the comodore's Penryn); 0 failed units |
+| **#64** | `golem-lab:wlp3s0:activated` — rejoined by itself (iwlwifi) |
+| **#88** | `configurationRev = unknown` — the git-less seed, as expected |
+| GRUB theme | **absent** — correct for the frozen image; #68/#89/#95 ride the recut |
+
+### Self-rebuild (§5)
+`rebuild-golem` (`#golem-minimal` from its own seed) evaluated, built, and
+re-activated cleanly — "activated == latest", "activated == booted",
+`running`, 0 failed. It fetched home-manager (hp has internet via HOLA) and
+produced the **identical** frozen toplevel, so Nix kept it at generation 1
+rather than cutting a duplicate — the honest distinction from the
+acer/comodore, whose rebuilds carried a real delta. The rebuild pipeline
+(evaluate → build → activate) is proven end to end; the eval completed
+comfortably above the #66 floor.
+
+### Verdict
+**PASS — stage 0 is real on the hp.** Constitution rule 2 turn done: hp met
+the same frozen image the acer/comodore did, chose exactly what CI
+predicted, booted healthy, and rebuilds itself. It also confirmed #87 on a
+second microarchitecture. **Roster now: only the macbook (the boss fight)
+still owes its turn before this round can close.**
+
 ## ⚠ Round I2 — an UNRECORDED session, 2026-09-12 — reconstructed from artifacts only
 
 **This is not a record, it is a gap flagged.** Noticed 2026-09-14 while
