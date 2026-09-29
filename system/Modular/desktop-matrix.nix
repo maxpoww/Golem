@@ -139,6 +139,13 @@ let
           (c.golem.flakeAttr == "golem-desktop"))
         (ex "real desktop: installs land in hosts/target/apps.nix, not the dev box's list"
           (c.golem.appsFile == "hosts/target/apps.nix"))
+        # The Mac keys ship in every Golem (2026-09-29): F3 Mission Control →
+        # spread/overview, F4 Launchpad → the apps box, the keyboard-light
+        # keys. hid_apple sends them on every classic-F-row MacBook.
+        (ex "real desktop: the MacBook keys are bound (F3, F4, keyboard light)"
+          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
+            lib.all (k: lib.hasInfix ''hl.bind("${k}"'' lua)
+              [ "XF86LaunchA" "XF86LaunchB" "XF86KbdBrightnessUp" "XF86KbdBrightnessDown" ]))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))

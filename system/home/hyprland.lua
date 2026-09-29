@@ -322,6 +322,16 @@ hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
 hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end) -- waveview 3x3 overview (digits 1-9 jump, Esc closes)
+
+-- The Mac's own keys for the same two places (every MacBook with the classic
+-- F-row, 2011–2020: hid_apple maps them for all of them). No other keyboard
+-- sends these keysyms, so the binds cost nothing elsewhere.
+--   F3, Mission Control (KEY_SCALE → XF86LaunchA): the spread → overview
+--   ladder, the gesture's own walk (spread when windows hide each other, the
+--   overview on the next press).
+--   F4, Launchpad (KEY_DASHBOARD → XF86LaunchB): the apps box, as Super+Space.
+hl.bind("XF86LaunchA", function() hl.plugin.waveview.spread() end)
+hl.bind("XF86LaunchB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
 hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
 -- Pseudo through the Golem policy (tag + proportional size + frame rule),
 -- the same daemon path as the topbar pill — never the raw toggle.
@@ -350,6 +360,7 @@ hl.define_submap("stage", function()
     -- its key has to be here too: a submap hides the ordinary keymap, so the
     -- Super+R bound further down would not fire.
     hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end)
+    hl.bind("XF86LaunchA", function() hl.plugin.waveview.toggle() end) -- the Mac's Mission Control key, as Super+R here
     -- Super+[1-9] keeps meaning "go there", it is just the deck it aims at now:
     -- the N-th tile while the stage shows one task, workspace N while it shows
     -- a whole desk (the number the tile is labelled with). A number with no tile
