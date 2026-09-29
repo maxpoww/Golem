@@ -45,6 +45,25 @@ if ! "$hyprctl" version >/dev/null 2>&1; then
   done
 fi
 
+# What a keybind would inherit RIGHT NOW: have the compositor spawn a probe
+# (an old child still carries the environment of an earlier config). Falls
+# back to the newest child of the compositor.
+probe="$XDG_RUNTIME_DIR/golem-parity.env"
+rm -f "$probe"
+"$hyprctl" eval "hl.exec_cmd(\"env -0 > $probe.tmp && mv $probe.tmp $probe\")" >/dev/null 2>&1
+for _ in 1 2 3 4 5 6 7 8 9 10; do [[ -s "$probe" ]] && break; sleep 0.2; done
+if [[ -s "$probe" ]]; then
+  unset henv; declare -A henv
+  while IFS= read -r -d '' kv; do henv["${kv%%=*}"]="${kv#*=}"; done < "$probe"
+  rm -f "$probe"
+else
+  c=$(pgrep -n -P "$hpid" 2>/dev/null)
+  if [[ -n "$c" ]]; then
+    unset henv; declare -A henv
+    while IFS= read -r -d '' kv; do henv["${kv%%=*}"]="${kv#*=}"; done < "/proc/$c/environ" 2>/dev/null
+  fi
+fi
+
 section meta
 echo "host=$(hostname)"
 echo "product=$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
