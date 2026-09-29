@@ -151,14 +151,14 @@ try {
 // Arg 2 is scale (finite double), arg 4 is an options DICTIONARY (not a
 // boolean). Call it on browser.browsingContext.currentWindowGlobal.
 //
-// PALETTE tracks Beam: backdrop = the bar colour rgb(29,32,38); the
+// PALETTE tracks Seam: backdrop = the bar colour rgb(29,32,38); the
 // current-tab ring uses the adaptive --lwt-accent-color (ATBC) with a blue
 // fallback. Style is INLINE on every script-made node — userChrome.css
 // does not reliably reach light-DOM nodes created at runtime.
 // ===================================================================
 try {
   var OV_HTML = "http://www.w3.org/1999/xhtml";
-  // ---- Beam palette ----
+  // ---- Seam palette ----
   var OV_BACKDROP = "rgb(29,32,38)";      // new-tab / bar colour — keep in SYNC with userContent.css (blank-page bg) + userChrome.css (toolbar bg)
   var OV_CARD     = "rgb(39,43,52)";
   var OV_CARD_HOV = "rgb(48,53,63)";
@@ -252,7 +252,7 @@ try {
       if(keys.length>OV_THUMB_MAX){ keys.sort(function(a,b){ return (m[b].t||0)-(m[a].t||0); }); var keep={}; keys.slice(0,OV_THUMB_MAX).forEach(function(k){ keep[k]=m[k]; }); ovMap=m=keep; }
       var json=JSON.stringify(m);
       // atomic write: temp file then rename over the target, so an interrupted
-      // write (e.g. Beam killed mid-save) can never truncate/wipe the real cache.
+      // write (e.g. Seam killed mid-save) can never truncate/wipe the real cache.
       var dir=Services.dirsvc.get("ProfD",Components.interfaces.nsIFile);
       var tmp=dir.clone(); tmp.append(OV_THUMB_FILE+".tmp");
       ovWriteText(tmp, json);
@@ -988,9 +988,9 @@ try {
     win.addEventListener("mousedown",function(){ pending=false; },true);
   }
 
-  // ---- BEAM TINT — colour maths: an exact port of Adaptive Tab Bar Colour's (ATBC)
+  // ---- SEAM TINT — colour maths: an exact port of Adaptive Tab Bar Colour's (ATBC)
   // defaults, so the bar looks the same with ATBC removed. Verified bit-for-bit against
-  // ATBC's own colour class (see ~/Golem/beam/README.md). Colours are [r,g,b] floats,
+  // ATBC's own colour class (see ~/Golem/seam/README.md). Colours are [r,g,b] floats,
   // unrounded, exactly like ATBC.
   function gtLin(e){ return e<0?0:e<32?.1151*e:e<64?.2935*e-5.7074:e<96?.5236*e-20.4339:e<128?.788*e-45.8232:e<160?1.0811*e-83.3411:e<192?1.3992*e-134.2269:e<224?1.7395*e-199.5679:e<256?2.1001*e-280.341:255; }
   function gtLum(c){ return .2126*gtLin(c[0])+.7152*gtLin(c[1])+.0722*gtLin(c[2]); }
@@ -1043,18 +1043,18 @@ try {
     }};
   }
 
-  // ---- BEAM TINT — engine (replaces the ATBC extension; built-in, on by default). ATBC injected a script into EVERY page and re-sampled on every
+  // ---- SEAM TINT — engine (replaces the ATBC extension; built-in, on by default). ATBC injected a script into EVERY page and re-sampled on every
   // scroll/click/resize/animation, rewriting the whole browser theme each time. Here:
   // no page script — the colour is read from the RENDERED page (2 px at top-centre,
   // ATBC's own sample point) once per load / in-page navigation, cached per tab and
   // per site, and applied through an agent sheet nothing can overwrite. Zero work
   // while scrolling.
-  var GT_PREF="golem.beam.tint";
+  var GT_PREF="golem.seam.tint";
   var GT_VARS=Object.keys(gtTheme([0,0,0]).vars);
   var gtSite={};   // host -> [r,g,b], session memory only
   // DORMANT (2026-09-25): Max tried it live — "it sucks… wrong color". A raw pixel read at one
   // point lands on text/images/edges; ATBC reads the page's ELEMENT colours. ATBC is restored;
-  // this engine stays OFF (and loads nothing) unless golem.beam.tint is set for development.
+  // this engine stays OFF (and loads nothing) unless golem.seam.tint is set for development.
   function gtOn(){ try{ return Services.prefs.getBoolPref(GT_PREF,false); }catch(e){ return false; } }
   function gtKey(v){ return "--gt"+v.slice(1); }   // --lwt-accent-color -> --gt-lwt-accent-color
   function gtHost(tab){ try{ return tab.linkedBrowser.currentURI.host||""; }catch(e){ return ""; } }
@@ -1255,7 +1255,7 @@ try {
   // layout.frame_rate was hardcoded to 165 (Max's panel) for EVERY Golem machine: a
   // 60 Hz laptop rendered ~3 frames per one shown (CPU wasted, uneven scrolling), and
   // Firefox's own auto-detect (-1) believes the panel's PREFERRED mode, which on many
-  // high-refresh laptops is 60 -> a third of the panel. Golem controls the OS, so Beam
+  // high-refresh laptops is 60 -> a third of the panel. Golem controls the OS, so Seam
   // asks the compositor: hyprctl monitors -j -> the focused monitor's real rate. The
   // pref is LIVE (proven headless: 30 -> 29 fps, 90 -> 89 fps in one session), so it
   // is set as soon as the answer arrives. If hyprctl is unavailable nothing is set
@@ -1291,7 +1291,7 @@ try {
   // PER-MACHINE CODECS (2026-09-26, speed pass). Modern chips decode H.264, VP9 and AV1
   // in hardware; older ones (HD 5500, HD 5000, GM45 ...) only H.264 (or nothing), yet
   // YouTube serves VP9/AV1 by default -> software decode: stutter, fans, scroll jank.
-  // Golem already ships h264ify for Chrome webapps on legacy machines; Beam does the
+  // Golem already ships h264ify for Chrome webapps on legacy machines; Seam does the
   // same itself: read each codec's hardware support from Firefox's decoder report
   // (gfxInfo.CodecSupportInfo, filled by the media process: "VP9 SWDEC HWDEC"), and where
   // VP9 / AV1 are known NOT to be hardware, tell STREAMING sites they are unsupported
@@ -1304,13 +1304,13 @@ try {
   // was WRONG on real hardware: it answers for the browser process, where video is never
   // decoded, so it said "no hardware" on a machine that decodes everything in hardware —
   // measured live 2026-09-26. It is kept only to make Firefox instantiate its decoders.)
-  // Modern machines: nothing changes. Persisted as BOOL prefs (golem.beam.codecBlock.vp9 /
+  // Modern machines: nothing changes. Persisted as BOOL prefs (golem.seam.codecBlock.vp9 /
   // .av1) so the NEXT start applies it from the very first page; re-probed every start.
   // (Bools, not one string: Firefox strips STRING prefs from web content processes for
   // privacy, so the content side could never read a string list — measured.)
-  // Kill switch: golem.beam.preferHwCodecs=false.
+  // Kill switch: golem.seam.preferHwCodecs=false.
   // =================================================================
-  var CB_PREF="golem.beam.codecBlock.", CB_ON="golem.beam.preferHwCodecs", CB_CODECS=["vp9","av1"], cbState=null;
+  var CB_PREF="golem.seam.codecBlock.", CB_ON="golem.seam.preferHwCodecs", CB_CODECS=["vp9","av1"], cbState=null;
   function cbCaps(){   // {h264:{known,hw,sw}, vp9:..., av1:...} from the decoder report
     var out={};
     try{ var g=Components.classes["@mozilla.org/gfx/info;1"].getService(Components.interfaces.nsIGfxInfo);
@@ -1344,8 +1344,8 @@ try {
   var CB_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
     "(function(){var dbg=function(w,e){try{sendAsyncMessage('golem:cbdbg',{where:w,err:String(e)});}catch(x){}};try{"+
     "var P=Services.prefs,done=new WeakSet();"+
-    "function patch(d){try{if(!d||done.has(d))return;done.add(d);var w=d.defaultView;if(!w)return;var on=true;try{on=P.getBoolPref('golem.beam.preferHwCodecs');}catch(e){}if(!on)return;"+
-    "var parts=[];try{if(P.getBoolPref('golem.beam.codecBlock.vp9'))parts.push('vp0?9');}catch(e){}try{if(P.getBoolPref('golem.beam.codecBlock.av1'))parts.push('av01');}catch(e){}if(!parts.length)return;"+
+    "function patch(d){try{if(!d||done.has(d))return;done.add(d);var w=d.defaultView;if(!w)return;var on=true;try{on=P.getBoolPref('golem.seam.preferHwCodecs');}catch(e){}if(!on)return;"+
+    "var parts=[];try{if(P.getBoolPref('golem.seam.codecBlock.vp9'))parts.push('vp0?9');}catch(e){}try{if(P.getBoolPref('golem.seam.codecBlock.av1'))parts.push('av01');}catch(e){}if(!parts.length)return;"+
     "var re=new RegExp('(^|[^a-z0-9])('+parts.join('|')+')','i');var u=w.wrappedJSObject,MS=u.MediaSource;if(!MS)return;var orig=MS.isTypeSupported;"+
     "Components.utils.exportFunction(function(t){if(re.test(String(t)))return false;return orig.call(MS,t);},MS,{defineAs:'isTypeSupported'});dbg('patched',parts.join(','));}catch(e){dbg('patch',e);}}"+
     "addEventListener('DOMWindowCreated',function(e){try{patch(e.target);}catch(x){dbg('event',x);}},true);try{patch(content.document);}catch(e){dbg('initial',e);}"+
@@ -1361,21 +1361,82 @@ try {
   }
 
   // =================================================================
+  // THE WINDOW SAYS SEAM (2026-09-27). The title is built from Firefox's brand strings
+  // inside omni.ja ("Page — Mozilla Firefox"); wrap the builder so every window title
+  // (normal, private) says Seam. The app menu / about pages still say Firefox — that
+  // text lives in the packed locale, out of a config script's reach.
+  // =================================================================
+  function ttInit(win){
+    try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
+      var orig=gb.getWindowTitleForBrowser;
+      gb.getWindowTitleForBrowser=function(b){ var t=orig.call(this,b); return (typeof t==="string") ? t.replace(/Mozilla Firefox/g,"Seam").replace(/\bFirefox\b/g,"Seam") : t; };
+      try{ gb.updateTitlebar(); }catch(e){}
+    }catch(e){ OVLOG("title:"+e); }
+  }
+  function ttTest(win,r,step,done){   // through Firefox's own updateTitlebar, as production does
+    try{ var gb=win.gBrowser; try{ gb.updateTitlebar(); }catch(e){}
+      win.setTimeout(function(){ var d=String(win.document.title||""); r.title={document:d, patched:!!gb.__golemTitle};
+        step("title-says-seam", !!gb.__golemTitle && /Seam/.test(d) && !/Firefox/.test(d)); done(); },300);
+    }catch(e){ step("title-threw:"+e,false); done(); }
+  }
+
+  // =================================================================
+  // HOVER PREFETCH (2026-09-26, Max: "think deeper"). After the connection is warm (uBO
+  // prefetch fix) the biggest wait left on a click is request -> first byte: the server's
+  // think-time plus a round trip, 100-400ms on real sites. Chrome removes it only where a
+  // site opts in (speculation rules). Seam: a link HOVERED for 65ms (people hover 200-400ms
+  // before clicking) has its page fetched into the HTTP cache BY THE PAGE ITSELF (a fetch()
+  // in the page's context, Purpose: prefetch), so the click paints from cache. Measured:
+  // Firefox's prefetch service (<link rel=prefetch>) stores entries a navigation never
+  // uses (0/3 served from cache); a page fetch() is used 3/3 — 69ms instead of 377ms with
+  // a 300ms server think-time. Only pages whose HTML may be cached benefit; a no-cache
+  // page is revalidated on the click as it would be anyway (one small extra request).
+  // A site that answers no-store / no-cache / max-age=0 (its HTML is never served from
+  // cache) is remembered and not prefetched again in that content process: the waste is
+  // capped at one fetch per such site (NYT, Reddit, YouTube ...); sites that allow caching
+  // (Guardian, MDN, docs ...) get the full win, revalidating ones (BBC, Wikipedia, GitHub)
+  // save the body transfer only.
+  // Rules (privacy + safety): SAME SITE only; never a link with a query string (where
+  // "log out", "delete", "add to cart" live), a fragment-only link, or a non-http one;
+  // one prefetch per link per page, at most 20 per page, at most one every 100ms.
+  // Trusted (real) pointer input only. Kill switch: golem.seam.hoverPrefetch=false.
+  // =================================================================
+  var PF_PREF="golem.seam.hoverPrefetch";
+  var PF_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
+    "(function(){var P=Services.prefs,seen=new WeakMap(),count=new WeakMap(),skip={},last=0,hoverA=null,hoverT=0;"+
+    "function on(){try{return P.getBoolPref('golem.seam.hoverPrefetch');}catch(e){return true;}}"+
+    "function site(h){try{return Services.eTLD.getBaseDomainFromHost(h);}catch(e){return h;}}"+
+    "function link(e){var n=e.target;if(!n||!n.closest)return null;var a=n.closest('a[href]');if(!a)return null;var h=a.href;if(!/^https?:/i.test(h))return null;"+
+    "try{var u=new content.URL(h),l=content.location;if(u.search||(u.origin===l.origin&&u.pathname===l.pathname))return null;if(site(u.hostname)!==site(l.hostname))return null;"+
+    "if(skip[u.origin])return null;var d=a.ownerDocument,m=seen.get(d);if(!m){m={};seen.set(d,m);}if(m[u.origin+u.pathname])return null;var c=count.get(d)||0;if(c>=20)return null;return {a:a,u:u,d:d,key:u.origin+u.pathname,c:c};}catch(x){return null;}}"+
+    "function go(r){try{if(!on())return;var now=Date.now();if(now-last<100)return;last=now;seen.get(r.d)[r.key]=1;count.set(r.d,r.c+1);"+
+    "var w=r.d.defaultView,same=(r.u.origin===r.d.location.origin);var o=same?{credentials:'include',mode:'same-origin',headers:{'Accept':'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8','Purpose':'prefetch'}}:{credentials:'include',mode:'no-cors'};"+
+    "w.fetch(r.u.href,o).then(function(res){var cc='';try{cc=String(res.headers.get('cache-control')||'').toLowerCase();}catch(e){}if(/no-store|no-cache|max-age=0(?![0-9])/.test(cc)){skip[r.u.origin]=1;sendAsyncMessage('golem:prefetched',{u:r.u.href,skipSite:cc});}return res.text();}).catch(function(){});sendAsyncMessage('golem:prefetched',{u:r.u.href});}catch(x){sendAsyncMessage('golem:prefetched',{u:r.u.href,err:String(x).slice(0,80)});}}"+
+    "addEventListener('mouseover',function(e){if(!e.isTrusted)return;var r=link(e);if(!r||r.a===hoverA)return;hoverA=r.a;if(hoverT)content.clearTimeout(hoverT);hoverT=content.setTimeout(function(){hoverT=0;go(r);},65);},{capture:true,passive:true});"+
+    "addEventListener('mouseout',function(e){if(hoverA&&e.target&&e.target.closest&&e.target.closest('a[href]')===hoverA&&!(e.relatedTarget&&hoverA.contains(e.relatedTarget))){hoverA=null;if(hoverT){content.clearTimeout(hoverT);hoverT=0;}}},{capture:true,passive:true});"+
+    "addEventListener('mousedown',function(e){if(!e.isTrusted||e.button>1)return;var r=link(e);if(r){if(hoverT){content.clearTimeout(hoverT);hoverT=0;}go(r);}},{capture:true,passive:true});})();");
+  function pfInit(win){
+    if(win.__golemPfInit) return; win.__golemPfInit=true;
+    try{ win.messageManager.addMessageListener("golem:prefetched",function(m){ (win.__golemPfLog=win.__golemPfLog||[]).push(m.data.err?("ERR "+m.data.u+": "+m.data.err):(m.data.skipSite?("SKIP-SITE "+m.data.u+" ["+m.data.skipSite+"]"):m.data.u)); if(win.__golemPfLog.length>50) win.__golemPfLog.shift(); }); }catch(e){}
+    try{ win.messageManager.loadFrameScript(PF_FS,true); }catch(e){ OVLOG("prefetch framescript:"+e); }
+  }
+
+  // =================================================================
   // CPU SHARE — THE TAB YOU LOOK AT WINS (2026-09-26, Max: "one more effort, faster").
-  // Firefox's Linux process priority manager only sets oom_score_adj; every Beam process
+  // Firefox's Linux process priority manager only sets oom_score_adj; every Seam process
   // runs at the same CPU priority, so a busy background tab competes equally with the
   // one on screen (measured live: all nice 0). Chrome on Linux has the same gap.
   // Golem's dock launches every app in its own systemd user scope with the cpu
-  // controller delegated (waverunner launch.rs). Inside that scope Beam makes two
+  // controller delegated (waverunner launch.rs). Inside that scope Seam makes two
   // cgroups, fg and bg: everything starts in fg; content processes whose tabs are ALL
   // background (not selected in any window, not playing sound) move to bg, which has
   // cpu.weight 20 vs 100 — a 5:1 share whenever they compete, full CPU when nothing
   // competes. Reversible (a process moves back the moment its tab is picked), no root.
   // SAFETY: refuses to touch a cgroup it does not own outright (every process in it must
-  // descend from Beam) — a Beam launched the old way sits in the compositor's cgroup and
-  // does nothing. Kill switch golem.beam.cpuShare=false (moves everything back to fg).
+  // descend from Seam) — a Seam launched the old way sits in the compositor's cgroup and
+  // does nothing. Kill switch golem.seam.cpuShare=false (moves everything back to fg).
   // =================================================================
-  var CS_ON="golem.beam.cpuShare", CS_WEIGHT="golem.beam.cpuShare.bgWeight";
+  var CS_ON="golem.seam.cpuShare", CS_WEIGHT="golem.seam.cpuShare.bgWeight";
   var csState={status:"idle"};
   function csOn(){ try{ return Services.prefs.getBoolPref(CS_ON,true); }catch(e){ return true; } }
   function csWeight(){ try{ var w=Services.prefs.getIntPref(CS_WEIGHT,20); return Math.max(1,Math.min(100,w)); }catch(e){ return 20; } }
@@ -1392,8 +1453,8 @@ try {
   function csPids(dir){ var t=csRead(dir+"/cgroup.procs"); return t ? t.split("\n").map(function(x){ return parseInt(x,10); }).filter(function(n){ return n>0; }) : []; }
   function csParent(pid){ var st=csRead("/proc/"+pid+"/stat"); if(!st) return 0; var i=st.lastIndexOf(")"); var pp=parseInt(st.slice(i+2).split(" ")[1],10); return pp>0?pp:0; }
   function csArgv0(pid){ try{ var c=csRead("/proc/"+pid+"/cmdline")||""; return c.split("\u0000")[0]||""; }catch(e){ return ""; } }
-  function csOwnsAll(pids){   // every pid is Beam's: a descendant of this process, one of its own ancestors, or a
-    // program from Beam's own install directory (Firefox re-parents its crashhelper to the
+  function csOwnsAll(pids){   // every pid is Seam's: a descendant of this process, one of its own ancestors, or a
+    // program from Seam's own install directory (Firefox re-parents its crashhelper to the
     // session manager at startup — measured live: it was the one "foreign" pid; its cmdline
     // starts with that directory, and cmdline stays readable where /proc/pid/exe is not)
     var self=Services.appinfo.processID, anc={}, a=self, hops=0, home="";
@@ -1492,15 +1553,15 @@ try {
   // ---- NVIDIA HW DECODE + FALLBACK (2026-09-26, Max: "build the nvidia only... and a
   // fallback"). On an nvidia-ONLY machine Golem ships nvidia-vaapi-driver and sets
   // LIBVA_DRIVER_NAME=nvidia (system/Modular/gpu/nvidia/vaapi.nix). Firefox is conservative
-  // with nvidia, so Beam asks it to use hardware decoding there (default branch, so a user
+  // with nvidia, so Seam asks it to use hardware decoding there (default branch, so a user
   // setting still wins). Two fallbacks:
   //  1. the driver fails to initialise -> Firefox itself decodes in software (built in);
   //  2. it initialises but the decoder process CRASHES while video plays -> after 2 such
-  //     crashes in a session Beam turns it off for this machine (golem.beam.nvdec.failed =
+  //     crashes in a session Seam turns it off for this machine (golem.seam.nvdec.failed =
   //     "<firefox>|<nvidia driver>"), so the next start decodes in software. It retries by
   //     itself once Firefox or the nvidia driver version changes. golem-media.json says which.
   // Sandbox untouched (Firefox 156 allows /dev/nvidia* in the media sandbox).
-  var NV_FAIL="golem.beam.nvdec.failed", NV_FORCE="media.hardware-video-decoding.force-enabled";
+  var NV_FAIL="golem.seam.nvdec.failed", NV_FORCE="media.hardware-video-decoding.force-enabled";
   function nvOnly(){ try{ return Services.env.get("LIBVA_DRIVER_NAME")==="nvidia"; }catch(e){ return false; } }
   function nvDriver(){
     try{ var f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath("/proc/driver/nvidia/version");
@@ -1533,7 +1594,7 @@ try {
     nvMode="software (fallback: the nvidia video decoder crashed "+nvState.crashes+"x; retried after the next Firefox or driver update)";
     try{ mrDone=false; mrWrite(); }catch(e){}
     try{ Components.classes["@mozilla.org/alerts-service;1"].getService(Components.interfaces.nsIAlertsService)
-      .showAlertNotification(null,"Beam","Hardware video decoding was unstable on this machine, so videos now decode in software. Beam will try hardware again after the next update.",false,"",null,"golem-nvdec"); }catch(e){}
+      .showAlertNotification(null,"Seam","Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.",false,"",null,"golem-nvdec"); }catch(e){}
   }
   function nvWatch(win){
     if(!nvOnly() || nvMode!=="hardware" || win.__golemNvWatch) return;
@@ -1571,15 +1632,15 @@ try {
   // =================================================================
   // WARM RESTORED TABS (2026-09-26, perf pass; Max: "build it"). Tabs from the last
   // session load only when you pick one — a heavy page then makes you wait. Once
-  // startup has settled and the browser is idle, Beam quietly loads the N most recently
+  // startup has settled and the browser is idle, Seam quietly loads the N most recently
   // used restored tabs in the background, ONE at a time, most recent first, so switching
   // to them is instant (Chrome restores its tabs in the background too). The rest stay
-  // unloaded (memory stays within budget). golem.beam.warmTabs = N (0 = off).
+  // unloaded (memory stays within budget). golem.seam.warmTabs = N (0 = off).
   // How: Firefox's own lazy-tab hook — reload() on an unloaded tab's browser creates it and
   // reloads once SessionStore reports SSTabRestoring, i.e. the same restore as selecting it
   // (Tabbrowser.sys.mjs lazy-browser "reload" getter). Checked by SSTabRestoring.
   // =================================================================
-  var BW_PREF="golem.beam.warmTabs";
+  var BW_PREF="golem.seam.warmTabs";
   function bwCount(){ try{ return Services.prefs.getIntPref(BW_PREF,5); }catch(e){ return 5; } }
   function bwPending(win){
     try{ return Array.prototype.filter.call(win.gBrowser.tabs,function(t){ return t.hasAttribute("pending") && !t.selected && !t.closing && !t.hidden; }); }catch(e){ return []; }
@@ -1640,8 +1701,8 @@ try {
   }
 
   // =================================================================
-  // SAFETY NET — Beam now takes every Firefox release automatically
-  // (~/Golem/beam), and Firefox changes its chrome DOM without notice.
+  // SAFETY NET — Seam now takes every Firefox release automatically
+  // (~/Golem/seam), and Firefox changes its chrome DOM without notice.
   // Rules: (1) the overview may FAIL, but it may never leave the browser
   // broken — any fault restores content, nav chrome and the bar; (2) if
   // the hooks it needs are gone, it switches itself off for this session
@@ -1651,7 +1712,7 @@ try {
   // the profile + one desktop notice per Firefox version, nothing sent.
   // =================================================================
   var OV_SELFTEST = "", OV_BREAK = "";
-  try{ OV_SELFTEST = Services.env.get("BEAM_SELFTEST"); OV_BREAK = Services.env.get("BEAM_SELFTEST_BREAK"); }catch(e){}
+  try{ OV_SELFTEST = Services.env.get("SEAM_SELFTEST"); OV_BREAK = Services.env.get("SEAM_SELFTEST_BREAK"); }catch(e){}
 
   // Undo EVERYTHING the overview can have changed. Idempotent, each step
   // independent, so one broken hook can't stop the others from restoring.
@@ -1684,12 +1745,12 @@ try {
     ovHealthFile({firefox:ver, ok:false, disabled:reason, at:new Date().toISOString()});
     if(OV_SELFTEST) return;
     try{
-      var P="golem.beam.degradedNotified";
+      var P="golem.seam.degradedNotified";
       if(Services.prefs.getStringPref(P,"")!==ver){
         Services.prefs.setStringPref(P,ver);
         Components.classes["@mozilla.org/alerts-service;1"].getService(Components.interfaces.nsIAlertsService)
-          .showAlertNotification(null,"Beam: tab overview paused",
-            "Firefox "+ver+" changed something the overview relies on. Browsing is unaffected; the overview returns after the next Beam update.",false,"",null,"golem-beam-degraded");
+          .showAlertNotification(null,"Seam: tab overview paused",
+            "Firefox "+ver+" changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.",false,"",null,"golem-seam-degraded");
       }
     }catch(e){}
   }
@@ -1909,12 +1970,12 @@ try {
     }catch(e){ step("placeholder-threw:"+e,false); done(); }
   }
 
-  // Loading-hold self-test (needs BEAM_SELFTEST_HTTP): Max's case — on a RED tab, switch to a
+  // Loading-hold self-test (needs SEAM_SELFTEST_HTTP): Max's case — on a RED tab, switch to a
   // tab that must load (discarded → [pending]). The bar must be the Golem colour at once, stay
   // so while the old red is all ATBC has, follow the page when it reports, and a switch to an
   // already-loaded tab must NOT get the Golem colour in between.
   function gtHoldTest(win,r,step,done){
-    var base=""; try{ base=Services.env.get("BEAM_SELFTEST_HTTP"); }catch(e){}
+    var base=""; try{ base=Services.env.get("SEAM_SELFTEST_HTTP"); }catch(e){}
     if(!base || gtOn()){ step("hold-skipped",true); done(); return; }
     try{
       var gb=win.gBrowser, root=win.document.documentElement, golem=gtTheme([29,32,38]).vars;
@@ -1961,9 +2022,48 @@ try {
     }catch(e){ step("hold-threw:"+e,false); done(); }
   }
 
+  // Hover-prefetch self-test (needs SEAM_SELFTEST_HTTP): a page with three links — same-site
+  // plain, same-site with a query string, other site. Hover each: only the first is prefetched
+  // (a request for it with a prefetch purpose, no navigation); the page itself stays put.
+  function pfTest(win,r,step,done){
+    var base=""; try{ base=Services.env.get("SEAM_SELFTEST_HTTP"); }catch(e){}
+    if(!base){ step("prefetch-skipped",true); done(); return; }
+    try{
+      var gb=win.gBrowser, home=gb.selectedTab;
+      var other=base.replace("127.0.0.1","localhost");
+      var PAGE=base+"/pf.html";
+      var reqs=[], obs={observe:function(ch){ try{ ch.QueryInterface(Components.interfaces.nsIHttpChannel); var u=ch.URI.spec; if(u.indexOf("/p")===-1 && u.indexOf("nostore")===-1) return;
+        var purpose=""; try{ purpose=ch.getRequestHeader("Purpose"); }catch(e){ try{ purpose=ch.getRequestHeader("Sec-Purpose"); }catch(e2){} }
+        reqs.push({u:u, purpose:purpose, doc:!!(ch.loadFlags & Components.interfaces.nsIChannel.LOAD_DOCUMENT_URI)}); }catch(e){} }};
+      Services.obs.addObserver(obs,"http-on-modify-request");
+      // uBO's first run flips network.prefetch-next off in a fresh profile before its managed
+      // setting lands (a live profile has it on); set it here so the mechanism is what's tested
+      var hadPref=Services.prefs.prefHasUserValue("network.prefetch-next"); Services.prefs.setBoolPref("network.prefetch-next",true);
+      var t=gb.addTrustedTab(PAGE,{inBackground:false}); var sel=function(x){ try{ gb.selectedTab=x; }catch(e){} if(gb.selectedTab!==x){ try{ gb.tabContainer.selectedIndex=Array.prototype.indexOf.call(gb.tabs,x); }catch(e){} } }; sel(t);
+      var b=t.linkedBrowser, mm=b.messageManager;
+      var hover=function(id,cb){ var h=function(m){ mm.removeMessageListener("pf:did",h); cb(); }; mm.addMessageListener("pf:did",h);
+        mm.loadFrameScript("data:application/javascript,"+encodeURIComponent("(function(){var a=content.document.getElementById('"+id+"');var r=a.getBoundingClientRect();content.synthesizeMouseEvent('mousemove',r.left+5,r.top+5,{button:0,buttons:0,clickCount:0},{isDOMEventSynthesized:false});sendAsyncMessage('pf:did',{});})();"),false); };
+      var t0=Date.now(); (function wait(){ var ok=false; try{ ok=!t.hasAttribute("busy") && b.currentURI.spec===PAGE; }catch(e){} if(!ok && Date.now()-t0<10000){ win.setTimeout(wait,100); return; }
+        win.setTimeout(function(){ hover("same",function(){ win.setTimeout(function(){ hover("query",function(){ win.setTimeout(function(){ hover("cross",function(){ win.setTimeout(function(){ hover("nostore",function(){ win.setTimeout(function(){ hover("again",function(){ win.setTimeout(function(){
+          Services.obs.removeObserver(obs,"http-on-modify-request");
+          var pre=reqs.filter(function(x){ return /prefetch/i.test(x.purpose) && !x.doc; });
+          r.prefetch={log:win.__golemPfLog||[], requests:reqs.map(function(x){ return x.u.replace(base,"").replace(other,"OTHER")+" ["+x.purpose+(x.doc?"/doc":"")+"]"; })};
+          step("prefetch-same-site-link", pre.some(function(x){ return x.u===base+"/p1.html"; }));
+          step("prefetch-not-query-link", !pre.some(function(x){ return x.u.indexOf("/p2.html")!==-1; }));
+          step("prefetch-not-cross-site", !pre.some(function(x){ return x.u.indexOf(other)===0; }));
+          var stay=""; try{ stay=b.currentURI.spec; }catch(e){}
+          step("prefetch-no-navigation", stay===PAGE);
+          step("prefetch-learns-no-store", pre.some(function(x){ return x.u.indexOf("/nostore-p1.html")!==-1; }) && !pre.some(function(x){ return x.u===base+"/p0.html"; }) && (win.__golemPfLog||[]).some(function(l){ return l.indexOf("SKIP-SITE")===0; }));
+          try{ if(!hadPref) Services.prefs.clearUserPref("network.prefetch-next"); }catch(e){}
+          try{ gb.removeTab(t); }catch(e){} sel(home); done();
+        },1200); }); },600); }); },600); }); },400); }); },400); }); },800);
+      })();
+    }catch(e){ step("prefetch-threw:"+e,false); done(); }
+  }
+
   // CPU-share self-test. Everywhere: the plan (which processes go to the back) and the
   // SAFETY refusal — in a shared or unreadable cgroup nothing is created or moved. On the
-  // host (BEAM_SELFTEST_HOST=1: launched in its own scope, pinned to one core): the groups
+  // host (SEAM_SELFTEST_HOST=1: launched in its own scope, pinned to one core): the groups
   // exist with the weight, a background tab's process is in bg, the selected one in fg,
   // and a fixed chunk of foreground work runs measurably faster while a background tab
   // spins, than with the kill switch off (everything back in front, equal shares).
@@ -1971,7 +2071,7 @@ try {
     try{
       var plan=csPlan([{pid:11,selected:true},{pid:11,selected:false},{pid:12,selected:false,soundPlaying:true},{pid:13,selected:false},{pid:0,selected:false}]);
       step("cpushare-plan", plan.fg.sort().join()==="11,12" && plan.bg.join()==="13");
-      var host=""; try{ host=Services.env.get("BEAM_SELFTEST_HOST"); }catch(e){}
+      var host=""; try{ host=Services.env.get("SEAM_SELFTEST_HOST"); }catch(e){}
       r.cpuShare=JSON.parse(JSON.stringify(csState));
       if(!host){
         step("cpushare-refuses-foreign-cgroup", ["no-scope","shared-scope","no-cpu","off"].indexOf(csState.status)!==-1);
@@ -2002,7 +2102,7 @@ try {
             r.cpuShare.workMsWithShare=withShare; r.cpuShare.workMsEqual=equal; r.cpuShare.runs={withShare:allA, equal:allB}; r.cpuShare.bgAfterOff=stillBg;
             step("cpushare-off-moves-all-back", stillBg===0);
             // a clear, repeatable win for the foreground while a background tab burns a whole core
-            // (the ideal 5:1 is diluted by Beam's own painting/UI, which share the front group)
+            // (the ideal 5:1 is diluted by Seam's own painting/UI, which share the front group)
             step("cpushare-foreground-work-faster", withShare>0 && equal>0 && withShare<0.85*equal);
             try{ gb.removeTab(bgTab); }catch(e){} sel(home); done();
           });
@@ -2097,11 +2197,11 @@ try {
     done();
   }
 
-  // Warm-restored-tabs self-test (needs BEAM_SELFTEST_HTTP): 4 background tabs, unloaded
+  // Warm-restored-tabs self-test (needs SEAM_SELFTEST_HTTP): 4 background tabs, unloaded
   // (discarded = the same lazy state a restored tab has); the 2 most recently used must load
   // in the background, the other 2 stay unloaded, and the tab you are on does not change.
   function bwTest(win,r,step,done){
-    var base=""; try{ base=Services.env.get("BEAM_SELFTEST_HTTP"); }catch(e){}
+    var base=""; try{ base=Services.env.get("SEAM_SELFTEST_HTTP"); }catch(e){}
     if(!base){ step("warm-skipped",true); done(); return; }
     try{
       var gb=win.gBrowser, home=gb.selectedTab, tabs=[], had=Services.prefs.prefHasUserValue(BW_PREF);
@@ -2131,11 +2231,11 @@ try {
     }catch(e){ step("warm-threw:"+e,false); done(); }
   }
 
-  // Race self-test (needs BEAM_SELFTEST_HTTP): pick a tab from the overview at the exact
+  // Race self-test (needs SEAM_SELFTEST_HTTP): pick a tab from the overview at the exact
   // moment the background-capture pass has it activated for a snapshot, then assert the
   // tab you picked is actually rendering (the "random blank tabs" failure).
   function ovRaceTest(win,r,step,done){
-    var base=""; try{ base=Services.env.get("BEAM_SELFTEST_HTTP"); }catch(e){}
+    var base=""; try{ base=Services.env.get("SEAM_SELFTEST_HTTP"); }catch(e){}
     if(!base){ step("race-skipped",true); done(); return; }
     try{
       var gb=win.gBrowser, tabs=[];
@@ -2163,7 +2263,7 @@ try {
     }catch(e){ step("race-threw:"+e,false); done(); }
   }
 
-  // Headless self-test (BEAM_SELFTEST=<result file>): health, then drive the
+  // Headless self-test (SEAM_SELFTEST=<result file>): health, then drive the
   // real open → close → switch path and assert the browser is left sane.
   function ovSelfTest(win){
     var r={firefox:"", steps:[], ok:true};
@@ -2196,7 +2296,7 @@ try {
         try{
           ovOpen(win); ovSwitchTo(win,t2);
           win.setTimeout(function(){
-            step("switch-selected", gb.selectedTab===t2); step("switch-sane", sane() && !root.hasAttribute("golem-ov-pin")); gtSelfTest(win,r,step,function(){ ovRaceTest(win,r,step,function(){ ovBlankTest(win,r,step,function(){ gtPlaceholderTest(win,r,step,function(){ gtHoldTest(win,r,step,function(){ bwTest(win,r,step,function(){ mrTest(win,r,step,function(){ nvTest(win,r,step,function(){ frTest(win,r,step,function(){ cbTest(win,r,step,function(){ csTest(win,r,step,done); }); }); }); }); }); }); }); }); }); }); }, 700);
+            step("switch-selected", gb.selectedTab===t2); step("switch-sane", sane() && !root.hasAttribute("golem-ov-pin")); gtSelfTest(win,r,step,function(){ ovRaceTest(win,r,step,function(){ ovBlankTest(win,r,step,function(){ gtPlaceholderTest(win,r,step,function(){ gtHoldTest(win,r,step,function(){ bwTest(win,r,step,function(){ mrTest(win,r,step,function(){ nvTest(win,r,step,function(){ frTest(win,r,step,function(){ cbTest(win,r,step,function(){ csTest(win,r,step,function(){ pfTest(win,r,step,function(){ ttTest(win,r,step,done); }); }); }); }); }); }); }); }); }); }); }); }); }, 700);
         }catch(e){ step("switch-threw:"+e,false); done(); }
       }, 300);
       }catch(e){ step("open-phase-threw:"+e,false); done(); } }, 400);
@@ -2250,6 +2350,8 @@ try {
       try{ mrInit(w); }catch(e){}
       try{ cbInit(w); }catch(e){ OVLOG("codec init:"+e); }
       try{ csInit(w); }catch(e){ OVLOG("cpushare init:"+e); }
+      try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
+      try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
     },1100); }catch(e){}

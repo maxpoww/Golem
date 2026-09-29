@@ -1,18 +1,22 @@
-# beam-update — body of the `beam-update` command (wrapped by beam.nix with
-# `set -euo pipefail` and BEAM_DIR). Usage:
-#   beam-update            update if Mozilla has a newer release (root)
-#   beam-update --check    report pinned / running / latest, change nothing
-#   beam-update --force    re-pin + rebuild even if already current (root)
+# seam-update — body of the `seam-update` command (wrapped by seam.nix with
+# `set -euo pipefail` and SEAM_DIR). Usage:
+#   seam-update            update if Mozilla has a newer release (root)
+#   seam-update --check    report pinned / running / latest, change nothing
+#   seam-update --force    re-pin + rebuild even if already current (root)
 
 mode="${1:-}"
-SRC="$BEAM_DIR/sources.json"
+SRC="$SEAM_DIR/sources.json"
 PD="https://product-details.mozilla.org/1.0/firefox_versions.json"
 
-log(){ echo "beam-update: $*"; }
+log(){ echo "seam-update: $*"; }
 
 pinned=$(jq -r .version "$SRC")
-running=$(readlink -f /run/current-system/sw/bin/firefox 2>/dev/null \
-  | xargs -r grep -aoE 'firefox-bin-[0-9][0-9.]*[0-9]' 2>/dev/null | head -1 | sed 's/firefox-bin-//' || true)
+running=""
+for b in /run/current-system/sw/bin/seam /etc/profiles/per-user/*/bin/seam; do
+  [ -e "$b" ] || continue
+  running=$(readlink -f "$b" 2>/dev/null | xargs -r grep -aoE 'firefox-bin-[0-9][0-9.]*[0-9]' 2>/dev/null | head -1 | sed 's/firefox-bin-//' || true)
+  [ -n "$running" ] && break
+done
 
 if [ "$mode" != "--check" ] && command -v golem-wait-online >/dev/null; then
   golem-wait-online
@@ -28,7 +32,7 @@ if [ "$mode" = "--check" ]; then
   exit 0
 fi
 
-[ "$(id -u)" = 0 ] || { log "must run as root (sudo beam-update, or: systemctl start beam-update)"; exit 1; }
+[ "$(id -u)" = 0 ] || { log "must run as root (sudo seam-update, or: systemctl start seam-update)"; exit 1; }
 
 newest=$(printf '%s\n%s\n' "$pinned" "$latest" | sort -V | tail -1)
 if [ "$mode" != "--force" ] && { [ "$pinned" = "$latest" ] || [ "$newest" = "$pinned" ]; }; then
@@ -50,45 +54,51 @@ jq -n --arg v "$latest" --arg u "$url" --arg s "$sha" '{version:$v,url:$u,sha256
 chown --reference="$SRC.prev" "$tmp"; chmod --reference="$SRC.prev" "$tmp"
 mv "$tmp" "$SRC"
 
-if [ -n "${BEAM_FLAKE:-}" ]; then
+if [ -n "${SEAM_FLAKE:-}" ]; then
   # flake system: the build only sees git-TRACKED files — stage the new pin, then
   # rebuild this machine's own composition from its checkout (safe.directory is set)
-  git -C "$BEAM_FLAKE" add beam/sources.json
-  rebuild(){ nixos-rebuild switch --flake "$BEAM_FLAKE#$BEAM_FLAKE_ATTR"; }
+  git -C "$SEAM_FLAKE" add seam/sources.json
+  rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
 else
   rebuild(){ nixos-rebuild switch; }
 fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
   mv "$SRC.prev" "$SRC"
-  [ -n "${BEAM_FLAKE:-}" ] && git -C "$BEAM_FLAKE" add beam/sources.json
+  [ -n "${SEAM_FLAKE:-}" ] && git -C "$SEAM_FLAKE" add seam/sources.json
   exit 1
 fi
-log "Beam is now $latest"
+log "Seam is now $latest"
 
 # Test the NEW build headless (as nobody: Firefox must not run as root). Never blocks
 # the update — the safety net keeps the browser working either way; this only reports.
-mkdir -p /var/lib/beam
+mkdir -p /var/lib/seam
 extra=""
 # nobody can't read the owner's home, so hand the test a world-readable copy of the two
 # files it needs (the pin → which build; the chrome script → what to test)
-stdir=$(mktemp -d /tmp/beam-selftest.XXXX)
-cp "$BEAM_DIR/sources.json" "$BEAM_DIR/golem-chrome.js" "$stdir/"; chmod 755 "$stdir"; chmod 644 "$stdir"/*
-if st=$(runuser -u nobody -- env BEAM_DIR="$stdir" BEAM_SCRIPT="$stdir/golem-chrome.js" TMPDIR=/tmp beam-selftest 2>&1); then
+stdir=$(mktemp -d /tmp/seam-selftest.XXXX)
+cp "$SEAM_DIR/sources.json" "$SEAM_DIR/golem-chrome.js" "$stdir/"; chmod 755 "$stdir"; chmod 644 "$stdir"/*
+if st=$(runuser -u nobody -- env SEAM_DIR="$stdir" SEAM_SCRIPT="$stdir/golem-chrome.js" TMPDIR=/tmp seam-selftest 2>&1); then
   log "selftest: ALL PASS"
-else
+elif printf '%s' "$st" | grep -q '"steps"'; then
   log "selftest: FAILURES — overview will run in safe mode until patched"
   extra=" The Golem tab overview is paused on this version (browsing unaffected)."
+else
+  # no test results at all: the test could not start (permissions, missing build ...).
+  # Nothing is known about this version, and nothing is paused — the overview checks
+  # itself at every start (golem-chrome.js health check) and degrades on its own.
+  log "selftest: COULD NOT RUN — $(printf '%s' "$st" | tail -1)"
+  extra=" (The post-update self-test could not run; the browser checks itself at startup.)"
 fi
 rm -rf "$stdir"
-printf '%s\n' "$st" > /var/lib/beam/selftest-"$latest".txt
+printf '%s\n' "$st" > /var/lib/seam/selftest-"$latest".txt
 printf '%s\n' "$st" | sed 's/^/  /'
 
-# tell every logged-in user to restart Beam (the running process keeps the old binary)
+# tell every logged-in user to restart Seam (the running process keeps the old binary)
 for bus in /run/user/*/bus; do
   [ -S "$bus" ] || continue
   u=$(stat -c %U "$bus")
   runuser -u "$u" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
-    notify-send -a Beam -u critical "Beam updated to $latest" \
-    "Security update installed. Restart Beam to apply it — your tabs come back.$extra" || true
+    notify-send -a Seam -u critical "Seam updated to $latest" \
+    "Security update installed. Restart Seam to apply it — your tabs come back.$extra" || true
 done

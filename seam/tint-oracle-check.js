@@ -1,9 +1,9 @@
 // usage: node tint-oracle-check.js ./atbc-colour-oracle.js [golem-chrome.js]
 // NOTE: sidebar is expected at i(0) (the bar colour) — an intentional Golem deviation from ATBC (+5), Max 2026-09-25.
-// Checks Beam's tint maths bit-for-bit against ATBC's own colour class (the oracle).
+// Checks Seam's tint maths bit-for-bit against ATBC's own colour class (the oracle).
 const S=require(process.argv[2]);
 const all=require('fs').readFileSync(process.argv[3]||'/etc/nixos/golem-chrome.js','utf8');
-const a=all.indexOf('// ---- BEAM TINT — colour maths'), b=all.indexOf('// ---- BEAM TINT — engine');
+const a=all.indexOf('// ---- SEAM TINT — colour maths'), b=all.indexOf('// ---- SEAM TINT — engine');
 if(a<0||b<0) throw Error('tint maths block not found in '+process.argv[3]);
 const src=all.slice(a,b);  // test the REAL shipped code, never a copy
 const P=new Function(src+"; return {gtTheme, gtCorrect, gtBright, gtRGBA};")();

@@ -1,8 +1,8 @@
 // cdp-driver.mjs <port> <out.json> <proctree.py> <chromePid> <url,url,...>
-// Drives headless Chrome exactly like Beam's bench hook drives Beam in sites mode:
+// Drives headless Chrome exactly like Seam's bench hook drives Seam in sites mode:
 // settle 3.5s, then per URL: navigate, wait for load, wait 2.5s, read the page's own
 // navigation timing + count responses (all / third-party). CPU + memory from /proc
-// (proctree.py) for the whole tree — the same reader used for Beam.
+// (proctree.py) for the whole tree — the same reader used for Seam.
 import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 const [port, out, pt, cpid, list] = process.argv.slice(2);
@@ -18,7 +18,7 @@ await new Promise(r => ws.onopen = r);
 const send = (method, params = {}) => new Promise(r => { const i = ++id; wait.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 await send("Page.enable"); await send("Network.enable");
 const R = { sites: [], startup: {}, loads: [] };
-await sleep(parseInt(process.env.BEAM_BENCH_SETTLE || "3500"));
+await sleep(parseInt(process.env.SEAM_BENCH_SETTLE || "3500"));
 const p0 = proc();
 for (const u of urls) {
   let host = ""; try { host = new URL(u).hostname.replace(/^www\./, ""); } catch {}

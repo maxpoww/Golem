@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Seam — Golem's browser. Placeholder mark (2026-09-27): two panels joined by a stitched seam. -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#g)"/>
+  <path d="M64 24 C 52 44, 76 60, 64 80 C 52 100, 76 108, 64 116" fill="none" stroke="#0b1020" stroke-opacity="0.35" stroke-width="10" stroke-linecap="round"/>
+  <path d="M64 24 C 52 44, 76 60, 64 80 C 52 100, 76 108, 64 116" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-dasharray="9 8"/>
+  <circle cx="64" cy="24" r="6" fill="#ffffff"/><circle cx="64" cy="116" r="6" fill="#ffffff"/>
+</svg>

@@ -1,54 +1,69 @@
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
-# Beam — the per-user half (home-manager): prefs, look, and the `golem` profile.
-# Imported by the Golem flake's home layer AND by the dev box's /etc/nixos/home.nix,
-# so both run the same Beam. The system half (Firefox build, policies, chrome
-# script, update lane) is ./default.nix. See ./README.md.
+# Seam — the per-user half (home-manager): the package, prefs, look, its own profile,
+# and "default browser". Imported by the Golem flake's home layer AND by the dev box's
+# /etc/nixos/home.nix, so both run the same Seam. The system half (Mozilla build,
+# policies, chrome script, update lane) is ./default.nix. See ./README.md.
 
+let
+  # Seam's profile. NOT ~/.mozilla/firefox: that is a plain Firefox's, which can be
+  # installed beside Seam and must never share prefs, history, logins or lock files.
+  # The launcher (browser.nix) passes -profile with exactly this path.
+  profile = ".local/share/seam";
+in
 {
-  # The Golem look (sidebar auto-hide, new-tab = bar colour, separator fix). Until
-  # 2026-09-25 these were hand-edited files in the profile — now they ship with Golem.
-  home.file.".mozilla/firefox/golem/chrome/userChrome.css".source = ./userChrome.css;
-  home.file.".mozilla/firefox/golem/chrome/userContent.css".source = ./userContent.css;
+  home.packages = [ pkgs.golem-seam ];
 
-  # The `golem` profile must exist and be the default, so plain `firefox` (the dock,
-  # xdg-open, links) opens Beam. Created ONLY if missing — an existing profiles.ini is
-  # never rewritten (the wrapper sets MOZ_LEGACY_PROFILES=1, so Default=1 is honoured).
-  home.activation.beamProfile = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ini="$HOME/.mozilla/firefox/profiles.ini"
-    run mkdir -p "$HOME/.mozilla/firefox/golem"
-    if [ ! -e "$ini" ]; then
-      run install -m 0644 /dev/stdin "$ini" <<'EOF'
-[Profile0]
-Name=golem
-IsRelative=1
-Path=golem
-Default=1
+  # The Golem look (sidebar auto-hide, new-tab = bar colour, separator fix), shipped with Golem.
+  home.file."${profile}/chrome/userChrome.css".source = ./userChrome.css;
+  home.file."${profile}/chrome/userContent.css".source = ./userContent.css;
 
-[General]
-StartWithLastProfile=1
-Version=2
-EOF
-    elif ! grep -q '^Path=golem$' "$ini"; then
-      n=$(grep -c '^\[Profile' "$ini" || true)
-      run sh -c "printf '\n[Profile%s]\nName=golem\nIsRelative=1\nPath=golem\n' '$n' >> '$ini'"
+  # Golem's default browser: links, xdg-open, "open in browser" everywhere.
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "text/html" = [ "seam.desktop" ];
+      "application/xhtml+xml" = [ "seam.desktop" ];
+      "x-scheme-handler/http" = [ "seam.desktop" ];
+      "x-scheme-handler/https" = [ "seam.desktop" ];
+      "x-scheme-handler/about" = [ "seam.desktop" ];
+      "x-scheme-handler/unknown" = [ "seam.desktop" ];
+    };
+  };
+  home.sessionVariables.BROWSER = "seam";
+
+  # One-time move of a Beam-era profile (~/.mozilla/firefox/golem, 2026-09-27) into Seam's
+  # own place, before home-manager links this generation's files into it; the old profile
+  # is kept aside, and the profiles.ini Beam wrote is retired so a plain Firefox starts
+  # clean. A fresh Golem install has neither and just gets the directory.
+  home.activation.seamProfile = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+    new="$HOME/${profile}"; old="$HOME/.mozilla/firefox/golem"
+    if [ ! -e "$new" ] && [ -d "$old" ]; then
+      run cp -a "$old" "$new"
+      run rm -f "$new/lock" "$new/.parentlock"   # the copy is not the running instance's: a copied lock names Beam's live pid and Seam would see "profile in use"
+      run mv "$old" "$old.moved-to-seam"
+      ini="$HOME/.mozilla/firefox/profiles.ini"
+      if [ -f "$ini" ] && grep -q '^Path=golem$' "$ini" && [ "$(grep -c '^\[Profile' "$ini")" = 1 ]; then
+        run mv "$ini" "$ini.moved-to-seam"
+      fi
     fi
+    run mkdir -p "$new"
   '';
 
   # Prefs: scroll tuning (bisected), privacy, sidebar/vertical tabs, chrome-CSS loading.
-  home.file.".mozilla/firefox/golem/user.js".text = ''
-    // Managed by Golem (beam/home.nix) — edits here are overwritten.
+  home.file."${profile}/user.js".text = ''
+    // Managed by Golem (seam/home.nix) — edits here are overwritten.
 
     // --- Feel: Chrome-style spring physics (off by default) ---
     user_pref("general.smoothScroll", true);
     user_pref("general.smoothScroll.msdPhysics.enabled", true);
     user_pref("apz.overscroll.enabled", true);
 
-    // --- Display rate: PER MACHINE, set by Beam itself (golem-chrome.js). ---
+    // --- Display rate: PER MACHINE, set by Seam itself (golem-chrome.js). ---
     // History: 2026-09-11 this pinned layout.frame_rate=165 because auto-detect
     // (-1) believes the panel's PREFERRED mode (60) and ran Max's 165 Hz panel
     // at a third of its rate. A distro can't pin one number: on a 60 Hz laptop
-    // 165 renders ~3 frames per one shown. Since 2026-09-26 Beam asks the
+    // 165 renders ~3 frames per one shown. Since 2026-09-26 Seam asks the
     // compositor (hyprctl monitors -j) at startup and sets the pref LIVE to the
     // real rate — 165 here, 60/120/144 elsewhere. Nothing to set in this file.
     // (If detection ever fails, Firefox's own -1 applies; golem-media.json says.)
@@ -311,7 +326,7 @@ EOF
     // Restore after a crash too, not just a clean exit — otherwise a hang
     // loses the session that this setting exists to keep.
     user_pref("browser.sessionstore.resume_from_crash", true);
-    // Beam opens on the workspace YOU are on (Max, 2026-09-26: "beam opens
+    // Seam opens on the workspace YOU are on (Max, 2026-09-26: "seam opens
     // on this WS no matter where i am"). Firefox saves each window's
     // workspace at quit and session restore moved the window back there
     // (on Wayland via an activation token "for workspace placement"); the

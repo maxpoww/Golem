@@ -1,8 +1,8 @@
 { ... }:
 
-# Beam (Golem's browser) — the system half: the Firefox build, enterprise policies and
+# Seam (Golem's browser) — the system half: the Firefox build, enterprise policies and
 # the chrome script. Moved here from /etc/nixos/golem-browser.nix (2026-09-25) so the
-# Golem flake and the dev box share ONE Beam. Part of ./default.nix.
+# Golem flake and the dev box share ONE Seam. Part of ./default.nix.
 #
 # Golem's browser: privacy defaults.
 #
@@ -24,10 +24,12 @@
 {
   nixpkgs.overlays = [
     (final: prev: {
-      # Base = Mozilla's own build pinned by the Beam update lane
-      # (~/Golem/beam: sources.json + beam-update.timer), NOT the channel's
+      # Base = Mozilla's own build pinned by the Seam update lane
+      # (~/Golem/seam: sources.json + seam-update.timer), NOT the channel's
       # firefox, which lags Mozilla's security releases by days.
-      firefox = final.golem-beam-base.override {
+      # (Until 2026-09-27 this overrode `firefox` itself, so "install Firefox" gave Beam.
+      # Seam is its own package now; `pkgs.firefox` is plain Firefox again, side by side.)
+      golem-seam-wrapped = final.golem-seam-base.override {
         # The Golem chrome script — privileged UI foundation. extraPrefs
         # is appended verbatim into mozilla.cfg (the autoconfig file);
         # the sandbox pref below is what elevates it from pref-setting to
@@ -157,6 +159,55 @@
           OverrideFirstRunPage = "";
           OverridePostUpdatePage = "";
         };
+      };
+
+      # THE Seam package: the wrapped browser plus (1) a launcher that gives it its OWN
+      # profile — ~/.local/share/seam, never ~/.mozilla, so a plain Firefox beside it is
+      # untouched and unaware — (2) its own desktop entry (Name=Seam, class seam, the
+      # web-browser MIME types, so it can be the default browser) and (3) its own icon.
+      golem-seam = final.symlinkJoin {
+        name = "seam-${final.golem-seam-unwrapped.version}";
+        paths = [ final.golem-seam-wrapped ];
+        passthru = { version = final.golem-seam-unwrapped.version; wrapped = final.golem-seam-wrapped; };
+        postBuild = ''
+          rm -f "$out/bin/firefox" "$out/bin/seam"   # only `seam` on the PATH: a plain Firefox's `firefox` stays its own
+          cat > "$out/bin/seam" <<'EOF'
+          #!${final.runtimeShell}
+          # Seam — Golem's browser. Its own profile; --name sets the window class.
+          p="''${XDG_DATA_HOME:-$HOME/.local/share}/seam"
+          mkdir -p "$p"
+          exec "${final.golem-seam-wrapped}/bin/firefox" --name seam -profile "$p" "$@"
+          EOF
+          chmod +x "$out/bin/seam"
+          rm -rf "$out/share/applications" "$out/share/icons"
+          mkdir -p "$out/share/applications" "$out/share/icons/hicolor/scalable/apps"
+          cp ${./seam.svg} "$out/share/icons/hicolor/scalable/apps/seam.svg"
+          cat > "$out/share/applications/seam.desktop" <<'EOF'
+          [Desktop Entry]
+          Type=Application
+          Version=1.5
+          Name=Seam
+          GenericName=Web Browser
+          Comment=Golem's browser
+          Exec=seam %U
+          Icon=seam
+          Terminal=false
+          StartupNotify=true
+          StartupWMClass=seam
+          Categories=Network;WebBrowser;
+          Keywords=web;browser;internet;
+          MimeType=text/html;text/xml;application/xhtml+xml;application/xml;x-scheme-handler/http;x-scheme-handler/https;
+          Actions=new-window;new-private-window;
+
+          [Desktop Action new-window]
+          Name=New Window
+          Exec=seam --new-window %U
+
+          [Desktop Action new-private-window]
+          Name=New Private Window
+          Exec=seam --private-window %U
+          EOF
+        '';
       };
     })
   ];

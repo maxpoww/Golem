@@ -43,3 +43,6 @@ Installer/installing/tools/.present-live
 Installer/installing/tools/deliver.log
 Installer/installing/tools/deliver.state
 Installer/installing/tools/.present
+
+# Seam update lane rollback pin (written by root at each update)
+seam/sources.json.prev

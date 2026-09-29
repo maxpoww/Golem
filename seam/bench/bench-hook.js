@@ -1,14 +1,14 @@
 
 // ===================================================================
-// BEAM BENCH HOOK — appended to mozilla.cfg ONLY by bench.sh, identically for every
-// browser variant (stock Firefox and Beam), so the measurement itself is the same.
-// Inert unless BEAM_BENCH=<result file>. Measures: startup timestamps, page-load times
+// SEAM BENCH HOOK — appended to mozilla.cfg ONLY by bench.sh, identically for every
+// browser variant (stock Firefox and Seam), so the measurement itself is the same.
+// Inert unless SEAM_BENCH=<result file>. Measures: startup timestamps, page-load times
 // over a local corpus, memory across processes, and scroll smoothness + CPU (all
-// processes) while scrolling a heavy page. Never shipped in Beam.
+// processes) while scrolling a heavy page. Never shipped in Seam.
 // ===================================================================
 try {
   var BB_OUT="", BB_BASE="";
-  try{ BB_OUT=Services.env.get("BEAM_BENCH"); BB_BASE=Services.env.get("BEAM_BENCH_HTTP"); }catch(e){}
+  try{ BB_OUT=Services.env.get("SEAM_BENCH"); BB_BASE=Services.env.get("SEAM_BENCH_HTTP"); }catch(e){}
   if(BB_OUT){
     var bbWrite=function(obj){ try{ var f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath(BB_OUT);
       var os=Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream); os.init(f,0x02|0x08|0x20,0o644,0);
@@ -60,8 +60,8 @@ try {
         bbProc().then(function(p){ before=p; gb.selectedBrowser.messageManager.loadFrameScript(FS,false); });
       };
       R.stage="started"; bbWrite(R);
-      // ---- REAL-SITES mode (BEAM_BENCH_URLS=comma list): cold-cache loads over the network
-      var SITES=""; try{ SITES=Services.env.get("BEAM_BENCH_URLS"); }catch(e){}
+      // ---- REAL-SITES mode (SEAM_BENCH_URLS=comma list): cold-cache loads over the network
+      var SITES=""; try{ SITES=Services.env.get("SEAM_BENCH_URLS"); }catch(e){}
       if(SITES){
         var urls=SITES.split(","), k=0, cpu0=null; R.sites=[];
         // count at the source: every HTTP response the browser actually receives (blocked
@@ -86,17 +86,17 @@ try {
           loadOne(u,function(ms){ w.setTimeout(function(){ perf(function(p){ var once=false; if(once) return; once=true; p.url=u; p.wallMs=ms; p.resp=NET.n; p.respKB=Math.round(NET.kb); p.resp3p=NET.n3; p.resp3pKB=Math.round(NET.kb3); p.hosts3p=NET.hosts; R.sites.push(p); bbWrite(R); site(); }); },2500); });
         };
         // start the way a user would: ONE tab, overview dismissed (as every other mode does —
-        // without it Beam loaded every page BEHIND its startup overview, content not painting)
+        // without it Seam loaded every page BEHIND its startup overview, content not painting)
         w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
           try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
         w.setTimeout(function(){ R.preSites={ov:w.document.documentElement.hasAttribute("golem-ov"), tabs:gb.tabs.length, active:gb.selectedBrowser.docShellIsActive};
-          bbProc().then(function(p){ cpu0=p; R.stage="sites-start"; bbWrite(R); site(); }); },(function(){ try{ return parseInt(Services.env.get("BEAM_BENCH_SETTLE"))||3500; }catch(e){ return 3500; } })());
+          bbProc().then(function(p){ cpu0=p; R.stage="sites-start"; bbWrite(R); site(); }); },(function(){ try{ return parseInt(Services.env.get("SEAM_BENCH_SETTLE"))||3500; }catch(e){ return 3500; } })());
         return;
       }
-      // ---- BACK mode (BEAM_BENCH_BACK=reps): for each kind of page: open it, go to another page,
+      // ---- BACK mode (SEAM_BENCH_BACK=reps): for each kind of page: open it, go to another page,
       // press BACK; time from goBack() to the page's pageshow, and whether it came from the
       // back-forward cache (pageshow.persisted) or had to load again.
-      var BK=0; try{ BK=parseInt(Services.env.get("BEAM_BENCH_BACK"))||0; }catch(e){}
+      var BK=0; try{ BK=parseInt(Services.env.get("SEAM_BENCH_BACK"))||0; }catch(e){}
       if(BK){
         w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
           try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
@@ -120,10 +120,10 @@ try {
         w.setTimeout(job,3500);
         return;
       }
-      // ---- RESTORE mode (BEAM_BENCH_RESTORE=seed|check): seed = open 6 local pages, use them in
+      // ---- RESTORE mode (SEAM_BENCH_RESTORE=seed|check): seed = open 6 local pages, use them in
       // order (so recency is known), quit NORMALLY (session saved); check = the next start of the
       // same profile: after 20s record which restored tabs are loaded vs still unloaded.
-      var RS=""; try{ RS=Services.env.get("BEAM_BENCH_RESTORE"); }catch(e){}
+      var RS=""; try{ RS=Services.env.get("SEAM_BENCH_RESTORE"); }catch(e){}
       if(RS==="seed"){
         w.setTimeout(function(){
           try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){}
@@ -147,23 +147,33 @@ try {
         },20000);
         return;
       }
-      // ---- CLICK mode (BEAM_BENCH_CLICK=n, BEAM_BENCH_PROXY=first port): link-click latency to
+      // ---- CLICK mode (SEAM_BENCH_CLICK=n, SEAM_BENCH_PROXY=first port): link-click latency to
       // an origin whose NEW connections cost BENCH_PROXY_DELAY ms (a delaying proxy = the
       // TCP+TLS handshake of a real site). Real (trusted) input via windowUtils.sendMouseEvent.
       // Per trial a fresh origin (own port): "hover" = same-site link hovered 300ms then clicked;
       // "click" = cross-site link (127.0.0.2), pointer lands and clicks at once (mousedown ->
       // 90ms -> mouseup). Latency = mouseup -> destination load finished.
-      var CK=0, PX=0; try{ CK=parseInt(Services.env.get("BEAM_BENCH_CLICK"))||0; PX=parseInt(Services.env.get("BEAM_BENCH_PROXY"))||0; }catch(e){}
+      var CK=0, PX=0; try{ CK=parseInt(Services.env.get("SEAM_BENCH_CLICK"))||0; PX=parseInt(Services.env.get("SEAM_BENCH_PROXY"))||0; }catch(e){}
       if(CK && PX){
         w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
           try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
         // hosts: Firefox never preconnects to LOOPBACK, so a real run passes the machine's LAN
         // address (BENCH_CLICK_HOST, same-site with the source page) and a second address
         // (BENCH_CLICK_HOST2, e.g. an IPv6 one = cross-site)
-        var H1="127.0.0.1", H2="127.0.0.2"; try{ H1=Services.env.get("BEAM_BENCH_CLICKHOST")||H1; H2=Services.env.get("BEAM_BENCH_CLICKHOST2")||H2; }catch(e){}
+        var H1="127.0.0.1", H2="127.0.0.2"; try{ H1=Services.env.get("SEAM_BENCH_CLICKHOST")||H1; H2=Services.env.get("SEAM_BENCH_CLICKHOST2")||H2; }catch(e){}
         var SRC=BB_BASE.replace("127.0.0.1",H1);
-        var trials=[]; for(var q=0;q<CK;q++){ trials.push({kind:"hover",host:H1,port:PX+2*q}); trials.push({kind:"click",host:H2,port:PX+2*q+1}); }
+        // trial kinds (SEAM_BENCH_CLICK_KINDS, default "hover,click"): hover = same-site link hovered
+        // then clicked; click = cross-site instant click; visit = the destination was visited before
+        // (back to the source, then click); fetch = the page fetch()ed the destination before the click
+        var KINDS="hover,click"; try{ KINDS=Services.env.get("SEAM_BENCH_CLICK_KINDS")||KINDS; }catch(e){}
+        var kinds=KINDS.split(","), trials=[]; for(var q=0;q<CK;q++){ kinds.forEach(function(k,ki){ trials.push({kind:k, host:(k==="click"?H2:H1), port:PX+kinds.length*q+ki}); }); }
         R.clicks=[]; var ti=0; w.__pcLog=[];
+        // truth from inside Firefox: did the click's navigation open a request for the destination
+        // after mouseup (and with what cache disposition), or was it served from the cache?
+        var net={dest:"", up:0, req:[], cached:0};
+        var seeReq={observe:function(ch){ try{ ch.QueryInterface(Components.interfaces.nsIHttpChannel); if(net.dest && ch.URI.spec===net.dest){ var pf=""; try{ pf=ch.getRequestHeader("Sec-Purpose"); }catch(e){} net.req.push({t:Date.now()-net.up, purpose:pf, doc:!!(ch.loadFlags & Components.interfaces.nsIChannel.LOAD_DOCUMENT_URI)}); } }catch(e){} }};
+        var seeCached={observe:function(ch){ try{ ch.QueryInterface(Components.interfaces.nsIHttpChannel); if(net.dest && ch.URI.spec===net.dest) net.cached++; }catch(e){} }};
+        Services.obs.addObserver(seeReq,"http-on-modify-request"); Services.obs.addObserver(seeCached,"http-on-examine-cached-response");
         var didL=function(m){ (R.did=R.did||[]).push(m.data.a); };
         var DRV="data:application/javascript,"+encodeURIComponent(
           "addMessageListener('bb:do',function(m){var d=m.data,err='';try{var S=function(t,b,c){content.synthesizeMouseEvent(t,d.x,d.y,{button:0,buttons:b,clickCount:c},{isDOMEventSynthesized:false});};"+
@@ -172,9 +182,12 @@ try {
           "else if(d.a==='up'){S('mouseup',0,1);}}catch(x){err=String(x);}sendAsyncMessage('bb:did',{a:d.a+(err?' ERR '+err:'')});});sendAsyncMessage('bb:did',{a:'drv-loaded'});");
         var mmLoaded=false;
         var trial=function(){
-          if(ti>=trials.length){ R.stage="done"; R.pcLog=w.__pcLog||null; try{ R.specLimit=Services.prefs.getIntPref("network.http.speculative-parallel-limit"); R.specLimitUser=Services.prefs.prefHasUserValue("network.http.speculative-parallel-limit"); R.dnsPrefetchOff=Services.prefs.getBoolPref("network.dns.disablePrefetch"); }catch(e){} bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} return; }
-          var T=trials[ti++], dest="http://"+T.host+":"+T.port+"/p-text.html?t="+ti;
-          var src=SRC+"/c-src.html?d="+encodeURIComponent(dest);
+          if(ti>=trials.length){ R.stage="done"; R.pcLog=w.__pcLog||null; R.pfLog=w.__golemPfLog||null; try{ R.prefetchNext=Services.prefs.getBoolPref("network.prefetch-next"); R.specLimit=Services.prefs.getIntPref("network.http.speculative-parallel-limit"); R.specLimitUser=Services.prefs.prefHasUserValue("network.http.speculative-parallel-limit"); R.dnsPrefetchOff=Services.prefs.getBoolPref("network.dns.disablePrefetch"); }catch(e){} bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} return; }
+          // no query string on the destination (a hover prefetch never touches links with one);
+          // BENCH_SLOW_MS adds server think-time on the destination (/slow<ms>/...)
+          var slow=""; try{ slow=Services.env.get("SEAM_BENCH_SLOW_MS")||""; }catch(e){}
+          var T=trials[ti++], dest="http://"+T.host+":"+T.port+(slow?"/slow"+slow:"")+"/p-text.html";
+          var src=SRC+"/c-src.html?d="+encodeURIComponent(dest); net.dest=dest; net.up=0; net.req=[]; net.cached=0;
           loadOne(src,function(){
             var b=gb.selectedBrowser, mm=b.messageManager;
             if(!mmLoaded){ w.messageManager.addMessageListener("bb:did",didL); w.messageManager.loadFrameScript(DRV,true); mmLoaded=true; }
@@ -183,27 +196,27 @@ try {
               var t0=Date.now(), done=false;
               var L={ onStateChange:function(wp,req,fl){ var W=Components.interfaces.nsIWebProgressListener;
                 if(!done && (fl&W.STATE_STOP) && (fl&W.STATE_IS_WINDOW) && wp.isTopLevel){ var u=""; try{ u=b.currentURI.spec; }catch(e){}
-                  if(u.indexOf(T.host+":"+T.port)===-1) return; done=true; b.removeProgressListener(L); R.clicks.push({kind:T.kind,ms:Date.now()-t0}); bbWrite(R); w.setTimeout(trial,400); } },
+                  if(u.indexOf(T.host+":"+T.port)===-1) return; done=true; b.removeProgressListener(L); R.clicks.push({kind:T.kind,ms:Date.now()-t0, requests:net.req.slice(), servedFromCache:net.cached}); bbWrite(R); w.setTimeout(trial,400); } },
                 QueryInterface:ChromeUtils.generateQI(["nsIWebProgressListener","nsISupportsWeakReference"]) };
               b.addProgressListener(L, Components.interfaces.nsIWebProgress.NOTIFY_STATE_WINDOW);
-              R.upAt=(R.upAt||[]); R.upAt.push((Date.now()/1000).toFixed(3)); act("up");
+              R.upAt=(R.upAt||[]); R.upAt.push((Date.now()/1000).toFixed(3)); net.up=Date.now(); act("up");
               w.setTimeout(function(){ if(!done){ done=true; try{ b.removeProgressListener(L); }catch(e){} var cu=""; try{ cu=b.currentURI.spec; }catch(e){} R.clicks.push({kind:T.kind,ms:-1,at:cu}); bbWrite(R); trial(); } },8000);
             };
-            w.setTimeout(function(){
-              act("move");
-              if(T.kind==="hover") w.setTimeout(function(){ act("down"); w.setTimeout(measure,90); },300);
-              else w.setTimeout(function(){ act("down"); w.setTimeout(measure,90); },10);
-            },500);
+            var HOV=300; try{ HOV=parseInt(Services.env.get("SEAM_BENCH_HOVER_MS"))||300; }catch(e){}
+            var goClick=function(){ act("move"); w.setTimeout(function(){ act("down"); w.setTimeout(measure,90); },T.kind==="hover"?HOV:10); };
+            if(T.kind==="fetch"){ b.messageManager.loadFrameScript("data:application/javascript,"+encodeURIComponent("content.fetch("+JSON.stringify(dest)+",{credentials:'include'}).then(function(r){return r.text();}).catch(function(){});"),false); w.setTimeout(goClick,1500); }
+            else if(T.kind==="visit"){ w.setTimeout(function(){ loadOne(dest,function(){ loadOne(src,function(){ w.setTimeout(goClick,500); }); }); },200); }
+            else w.setTimeout(goClick,500);
           });
         };
         w.setTimeout(trial,3500);
         return;
       }
-      // ---- TAB-SWITCH mode (BEAM_BENCH_SWITCH=n switches): 6 loaded tabs, switch every 900ms.
+      // ---- TAB-SWITCH mode (SEAM_BENCH_SWITCH=n switches): 6 loaded tabs, switch every 900ms.
       // Measures what a user feels: switch latency (TabSelect -> TabSwitchDone, i.e. the new tab's
       // layers are on screen) and chrome main-thread stalls (a 4ms timer chain; lateness = jank)
       // over the whole window, including the after-switch work (captures, saves) that lands later.
-      var SW=0; try{ SW=parseInt(Services.env.get("BEAM_BENCH_SWITCH"))||0; }catch(e){}
+      var SW=0; try{ SW=parseInt(Services.env.get("SEAM_BENCH_SWITCH"))||0; }catch(e){}
       if(SW){
         w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
           try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
@@ -242,8 +255,8 @@ try {
         return;
       }
       // start both browsers the way a user would: ONE tab (uBO's first-run welcome tab would
-      // otherwise add a page — and makes Beam auto-open its tab overview, hiding the page),
-      // overview dismissed (Escape: no-op in stock Firefox, closes Beam's overview)
+      // otherwise add a page — and makes Seam auto-open its tab overview, hiding the page),
+      // overview dismissed (Escape: no-op in stock Firefox, closes Seam's overview)
       w.setTimeout(function(){ try{ gb.removeAllTabsBut(gb.selectedTab); }catch(e){}
         try{ w.dispatchEvent(new w.KeyboardEvent("keydown",{key:"Escape",bubbles:true,cancelable:true})); }catch(e){} },2000);
       w.setTimeout(function next(){
@@ -251,7 +264,7 @@ try {
         if(i<pages.length){ var pg=pages[i++]; loadOne(BB_BASE+"/"+pg+".html",function(ms){ R.loads.push({page:pg,ms:ms}); bbWrite(R); w.setTimeout(next,300); }); return; }
         R.stage="memory"; bbWrite(R);
         bbProc().then(function(mem){ R.memAfterLoads=mem; R.stage="scroll-page"; bbWrite(R);
-          var quick=""; try{ quick=Services.env.get("BEAM_BENCH_QUICK"); }catch(e){}
+          var quick=""; try{ quick=Services.env.get("SEAM_BENCH_QUICK"); }catch(e){}
           if(quick){ R.stage="done"; bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} return; }
           loadOne(BB_BASE+"/p-scroll.html",function(){ R.stage="scrolling"; bbWrite(R); w.setTimeout(function(){ scrollTest(function(sc){ R.scroll=sc; R.stage="done";
             bbProc().then(function(m2){ R.memEnd=m2; bbWrite(R); try{ Services.startup.quit(Components.interfaces.nsIAppStartup.eForceQuit); }catch(e){} }); }); },1500); });

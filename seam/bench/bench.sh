@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-# bench.sh — Beam vs stock Firefox, headless, same Mozilla binary, same measurement.
+# bench.sh — Seam vs stock Firefox, headless, same Mozilla binary, same measurement.
 #   ./bench.sh [runs]        (default 5 runs per variant; prints medians)
 # Variants:
 #   stock  Mozilla firefox-bin 156.x as shipped: no policies, no prefs, no Golem layer
-#   beam   the Beam build: policies (uBO, ATBC), user.js prefs, userChrome/Content, golem-chrome.js
+#   seam   the Seam build: policies (uBO, ATBC), user.js prefs, userChrome/Content, golem-chrome.js
 # Both get the identical bench hook (bench-hook.js). Local corpus → no network noise.
 # Each variant runs from a PRE-WARMED profile template (extensions installed once, untimed).
 set -euo pipefail
-here=$(cd "$(dirname "$0")" && pwd); beam=$(dirname "$here")
+here=$(cd "$(dirname "$0")" && pwd); seam=$(dirname "$here")
 RUNS=${1:-5}
-ver=$(grep -oE '"version": *"[^"]+"' "$beam/sources.json" | grep -oE '[0-9][0-9.]*[0-9]')
-# default: the Beam this machine actually runs (its policies/prefs are what we measure); else the newest in the store
+ver=$(grep -oE '"version": *"[^"]+"' "$seam/sources.json" | grep -oE '[0-9][0-9.]*[0-9]')
+# default: the Seam this machine actually runs (its policies/prefs are what we measure); else the newest in the store
 # (/etc/profiles on the host; from a toolbox the host's /etc is under /run/host/etc)
-INSTALLED=""; for pf in /etc/profiles/per-user/$USER/bin/firefox /run/host/etc/static/profiles/per-user/$USER/bin/firefox; do
-  d=$(readlink -f "$pf" 2>/dev/null || true); d=${d%/bin/firefox}; [ -n "$d" ] && [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { INSTALLED=$d; break; }; done
-BEAMBUILD=${BEAM_BUILD:-${INSTALLED:-$(for d in $(ls -dt /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { echo "$d"; break; }; done)}}
+INSTALLED=""; for pf in /etc/profiles/per-user/$USER/bin/seam /run/host/etc/static/profiles/per-user/$USER/bin/seam; do
+  d=$(readlink -f "$pf" 2>/dev/null || true); d=${d%/bin/seam}; [ -n "$d" ] && [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { INSTALLED=$d; break; }; done
+SEAMBUILD=${SEAM_BUILD:-${INSTALLED:-$(for d in $(ls -dt /nix/store/*-seam-"$ver" /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { echo "$d"; break; }; done)}}
 STOCK=${STOCK_BUILD:-$(ls -d /nix/store/*-firefox-bin-unwrapped-"$ver" 2>/dev/null | head -1)}
-[ -n "$BEAMBUILD" ] && [ -n "$STOCK" ] || { echo "need Beam + stock $ver builds in the store"; exit 2; }
-LDP=$(strings "$BEAMBUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')
+[ -n "$SEAMBUILD" ] && [ -n "$STOCK" ] || { echo "need Seam + stock $ver builds in the store"; exit 2; }
+LDP=$(strings "$SEAMBUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')
 W=$(mktemp -d); trap 'for p in ${HTTPD:-} ${HTTPD2:-} ${PROXY:-}; do kill $p 2>/dev/null; done; chmod -R u+w "$W" 2>/dev/null; rm -rf "$W"' EXIT
 
 # ---- corpus (deterministic) ----
@@ -67,11 +67,21 @@ else
   # click mode on a real interface (Firefox never preconnects to loopback): serve on all interfaces
   python3 - "$port" "$C" ${BENCH_CLICK_HOST:+dual} >/dev/null 2>&1 <<'PYS' & HTTPD=$!
 import sys,functools,http.server
+import re,time,os
 class H(http.server.SimpleHTTPRequestHandler):
     protocol_version="HTTP/1.1"
     def log_message(self,*a): pass
+    def do_GET(self):
+        m=re.match(r"^/slow(\d+)(/.*)$",self.path)
+        if m: time.sleep(int(m.group(1))/1000); self.path=m.group(2)
+        return super().do_GET()
+    def do_HEAD(self):
+        m=re.match(r"^/slow(\d+)(/.*)$",self.path)
+        if m: self.path=m.group(2)
+        return super().do_HEAD()
     def end_headers(self):
         if "nostore" in self.path: self.send_header("Cache-Control","no-store")
+        elif os.environ.get("BENCH_FRESH_S"): self.send_header("Cache-Control","max-age="+os.environ["BENCH_FRESH_S"])
         super().end_headers()
 import socket
 class S(http.server.ThreadingHTTPServer):
@@ -84,9 +94,8 @@ PYS
 fi
 sleep 0.5; BASE="http://127.0.0.1:$port"
 if [ -n "${BENCH_CLICK:-}" ]; then
-  bport=$((port+1)); pxbase=$((port+10))
-  python3 -m http.server "$bport" --bind 127.0.0.1 --directory "$C" >/dev/null 2>&1 & HTTPD2=$!
-  python3 - "$pxbase" "$((BENCH_CLICK*2))" "$bport" "${BENCH_PROXY_DELAY:-150}" "$W/proxy.log" >/dev/null 2>&1 <<'PYP' & PROXY=$!
+  bport=$port; pxbase=$((port+10))   # the proxy's backend is the keep-alive server (it knows /slow<ms>/ think-time paths)
+  NK=$(( $(echo "${BENCH_CLICK_KINDS:-hover,click}" | tr ',' '\n' | wc -l) )); python3 - "$pxbase" "$((BENCH_CLICK*NK))" "$bport" "${BENCH_PROXY_DELAY:-150}" "$W/proxy.log" >/dev/null 2>&1 <<'PYP' & PROXY=$!
 import asyncio,sys,time
 base,n,back,delay,log=int(sys.argv[1]),int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4])/1000,sys.argv[5]
 async def pipe(r,w):
@@ -124,23 +133,23 @@ mkfarm(){ # mkfarm <libdir> <out> <cfg-body-file|""> <needs-autoconfig>
     printf 'pref("general.config.filename","mozilla.cfg");\npref("general.config.obscure_value",0);\npref("general.config.sandbox_enabled",false);\n' > "$T/defaults/pref/zz-bench.js"; fi
   { if [ -n "$3" ]; then cat "$3"; else echo "// stock: bench hook only"; fi; cat "$here/bench-hook.js"; } > "$T/mozilla.cfg"
 }
-BL="$BEAMBUILD/lib/firefox-bin-$ver"; SL="$STOCK/lib/firefox-bin-$ver"
+BL="$SEAMBUILD/lib/firefox-bin-$ver"; SL="$STOCK/lib/firefox-bin-$ver"
 first=$(grep -n -m1 'GOLEM chrome script' "$BL/mozilla.cfg" | cut -d: -f1)
-head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam.cfg"; cat "$beam/golem-chrome.js" >> "$W/beam.cfg"
-SET=${BENCH_SET:-stock beam}
-if [ -n "${BENCH_ALT_SCRIPT:-}" ]; then head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam-alt.cfg"; cat "$BENCH_ALT_SCRIPT" >> "$W/beam-alt.cfg"; fi
-head -n $((first-2)) "$BL/mozilla.cfg" > "$W/beam-nocfg.cfg"   # wrapper header only, no Golem script
+head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam.cfg"; cat "$seam/golem-chrome.js" >> "$W/seam.cfg"
+SET=${BENCH_SET:-stock seam}
+if [ -n "${BENCH_ALT_SCRIPT:-}" ]; then head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam-alt.cfg"; cat "$BENCH_ALT_SCRIPT" >> "$W/seam-alt.cfg"; fi
+head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam-nocfg.cfg"   # wrapper header only, no Golem script
 CHROME_BIN=${CHROME_BIN:-$(for d in /nix/store/*-google-chrome-1*/; do echo "$(basename "$d" | sed 's/.*google-chrome-//') $d"; done | sort -V | tail -1 | cut -d' ' -f2)bin/google-chrome-stable}
 for v in $SET; do case $v in
   chrome) [ -x "$CHROME_BIN" ] || { echo "no Chrome found"; exit 2; }; echo "chrome=$CHROME_BIN" ;;
   stock) mkfarm "$SL" "$W/stock" "" 1 ;;
-  beam|beam-noprefs|beam-nocss|beam-drop-*|beam-paint) mkfarm "$BL" "$W/$v" "$W/beam.cfg" 0 ;;
-  beam-alt) mkfarm "$BL" "$W/$v" "$W/beam-alt.cfg" 0 ;;
-  beam-noscript) mkfarm "$BL" "$W/$v" "$W/beam-nocfg.cfg" 0 ;;
-  beam-prefetch|beam-alt-prefetch)
+  seam|seam-noprefs|seam-nocss|seam-drop-*|seam-paint) mkfarm "$BL" "$W/$v" "$W/seam.cfg" 0 ;;
+  seam-alt) mkfarm "$BL" "$W/$v" "$W/seam-alt.cfg" 0 ;;
+  seam-noscript) mkfarm "$BL" "$W/$v" "$W/seam-nocfg.cfg" 0 ;;
+  seam-prefetch|seam-alt-prefetch)
     # uBO's "Disable pre-fetching" (default ON) sets networkPredictionEnabled=false, i.e.
     # network.http.speculative-parallel-limit=0: no preconnect of ANY kind. This variant turns it off.
-    if [ $v = beam-alt-prefetch ]; then mkfarm "$BL" "$W/$v" "$W/beam-alt.cfg" 0; else mkfarm "$BL" "$W/$v" "$W/beam.cfg" 0; fi
+    if [ $v = seam-alt-prefetch ]; then mkfarm "$BL" "$W/$v" "$W/seam-alt.cfg" 0; else mkfarm "$BL" "$W/$v" "$W/seam.cfg" 0; fi
     rm -f "$W/$v/distribution/policies.json"
     python3 - "$BL/distribution/policies.json" "$W/$v/distribution/policies.json" <<'PY4'
 import json,sys
@@ -151,9 +160,9 @@ e.setdefault("userSettings",[]).append(["prefetchingDisabled","false"])
 json.dump(p,open(sys.argv[2],"w"))
 PY4
     ;;
-  beam-ubolite)
+  seam-ubolite)
     # uBO with "Ignore generic cosmetic filters" (uBO docs: reduces CPU + memory; network blocking unchanged)
-    mkfarm "$BL" "$W/$v" "$W/beam.cfg" 0; rm -f "$W/$v/distribution/policies.json"
+    mkfarm "$BL" "$W/$v" "$W/seam.cfg" 0; rm -f "$W/$v/distribution/policies.json"
     python3 - "$BL/distribution/policies.json" "$W/$v/distribution/policies.json" <<'PY3'
 import json,sys
 p=json.load(open(sys.argv[1]))
@@ -162,9 +171,9 @@ us=e.setdefault("userSettings",[]); us.append(["ignoreGenericCosmeticFilters","t
 json.dump(p,open(sys.argv[2],"w"))
 PY3
     ;;
-  beam-noatbc|beam-noubo|beam-noext)
-    mkfarm "$BL" "$W/$v" "$W/beam.cfg" 0
-    drop=""; case $v in beam-noatbc) drop='"ATBC@EasonWong"';; beam-noubo) drop='"uBlock0@raymondhill.net"';; beam-noext) drop='"ATBC@EasonWong","uBlock0@raymondhill.net"';; esac
+  seam-noatbc|seam-noubo|seam-noext)
+    mkfarm "$BL" "$W/$v" "$W/seam.cfg" 0
+    drop=""; case $v in seam-noatbc) drop='"ATBC@EasonWong"';; seam-noubo) drop='"uBlock0@raymondhill.net"';; seam-noext) drop='"ATBC@EasonWong","uBlock0@raymondhill.net"';; esac
     rm -f "$W/$v/distribution/policies.json"
     python3 - "$BL/distribution/policies.json" "$W/$v/distribution/policies.json" "$drop" <<'PY2'
 import json,sys
@@ -177,7 +186,7 @@ PY2
 esac; done
 
 # ---- profile templates ----
-python3 - "$beam/home.nix" "$W/beam-user.js" <<'PY'
+python3 - "$seam/home.nix" "$W/seam-user.js" <<'PY'
 import sys,re
 s=open(sys.argv[1]).read(); a=s.index('user.js".text = \'\'')+len('user.js".text = \'\'')
 b=s.index("\n  '';",a); body=s[a:b].strip("\n")
@@ -188,7 +197,7 @@ HW=("layout.frame_rate","gfx.webrender.picture-tile-height","widget.wayland.frac
 lines=[l[4:] if l.startswith("    ") else l for l in body.split("\n")]
 open(sys.argv[2],"w").write("\n".join(l for l in lines if not any('"'+p+'"' in l for p in HW))+"\n")
 PY
-prefgroup(){ case $1 in   # regex of pref names per group (for beam-drop-<group>)
+prefgroup(){ case $1 in   # regex of pref names per group (for seam-drop-<group>)
   scroll) echo '"(general\.smoothScroll|apz\.|mousewheel\.)';;
   media) echo '"media\.(ffmpeg|eme|gmp|hevc)';;
   cache) echo '"(accessibility\.force_disabled|browser\.cache\.|browser\.sessionstore\.interval|browser\.sessionhistory\.|media\.memory_cache)';;
@@ -205,25 +214,25 @@ prefgroup(){ case $1 in   # regex of pref names per group (for beam-drop-<group>
 esac; }
 mkprof(){ # mkprof <variant> <dir>
   mkdir -p "$2"; case $1 in stock) return;; esac
-  case $1 in beam-drop-*) g=${1#beam-drop-}; grep -vE "$(prefgroup "$g")" "$W/beam-user.js" > "$2/user.js";; beam-noprefs) ;; *) cp "$W/beam-user.js" "$2/user.js";; esac
+  case $1 in seam-drop-*) g=${1#seam-drop-}; grep -vE "$(prefgroup "$g")" "$W/seam-user.js" > "$2/user.js";; seam-noprefs) ;; *) cp "$W/seam-user.js" "$2/user.js";; esac
   [ -n "${BENCH_THUMBS:-}" ] && cp "$BENCH_THUMBS" "$2/golem-thumbs.json"
-  [ "$1" = beam-paint ] && printf '%s\n' "${BENCH_PAINT_PREFS:-}" >> "$2/user.js"
+  [ "$1" = seam-paint ] && printf '%s\n' "${BENCH_PAINT_PREFS:-}" >> "$2/user.js"
   # click mode on public (IPv6) test addresses: the local server speaks plain http, so HTTPS-only
   # would upgrade and fail; off for BOTH variants of this test only
   [ -n "${BENCH_CLICK_HOST:-}" ] && echo 'user_pref("dom.security.https_only_mode", false);' >> "$2/user.js"
-  [ "$1" = beam-nocss ] || { mkdir -p "$2/chrome"; cp "$beam/userChrome.css" "$beam/userContent.css" "$2/chrome/"; } }
+  [ "$1" = seam-nocss ] || { mkdir -p "$2/chrome"; cp "$seam/userChrome.css" "$seam/userContent.css" "$2/chrome/"; } }
 run(){ # run <variant> <profile> <out|"">  (out empty = warm-up)
   local farm="$W/$1" out=${3:-}
   if [ "$1" = chrome ]; then   # Chrome driven over CDP, same sequence as the hook's sites mode
     local port=$(( 9600 + RANDOM % 300 ))
     HOME="$2" timeout ${BENCH_TIMEOUT:-120} "$CHROME_BIN" --headless=new --no-first-run --no-default-browser-check --user-data-dir="$2/ud" --remote-debugging-port=$port about:blank >"$2.log" 2>&1 & local cpid=$!
     for i in $(seq 50); do curl -s "http://127.0.0.1:$port/json/version" >/dev/null && break; sleep 0.2; done
-    [ -n "$out" ] && BEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" /usr/bin/node "$here/cdp-driver.mjs" $port "$out" "$here/proctree.py" $cpid "${BENCH_URLS//@LOCAL@/$BASE}" >>"$2.log" 2>&1 || sleep 8
+    [ -n "$out" ] && SEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" /usr/bin/node "$here/cdp-driver.mjs" $port "$out" "$here/proctree.py" $cpid "${BENCH_URLS//@LOCAL@/$BASE}" >>"$2.log" 2>&1 || sleep 8
     kill $cpid 2>/dev/null || true; wait $cpid 2>/dev/null || true; return 0
   fi
-  if [ -n "${BENCH_URLS:-}" ] && [ -n "$out" ]; then   # Beam/stock in sites mode: same external meter as Chrome
+  if [ -n "${BENCH_URLS:-}" ] && [ -n "$out" ]; then   # Seam/stock in sites mode: same external meter as Chrome
     HOME="$2" XDG_CACHE_HOME="$2/.cache" LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
-    BEAM_BENCH="$out" BEAM_BENCH_HTTP="$BASE" BEAM_BENCH_URLS="${BENCH_URLS//@LOCAL@/$BASE}" BEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" \
+    SEAM_BENCH="$out" SEAM_BENCH_HTTP="$BASE" SEAM_BENCH_URLS="${BENCH_URLS//@LOCAL@/$BASE}" SEAM_BENCH_SETTLE="${BENCH_SETTLE:-}" \
       timeout ${BENCH_TIMEOUT:-120} "$farm/firefox" --headless --no-remote -profile "$2" about:blank >"$2.log" 2>&1 & local fpid=$!
     local p0="" p1=""
     while kill -0 $fpid 2>/dev/null; do
@@ -242,7 +251,7 @@ PYE
     return 0
   fi
   HOME="$2" XDG_CACHE_HOME="$2/.cache" LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
-  BEAM_BENCH="$out" BEAM_BENCH_HTTP="$BASE" BEAM_BENCH_RESTORE="${BEAM_BENCH_RESTORE:-}" BEAM_BENCH_BACK="${BENCH_BACK:-}" BEAM_BENCH_QUICK="${BENCH_QUICK:-}" BEAM_BENCH_URLS="${BENCH_URLS:+${BENCH_URLS//@LOCAL@/$BASE}}" BEAM_BENCH_SWITCH="${BENCH_SWITCH:-}" BEAM_BENCH_CLICK="${BENCH_CLICK:-}" BEAM_BENCH_PROXY="${pxbase:-}" BEAM_BENCH_CLICKHOST="${BENCH_CLICK_HOST:-}" BEAM_BENCH_CLICKHOST2="${BENCH_CLICK_HOST2:-}" \
+  SEAM_BENCH="$out" SEAM_BENCH_HTTP="$BASE" SEAM_BENCH_RESTORE="${SEAM_BENCH_RESTORE:-}" SEAM_BENCH_BACK="${BENCH_BACK:-}" SEAM_BENCH_QUICK="${BENCH_QUICK:-}" SEAM_BENCH_URLS="${BENCH_URLS:+${BENCH_URLS//@LOCAL@/$BASE}}" SEAM_BENCH_SWITCH="${BENCH_SWITCH:-}" SEAM_BENCH_CLICK="${BENCH_CLICK:-}" SEAM_BENCH_SLOW_MS="${BENCH_SLOW_MS:-}" SEAM_BENCH_HOVER_MS="${BENCH_HOVER_MS:-}" SEAM_BENCH_CLICK_KINDS="${BENCH_CLICK_KINDS:-}" SEAM_BENCH_PROXY="${pxbase:-}" SEAM_BENCH_CLICKHOST="${BENCH_CLICK_HOST:-}" SEAM_BENCH_CLICKHOST2="${BENCH_CLICK_HOST2:-}" \
     timeout ${BENCH_TIMEOUT:-120} "$farm/firefox" --headless --no-remote -profile "$2" ${out:+about:blank} >"$2.log" 2>&1 || true
   [ -n "${BENCH_DEBUG:-}" ] && [ -n "$out" ] && { echo "--- $1 partial: $(cat "$out" 2>/dev/null || echo none)"; } || true
   [ -n "${BENCH_DEBUG:-}" ] && { echo "--- $1 stderr tail ---"; grep -vE "Fontconfig|^\s*$" "$2.log" | tail -15; } || true
@@ -255,13 +264,13 @@ for v in $SET; do
     timeout ${BENCH_WARMUP:-25} "$W/$v/firefox" --headless --no-remote -profile "$W/tpl-$v" about:blank >/dev/null 2>&1 || true )
   echo "$v template extensions: $(ls "$W/tpl-$v/extensions" 2>/dev/null | tr '\n' ' ')"
 done
-echo "note: beam display/GPU prefs (frame_rate 165, wayland vsync/fractional-scale, webrender tiling) are stripped — headless has no GPU; they are tuned on real hardware"
-echo "stock=$STOCK"; echo "beam=$BEAMBUILD (script: $beam/golem-chrome.js)"
+echo "note: seam display/GPU prefs (frame_rate 165, wayland vsync/fractional-scale, webrender tiling) are stripped — headless has no GPU; they are tuned on real hardware"
+echo "stock=$STOCK"; echo "seam=$SEAMBUILD (script: $seam/golem-chrome.js)"
 : > "$W/results.jsonl"
 if [ -n "${BENCH_RESTORE:-}" ]; then   # seed a session, quit normally, restart the SAME profile, see what loaded
   for v in $SET; do P="$W/p-$v-rs"; cp -r "$W/tpl-$v" "$P"
-    BENCH_TIMEOUT=60 BEAM_BENCH_RESTORE=seed run $v "$P" "$W/rs-seed-$v.json"
-    BEAM_BENCH_RESTORE=check run $v "$P" "$W/rs-$v.json"
+    BENCH_TIMEOUT=60 SEAM_BENCH_RESTORE=seed run $v "$P" "$W/rs-seed-$v.json"
+    SEAM_BENCH_RESTORE=check run $v "$P" "$W/rs-$v.json"
     echo "== $v after restart (20s):"; python3 -c "
 import json,sys
 r=json.load(open(sys.argv[1]))
@@ -324,14 +333,19 @@ import json,sys,statistics as st
 rows=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]
 V=[]; [V.append(r["variant"]) for r in rows if r["variant"] not in V]
 print(f"\n== link click -> page loaded, ms (proxy delays every NEW connection) ==\n"+f"{'metric':40}"+"".join(f"{v:>12}" for v in V))
-for kind,lab in (("hover","same-site link, hovered 300ms, click"),("click","cross-site link, instant click")):
+for kind,lab in (("hover","same-site link, hovered, click"),("click","cross-site link, instant click"),("visit","same-site, visited before, click"),("fetch","same-site, page fetch()ed it, click")):
+    if not any(c["kind"]==kind for r in rows for c in r["r"].get("clicks",[])): continue
     for agg,f in (("median",st.median),("min",min),("max",max)):
         xs={v:[c["ms"] for r in rows if r["variant"]==v for c in r["r"].get("clicks",[]) if c["kind"]==kind and c["ms"]>=0] for v in V}
         print(f"{lab+' '+agg:40}"+"".join(f"{str(round(f(xs[v])) if xs[v] else None):>12}" for v in V))
     fails={v:sum(1 for r in rows if r["variant"]==v for c in r["r"].get("clicks",[]) if c["kind"]==kind and c["ms"]<0) for v in V}
     print(f"{lab+' failed':40}"+"".join(f"{fails[v]:>12}" for v in V))
+    fc={v:[c.get("servedFromCache",0) for r in rows if r["variant"]==v for c in r["r"].get("clicks",[]) if c["kind"]==kind] for v in V}
+    rq={v:[len([q for q in c.get("requests",[]) if q["t"]>=0 and not q["purpose"]]) for r in rows if r["variant"]==v for c in r["r"].get("clicks",[]) if c["kind"]==kind] for v in V}
+    print(f"{lab+' served from cache (trials)':40}"+"".join(f"{sum(1 for x in fc[v] if x)}/{len(fc[v])}".rjust(12) for v in V))
+    print(f"{lab+' network requests at click':40}"+"".join(f"{sum(rq[v])}".rjust(12) for v in V))
 PYC
-[ -n "${BENCH_DEBUG:-}" ] && { echo "--- proxy accepts:"; cat "$W/proxy.log" 2>/dev/null | tail -20; }
+[ -n "${BENCH_DEBUG:-}" ] && { echo "--- proxy log (full):"; cat "$W/proxy.log" 2>/dev/null; }
 fi
 if [ -n "${BENCH_SWITCH:-}" ]; then python3 - "$W/results.jsonl" <<'PYS'
 import json,sys,statistics as st
