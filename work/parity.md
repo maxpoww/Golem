@@ -52,6 +52,23 @@ failed units, and menubox launchers that run nothing.
   the same greetd setup. Investigate with a parity check that asks polkit for
   the session's rights.
 
+- **P6. Every session exit crashes Hyprland (SIGSEGV).** Seen on logout,
+  session restart and shutdown, on the macbook and the thinkpad. Two stacks:
+  1. **Upstream (0.55.4):** at `exit()`, `CScreenshareManager`'s destructor
+     stops a live screencopy session (waverunner samples the screen to tint
+     the bar), and it posts an IPC event after the event manager is gone
+     (`CEventManager::postEvent` ← `CScreenshareSession::stop` ←
+     `__run_exit_handlers`). Reproduced with waveview 1.80, zero windows open,
+     macbook 2026-09-29 16:50.
+  2. **Plugin teardown (waveview 0.78, old):** `CCompositor::cleanup` deletes
+     a `CWindow` that calls into the already unmapped plugin. Not yet seen
+     with 1.80.
+
+  Cost: slower logout/shutdown (core processing) and 4–5 MB of cores each
+  time. Fix: a Hyprland patch (screenshare teardown order), which belongs
+  with P3. Meanwhile, waverunner could release its screencopy on the
+  compositor's shutdown signal.
+
 ## Fixed
 
 | Date | Finding | Fix |
@@ -66,3 +83,4 @@ failed units, and menubox launchers that run nothing.
 | 2026-09-29 | `command:golem-brightness`: brightness keys ran a missing program | desktop imports golem-brightness.nix |
 | 2026-09-29 | `command:easyeffects`, `command:kdeconnectd`: autostarts of programs Golem doesn't ship | removed from Golem's hyprland.lua |
 | 2026-09-29 | brightness keys: "Operation not permitted" once the helper existed | golem-brightness.nix ships brightnessctl's udev rule (group `video` can write the backlight) |
+| 2026-09-29 | `stale:waveview-plugin`: the macbook ran titlebars 0.78 while 1.80 was installed (plugins load once per session) | new parity check `stale:*` (running vs installed Hyprland, plugin, dock); fixed by a session restart |

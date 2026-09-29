@@ -107,6 +107,33 @@ grep -oE 'exec_cmd\("([^"\\]|\\.)*"\)' "$lua" 2>/dev/null \
     printf '%s\t%s\n' "$r" "$cmd"
   done
 
+# Is the RUNNING session using what is INSTALLED? A deploy updates the system,
+# but the compositor, its plugin and the dock keep what they loaded at start —
+# a machine can look updated and still run last week's titlebars (macbook,
+# 2026-09-29: waveview 0.78 loaded, 1.80 installed).
+section stale
+running=$(tr '\0' '\n' < "/proc/$hpid/cmdline" | head -1)
+installed=$(readlink -f /run/current-system/sw/bin/Hyprland 2>/dev/null)
+if [[ -n "$installed" && "$running" != "$installed" ]]; then
+  echo "STALE hyprland running=$running installed=$installed"
+else echo "ok hyprland"; fi
+so=$(grep -oE 'plugin load [^"]+' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null | head -1 | cut -d' ' -f3)
+if [[ -n "$so" ]]; then
+  want=$(tr '\0' '\n' < "$so" 2>/dev/null | grep -xE '[0-9]+\.[0-9]{2}' | sort -u | head -1)
+  have=$("$hyprctl" -j plugin list 2>/dev/null | grep -oE '"version": "[^"]+"' | head -1 | cut -d'"' -f4)
+  if [[ -z "$have" ]]; then echo "STALE waveview-plugin running=<not loaded> installed=${want:-?}"
+  elif [[ -n "$want" && "$have" != "$want" ]]; then echo "STALE waveview-plugin running=$have installed=$want"
+  else echo "ok waveview-plugin $have"; fi
+fi
+wpid=$(pgrep -u "$(id -u)" -f 'bin/(\.)?waverunner(-wrapped)?$' | head -1)
+if [[ -n "$wpid" ]]; then
+  wrun=$(readlink -f "/proc/$wpid/exe" 2>/dev/null); wrun=${wrun%%/bin/*}
+  wwant=$(systemctl --user show waverunner -p ExecStart --value 2>/dev/null | grep -oE '/nix/store/[^ ;/]+' | head -1)
+  if [[ -n "$wwant" && -n "$wrun" && "$wrun" != "$wwant" ]]; then
+    echo "STALE waverunner running=$wrun installed=$wwant"
+  else echo "ok waverunner"; fi
+fi
+
 section failed_user;   systemctl --user --failed --plain --no-legend 2>/dev/null
 section failed_system; systemctl --failed --plain --no-legend 2>/dev/null
 

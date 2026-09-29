@@ -145,6 +145,10 @@ def main():
             fid = f"command:{cmd.split()[0]}"
             reason = acc("command", cmd.split()[0])
             (explained if reason else findings).append((fid, f"command with no program: {cmd}", reason))
+    for line in tgt.get("stale", "").splitlines():
+        if line.startswith("STALE"):
+            comp = line.split()[1]
+            findings.append((f"stale:{comp}", f"the running session is older than the system: {line[6:]} (restart the session)", None))
     sh = tgt.get("shell", "")
     if sh.startswith("MISSING"):
         findings.append(("shell", f"$SHELL does not exist: {sh}", None))
