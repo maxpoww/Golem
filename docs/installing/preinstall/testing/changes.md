@@ -1,0 +1,2074 @@
+# Changes — the deferred queue for the next ISO
+
+Every change the current round teaches us to make lands here, and is
+applied **only when the round is done** — when the current ISO has cleared
+all five laptops (see [constitution.md](constitution.md)). Nothing here is
+built into an ISO mid-round; that is what keeps the five machines testing
+the same Golem.
+
+## How to use this file
+
+- While testing round N, when a finding implies a fix, add an entry under
+  **Queued for the next ISO**. Keep the raw observation in the laptop's own
+  file; keep the *change* here.
+- When the round closes: work the queue top to bottom, build the new ISO,
+  reflash, then move the applied entries to **Applied** with the round they
+  shipped in, and empty the queue for the next round.
+- An entry names: **what** to change, **why** (which finding/machine),
+  **where** (file:location if known), and **size** (small / medium / needs
+  a decision from Max).
+- **Live-fix refinement (Max, 2026-09-06):** a queued fix may be applied to
+  SOURCE and `nix copy`'d onto the booted laptop as a RAM overlay to verify
+  it on real hardware — the frozen ISO is not rebuilt, so the discipline
+  holds. Mark such entries **[verified live on \<laptop\>]**. The source
+  edit is the round-close change staged early; the ISO rebuild still
+  happens once, at round close. Re-verify on each laptop's own hardware.
+
+## Queued for the next ISO
+
+> **Discipline note (Max, round 4):** the round-4 stick (`yz5nqhsv…`) is
+> FROZEN and every round-4 machine meets it — no mid-round reburn. The
+> findings below (#31, #32, #26-reveal, #34, R4-1) were surfaced DURING
+> the round-4 sweep; they are applied to SOURCE but ship only in the
+> round-5 build, exactly as round-3 surface findings waited for round 4.
+
+### R5-4. USB wifi is invisible to the reveal — no Wi-Fi row while the machine is ONLINE via the dongle — [REVEAL HALF APPLIED to source 2026-09-10 · round-6 build · target half = Max's decision]
+- **what:** the Dell ran the whole round-5 session connected through
+  the lab's Realtek USB dongle (`rtw88_8821au`), yet the confirm
+  screen showed NO Wi-Fi row (Ethernet, Bluetooth, Audio, Touchpad all
+  present). The reveal's wifi row is built from PCI enumeration only —
+  USB wlan never appears. Matches every prior Dell round; nobody had
+  flagged it.
+- **why it matters:** the reveal honesty rule — the machine was
+  visibly using wifi the screen said it didn't have. And the MacBook's
+  own recommended fallback for Broadcom pain IS a USB dongle, so the
+  "stranger with a dongle" is a real persona, not an edge case.
+- **where:** the reveal's network rows in `mockup/install-cli`
+  (mirrored in built `golem-setup`); the USB data is already collected
+  (lsusb in the census/evidence path — btusb devices are found the
+  same way).
+- **decide (Max):** reveal-only (show the dongle, perhaps marked
+  "USB"), or also reflect it in the target's network stack. Reveal-only
+  is the safe default — a transient dongle should probably not shape
+  the installed system.
+- **size:** small (reveal half); the target question is a decision.
+
+### R5-3. F1 at the rotating WELCOME screen leaks as literal filter text — [APPLIED to source 2026-09-10 · round-6 build]
+- **what:** at the welcome ("Press ENTER to choose your language"),
+  pressing F1 does not cancel: the `\eOP` sequence half-parses and the
+  literal text **"F1" becomes the language filter** — the list opens on
+  "no language matches F1". Reproduced twice (two separate runs). Arrow
+  keys at the welcome behave (open the list, no leak), so the gap is
+  specifically the SS3 (`\eO…`) escape path in the welcome reader; the
+  open-list reader handles F1 correctly (#31, proven on the same machine
+  in the same session).
+- **why:** unadvertised key (the welcome shows no footer), so lower
+  severity than #31's dead-advertised-key — but it is a stranger-
+  confusing state one keystroke into the product, and the #31 class
+  says the reader should behave consistently on every screen. Likely
+  fix covers any SS3 key at the welcome, not just F1.
+- **where:** `mockup/install-cli` — the welcome/rotating-prompt read
+  loop (pre-list), mirrored in the built `golem-setup`.
+- **size:** small.
+
+### R5-2. golem-install's --skip-prepare resume header shows the DEFAULT hostname, not the run's — [APPLIED to source 2026-09-10 · round-6 build]
+- **what:** the `--skip-prepare --system <toplevel>` resume run printed
+  `hostname Golem` (the default) in its plan header because the resumed
+  invocation didn't get `--answers`; the installed machine.nix correctly
+  said `asus`. Display-only — but the header lies about the run it
+  resumes. (Raw observation: `asus.md`, the first real install.)
+- **fix sketch:** on the resume path, read the hostname from the seed's
+  `hosts/target/machine.nix` when `--answers` is absent, and say
+  "(from seed)" rather than printing a default as if chosen.
+- **where:** `Installer/preinstall/install.nix` (plan header, resume
+  branch).
+- **size:** small.
+
+### 35. The postinstall answer never reaches the system — nothing imports postinstall-generated.nix — [APPLIED to source · found + fixed live on the ASUS's REAL install · round-6 build]
+**Found (2026-09-09, the first live #33 run in history):** Max answered
+"off" at the foot prompt on the installed ASUS. Every mechanical piece
+worked — answer validated, `postinstall-generated.nix` written correctly,
+`nixos-rebuild switch` ran, generation 2 created, status `ok:true` — and
+the system did not change: `golem-dgpu-hold` still active, no
+`golem-dgpu-off`, chip still held awake. Root cause: **no file anywhere
+imports `system/postinstall-generated.nix`** — the write→rebuild pipeline
+existed, the answer→evaluation edge did not. The eval matrix could never
+catch this (its rows set `golem.postinstall.answers` directly, bypassing
+the import); only a real desktop run could, and the first one did.
+- **fix (applied):** `system/postinstall.nix` now imports the generated
+  file path-conditionally (`lib.optional (builtins.pathExists …)`) —
+  eval-time, not config-time, so no infinite-recursion risk (the
+  gpu-second.nix lesson). Absent on a fresh install → option default `{}`
+  → safe defaults; present from the first applied answer onward.
+- **two siblings, queued, NOT yet fixed:**
+  - **35b:** the apply's `git add` dies (`fatal: not a git repository` —
+    the seed is the flake-source store copy, no `.git`) and `|| true`
+    swallows it. Harmless today (a gitless dir is a plain-path flake, all
+    files visible) but the design comment promises "git-tracked", and on
+    any future git-seeded machine an untracked generated file would be
+    invisible to the flake — the exact class of bug #35 was. Decide: seed
+    a real git checkout, or drop the git assumption and the dead command.
+    **Same pattern in `system/waverunner-apply.nix:104,114`** (the flake
+    port of the app installer) — same `git add … || true`, same harmless-
+    today/latent-tomorrow. Whatever seed policy is chosen must cover both
+    appliers. (Confirmed on the ASUS first install: the `fatal: not a git
+    repository` line appears in waverunner-apply's log, yet brave still
+    installed — proof the git step is dead weight on a plain-path seed,
+    not a blocker.)
+  - **35c:** `ok:true` was a false positive — the apply verified the
+    rebuild's exit code, not the EFFECT. It should confirm the switched
+    system actually contains what the answer implies (e.g. the expected
+    unit) before writing `ok:true`; a pipeline that lies about success is
+    the exact honesty failure the reveal rules exist to prevent.
+    **APPLIED (2026-09-10, round-6 queue):** `verify_effect` in
+    postinstall.nix — each answered question id maps to the observable
+    its option implies (`gpu2-failing-action` → `golem-dgpu-hold`/`-off`
+    present AND the rival absent, via `systemctl cat` on the switched
+    system); both switch-success paths now route through it and an
+    absent effect writes `ok:false` with the reason instead of lying.
+    The generated file is NOT rolled back on effect-failure — the answer
+    is right, the wiring is broken, and hiding that is the #35 lie
+    again. Unmapped ids verify vacuously (a new question ships with its
+    check). Undetectable only when the answer equals the built default.
+- **where:** `system/postinstall.nix` (fix + both siblings).
+- **size:** fix = 2 lines (done); 35b needs-Max (seed policy); 35c DONE.
+- **the fix, verified live the same hour (ASUS, real install):** the
+  patched postinstall.nix was copied into the machine's seed and the
+  same "off" answer re-fired through PathChanged. This time the rebuild
+  landed the effect: generation 3, `golem-dgpu-off` active ("owner
+  chose: power off"), `golem-dgpu-hold` gone, **the GF117M removed from
+  the PCI bus entirely**. Then the re-answer flow: answers.json flipped
+  to "hold" → generation 4, hold active, off gone. The full #33 pipeline
+  — prompt → answer → generated module → import → rebuild → hardware —
+  is now proven in BOTH directions on the machine the question was
+  built for.
+- **35d (found by the off→hold flip, APPLIED to source):** hold's script
+  only wrote `power/control` if the device existed — but after an "off"
+  answer the device is REMOVED from the bus, so an off→hold re-answer
+  switched generations while leaving the GPU absent until a reboot.
+  Fixed in `gpu-second.nix`: rescan the PCI bus (+`udevadm settle`) when
+  the device node is missing, then hold as before. The manual rescan was
+  verified live first (chip reappeared, nouveau rebound, hold restarted
+  clean — the box ends chip-available, never-autosuspending, Max's
+  preferred state).
+
+### 36. First installed-desktop dogfood (ASUS) — the visual cluster: waveview degraded below the dev box's screen — [FOUND on the ASUS 2026-09-09 · investigating · full report Installer/installing/FirstInstall.md]
+The lab's first REAL install, used by a human, surfaced a cluster of
+desktop bugs — none visible in any preinstall round, because those never
+log in, and none seen on the dev box, because it is a modern high-DPI
+Vulkan machine. The ASUS is 1366×768 / scale 1.0 / Haswell iGPU. Report
++ per-item root-causes: `Installer/installing/FirstInstall.md`. Headline
+sub-findings:
+- **36a waverunner-renderer-gl [P1, likely common root]:** the renderer
+  (wgpu) falls back to the GL backend on Haswell (`Haswell Vulkan support
+  is incomplete`) and logs `premultiplied alpha unsupported, transparency
+  may be wrong`. A real compositing-capability gap that never occurs on
+  the dev box; candidate root for icons/pills not drawing. Investigate
+  first — may collapse several items.
+- **36b waveview-layers [P1]:** the options/dock surface is on Hyprland
+  overlay (layer level 3), so it paints above everything incl. the
+  overview and never yields (Max items 4, 7). Should be a layer that the
+  overview supersedes, workspace-scoped.
+- **36c waveview-overview [P1]:** 2+ tiles on a space mirror across all
+  tiled overview views (item 8) — per-workspace bounds wrong.
+- **36d waveview-input-scale [P1]:** options-pill hover hitboxes land off
+  the visible pill and the expanders (clock/notifs/clipboard) never fire
+  (item 9); the current-task pill is absent (item 5). Geometry/input
+  regions computed for a ~2560px panel, wrong at 1366 scale 1.0.
+- **36e [P2]:** Super+Space dead (item 6) — check shipped keybind vs. what
+  waveview expects.
+- **size:** P1 cluster, needs live reproduction on the ASUS; possibly one
+  renderer/geometry root behind most of it.
+
+### 37. waverunner install-state never reconciles — a finished install shows "installing" forever — [FOUND on the ASUS 2026-09-09]
+- **what:** Max installed brave; it **succeeded** (generation created,
+  `brave` in the per-user profile, in the closure) but `pending-installs.
+  json` still carries its tile (`placeholder:false`) — the pending UI
+  state is never cleared when the apply lands, so the grid shows the app
+  stuck "installing" indefinitely. "Never landed after an hour" was this,
+  not a failed install. (See also #35c: the apply reports `ok:true` on
+  exit code; the UI should reconcile against the actual profile, not the
+  apply's self-report.)
+- **where:** waverunner (`~/launcher`), the install/pending reconciliation
+  path — clear pending on apply success AND reconcile on daemon start.
+- **size:** medium; high user-impact (every install looks broken).
+
+### 38. False "battery 0% — Critical" when a dead battery sits on AC — [FIXED in ~/launcher (uncommitted) · VERIFIED LIVE on the ASUS 2026-09-09]
+- **what:** the ASUS has a dead battery present on wall power — `BAT0`
+  reads `status=Not charging, capacity=0`, `AC0` reads `online=1`. The
+  alarm ladder treated "not charging" as "discharging" and fired Critical
+  at 0% (red warning-triangle glyph in the top bar). First machine to hit
+  the battery path against a lying-on-AC gauge — a class the ladder's own
+  comments already named ("old machines report discharging 0% on AC").
+- **fix (applied, 4 files):** a new `on_ac` metric read from any Mains
+  supply's `online` (`collectors/system.rs` + `options-engine/state.rs`);
+  both the alarm (`daemon/battery.rs alarm_for`) and the battery
+  affordance (`mind/decide.rs`) now clear on `charging || on_ac`. Does not
+  overload `is_charging` (the bolt semantics stay). New test asserts
+  `alarm_for(Some(0), false, true) == None`; 235 daemon + 148 engine tests
+  green.
+- **verified live:** ASUS rebuilt onto the new waverunner — the red
+  triangle is now a normal bell, daemon logs no alarm.
+- **where:** `~/launcher` (waverunner), uncommitted in Max's WIP tree.
+- **size:** small — done.
+
+### 37+40 ROOT CAUSE FOUND — a stale pending-install tile deadlocks the single-threaded event loop — [DIAGNOSED + operationally proven on the ASUS 2026-09-09; source fix is Max's architecture call]
+**The keystone of the whole first-dogfood.** One un-cleared JSON tile took
+down the control plane, the current-task pill, and the option interactions
+together. The chain, proven end to end on the metal:
+1. brave installed fine last session, but its tile stayed in
+   `~/.local/share/waverunner/pending-installs.json` (#37 — completion
+   never reconciled the tile).
+2. On every boot the daemon RESTORES that pending tile
+   (`install.rs:1302`) and renders its "installing" ring — a **perpetual
+   animation** (the install is already done, so it never completes-and-
+   clears).
+3. That animation spins the render path continuously. **strace proof:**
+   `ppoll(wl_fd)` **714×/6 s** while calloop's epoll (owning IPC, timers,
+   the nix-completion channel) was polled **once**; `accept()` on the
+   control socket **0×**. CPU pegged.
+4. Because the loop is starved, the nix-completion event that would clear
+   the tile **can never be processed** → the tile animates forever. A
+   deadlock: the animation blocks the very event that would stop it.
+5. Fallout, all downstream of one stuck tile: dead control socket
+   (Super+Space + every `waverunner-ctl` → EAGAIN, #40), no current-task
+   pill (#5), dead option hover/expand (#9), likely the dock/overview
+   symptoms too.
+
+**Operationally proven:** clearing the stale tile
+(`pending-installs.json` → `{"tiles":[],"managed":[]}`) + daemon restart →
+epoll serviced 69×/4 s, ppoll spin gone, **CPU 90.8 % idle**,
+`waverunner-ctl show/hide/overview-on/overview-off` all exit 0, and the
+**current-task pill (`foot ✕`) rendered again**. Items 5/6/#40 recovered
+from that one change; #9's interaction path (`debug-hover-option`) now
+returns 0.
+
+**DEFINITIVE confirmation (Max, live, 2026-09-09):** after the clear,
+everything worked — Super+Space, option hover, dock + box icons, dock
+autohide, all good. Then he **dragged alacritty to the grid to install
+it** → the "installing" ring started → **every issue came back at once.**
+Checked on the box: alacritty DID install (in the profile + package list),
+but its pending tile never cleared → animation → starvation → the same
+deadlock, on a FRESH install. So it is not just *stale* tiles across a
+reboot — it is ANY active install ring. Installing an app (a core feature)
+breaks the whole desktop until it is cleared. Recovered the machine again
+by clearing the tile; #40-proper is now clearly the load-bearing fix.
+
+**Two fixes, and #40-proper is the important one:**
+- **37 (targeted) — DONE + VERIFIED LIVE (2026-09-09):** on restore, a
+  pending tile whose package is already installed is dropped instead of
+  re-animated. New synchronous `applier::is_installed(attr)` (in the list
+  AND applied-since-list-write, no rebuild triggered), checked in
+  `install.rs restore_install_state` before re-staging; the cleared state
+  is persisted via `save_install_state`. Synchronous by design — it holds
+  even when the loop would otherwise be starved. Verified on the ASUS:
+  planted a stale already-installed brave tile, restarted the daemon →
+  log `pending install brave already installed; dropping stale tile (no
+  re-animate)`, tile gone from disk, `waverunner-ctl show/hide` exit 0
+  (loop healthy). Fix lives uncommitted in `~/launcher` (7 files touched:
+  applier.rs, install.rs + the #38 battery set). **Scope caveat:** this
+  fixes the stale-tile-across-reboot trigger ONLY. A FRESH drag-to-install
+  still starves the loop until 40-proper lands — that is the load-bearing
+  fix and is Max's.
+- **40 (architectural) — FIXED + VERIFIED (2026-09-09).** Root cause
+  pinned by strace: during a perpetual animation the daemon rendered flat
+  out — **5582 GPU ioctls / 3 s**, calloop's epoll polled **once**,
+  `accept()` on the IPC socket **0×**. The daemon already had an F12
+  throttle for exactly this (a software-render install ran it at 450 %
+  CPU), but it engaged only for `renderer.is_software()` (llvmpipe). The
+  ASUS is the **GL backend on real Intel hardware** (`device_type =
+  IntegratedGpu`, `backend = Gl`) — not software, so the throttle never
+  fired, yet the GL-on-Wayland present blocks the single thread the same
+  way. **Fix:** a `Renderer::needs_frame_throttle()` = `software || backend
+  == Gl`; the F12 ambient-frame throttle (spaced via a calloop timer, so
+  the loop services IPC/input between frames) now engages on GL too. A
+  modern Vulkan GPU (dev box) is unaffected. **Verified on the ASUS with
+  the fix actually running** (daemon `b22jxjw5…`): during a GUI install
+  ring, epoll ticked **125×/3 s** (was 1), ioctl **1011** (was 5582),
+  `waverunner-ctl show` = OK (was EAGAIN), CPU 60 % idle. Files:
+  `~/launcher` `crates/daemon/src/{renderer.rs,frame.rs}` (uncommitted).
+
+### 41. Installed-machine fixes REVERT on any rebuild — the seed flake pins the old waverunner — [FOUND on the ASUS 2026-09-09 · the deployment gap]
+The single most important operational finding for the whole install story.
+- **what:** the installed ASUS rebuilds ITSELF from its seed flake at
+  `/home/max/Golem` (waverunner-apply → `nixos-rebuild switch --flake
+  /home/max/Golem#golem` on every app install; `system.autoUpgrade`
+  weekly). That seed's `flake.lock` pins the **original** waverunner rev.
+  So any in-place rebuild — installing an app, an autoupgrade — **reverts**
+  a dev-box `--override-input` waverunner (my #37/#38/#40 fixes) back to
+  the buggy original. Observed repeatedly: after deploying `z9xflb5`
+  (fixed) and then installing a package, the running daemon was `znzgcl…`
+  (original) again and the desktop froze anew.
+- **why it matters:** a fix delivered by `nix copy` of a dev-box build is
+  NOT permanent on an installed machine. It survives until the next
+  rebuild, then vanishes. The lab's whole "nix copy the changed tool over"
+  fast path (great for the *medium*, where nothing rebuilds) does not hold
+  for an *installed* system that reconciles itself from its seed.
+- **the fix (to make #37/#38/#40 actually stick):** the fixes must live in
+  the SEED's flake — commit the launcher changes to a rev and bump Golem's
+  `waverunner` input (flake.lock) to it, so `golem-target` (and thus every
+  in-place rebuild) builds the fixed waverunner. Then reinstall/rebuild the
+  ASUS from the updated seed once. NEEDS-MAX: the fixes live uncommitted in
+  his `~/launcher` WIP; committing them (or pointing the seed at a patched
+  local launcher) is his call.
+- **size:** needs-Max (commit launcher + bump the Golem flake lock).
+- **DONE (2026-09-09):** launcher committed to `9ed17b1` and pushed to
+  `maxpoww/launcher`; Golem's `waverunner` input bumped
+  `2de760883 → 9ed17b1` (flake.lock, committed + pushed). golem-target now
+  builds the fixed waverunner. The ASUS's own seed flake.lock was updated
+  to match and it was rebuilt from the seed. **End-to-end persistence
+  proven:** installed xterm on the ASUS — the desktop stayed responsive
+  the WHOLE rebuild (`waverunner-ctl` = OK at every 10 s poll while
+  `rebuilding=yes`), the install completed, and the daemon stayed the
+  fixed build (`31s9c39p`) before/during/after — it did NOT revert to the
+  original `znzgcl`. #40 (no freeze) and #41 (no revert) both closed on
+  metal.
+
+### 42. App icons render as BLACK SQUARES on the GL backend — wgpu GLES binds the D2Array icon atlas as a cubemap — [ROOT-CAUSED + FIXED + verified · waverunner d8db7ed · Golem lock bumped]
+**ROOT CAUSE (nailed by the debug log on the ASUS):** wgpu's GLES backend
+cannot see waverunner's explicit `D2Array` icon-atlas view dimension and
+**guesses it from the layer count** — `wgpu_hal::gles`: depth `== 6` →
+`Cube`, depth `> 6 && % 6 == 0` → `CubeArray`. The icon atlas has
+`app_count + 97` reserved layers; for some app counts that total is a
+multiple of 6, so the atlas is bound as a **cubemap** and the sampler
+reads **black**. Caught live: `137 apps + 97 = 234 = 6×39`, and the log
+showed `ERROR wgpu_hal::gles: … assumed CubeArray rather than D2Array` at
+exactly that count. Transient because the count shifts with app/pending
+counts — icons render until a rescan lands on a multiple of 6, then black;
+the font/glyph atlas (trash, top-bar) is a separate texture and never
+affected. GL-backend only (Vulkan honors the explicit view) — why it never
+showed on the dev box.
+**FIX (waverunner `crates/daemon/src/renderer.rs`, `upload_icon_array`):**
+pad the layer count by one when it is 6 or a multiple of 6, so the GLES
+heuristic can never pick Cube/CubeArray. Deterministic — the trigger is
+eliminated for every app count. The pad layer is empty/harmless; no effect
+on Vulkan. Committed launcher `d8db7ed`, Golem `waverunner` lock bumped to
+it. **Verified on the ASUS:** the new daemon renders the real colourful
+icons (Snapshot/Android Studio/Bluetooth/foot/Decibels/trash), zero
+`CubeArray` errors across rescans (before: black squares + the CubeArray
+error in the log).
+- **verification note:** the fix is proven by (a) the captured GLES
+  CubeArray error at the exact 234-layer count, (b) the arithmetic
+  (234 = 6×39; pad → 235), (c) the deterministic pad code, and (d) the new
+  daemon rendering clean. The bad-count case was not re-forced on the fixed
+  daemon (would need app-count/rebuild juggling); it is eliminated by
+  construction.
+
+### 44. waverunner-apply's startup reconcile fails at activation — "Failed to get GID for root / login1/user/_0" — [FOUND on the ASUS 2026-09-09 · NEW · desktop still usable]
+- **what:** on boot, the daemon's startup reconcile ("installed packages
+  with no live app … forcing one apply") re-trips waverunner-apply, which
+  **builds golem-target fine from the seed** (proving #41 self-rebuild
+  works: the toplevel evaluated + built) but then **fails at
+  `switch-to-configuration switch`**: `Error: Failed to get GID for root /
+  Caused by: Unknown object '/org/freedesktop/login1/user/_0'` (via
+  `systemd-run … switch-to-configuration switch`, non-zero exit). It runs
+  as root at boot where logind has no session object for root (uid 0 →
+  `_0`), so nixos-rebuild-ng's user-unit reload throws.
+- **why it matters (bounded):** the reconcile can't activate at boot, so
+  the app-list self-heal doesn't complete. NOT a tight loop (one failure +
+  "leaving state for the next run"), the desktop is fully usable, the
+  daemon is healthy, and INTERACTIVE installs (when a logind session
+  exists) DID activate — darktable installed fine live earlier. So it's a
+  boot-context activation bug, not a general install breakage.
+- **surfaced by (harness note):** my deploy process built golem-target on
+  the DEV box, which carries the dev box's `waverunner-packages.nix` app
+  list — so each dev-deploy+reboot reset the ASUS's app set (darktable/
+  xterm/alacritty → the dev list), and the ASUS's own boot reconcile that
+  would restore them is what hit this GID error. A product machine that
+  only ever self-rebuilds wouldn't see the dev-list reset, but WOULD hit
+  the boot-reconcile activation error.
+- **where:** `~/launcher` `system/waverunner-apply.nix` (the
+  `nixos-rebuild switch --flake` invocation's root/logind context) —
+  likely needs `--no-reexec`/a proper session, or to run activation
+  outside the root-logind-session assumption.
+- **size:** medium; nixos-rebuild-ng + logind context. NEEDS-look, its own
+  session — deferred (fresh issue at the end of a long run).
+- **ROOT CAUSE FOUND + machine recovered (2026-09-09):** the GID error
+  fires only when a **root `systemd --user` instance (`user@0.service`)**
+  exists — nixos-rebuild-ng then tries to reload root's user units and
+  logind has no user object for uid 0. **What created `user@0`: my own
+  root SSH logins** (PAM/logind starts `user@0` on root login) — and one
+  earlier debug script ran `systemctl --user` AS root. On a real machine
+  driven by the owner's session with NO root SSH, `user@0` never exists,
+  so #44 does not occur — it is a LAB ARTIFACT of driving over `root@`.
+  **The cascade it caused:** every waverunner-apply switch exited non-zero
+  (GID error) → each apply "failed" → tiles stranded (#43 live path) AND
+  the daemon reconcile re-tripped → overlapping rebuilds hammered the 2-core
+  box → Hyprland's watchdog tripped → **waveview-plugin SIGSEGV → Hyprland
+  safe-mode**. **Recovery:** `loginctl disable-linger root` +
+  `systemctl stop user@0.service`, then reboot — verified GID failures = 0
+  once `user@0` was gone, the reconcile settled (all 6 apps live), and a
+  clean reboot brought Hyprland back **with the waveview plugin loaded**
+  (not safe-mode; the "safe-mode" readings during recovery were false
+  positives — my own grep command lines). Machine fully healthy:
+  responsive daemon, real icons, no churn, no stuck tiles.
+- **hardening still worth doing (NOT a lab artifact if it ever recurs):**
+  waverunner-apply's `nixos-rebuild switch` should not hard-fail the whole
+  apply when the user-unit reload for an unrelated user (root) throws —
+  and the lab must drive installs from max's session, never leave a `root@`
+  SSH holding `user@0` during a switch. changes.md rule for the lab added.
+
+### 43. A live install can leave the tile stuck "Installing…" (unlaunchable) until a daemon restart — [FIXED · waverunner 8211981 · verified daemon runs it]
+- **what (Max):** installed darktable; it finished (binary present, its
+  `.desktop` `org.darktable.darktable` scanned) but the grid tile stayed
+  **"Installing…"** and clicking it did nothing — a dead placeholder, never
+  resolved to the real app. A dock-summon rescan did not clear it.
+- **root cause (traced):** `resolve_pending_installs` excludes any tile
+  whose attr is still in `busy_ids` (install.rs:975). On a live install the
+  completion (`nix::Event::Done`) is what removes `busy_ids` + sets
+  `completed_at`; for darktable that removal did not take, so the tile
+  stayed "busy" and resolution kept skipping it on every rescan — stuck
+  forever. Aggravating factor: Max started a SECOND install (ebay webapp,
+  14:24:54) while darktable was still building (14:20:36) — overlapping
+  ops in the single nix worker are the likely reason darktable's Done
+  signal was missed/lost.
+- **why restart fixes it (and #37):** on restart, `restore_install_state`
+  re-fires `apply_install(darktable)` → "already installed" → a FRESH Done
+  → `busy_ids.remove` → resolve (darktable already scanned) → tile cleared.
+  Verified: after a daemon restart the tile was gone and darktable is a
+  normal launchable app. So a restart/reboot always recovers, and #37
+  guarantees a clean restart never re-animates an installed tile.
+- **FIX (done — waverunner `8211981`, Golem lock bumped):** approach (a) —
+  `resolve_pending_installs` (both the tile path and the tile-less managed
+  path) now treats a pending install as eligible when it is NOT busy OR its
+  package is provably installed-and-applied (`applier::is_installed`). A
+  confirmed-installed package has its `.desktop`, so resolving is safe (no
+  phantom-latch) and rescues the stuck tile; the resolve loop already
+  clears `busy_ids`. 235 daemon tests pass. Serializing the nix worker
+  (approach b) left as a deeper hardening if overlapping installs cause
+  other trouble.
+- **UPDATE (lmms, 2026-09-09) — (a) is NOT enough under overlapping
+  installs; (b) is needed.** Max installed lmms while the #44 boot-reconcile
+  rebuild was still running. lmms finished (installed + scanned;
+  `is_installed(lmms)` verified TRUE — apply-status ok, finished AFTER the
+  list write) yet the live tile stayed stuck "Installing…" and the (a)
+  override did NOT resolve it live. A daemon restart recovered it cleanly
+  (#37 fired: "pending install lmms already installed; dropping stale
+  tile"). So (a) reliably recovers on RESTART but the LIVE resolve still
+  fails when two installs overlap. Root: one nix worker + a SHARED
+  `apply-status.json` — lmms's `apply_install` wait and the reconcile's
+  apply write the same status file concurrently, so lmms's `Done` is
+  lost/mis-attributed; and once its single deferred rescan (`rescan_fired`
+  latch) has fired, no later rescan re-runs resolve even after
+  `is_installed` turns true. **Robust fix (b): serialize installs (one
+  apply at a time, per-op status) so a Done can't be lost, and/or re-arm
+  the deferred rescan while a tile stays unresolved.** Compounded by #44
+  (its churn kept a second rebuild in flight). A nix-worker/status-file
+  concurrency rework — deferred (Max's code); #37 restart-recovery holds
+  meanwhile.
+- **harness lesson (my own, worth keeping):** while diagnosing this I ran
+  the daemon by hand with `ls /nix/store/*waverunner-daemon*/bin/waverunner
+  | tail -1` — and the ORIGINAL daemon's hash starts with `z` (`znzgcl…`),
+  so `tail -1` sorted to the *pre-fix* binary. It ran detached, got
+  reparented to init, held `waverunner.sock`, and made the icons go black
+  again (its own #42 bug) while blocking the real service from binding —
+  looking exactly like a regression. Killed by PID, service restarted
+  clean on `4p92zzy7`. NEVER pick a store path by `head`/`tail` of a glob;
+  name the exact one.
+- **where:** `~/launcher` `crates/daemon/src/install.rs`
+  (`resolve_pending_installs` busy filter + the Done path) / `nix.rs`
+  (worker serialization).
+- **size:** medium; involves nix-worker concurrency — Max's renderer/worker
+  code.
+
+### 45. The applier reads a LIVE build as dead and mis-attributes a foreign run's Done — the #43b overlap fix — [FIXED · waverunner b2d59f9 · Golem lock bumped]
+Root-caused from the ASUS journal after Max reported installs still
+failing; two applier bugs that only bite when rebuilds are slow enough to
+overlap — i.e. never on the dev box, always on 2013 metal.
+- **bug 1 — a running helper reads as dead.** `helper_active()` used
+  `systemctl is-active waverunner-apply.service`, but the helper is
+  `Type=oneshot`: while its ExecStart runs, systemd reports
+  `ActiveState=activating`, and `is-active` exits non-zero for that. So
+  EVERY live build looked like a corpse. **Proven on metal:** during a
+  real 36 s fritzing apply, `is-active` polled `activating` start to
+  finish while the daemon logged "stale apply status: phase 'building'
+  but the helper is not running" every 5 s (16:21:50–16:22:20 the same,
+  through the whole gen-31 build).
+- **the damage chain:** waiter thinks nothing is running → nudges
+  (rewrites the list; systemd DROPS path triggers while the unit is
+  activating, so the nudges do nothing) → START_TIMEOUT (120 s) → the
+  install returns false → `apply_install` **reverts the package list
+  while the build is still running**. The revert then rides the next
+  apply as a real UNINSTALL. That is how xcalc silently vanished from the
+  ASUS (installed 16:21, resolved "installed" 16:22, swept by a later
+  rebuild — binary gone, not in the list, no tile, no error shown).
+- **bug 2 — the #43b mis-attributed Done.** `wait_for_apply` and
+  `applied_since_list_write` accepted any terminal run with
+  `finished >= since` as covering our list write. But a run that STARTED
+  before the write read the OLD list — finishing after proves nothing.
+  That is precisely the lmms case in #43's UPDATE ("apply-status ok,
+  finished AFTER the list write" — yet the tile stayed stuck): the
+  overlapped install's waiter took the foreign run's Done, resolved
+  against a generation that didn't contain the package, and the real
+  completion had no waiter left.
+- **FIX (waverunner `b2d59f9`, `crates/daemon/src/applier.rs`):**
+  (1) `helper_active()` reads `systemctl show -p ActiveState` and treats
+  activating/active/reloading/deactivating as alive. (2) Coverage is
+  started-based everywhere: only a run with `started >= since` (it read
+  our write) terminates the wait; a foreign run landing just re-trips the
+  watch (the existing nudge) and the wait continues into the fresh run —
+  this IS the "(b) serialize" #43 asked for, without a queue: overlapped
+  installs each block until a run that provably contains them lands.
+  (3) START_TIMEOUT measures IDLE time, not wall time, so a >120 s
+  foreign build can't burn the pickup budget and false-fail the waiter
+  the moment it lands. (4) A corpse `building` status is nudged past
+  whether the dead run was ours or foreign (was: only foreign → a helper
+  killed mid-OUR-build hung the waiter for the full BUILD_TIMEOUT).
+  415 workspace tests + clippy clean. Golem `waverunner` lock bumped to
+  `b2d59f9`; ASUS seed lock updated + rebuilt from seed.
+- **casualty note:** xcalc was silently lost from the ASUS by the bug-1
+  revert path (Max installed it; no error was ever shown). Not silently
+  re-added — Max's call whether he still wants it.
+- **where:** `~/launcher` `crates/daemon/src/applier.rs`
+  (`helper_active`, `wait_for_apply`, `applied_since_list_write`).
+- **size:** landed.
+- **VERIFIED LIVE on the ASUS (2026-09-09 17:16), overlap included:** the
+  deployment itself staged the exact race — the fixed daemon's startup
+  reconcile began while a foreign apply (run 1, tripped by the seed-lock
+  touch) was still building. New behavior, end to end: waited QUIETLY
+  through the live foreign run (zero "helper is not running" lines — the
+  old daemon spammed it every 5 s), refused run 1 as coverage when it
+  landed (it started the same second as the list write — started-based
+  coverage), nudged once, and the fresh run 2 (17:16:22→17:16:57, ok)
+  satisfied the wait: "startup reconcile applied; rescanning". Daemon
+  confirmed the b2d59f9 build (`kk1zjnr…`, new probe strings present);
+  live toplevel closure-diff vs the dev-box prebuild: EMPTY (pure
+  cache-hit self-rebuild). Remaining re-dogfood for Max: two GUI
+  drag-installs back to back — the applier layer under them is proven.
+
+### 46. A finished install tile stays "Installing…" — the post-fill rescan is one-shot and races the ASYNC user activation — [FIXED · waverunner bb76739 · Golem lock bumped]
+Caught live during Max's audacity+kdenlive overlap re-dogfood (the #45
+acceptance test) — the overlap machinery worked, but BOTH tiles stranded.
+- **what (Max):** "audacity stuck on 'installing…' label" — the app was
+  fully installed (binary + `.desktop` on disk), the apply reported done
+  ok, yet the tile never swapped to the real app. It finally resolved
+  **91 s** later (should be the 1.4 s ring-fill flourish). kdenlive then
+  did the same, still stranded 5+ min after its apply landed.
+- **root cause (timeline-proven):** the deferred rescan that swaps a
+  finished tile for its real app was a ONE-SHOT latch (`rescan_fired`)
+  fired at ring-fill end. But `apply-status.json` says "done" when
+  `nixos-rebuild switch` returns, while the `.desktop` materializes via
+  the switch's **async user activation** (home-manager restarts after the
+  switch); on the ASUS's 5400rpm HDD that lagged the apply by 1–4
+  MINUTES (kdenlive: scans at +2 s and +2:46 still showed the old entry
+  count; the desktop file appeared later still). The hold-end scan runs
+  inside that window, misses the new file, the latch is spent, and
+  nothing ever rescans — the tile sits "Installing…" until unrelated
+  activity (the user poking the dock) happens to trigger a scan. On an
+  idle desktop: forever. The dev box never showed it (NVMe: activation
+  completes within the 1.4 s hold). This is the "re-arm the deferred
+  rescan while a tile stays unresolved" hardening #43's UPDATE predicted.
+- **FIX (waverunner `bb76739`, `crates/daemon/src/{install,frame,main}.rs`):**
+  `rescan_fired: bool` → `last_rescan: Option<Instant>` — fires at
+  hold-end as before, then RE-FIRES every `RESOLVE_RESCAN_RETRY` (2 s)
+  while the tile stays unresolved; resolution removes the tile, which is
+  what stops the retries. Frames already keep coming while a pending
+  install exists, so the retry ticks reliably. Worst case is now
+  "flourish + activation lag + ≤2 s", not "until the user pokes it".
+- **where:** `~/launcher` `crates/daemon/src/install.rs`
+  (`PendingInstall::last_rescan`, `RESOLVE_RESCAN_RETRY`), `frame.rs`
+  (the re-arming latch), `main.rs` (retry reset).
+- **size:** landed.
+
+### 47. The fingerprint short-circuit starves pending-install resolution — vlc stuck "Installing…" 13 min with the app fully indexed — [FIXED · waverunner 1fa223f · Golem lock bumped]
+Found live on Max's very next test after #46 deployed (vlc): the #46
+retry rescans fired every 2 s exactly as designed — and the tile STILL
+never resolved. The deepest bug of the day, and the one that explains
+the residue #46 left behind.
+- **what (Max):** installed vlc; apply ok in 41 s, binary + `.desktop`
+  on disk ~90 s later (the async-activation lag), retry scans running —
+  tile stuck on "Installing…" for 13+ minutes until a daemon restart
+  healed it via the restore path.
+- **the hunt (worth recording; assumptions killed in order):** strace
+  proved the scanner OPENED vlc.desktop every 2 s scan. A byte-identical
+  copy planted as `vlctest.desktop` indexed INSTANTLY (order.sync
+  adopted it) while a copy named `vlc.desktop` did not bump the count —
+  the same daemon indexed one id and appeared blind to the other. A
+  standalone scan binary on the ASUS with the daemon's exact env found
+  vlc fine. No shadowing entry existed anywhere. The killer detail: the
+  planted `vlc.desktop` copy did NOT raise the entry count — because the
+  real one was ALREADY indexed and deduped it. vlc had been in the index
+  the whole time. The daemon just never looked.
+- **root cause:** `on_apps_loaded` returns early when the scan
+  fingerprint is unchanged (main.rs:2454) — BEFORE
+  `resolve_pending_installs` (2523). A scan that lands in the window
+  between the `.desktop` materializing and the tile becoming eligible
+  (still busy mid-install, or inside the INSTALL_HOLD flourish) captures
+  the file into the fingerprint while SKIPPING the tile; every following
+  scan is "unchanged" → early return → the resolve is never called
+  again. The #46 2 s retries make landing in that window a
+  near-certainty — #46 armed the very trap that then starved it. On the
+  old daemon audacity escaped by luck: no retries, so the first scan
+  containing the file was ALSO the first after eligibility → fingerprint
+  changed → full path → resolve ran.
+- **FIX (waverunner `1fa223f`, `crates/daemon/src/main.rs`):** the
+  unchanged-fingerprint branch re-runs `resolve_pending_installs` when
+  tiles are pending. Sound because an unchanged fingerprint guarantees
+  the stored entries equal this scan's — it is a pure filter over
+  pending tiles, no rebuild, no icon re-upload. Combined with #46's
+  retry, tile-swap latency is now bounded at ~2 s after the desktop file
+  lands, regardless of activation lag.
+- **where:** `~/launcher` `crates/daemon/src/main.rs` (`on_apps_loaded`
+  fingerprint short-circuit).
+- **size:** landed.
+
+### 48. Installing an ALREADY-PRESENT app fabricates an icon-less phantom "Command-line tool" tile — the #3 overlap's real fallout — [FIXED · waverunner ab44373 · Golem lock bumped]
+Caught live in Max's post-#47 test run (gimp 1.6 s ✓, signal 1.5 s ✓,
+then chromium: "chromium have not icon").
+- **what (Max):** dragged chromium from the install list (it was ALSO
+  already in the apps grid — the #3 catalog overlap). The install ran
+  fine, but the tile resolved to an icon-less phantom: `resolved as app
+  chromium (gui=false)` — a fabricated "Command-line tool" tile at the
+  drop slot, while the real Chromium browser sat elsewhere in the grid.
+- **root cause:** the catalog's desktop ids for chromium don't name the
+  real id (`chromium-browser`); the resolver's fuzzy route only
+  considers NEWLY appeared apps (by design, so an install never steals
+  an existing app's tile) — but chromium's app PRE-EXISTED, so nothing
+  matched and the tile fell to the CLI fallback: a synthetic terminal
+  tile with the generic package icon (missing → letter tile), and
+  `managed.json` cached `gui:false` with the wrong ids. **The same
+  signature already sat in the cache for brave, darktable and fritzing**
+  — all misfiled by this path in earlier sessions; fritzing (stored id
+  misses `org.fritzing.Fritzing`) had a lurking phantom tile too.
+- **FIX (waverunner `ab44373`):** (1) both CLI fallbacks (tile +
+  tile-less managed path) first try an already-present rescue — an
+  unclaimed scanned app that `ids_relate()`s to the attr is the real
+  thing; resolve to it (gui=true, drop anchor honored) instead of
+  fabricating a terminal tile. (2) A reconcile heal pass relabels attrs
+  cached CLI-only that demonstrably have a live GUI app (own stored id
+  matches a scanned app: brave/darktable; or live phantom + the rescue
+  relation: chromium/fritzing) — relabeling stores the real id, so the
+  phantom evaporates on the next scan. Genuine CLI tools match neither
+  and are untouched. 436 tests + clippy clean.
+- **NOT covered here:** #3's actual catalog dedup (don't OFFER an
+  already-installed app in the install section) — still the queued
+  upstream fix; #48 makes its fallout benign (the drop now just moves
+  the existing app to the drop slot).
+- **where:** `~/launcher` `crates/daemon/src/install.rs` (both CLI
+  fallbacks + the heal pass), `managed.rs` (`cli_concluded_attrs`).
+- **size:** landed.
+
+### 49+50. DockMenu aging pass: corrupt-store rescue + notif history cap/image sweep — [FIXED · waverunner 8bb6c72 · drilled live]
+First fixes from the DockMenu reliability program (`~/GolemOne/DockMenu`
+— full audit, invariants contract, census harness; see
+`Installer/installing/DockMenu.md`).
+- **#49:** a malformed JSON store read as empty and the NEXT write
+  destroyed the user's data (the dev box lost its whole grid order this
+  way, 2026-09-03). Now preserved as `<name>.corrupt-<epoch>` + loud
+  warn; the store restarts clean; a schema break on upgrade degrades the
+  same safe way. **Verified with a live corruption drill on the ASUS**
+  (garbage into usage.json → rescue fired, bytes preserved, daemon
+  healthy, counts restored).
+- **#50:** notif history was unbounded by design and its image cache had
+  no delete path (153 orphans after months on the dev box). Capped at
+  500 newest cards on save AND load; every save sweeps unreferenced
+  images.
+- ASUS on daemon `mfzr434j…`; `aging-check.sh` green on both map
+  machines.
+
+### 42-orig. App icons render as solid BLACK SQUARES on the GL backend — [superseded by the root cause above]
+- **what (Max):** the dock and box show app icons as solid black squares.
+  Confirmed by screenshot on the CLEAN fixed build (not a churn artifact):
+  the dock's app-icon slots (brave/alacritty/xterm pins) are black
+  squares, while built-in glyphs on the same surface (the trash icon, the
+  top-bar theme/search icons) render correctly.
+- **likely root:** app icons come from `.desktop` files rasterized to RGBA
+  textures with alpha; built-in glyphs do not. On the GL backend (Haswell,
+  no Vulkan) the surface fell back to `CompositeAlphaMode::Opaque`
+  (`premultiplied alpha unsupported` warning) — the app-icon texture
+  upload/sample path very likely mishandles alpha/format there, so the
+  icons draw as opaque black. A modern Vulkan GPU (dev box) uses
+  PreMultiplied and renders them fine, which is why this never showed
+  until an installed GL-backend machine. Separate from the throttle
+  (#40) — a rendering-correctness bug, not a loop bug.
+- **where:** `~/launcher` `crates/daemon/src/renderer.rs` (icon texture
+  format / alpha handling / the Opaque-alpha fallback path) +
+  `install.rs`/`notif_icons.rs` icon upload.
+- **CRUCIAL REFINEMENT (Max, 2026-09-09): it's TRANSIENT, not static.**
+  "The icons came back for 2m and went back to black." So icons upload and
+  render CORRECTLY at first, then degrade to black after ~2 minutes. That
+  rules out a pure format/alpha bug (that would be black from frame 1) and
+  points at **texture-array lifetime/eviction on the GL backend** — the
+  app-icon texture array (one RGBA layer per app; renderer.rs sizes it to
+  `max_texture_array_layers`) getting invalidated, evicted, or not
+  re-bound after some event/period, while the font/glyph path (trash,
+  top-bar icons — a separate atlas) keeps rendering fine throughout. The
+  daemon log shows a `rescanning` + a couple of restarts around the window
+  but no GL/texture error at info level. Suspects to chase: the icon
+  texture array being reallocated/re-uploaded on a rescan and left blank;
+  a GL texture/context resource lost after idle or a surface reconfigure;
+  wgpu-GL dropping the array. Needs `RUST_LOG=debug` + watching the
+  transition on the ASUS.
+- **size:** medium–large — a GL-backend texture-lifetime bug, harder than a
+  static fix; needs the iterate-on-the-ASUS loop with debug logging. NEXT
+  bug after the install-freeze win.
+- **where:** `~/launcher` `crates/daemon/src/{install.rs,frame.rs,main.rs}`.
+- **size:** 37 = medium; 40-proper = needs-Max (event-loop architecture).
+
+### 40. waverunner control socket is dead on the installed build — Super+Space + all ctl commands no-op — [SUPERSEDED by the 37+40 root cause above]
+- **what:** on the ASUS running the CURRENT waverunner, `waverunner-ctl`
+  gets no response to ANY command (`toggle`/`show`/`hide`/`overview-on`/
+  `debug-options` all → "failed to read daemon response", EAGAIN). Not a
+  timeout: a raw `socat` connect + `show\n` waiting 10 s gets **zero
+  bytes** back. The daemon logs `INFO waverunner::ipc: listening on
+  …/waverunner.sock` at boot and renders fine (bar, clock, deck), so it is
+  alive — but it never services the control socket. This is item 6
+  (Super+Space, which the hyprland.lua bind correctly maps to
+  `waverunner-ctl toggle`) and likely the ctl-driven options interactions.
+- **narrowed:** the IPC is a `calloop` `Generic` source (single-threaded,
+  `crates/daemon/src/ipc.rs:114`); `connect()` succeeding while no reply
+  ever comes means the daemon isn't reaching `listener.accept()` — the
+  event loop isn't dispatching the IPC source on this build, even though
+  rendering (also calloop-driven) runs. Suspect the 18-commit
+  OPTIONS-UX/deck/stage refactor changed the loop such that the IPC source
+  is starved on a slow machine, OR a render path is monopolising the loop.
+  NOT yet fixed — needs a daemon restart with `RUST_LOG=debug` to confirm
+  whether `handle_command` is ever entered, which disrupts a live dogfood
+  session, and it is Max's actively-refactored code.
+- **where:** `~/launcher` `crates/daemon/src/ipc.rs` + the main event loop.
+- **size:** needs-Max (his WIP daemon; he'll know if the refactor did it).
+
+### note on #2/#4/#5/#7/#8/#9/#10 (the visual cluster, #36): re-tested on the rebuilt ASUS
+Survivors on the current waverunner (2026-09-09): options hover/expand
+still dead (#9), no current-task pill (#5), dock doesn't hide (#4), dock/
+menubox no icons (#10), Super+Space dead (#6 → #40 above). BUT the newer
+build is **mid-migration from a pinned-dock model to a STAGE/deck model**
+(`deck.rs`/`stage.rs`: task tiles under a staged window, Super+Enter) —
+the bottom `waverunner-deck` layer is new. So #4/#5/#10 may be that
+migration in flight, not classic regressions. #9 hover + #40 IPC look
+like genuine bugs. Split for Max's steer before deeper work.
+The ASUS was running waverunner 18 commits + WIP behind `~/launcher`
+HEAD, whose recent work targets this exact cluster (OPTIONS UX rules,
+screen-derived page geometry, tooltip-detail, dock shadow, deck/stage).
+It has now been rebuilt onto Max's current waverunner (see
+`Installer/installing/FirstInstall.md`). **These items must be
+re-dogfooded on the new build before any is treated as a live bug** — an
+unknown number are expected already fixed. Only survivors get worked.
+
+### 39. chromium offered as installable while already present — [FIXED · waverunner 0696b72 · Golem lock bumped · ships with the round-6 seed]
+- **what:** `chromium` appears in the apps grid (`apps-order.json`, a
+  present app) AND in the install section. An already-present app must be
+  de-duplicated out of the installable catalog.
+- **where:** waverunner catalog/index filtering vs. the present-apps set.
+- **size:** small.
+
+### R5-1. The #28 hold line ("Reading this device") is never erased; the first census row is appended to it — [APPLIED to source · verified live on Lenovo · round-6 build]
+**Applied (2026-09-08):** `wait_for_audit` now ends with
+`printf '\r%s[2K%s[1A' "$esc" "$esc"` — erase the hold line, step back up
+over the leading newline. Live on the Lenovo under the stick's own env:
+the #28 race screen and the no-race screen `diff` to zero lines; full
+rehearsal on the patched build ok, eval 8 s. NOT on the round-5 stick.
+- **what (Lenovo, round 5, both deliberate #28 races):** when golem-setup
+  reaches the confirm screen mid-audit, `wait_for_audit` prints
+  `\n` + `Reading this device` with no trailing newline and returns
+  without erasing it once the audit finishes; `answered()` ends each row
+  with `\n`, so the first census row lands on the hold line's tail:
+  `Reading this device  ·  Zram         Active, zstd, priority 100`.
+  Only visible on the race path (the function prints nothing when the
+  audit is already done), i.e. exactly for the fast-typist-on-slow-audit
+  user #28 was built for. Reproduced on demand; capture in lenovo.md.
+- **fix:** after the wait loop, erase the hold line before returning —
+  `printf '\r%s[2K' "$esc"` (the row then draws where the hold text was)
+  — or print the hold text with its own newline and cursor-up before
+  returning. One line either way; the no-race path is unaffected because
+  it returns before printing.
+- **where:** `mockup/install-cli` `wait_for_audit()` (the `printf` + loop
+  tail), mirrored in the built `golem-setup`.
+- **size:** small.
+
+### 34. Ctrl-C runs golem-setup's cleanup handler but does NOT exit — [APPLIED to source · verified live on Lenovo · round-5 build]
+**Applied (2026-09-08):** the cleanup is a `cleanup` function on EXIT only;
+`trap cancel_install INT TERM` sends Ctrl-C down #31's F1 path (`exit 0`),
+so EXIT fires exactly once. Verified on the Lenovo under the frozen
+stick's own wrapper env: Ctrl-C on the confirm screen and on the language
+page both drop straight to the prompt with the marker and temp files gone
+and no instance left; a full rehearsal afterwards is `ok`, eval 7 s; the
+tty1 banner count stayed at 1. NOT on the round-4 stick.
+- **what (Lenovo, round 4 — found by the rig, reproduced under control):**
+  `golem-setup` installs ONE handler for `EXIT INT TERM` (`mockup/
+  install-cli:3902`): show cursor, `kb_restore`, `rm` the keymap backup
+  and the drv temp file, `rm /run/golem-setup.owns-console`. Nothing in
+  it exits, so on SIGINT bash runs it and **carries on** — the UI stays
+  up, responsive, and still installs (a rehearsal after Ctrl-C ran clean,
+  eval 7 s), but with its cleanup already spent:
+  1. the **#28 owns-console marker is gone** while the surface still owns
+     tty1. Observed live: Ctrl-C at 19:44:49, an audit finished at
+     19:45:08 → its census banner landed on tty1 — the dump #28 was built
+     to stop (the guard itself is fine; the marker was deleted from under
+     it). On a slow machine the ORIGINAL #28 race is simply back for
+     anyone who taps Ctrl-C.
+  2. the **keymap backup is deleted**, so the real exit later has nothing
+     to restore — #7's console-keymap leak, via a side door.
+  3. cursor shown over the raw-mode UI (cosmetic).
+- **fix:** split the traps. Keep the cleanup on EXIT only; make INT/TERM
+  exit after it — simplest is to route them to `cancel_install` (#31's
+  F1 path, which already `exit 0`s and so fires EXIT once, cleanly):
+  `trap cancel_install INT TERM`. Ctrl-C and F1 then mean the same thing,
+  which is what a stranger expects.
+- **where:** `mockup/install-cli` trap line (3902 in round-5 source).
+- **size:** small.
+
+### R4-1. Audio row shows a raw PCI id when pci.ids has no entry — [APPLIED to source · verified live on Lenovo · round-5 build]
+**Applied (2026-09-08):** `hw_pci` and `hw_pci_all` replace a name ending
+in a bare `Device xxxx` with the PCI class from the same lspci header
+(minus " compatible"). Live on the Lenovo: `Audio  Intel Corporation
+Multimedia audio controller · sof-audio-pci-intel-tgl`. Unit-tested:
+`Device 51cf` / `Device 7af0` fall back, real names untouched, `(rev)`
+still stripped, bus ids still lead. NOT on the round-4 stick.
+- **what (Lenovo, round 4):** `Audio  Intel Corporation Device 51cf ·
+  sof-audio-pci-intel-tgl`. The stick's pciutils 3.15.0 `pci.ids`
+  (2026.04.01) has no `8086:51cf` (Raptor Lake-P/H cAVS), so lspci prints
+  "Device 51cf" and the reveal passes it through — the one row on the
+  screen with a hex id where every other row has a name. Upstream data,
+  not a census error (the driver half is right), but a stranger reads it
+  as "unknown thing".
+- **fix:** in the reveal's name pass, when lspci's device name matches
+  `^Device [0-9a-f]{4}$`, fall back to the PCI class name (here "Audio
+  device") — `Intel Corporation Audio device · sof-audio-pci-intel-tgl`
+  reads honestly and needs no pci.ids update. Same guard protects every
+  row (Wi-Fi, Ethernet) on any newer chip than the ids file.
+- **where:** `mockup/install-cli` hw_row / the lspci name parse.
+- **size:** small.
+
+### 33. A "failing" dGPU is powered off entirely — but it may still be usable — [APPLIED to source · postinstall/postinstall.md §7 · round-5 build · rehearsal-proven on the ASUS · real-desktop still unverified]
+**Round-5 proof, non-empty case (ASUS, 2026-09-08):** the machine this
+whole finding is about finally ran the round-5 stick. `checks.txt` ok,
+0 findings, and `target/postinstall-questions.json` holds exactly one
+question — `id: "gpu2-failing-action"`, `default: "hold"`, the body text
+from postinstall.md §7 verbatim, two options (`hold` / `off`). The
+evaluated toplevel's closure carries `golem-dgpu-hold.service` and its
+unit-script — **not** `-off` — confirming the rehearsal takes the
+question's own default when nothing has answered it yet, exactly as
+designed: the dGPU ships available, never autosuspended, and the
+destructive branch only ever builds once a real answer says so. This is
+the first time in the lab any machine has produced a non-empty
+`postinstall-questions.json` (every other machine — healthy dGPU or none
+at all — has produced `[]`). **Still open:** no human has seen the `foot`
+prompt draw and `golem-postinstall-apply` has never run a real
+`nixos-rebuild switch` — that needs an actual (non-rehearsed) install,
+which stays out of scope on this machine's guarded disk without Max's
+explicit go-ahead. Full record: `testing/asus.md` round 5.
+
+**Built (2026-09-08):** both implications below are done. `gpu-second.nix`
+now holds the chip (`power/control=on`, never autosuspends) by default and
+only powers it off once the owner answers "off" through the new
+post-install ASK framework (`system/postinstall.nix` +
+`system/hardware/postinstall.nix` + `Installer/preinstall/postinstall-questions.nix`
+— full design and file map in postinstall/postinstall.md §7). Evaluated
+and unit-tested end to end on the dev box: the question fires on a
+synthetic failing-facts module and stays empty on the Lenovo's real
+(healthy) fixture, `mkTarget` produces `golem-dgpu-hold` by default,
+`golem-dgpu-off` once answered "off", and `golem-dgpu-hold` again for any
+unrecognized answer (never a default pass to the destructive branch); the
+apply script's jq validation drops an unknown question id or an unknown
+option id for a real question; both `golem-postinstall-ask` and
+`golem-postinstall-apply` build clean (writeShellApplication's shellcheck
+gate); the full `nixosConfigurations.golem` toplevel evaluates. **Caught
+in the same session:** an early draft picked the hold/off attrsets with a
+bare `if action == … then {A} else {B}` as `mkIf`'s content — that forces
+`action` (hence `golem.postinstall.answers`, this module's own place in
+the shared config fixpoint) just to discover the module's SHAPE, before
+`mkIf`'s laziness applies — real infinite recursion on every eval,
+caught by `nix eval` before touching a laptop. Fixed by declaring both
+services unconditionally and gating each at its own leaf instead
+(`systemd.services.NAME = lib.mkIf cond {…};`) — see gpu-second.nix's own
+comment. **NOT yet exercised on a live desktop** — no human has seen the
+`foot` prompt draw, and `golem-postinstall-apply` has never run a real
+`nixos-rebuild switch`; that is round 5's first laptop that actually
+triggers #33.
+- **what (ASUS, round 4; Max: "that is not possible, the 720m works"):**
+  the health probe correctly reads the GF117M as `failing` — it throws
+  PRIVRING faults on autosuspend→resume (proven: 3 faults at
+  14/22.7/33.3 s, and the cross-machine force-cold check calls it broken
+  where it keeps the Lenovo's RTX healthy). But "failing" specifically
+  means "does not survive being autosuspended and woken," NOT "cannot do
+  work once up." Max is very plausibly right that the 720M works in
+  ordinary use. gpu-second.nix currently powers it OFF entirely ("kept
+  quiet") — the safe response to what the probe can prove, but possibly
+  leaving usable GPU on the table.
+- **the option (from the other session):** instead of powering off, offer
+  a fault-on-resume dGPU with **runtime PM forced off**
+  (`power/control = on`, never autosuspend). The fault only happens on
+  resume-from-suspend; never suspending it dodges the fault and keeps it
+  available for render-offload. Cost: it never sleeps (battery/heat) — so
+  this is a real trade, arguably a per-user call, not an obvious default.
+- **caveat:** couldn't confirm "works" directly — console-only rehearsal
+  env, no compositor/GL/Vulkan, and nouveau has no Vulkan below Turing,
+  so even a tooled test would only prove OpenGL. Needs a real desktop.
+- **DECIDED (Max, round 4): keep it all, ask the user POST-INSTALL.**
+  Don't let the installer decide the dGPU's fate at all — keep the chip
+  available (do NOT power it off at install) and defer the choice to the
+  owner on the installed desktop, where they can actually test it. This
+  is the honest move: "failing" is a wake-test result, not a capability
+  verdict, and only the user in a real session can judge whether the
+  720M does what they need.
+- **what this implies for round 5:**
+  1. **Interim state (shipped default until the user answers):** keep the
+     dGPU usable but fault-free — runtime PM forced off
+     (`power/control=on`, never autosuspend), so it never hits the
+     resume fault and stays available for offload. gpu-second.nix's
+     unconditional power-off for `failing` is REPLACED by this hold.
+  2. **A post-install ASK mechanism — NEW SCOPE.** Golem has no
+     first-boot/settings prompt today (greetd → Hyprland → waverunner).
+     Round 5 needs one: on first desktop login, surface "your second GPU
+     (NVIDIA GT 720M) failed a sleep/wake test during setup — keep it
+     available (uses power), or power it off (saves battery)?" and apply
+     the answer. This is the first of what will likely be several
+     post-install questions, so build it as a small framework, not a
+     one-off.
+  3. The reveal at install still says "didn't wake up" — accurate (it
+     failed the wake test); it just no longer implies "gone."
+- **where:** `system/hardware/gpu-second.nix` (hold, not power-off) — DONE;
+  the post-install prompt module + its apply path — DONE
+  (`system/postinstall.nix`, `system/hardware/postinstall.nix`,
+  `Installer/preinstall/postinstall-questions.nix`, `Installer/preinstall/install.nix`); a
+  "fails-on-resume vs dead" split in `hardware-detect.nix` — not done,
+  not needed for #33 itself, left for if a second question ever wants it.
+- **size:** medium-large (the post-install ASK framework was the bulk) —
+  built; what remains is verification on real hardware, not more code.
+
+### 32. GPU verdict tail rendered undimmed in the failing case — [round-4 sweep finding · applied to source · round-5 build]
+- **what (HP, round 4):** the "tested, working · driving this screen"
+  verdict was dim, but "tested, didn't wake up" rendered at full
+  brightness — hw_row dimmed only the " · driver" segment, and the
+  failing verdict has no driver so it fell into the name. Max: make both
+  dim.
+- **fix (applied):** hw_row splits the " — verdict" tail off first and
+  always dims it. Verified in a render test. NOT on the frozen round-4
+  stick — the HP's round-4 screen showed it undimmed.
+- **where:** `mockup/install-cli` hw_row.
+
+### 31. The installer had no way out; the language page advertised a dead "ESC back" — [round-4 finding (Max) · applied to source · round-5 build]
+- **what:** no cancel/quit anywhere, and the first (language) page showed
+  "ESC back" with nothing to go back to.
+- **fix (applied):** F1-to-cancel (read_key detects \eOP / \e[[A / \e[11~;
+  cancel_install exits cleanly); the language page shows "F1 cancel"
+  instead of "ESC back"; the confirm page appends "F1 cancel". key_cancel
+  in 6 languages. NOT on the frozen round-4 stick.
+- **where:** `mockup/install-cli` read_key, pick, step_go, string table.
+
+### 22. decide.nix crashes on an nvidia machine on the iron-law floor — [fixed in round-3 source, pre-reflash · ASUS verifies on metal]
+- **what (ASUS X550LC, round-2 first contact — the audit's FIRST decide
+  failure on metal):** with `gpu/gpu2 = nvidia` but `nvidiaGen =
+  "unknown"` (GF117M Fermi — below the Maxwell id floor), the iron law
+  correctly keeps nvidia OUT of videoDrivers. But decide.nix's nvidia
+  rows read `hardware.nvidia.open` / `.prime.offload.enable` / etc.
+  regardless — and with the driver inactive the upstream nvidia module's
+  internal package is null, so evaluating those options dies:
+  `expected a set but found null`. The whole decision surface crashes;
+  `status: FAILED at: golem-hw-decide`; decision.json never written.
+  No prior lab machine had an nvidia GPU, so the trap sat unfired — and
+  the just-gated round-3 build carried the same reads (now keyed on
+  gpu2), so first contact caught it hours before the reflash.
+- **proof of the boundary:** the same machine's target EVAL passes
+  (rehearsal ok, 30 s) — the floor config never reads nv.*; only the
+  row rendering did.
+- **fix (applied):** the nv.* rows render only when `"nvidia"` is in
+  `services.xserver.videoDrivers`; otherwise one honest row:
+  `kernel module: none — open floor (modesetting/nouveau)`.
+- **also, downstream surface gap — [applied to source · round 3]:**
+  with decision.json missing, the confirm screen silently showed NO
+  decision rows. Now: if the audit's status file exists but the
+  decisions are unreadable, one dim line — "audit incomplete — the
+  decisions could not be shown" (`audit_bad`, 6 languages). Dev boxes
+  (no audit at all) stay silent as before.
+- **where:** `system/hardware/decide.nix` (nvidia rows); the surface
+  gap: `mockup/install-cli` census_reveal.
+
+### 21. The reveal picks the WRONG one of several same-class devices — [applied to source · round 3 ("all in" — Max) · ThinkPad verifies on metal]
+**Applied:** audio row prefers the non-HDMI audio device (audio_row —
+unit-tested on the ThinkPad's exact device list: picks Family 17h HD
+Audio); touchpad row goes two-tier — explicit pad names first, vendor
+names as fallback — so the TrackPoint no longer shadows the pad.
+- **what (ThinkPad E15, round-2 first contact):** two instances of one
+  class — "first match wins" is wrong when a machine has several devices
+  of a kind:
+  a. **Audio row names the HDMI audio, not the speakers.** AMD APUs
+     expose two audio-class PCI functions (04:00.1 "Renoir/Cezanne
+     HDMI/DP Audio" + 04:00.6 "Family 17h HD Audio" — the actual
+     speakers/mic); `hw_pci 'Audio device|…'` takes the first. Prefer
+     the non-HDMI device (name-filter out HDMI/DP) or show both.
+     **Also (Max, on the physical screen):** the row reads "AMD/ATI …
+     · snd_hda_intel" — a perceived vendor mismatch. It is CORRECT
+     (HDA is the Intel-authored audio standard; the module drives
+     every vendor's HDA controller and its name is historical), and
+     the module name is the proof, so do not rename it — but the
+     rework here is the place to reconsider if it keeps confusing.
+  b. **Touchpad row names the TrackPoint.** A ThinkPad carries both
+     ("ETPS/2 Elantech TrackPoint" AND a touchpad); `hw_input` returns
+     the first /proc match, so the row is labeled Touchpad but names the
+     stick, and the real touchpad is unshown. Prefer a name actually
+     matching pad patterns over TrackPoint, or show both rows.
+- **why:** round 2, ThinkPad — the reveal's one-device-per-class
+  assumption met its first machine with real duplicates (same family as
+  #9's two GPUs, now solved by hw_pci_all).
+- **where:** `mockup/install-cli` `hardware_reveal` (audio row filter,
+  hw_input ordering).
+- **size:** small.
+
+### 29. Fingerprint reader on the reveal — [DECIDED (Max, round 4): plain name · driver row, NO verdict · APPLIED to source]
+**Max's final call (round 4):** drop the "working"/support verdict
+entirely — "only show the name + the driver as the rest of the items."
+That sidesteps the honesty gate: no claim, just the device and whatever
+kernel driver is bound, exactly like every other row.
+**Applied:** `hw_input_fp` now walks sysfs (vendor ids 138a/06cb/27c6),
+takes the name from `product`, and the bound kernel driver from the USB
+interface (skipping generic usbfs/usbhid). Most readers are libfprint-
+userspace with NO kernel driver → name-only (honest, like the pre-R3-1
+touchpad); a reader with a kernel driver shows "name · driver". Unit-
+tested both paths. FAKE row de-verbed to "Goodix Fingerprint Reader".
+Still needs a machine with an enumerating reader to see on metal (the
+HP's is BIOS-dark).
+Original direction kept below for the record:
+- **what (HP dm4, round 3):** the HP has a fingerprint reader; the
+  reveal showed NO fingerprint row. **Investigated (RAM-swap reboot):
+  the reader does NOT enumerate** — absent from lsusb, lsusb -t, PCI,
+  and there is no kernel trace of any Validity/AuthenTec chip and no
+  failed-enumeration error. It is present physically but dark to the
+  OS: BIOS-disabled (HP dm4 Security toggle) or dead. So the reveal is
+  NOT at fault here — nothing to detect. NOTE for the #29 build: this
+  HP is a bad "working"-verdict demo even once BIOS-enabled — dm4
+  readers are typically old Validity VFS, which libfprint supports
+  poorly. It's the machine that would PROVE the honesty gate: detect =
+  yes, "working" = only if libfprint backs the specific id. Get a
+  DIFFERENT machine with a supported reader (Goodix 27c6 on modern
+  ThinkPad/Framework) to demo the happy "working" path.
+- **Max's direction:** "that is the kind of hardware i want to see on
+  the items and i think will be good if it says 'working'." Fingerprint
+  (and this class of "Linux won't do this" hardware) is a morale win —
+  same spirit as the GPU verdict rows (#17). Show it, and affirm it.
+- **the honesty wrinkle [needs-Max on wording]:** unlike the GPU (which
+  we WAKE-TEST), a fingerprint reader we can only detect as PRESENT.
+  Many readers — Validity/Synaptics especially — are present but
+  UNSUPPORTED by libfprint (no working driver). A blanket "working"
+  would occasionally be the exact false promise Golem exists to kill.
+  Proposal: check the reader's USB id against libfprint's supported
+  device list; say "tested, working" (or "supported") ONLY when it is
+  actually backed, and something honest-but-not-damning otherwise (or,
+  per #17's silence rule, just the name). Decide the two strings when
+  the HP is back and we know its reader.
+- **where:** `system/hardware-detect.nix` (widen the fingerprint probe
+  if the id was missed), `mockup/install-cli` (a fingerprint row with a
+  verdict, libfprint-support gated).
+- **size:** small–medium; wording needs-Max.
+
+### 28. The boot audit dumps its census to tty1 and RACES golem-setup — [APPLIED to source · round-4 build 2026-09-08]
+**Applied both halves:** (1) `audit.nix` skips its tty1 banner when
+`/run/golem-setup.owns-console` exists; golem-setup drops that marker at
+startup and clears it in the EXIT trap. (2) `census_reveal` calls
+`wait_for_audit` first — a bounded (45 s) poll of the audit status
+(empty = running, non-empty = terminal), so the reveal draws only once
+decision.json is ready; the decision.json branch now checks `-s` not
+`-r` so a failed audit's empty json falls through to the audit_bad line.
+- **what (MacBook, round 3, Max's photo):** on a slow machine the boot
+  audit takes ~60 s (this boot: 26.8→86.9 s on 3.8 GB). `golem-audit-
+  start` prints its full census table to `/dev/tty1` when it FINISHES
+  ("say so on the console" step, guarded only by `-w /dev/tty1` +
+  decision.json non-empty). Auto-login lands early, Max started
+  golem-setup before the audit finished → TWO symptoms, one cause:
+  a. the confirm reveal drew while decision.json didn't exist yet →
+     "audit incomplete — the decisions could not be shown" (#22's line,
+     here literally TRUE — not the ASUS crash, just not-done-yet);
+  b. at ~87 s the audit finished and dumped its census onto tty1 OVER
+     the confirm screen, staircase-scattered (plain `\n` to the raw
+     console golem-setup owns) — the garbled screen in the photo.
+- **fix (two halves):**
+  1. **the collision:** the audit's console print must not fire while
+     golem-setup owns the screen. Cleanest: golem-setup drops
+     `/run/golem-setup.owns-console`; the audit's tty1 step skips if it
+     exists. (Or the audit prints to console only before getty, via
+     systemd ordering.)
+  2. **the wait:** golem-setup's confirm reveal should WAIT for the
+     audit (`status: ok`) before drawing — it already has CENSUS_SECONDS
+     / census_line for the keyboard step; the reveal reads decision.json
+     directly and does not wait. Then distinguish "still running" (wait)
+     from "failed" (the #22 audit_bad line, the ASUS case).
+- **where:** the audit unit (`Installer/preinstall/audit.nix` console step),
+  `mockup/install-cli` (reveal wait + the marker file).
+- **size:** medium. Frozen round-3 stick keeps the race.
+
+### 27. The driver-count line is GONE from the surface — [DECIDED (Max, round 3, Comodore) · applied to source · round-4 build]
+- **what:** "25 of 26 (96%) drivers will be installed" — Max, seeing it:
+  a stranger fixates on the missing ONE ("i need that one to be
+  complete!"), googles it, starts tinkering, breaks Golem. And the lab
+  data says the missing ones are never real: ThinkPad = IOMMU +
+  a by-design-declining ACP; Comodore = the #26 phantom sibling
+  function. The score graded a test whose missing points don't exist
+  as hardware.
+- **DECIDED: drop the line.** The hardware rows (name · driver) ARE the
+  proof; Golem does not grade itself. The probe still runs (numbers in
+  $DRV_FILE for a lab hand); drv_line/drv_ing/drv_none strings stay in
+  the table, unused, in case the number ever returns to the AUDIT.
+- **downstream:** #25 (IOMMU exclusion) and #10's wording caveat are
+  now surface-moot — keep #25 only if the count ever surfaces again.
+
+### 26. A same-chip sibling function enumerates as a second GPU — [census half in round-4 build; reveal half is round-5]
+**Census half (in the frozen round-4 build):** the gpu2 pick in
+`hardware-detect.nix` skips any display-class function sharing the
+primary's PCI slot (domain:bus:dev, function stripped) — no phantom gpu2
+FACT. Confirmed on the Comodore's round-4 census (no gpu2 line).
+**Reveal half (round-4 sweep finding → round-5 build):** the confirm
+screen STILL showed a phantom "GPU 2" on the Comodore, because
+`reveal_gpus` enumerates display controllers live from lspci,
+independently of the census fact. Same same-slot rule added to
+reveal_gpus — applied to source, NOT on the frozen round-4 stick (the
+Comodore's round-4 screen still showed the phantom).
+- **what (Comodore, round 3):** the GMA 4500 exposes 00:02.0 (VGA,
+  boot_vga) AND 00:02.1 (a second display-class function of the SAME
+  chip). The census's PCI 0x03* enumeration reports it as
+  `gpu2 = "intel"`, health-probes it (reads "working", stably), and
+  the reveal fibs a "GPU 2 … tested, working · apps can use it on
+  demand" row — a driverless dead sibling of the machine's ONLY GPU
+  wearing the offload promise. Config impact: none (intel + working
+  activates nothing). Surface honesty: real.
+- **fix:** exclude display-class functions sharing the primary's PCI
+  SLOT from gpu2 (same rule as #21c's GPU-adjacent audio: a .N sibling
+  function is the same silicon, not a second device).
+- **where:** `system/hardware-detect.nix` (the gpu2 pick),
+  `mockup/install-cli` reveal follows the facts.
+- **size:** small.
+
+### 25. The driver count still holds one phantom class: the IOMMU — [MOOT — the count line is gone (#27)]
+Superseded: #27 removed the driver-count line from the surface entirely,
+so there is no count left to make honest. Kept only as a note in case
+the count ever returns to the AUDIT bundle (not the stranger's screen),
+where excluding class 0806 (IOMMU) like the 06xx bridges would apply.
+- **what (ThinkPad round 3, chased on a dedicated boot after Max asked
+  why 89%):** the 2 driverless of 19 are (a) `00:00.2` the AMD IOMMU
+  function (class 0806) — which NEVER shows "Kernel driver in use" on
+  any OS, AMD-Vi is core kernel, same phantom-denominator class as the
+  bridges #10 excluded — and (b) `04:00.5` the ACP audio co-processor,
+  whose driver loads and DECLINES by design because this unit's mic is
+  wired through the ALC257 HDA codec (capture stream verified present —
+  the mic works; the ACP is dormant silicon).
+- **fix:** exclude class 0806 (IOMMU) from the count like 06xx bridges
+  → ThinkPad reads 17/18 (94%). The declined-by-design ACP cannot be
+  genericized away (a declining driver is indistinguishable from a
+  missing one by class); 94% honest beats 100% clever.
+- **where:** `mockup/install-cli` `probe_compute` (the class filter).
+
+### 21c. The audio row's HDMI filter misses Intel's naming — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** `audio_row` now uses two filters — the HDMI/DP name filter
+(splits an AMD APU's HDMI function 04:00.1 from its real speakers 04:00.6,
+which share the GPU's slot so topology can't) PLUS the Intel rule (drop
+00:03 when a display device sits at 00:02). Unit-tested on ASUS/ThinkPad/
+Comodore/Dell layouts — all pick the real speakers.
+- **what (Acer round 3; ASUS retroactively):** #21a excludes audio
+  devices with "HDMI" in the name — but Intel's GPU-audio functions are
+  named "Broadwell-U Audio Controller" / "Haswell-ULT HD Audio
+  Controller" (00:03.0), no HDMI anywhere, so the row still shows the
+  monitor-audio function instead of the speakers (Wildcat Point-LP /
+  8 Series at 00:1b.0).
+- **fix:** filter by TOPOLOGY, not names: exclude audio functions that
+  share a PCI slot with a display controller (ThinkPad 04:00.1, HP
+  01:00.1) or sit at 00:03.0 beside an Intel iGPU at 00:02.0 (the
+  pre-Skylake pattern); prefer what remains. hw_pci_all already carries
+  the bus ids.
+- **where:** `mockup/install-cli` `audio_row`.
+- **size:** small.
+
+### 24. Encryption says "password", not "passphrase" — [DECIDED (Max, round 3 visual review) · applied to source · round-4 build]
+- **what:** every LUKS surface string used "passphrase" — jargon, and a
+  different word than the account screen's "password" for what a
+  stranger experiences as the same kind of secret. Max, reviewing the
+  ASUS round-3 visual: "lets use password instead."
+- **applied:** all 6 languages, with gender agreement where the word
+  changes it (fr: mot de passe → masculine "demandé"; de: das Passwort
+  → "wer es vergisst"). es contraseña / it password / pt palavra-passe
+  now match each language's account-password word. Also fixed a stray
+  backtick in fr:p_lpass ("l`oubliez" → "l’oubliez"). Code comments
+  keep "passphrase" (developer-facing, technically precise).
+- **note:** the frozen round-3 stick still says passphrase; the change
+  rides the round-4 build.
+
+### 23. Health probe must FORCE the dGPU cold before every poke — [QUEUED round 4 · DECIDED approach (Max, HP round 3): force-cold]
+**The fix, decided:** before EACH poke, set `power/control = auto`, wait
+(bounded ~10 s) for `runtime_status = suspended`, then `echo on` and scan
+the kernel log at the device address. Won't-suspend-in-bound → `unknown`
+(unspoken), never a default "working". This replaces the passive
+wait-before-retry; the HP's false positive proved passive isn't enough.
+The HP is the round-4 proof machine for the whole failing→powered-off
+path (gpu-second.nix has still never run from a real verdict on metal).
+Detail and evidence below.
+**Force-cold was TESTED on the Lenovo (round 3) and works — with 2 s of
+margin on the 10 s bound — but it is NOT sufficient on its own: see
+[23b](#23b), the false-negative manifestation.**
+- **what (ASUS, round 3 machine 1 — predicted by the round-2 preview,
+  caught live by the facts-match check):** the boot audit ran the probe
+  while the dGPU was still awake from init → vacuously clean poke →
+  `gpu2Health = "working"`. The rehearsal's re-probe minutes later met
+  a long-suspended chip → real cold resume faults, real retry (bounded
+  wait worked), faults again → `failing`. checks.txt flagged the flap:
+  `warn facts: … working → failing` — the instability instrument's
+  first real catch.
+- **two consequences, one cause:**
+  a. **verdict flap across boots** — fix: before the FIRST poke, wait
+     (same bounded 10 s) for `runtime_status = suspended`; a chip that
+     never suspends is genuinely awake and a clean poke then is honest.
+  b. **reveal/target skew THIS boot:** the confirm screen promised
+     "apps can use it on demand" (boot facts) while the evaluated
+     target powers the chip off (install-time facts — the rehearsal
+     evals the RE-PROBED facts, which is the safer of the two).
+- **silver lining:** the failing branch is REAL now — this boot was
+  gpu-second.nix's first evaluation inside an actual target (eval ok,
+  30 s).
+- **STRONGER MANIFESTATION (HP dm4, round 3) — a FALSE POSITIVE, worse
+  than a flap:** the HP's Evergreen radeon read `working` on BOTH the
+  boot audit AND the rehearsal reprobe → facts-match `ok` (falsely
+  reassuring) → reveal promised "apps can use it on demand" for a chip
+  that fails EVERY resume. Proven same boot: forced to a genuine
+  suspended state then cold-resumed, it threw the exact round-2
+  signature (`No VRAM object for PCIE GART` + `evergreen startup failed
+  on resume`, 2 errors). Neither probe caught it because the poke
+  didn't guarantee a COLD resume (chip already awake from init / prior
+  lspci pokes → `echo on` is a no-op → 0 errors → latched "working",
+  no retry). Passive waiting isn't enough either: at boot the chip may
+  not autosuspend within the bound.
+- **REVISED FIX (the HP sharpens it): FORCE cold before every poke.**
+  Set `power/control = auto`, wait (bounded) for `runtime_status =
+  suspended`, THEN `echo on` and scan. If it will not suspend within
+  the bound, the cold-resume path is untestable → `unknown`
+  (unspoken), never a default "working". This replaces the passive
+  "wait before the retry" with an active force-cold before poke 1 —
+  the only version that catches the HP.
+- **gap this leaves for round 4:** the FAILING→powered-off path
+  (gpu-second.nix) has still NEVER triggered on real metal from a real
+  failing verdict — only from a fixture eval. The HP with the revised
+  probe is the machine that finally exercises it end to end.
+- **where:** `system/hardware-detect.nix` (the gpu2 health probe —
+  force-cold before poke 1).
+- **size:** small (logic), but load-bearing for #17c's whole promise.
+
+### 23b. The health probe's error counter is unscoped, and nothing waits for the driver to settle — [**APPLIED TO SOURCE · VALIDATED LIVE ON THE LENOVO 2026-09-08** · ships in the round-4 build]
+**Third manifestation of the #23 probe, and a NEW direction: a FALSE
+NEGATIVE.** ASUS = flap (`working`→`failing`); HP = false positive
+(`working` on a chip that fails every resume); **Lenovo = `unknown` on a
+demonstrably healthy RTX 4050.** Same probe, three different lies.
+- **what (Lenovo, round 3 machine 7 — the dev box):** the boot audit
+  emitted **no `gpu2Health` at all** where the machine's entire purpose
+  was to prove `working`. Cause, established on the box:
+  `golem-audit.service` starts at **t = 17.06 s** while **nouveau's own
+  GSP init runs t = 14.6 → 20.4 s**, so the probe's 3-second dmesg
+  window landed on the driver's own boot chatter. The counter matches
+  **any line containing the dGPU's BDF**, so `nouveau 0000:01:00.0:
+  NVIDIA AD107`, `gsp: RM version: 570.144`, `drm: VRAM: 6141 MiB` and
+  ~40 benign GSP `ctrl cmd` lines all counted as convictions — **a
+  healthy chip convicted itself with its own successful
+  initialisation.** The retry then could not rescue it
+  (`power/control` was `on`, `runtime_enabled: forbidden`, so the wait
+  for `suspended` could never succeed → vacuous second poke → 0 →
+  *unspoken* → `unknown`).
+- **proof it was the window and nothing else:** the identical probe
+  logic replayed by hand on a quiet log, same machine, same boot →
+  `e1 = 0` → `working`. The install-time re-probe agreed
+  (`gpu2Health = "working"`), and `checks.txt` fired the #23 instrument
+  in the opposite direction from the ASUS:
+  `warn facts: … > gpu2Health = "working"`.
+- **#23's decided force-cold fix WAS tested here and DOES work — but
+  only just:** `control = auto` → `suspending` at t+7 s, `suspended` at
+  t+8 s of the 10 s bound; cold resume from a 12.6 s suspend → **0
+  errors, zero new kernel lines**. Correct verdict, **2 seconds of
+  margin on the fastest machine in the lab.** Consider widening the
+  bound.
+### CORRECTION to this entry's first draft (measured on the box, same session)
+
+The first write-up said the missing piece was scoping the counter. **That
+is wrong on its own, and the live test says so:** the 32 nouveau GSP
+`ctrl cmd … failed` lines ARE at `KERN_ERR` **and** carry the dGPU's BDF,
+so a level+BDF-scoped counter would still have counted all 32 in the boot
+window and still returned the false negative. Measured breakdown of the
+BDF lines this boot: **32 err · 29 info · 15 warn.** Scoping removes the
+44 info/warn lines and the cross-attribution, **but force-cold is the
+load-bearing fix** — it is what guarantees the counting window opens
+after init, because a chip still initialising will not autosuspend.
+Both changes are needed; only one of them is sufficient.
+
+- **the fix, as applied** (`system/hardware-detect.nix`):
+  a. **force cold before EVERY poke** — `control=auto`, bounded wait for
+     a real `suspended`, then wake. Doubles as the settle wait.
+  b. **bound widened 10 s → 15 s.** The RTX 4050 measured a rock-steady
+     **7 s** to go cold (three samples, zero spread). Seven seconds after
+     this boot's init ends is ~t=27.4 s, and a 10 s bound opened when the
+     audit starts (t=17.06 s) expires at t=27.0 s — **0.4 s too early, on
+     the fastest machine in the lab.**
+  c. **count only error-level records that NAME the device** — a
+     before/after delta over
+     `dmesg --level=emerg,alert,crit,err | grep -F "$gpu2_bdf"`
+     (a filtered log cannot be indexed by line number the way the old
+     `tail -n +N` did). `dmesg` is util-linux's, already declared in
+     `runtimeInputs`, so `--level` resolves inside the tool's own
+     closure — verified by resolving it with `env -i` against only the
+     declared store paths.
+
+- **VALIDATED LIVE, on the metal, before shipping:**
+  - **3 × force-cold cycles on the healthy RTX 4050 → `working`,
+    `working`, `working`.** Each a genuine cold resume (7 s to suspend,
+    13–15 s cold, **0 device errors**, not one new kernel line).
+  - **still convicts.** The real recorded failing signatures injected at
+    `KERN_ERR` via `/dev/kmsg`: the HP's
+    `radeon 0000:01:00.0: No VRAM object for PCIE GART` and the ASUS's
+    `nouveau …: bus: MMIO write … FAULT … [ PRIVRING ]` → **delta 2**,
+    conviction intact.
+  - **cross-attribution gone.** `i915 0000:00:02.0: [drm] *ERROR* Port
+    E/TC#2` injected during an NVIDIA probe: **old counter 1** (charged
+    to the dGPU), **new counter 0**.
+  - **one documented miss, accepted:**
+    `[drm:evergreen_resume] *ERROR* evergreen startup failed on resume`
+    carries **no BDF**, so the scoped counter skips it. Harmless here —
+    its companion `No VRAM object for PCIE GART` names the device and
+    convicts — but a chip whose ONLY fault line is a bare `[drm:…]
+    *ERROR*` would escape. Revisit if a machine ever shows that shape
+    alone.
+  - **safety property holds.** Bound starved to 2 s (chip needs 7):
+    `poke1 → -1` → **`unknown`**. Never a default "working".
+  - **end to end, in the tool's own closure** (`env -i`, nothing
+    ambient): the patched detector emits
+    `gpu2Health = "working"` in 12 s, zero stderr.
+  - **the visual, confirmed on the confirm screen:**
+    `GPU 2  NVIDIA GeForce RTX 4050 Max-Q · nouveau — tested, working ·
+    apps can use it on demand` — the exact row #17c promised, rendered on
+    real metal for the first time.
+  - **shellcheck 0.11.0 clean** (the `writeShellApplication` build gate)
+    and `bash -n` clean.
+  - Disk re-verified byte-untouched after all of it.
+- **silver lining — the reveal degrades in the SAFE direction:** an
+  `unknown` health renders the row bare (`GPU 2  NVIDIA GeForce RTX 4050
+  Max-Q · nouveau`, no verdict clause), so the installer promises
+  nothing it cannot keep, while the target evaluated the re-probed
+  `working` facts and built the offload stack. Under-promised,
+  over-delivered — the reverse of the ASUS's skew.
+- **where:** `system/hardware-detect.nix` (the gpu2 health probe —
+  counter scoping + settle bound).
+- **size:** small.
+
+### 30. golem-hw-detect reaches outside its closure for `sed` — the awk bug, one field over — [APPLIED TO SOURCE · caught live on the Lenovo, round 3]
+- **what:** `cpu_model` trims with `sed`, but **`pkgs.gnused` was never in
+  `runtimeInputs`.** `writeShellApplication` appends `:$PATH` to the
+  closure PATH it builds, so the undeclared `sed` silently resolves from
+  whatever the caller happens to carry — and it works today **only**
+  because the `golem-audit` unit's `Environment=PATH` happens to include
+  `gnused-4.10/bin`.
+- **why it stayed invisible:** the call is wrapped in `|| true` and
+  guarded by `[ -n "$cpu_model" ] || cpu_model="unknown"` — so a missing
+  `sed` does not crash, it just reports **`cpuModel = "unknown"`** in
+  silence. That is the cores=4 failure shape exactly: a pipeline that
+  collapses to a plausible-looking fallback, in the one context that
+  feeds the census.
+- **caught how (Lenovo, round 3):** running the detect body under **only
+  the tool's own declared store paths** (`env -i PATH=<closure>`) →
+  `sed: command not found`, `cpuModel = "unknown"`. With `gnused` added:
+  full facts, zero stderr. The file's own header comment warns about
+  precisely this — "a tool must not reach outside its own closure for
+  something this basic" — and a second instance was sitting four lines
+  below it.
+- **fix (applied):** `pkgs.gnused` added to `runtimeInputs`, with the
+  reasoning recorded next to it.
+- **worth a sweep in round 4:** the same `env -i` closure test over
+  `golem-hw-evidence` and `golem-hw-decide`, which were not checked.
+- **where:** `system/hardware-detect.nix` `runtimeInputs`.
+- **size:** small (one line) — but it is the second instance of a class
+  the lab has now been bitten by twice.
+
+### R3-4. The scheduler row is vacuous on a machine with no rotational disk — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** reworded (not gated — storage.nix is deliberately fact-free)
+to state the whole policy: `bfq on hard disks, default on SSD/NVMe`
+(decide.nix fallback + dv_bfq in all 6 languages). Now informative on the
+NVMe-only Lenovo instead of describing half a rule.
+- **what (Lenovo, round 3):** the confirm screen reads `Scheduler  Bfq on
+  rotational disks` on an **NVMe-only** machine. True, and completely
+  uninformative — it describes a rule, not this disk. The first NVMe
+  target in the lab is the first machine where the row says nothing about
+  the hardware in front of the user.
+- **fix:** make the row target-aware — say what THIS disk gets (e.g.
+  `none (NVMe)` / `bfq (rotational)`), or drop the row when nothing
+  rotational is present.
+- **where:** the disk decision row (`mockup/install-cli` reveal /
+  `system/hardware/decide.nix`).
+- **size:** small.
+
+### R3-5. panelDpi / scale is decided but never revealed — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** the reveal now surfaces the `scale` row from decision.json
+(added to the jq select + a `dl_scale` label in 6 languages), shown only
+when it is not 1.0 (decide.nix writes "none (normal density)" there,
+which the reveal skips). The Lenovo's 1.60 now appears on the confirm
+screen; ordinary-density machines stay quiet.
+- **what (Lenovo, round 3 — first high-DPI panel on lab metal):** the
+  census decides `panelDpi = 239` → `scale 1.60` and shows it in
+  `summary.txt`, but **no panel or scale row appears on the confirm
+  screen**. On a high-DPI machine the scale is the single most visible
+  thing about the system after first boot, and it is the one decision the
+  reveal never mentions — a user who wants it different has no idea it
+  was chosen.
+- **fix:** add a panel/scale row to the reveal on machines where the
+  scale is not 1.0.
+- **where:** the reveal rows (`mockup/install-cli`) + `decide.nix` panel
+  section.
+- **size:** small.
+
+### 20b. …and the round-3 fix has a SECOND failure mode — [APPLIED to source · round-4 build 2026-09-08]
+**Applied:** `disk_load` takes the first NON-empty PKNAME
+(`grep -m1 .`), and when there is none (a USB isohybrid mounts the whole
+disk, no partition) uses the source node itself (`boot=${src##*/}`) —
+the engine target≠medium check's exact recipe. The stick is no longer
+offered in the drive list.
+- **what (ASUS, round 3 machine 1):** the #20 fix chases `/iso` — but a
+  USB isohybrid mounts from the WHOLE DISK (`findmnt` says `/dev/sdb`,
+  no partition), whose own PKNAME row is EMPTY, and `head -1` grabs that
+  empty line → `boot=""` → the stick is offered again. The VM gate
+  could not see it (its medium is sr0, name-filtered before the PKNAME
+  path runs). The engine's target≠medium check handles the same shape
+  correctly (falls back to the source device) and still backstops.
+- **fix:** take the first NON-empty PKNAME (`grep -m1 .`), and when
+  there is none and the source is a /dev node, use the node itself
+  (`boot=''${src##*/}`) — the engine check's exact recipe.
+- **where:** `mockup/install-cli` `disk_load`.
+- **size:** small. Frozen round-3 stick keeps the flaw; the engine
+  check guards the gap for the round.
+- **2nd on-metal instance (Lenovo, round 3 — first NVMe target):** the
+  list offered `USB 2.0 FD  14.4G` beneath the Samsung NVMe. The engine
+  backstop held on the new device shape:
+  `ok target: /dev/nvme0n1 is not the boot medium (/dev/sda)`.
+
+### 20. The drive list offered the boot stick itself — [applied to source · round 3]
+**2nd on-metal instance (ThinkPad, round-2 first contact):** "USB 2.0
+FD 14.4G" offered again on the frozen stick — as expected; the round-3
+build carries the /iso-based fix.
+- **what (Dell round 2 → understood during the round-3 close):** the disk
+  step's "never a target" filter chases the disk behind `/` — but on the
+  medium the live root is a TMPFS, so the filter resolved nothing and
+  excluded nothing: the Dell's list offered "USB 2.0 FD 14.4G", the very
+  stick it booted from, under a header that says everything on it will be
+  erased. (The round-2 dell.md called it "likely by design" — the comment
+  right above the code says the opposite.) The engine's target≠medium
+  check was the only thing standing between a stranger and eating the
+  installer mid-install.
+- **fix:** resolve the medium via `/iso` first (same source the engine's
+  own check reads), fall back to `/` for the dev-box case.
+- **where:** `mockup/install-cli` `disk_load`.
+
+### 19. Engine dies SILENTLY when the BIOS target disk has no by-id alias — [applied to source · round 3 · VM gate re-proves it]
+- **what (VM, round 2, 2026-09-07 — machine zero's first catch):** on the
+  BIOS branch the engine resolves the target disk to its stable name:
+  `disk_byid=$(for l in /dev/disk/by-id/*; do [[ "$(readlink -f "$l")" ==
+  "$disk" ]] && { echo "$l"; break; }; done)` (golem-install ~494, inside
+  the machine.nix heredoc block). When NO by-id entry resolves to the
+  disk, the loop's last status is the failed `[[ ]]` guard → the command
+  substitution returns 1 → **`set -o errexit` kills the engine at the
+  assignment** — one line BEFORE its own fallback (`[[ -n "$disk_byid" ]]
+  || disk_byid="$disk"`) can run. Death is mid-step-4, mid-file: no
+  check_fail, no eval.err, no status file, machine.nix truncated; the TUI
+  can only say "the installation stopped — the log is above" and the log
+  above says nothing. Minimal repro proven on the guest; also reproduced
+  end-to-end twice (Max's TUI run + a direct `golem-install --rehearse`).
+- **why the laptops never saw it:** every SATA disk has an `ata-…` by-id
+  entry, and UEFI machines skip the branch. The VM's virtio disk had no
+  serial → no by-id entry → first machine to walk the branch bare. Real
+  hardware can get here too (odd USB bridges expose no usable by-id).
+- **fix, two parts:**
+  a. **the line:** restructure to an errexit-safe `if` loop
+     (`for l in …; do if [[ … ]]; then disk_byid="$l"; break; fi; done`)
+     so the existing fallback finally gets to do its job. Also mind the
+     empty-glob case (`/dev/disk/by-id/*` unmatched → literal string —
+     same death).
+  b. **the class [approach OK'd (Max, 2026-09-07)]:** a silently dying
+     engine is the real bug — ANY future errexit death shows the same
+     blank "stopped". Add an ERR/EXIT trap that prints the failing line
+     to stderr and writes `status: error` + a trace file, so the TUI's
+     "the log is above" is never again pointing at nothing.
+- **rig note:** run-vm.sh now passes `serial=golemtarget` so the VM disk
+  has a by-id alias like real hardware — the frozen round-2 ISO works in
+  the VM again. Flip the serial off once in round 3 to verify fix (a).
+- **where:** `install.nix` (the golem-install disk_byid line, ~494 in the
+  built script; + the trap), `Installer/preinstall/run-vm.sh` (done).
+- **size:** (a) small; (b) small-medium, wants Max's nod on the shape.
+
+### 18. English leaks in a translated run — [applied to source · round 3 — a, b, c, d AND e]
+- **what (HP, round 2, Spanish run):** three strings render English on an
+  otherwise fully-Spanish surface, each for a different structural reason
+  (none is a missing translation — `S[es:drv_line]` is on the stick):
+  a. **driver count pre-rendered at boot:** `probe_start` backgrounds
+     `probe_compute > $DRV_FILE` at startup, and probe_compute renders
+     `t drv_line` right then — `UI` is still `en`. The confirm screen cats
+     the cache. **Fix:** cache the NUMBERS (`have total`), render the
+     translated sentence at display time in `driver_count`.
+  b. **engine emits label text, not a key:** `##golem 5/6 evaluating the
+     system` (install.nix:603) carries literal English through the
+     protocol; step_go prints it verbatim. **Fix:** emit a phase key (or
+     just the fraction) and let step_go map phase → `t` string.
+  c. **rehearsed outcome hardcoded:** `rehearsed — nothing was written,
+     no findings` / `… %s finding(s)` are raw printfs
+     (install-cli:3171/3173), not in the string table. **Fix:** move both
+     into `S[...]` + translate the 6 languages.
+- **also, same family:**
+  d. **R3-3's LUKS strings are English-only** (`luks_warn`, `luks_ack`,
+     `erased_enc`, `e_lcpass`, `t_lcpass` — key-diff vs en). The scare
+     screen is the one place translation is SAFETY, not polish: a Spanish
+     stranger must be scared in Spanish. Add es/fr/de/it/pt.
+  e. **[DECIDED (Max, 2026-09-07): keys at display time]** decision-row
+     VALUES (`Zram 150% of ram…`, `Lid Suspend-then-hibernate`) are
+     audit-time English from decide.nix. Fix like a–b: decide.nix emits
+     stable keys/structured values, the surface maps key → translated
+     string at render time. Joins a–d as concrete round-3 work.
+- **why:** round 2, HP — Max's photo of the Spanish console; reproduced
+  and traced over SSH same day (hp.md third follow-up).
+- **where:** `mockup/install-cli` (probe_compute/driver_count, step_go,
+  the rehearsed arm, string table), `install.nix:603`.
+- **size:** a–d small; e needs-Max.
+
+### 17. Muxless AMD hybrid — dGPU failing/spamming, census picks the wrong GPU — [DECIDED · b/c/wording applied to source, round 3 — **Lenovo (working path) VERIFIED ON METAL round 3**; HP (failing path) still round 4]
+**Round-3 close (2026-09-07):** all parts are now in source. b: census
+enumerates PCI display class (not drm — a driverless dGPU has no drm
+card), primary by `boot_vga`, second GPU emitted as `gpu2` +
+`gpu2BusAddr`. c: the wake test from the prototype runs in
+golem-hw-detect (forced runtime resume, kernel-log scan at the device's
+address, reproducing retry; verdicts working / failing / unspoken);
+`gpu2Health=working` + nvidia → PRIME offload via gpu-nvidia.nix;
+`failing` → new `gpu-second.nix` powers the chip off (vgaswitcheroo OFF
++ PCI remove, never the boot_vga card). Wording: `reveal_gpus` renders
+primary-first verdict rows with `gpu_short` names (all four approved
+renders reproduce byte-for-byte); strings in all 6 languages.
+- **what (HP Pavilion dm4, round 2):** the kernel spams
+  `radeon 0000:01:00.0: No VRAM object for PCIE GART` +
+  `evergreen startup failed on resume`, repeatedly, over the installer
+  console. Diagnosis: it's a MUXLESS hybrid — card0 i915 `enabled=1` drives
+  the display; card1 radeon `enabled=0`, runtime `suspended`;
+  vgaswitcheroo shows `IGD:+:Pwr` (Intel active) / `DIS: :DynOff` (AMD off).
+  Something keeps runtime-resuming the sleeping AMD Evergreen dGPU, the
+  resume fails, it re-suspends, repeat → console flood. **The display is
+  fine (Intel); the machine is not broken.**
+- **it corrects the reveal:** "AMD … · radeon" is bound but NOT functional
+  (dGPU off, can't resume). And the census `gpu = "amd"` is the wrong
+  PRIMARY here — the priority nvidia>amd>intel picks the discrete GPU, but
+  the ENABLED/display GPU is the Intel iGPU. On a muxless hybrid the
+  `enabled=1` card is the real primary.
+- **DECIDED (Max, 2026-09-07) — health-gated, not blanket:** "we can not
+  have Golem leaving all dedicated GPUs out." Three parts:
+  a. **[applied to source · mechanism verified live on HP · round 3]**
+     quiet the kernel console so the reveal isn't buried in radeon
+     errors. Two layers: `boot.consoleLogLevel = 3` on the medium
+     (iso.nix — covers boot-to-attract) and `dmesg -n 3` when install-cli
+     takes the screen (root on a real VT only, so terminal demos and SSH
+     drives stay hands-off; util-linux already in setup.nix inputs).
+     **A/B-proven on the HP over SSH (2026-09-07):** at the default
+     loglevel 4 a poked radeon error painted onto tty1 (read back via
+     `/dev/vcs1` — the photo's behavior, on demand); at loglevel 3 the
+     same poke logged to dmesg and nothing reached the screen. The
+     frozen stick is unchanged; the HP's loglevel was restored to 4
+     after the test so round-2 behavior stays frozen. Errors keep
+     dmesg + journal.
+     **Second on-metal instance (Dell, round 2, 2026-09-07):** the
+     Dell's dead ME paints `mei mei0: … timeout` / `disabling the
+     device` onto the attract screen (Max's photo) — different driver,
+     same class. Both lines are priority `err` (= level 3), which
+     `consoleLogLevel = 3` suppresses. The fix covers it as-is.
+     **Third instance (ASUS X550LC, round 2, 2026-09-07) — A/B-PROVEN
+     on metal:** nouveau MMIO PRIVRING faults from the GF117M dGPU over
+     the attract screen (Max's photo) — sporadic, at the dGPU's own
+     address, verified `kern :err` via dmesg -x. At loglevel 3 a forced
+     dGPU resume threw the same fault and tty1 stayed byte-identical;
+     loglevel restored to 4 after. Three drivers (mei, radeon, nouveau)
+     across three machines: the class is broad, the fix keeps holding.
+  b. **[DECIDED]** reveal + census: the PRIMARY GPU is the enabled one
+     driving the display (`/sys/class/drm/card*/device/enable` +
+     vgaswitcheroo) — here intel; the dGPU shows as a **second GPU row**,
+     never silently dropped (the sticker on the lid stays honest).
+  c. **[DECIDED]** per-dGPU HEALTH TEST during the boot audit: actively
+     wake the dGPU (runtime-PM resume) and watch its PCI address for
+     resume/startup errors. The medium carries full firmware (round-2
+     correction), so a failure is the chip, not the stick. **Passes →
+     configure it properly as a usable second GPU (render-offload). Fails
+     (like the HP's Evergreen) → power it OFF and keep it quiet** — no
+     spam, no wake-attempt battery drain. Safe test: worst case is one
+     more of the errors it already prints.
+  - **PROTOTYPED AND PROVEN BOTH WAYS (2026-09-07,
+    `fixtures/tools/gpu-health-probe`):** the same script ran on the HP
+    (radeon: wake → 2 kernel errors → **FAILING**) and on Max's dev
+    laptop, an Iris Xe + RTX 4050 hybrid (nvidia: wake from suspended →
+    functional, 0 errors → **HEALTHY**). Two design facts it surfaced,
+    binding on the real implementation:
+    1. **Primary pick = `boot_vga`, not `enable`** — a healthy offload
+       dGPU also reads enable=1 (dev box); only boot_vga singles out the
+       display GPU on both machines.
+    2. **`runtime_status` lies after a failed resume** — the HP reported
+       `suspended → active` even though the driver's startup failed. The
+       kernel-log error scan at the device's address is the load-bearing
+       check; a functional device-open (what nvidia-smi does) is an even
+       stronger healthy signal than a power-state poke.
+    3. **The retry is only real if the device RE-SUSPENDS between
+       pokes** (ASUS X550LC preview, 2026-09-07): back-to-back, poke 2
+       finds the chip still awake and reads 0 errors — so a
+       faults-on-cold-resume chip lands "unspoken", not "failing".
+       **FIXED (round 3, "all in" — Max):** the probe now waits up to
+       10 s (bounded) for `runtime_status = suspended` before the
+       retry, so a retry is a real cold resume. A chip that stays
+       awake past the bound keeps the single-flake silence. Expected
+       effect on the ASUS: if its cold resume faults reproducibly, the
+       verdict moves from unspoken to FAILING → dGPU powered off —
+       round 3 on that metal decides.
+  - **Lab coverage:** FAIL path proven on the HP; HEALTHY path proven on
+    the dev box (NVIDIA, prototype only — not a lab machine). Max is
+    bringing an AMD-dGPU laptop for the lab (2026-09-07), which would
+    prove the healthy path on lab metal and on the amdgpu/radeon side.
+  - **SURFACE WORDING (DECIDED, Max, 2026-09-07) — observation + what it
+    means for the user; never a hardware judgment, never a prohibition:**
+    - **FINAL (Max, 2026-09-07) — asymmetric on purpose:** good news
+      gets the promise clause, bad news gets brevity.
+      - working dGPU: **`tested, working · apps can use it on demand`**
+        — "tested" next to a GPU is the moment no other installer gives
+        a Linux user; and it promises USE, not just detection.
+      - dead dGPU: **`tested, didn't wake up`** — terse; the consequence
+        is self-evident. Shows NO driver name (nothing drives a sleeping
+        chip; `· radeon` next to "didn't wake up" would contradict it).
+      - the PRIMARY GPU row carries a verdict too: **`tested, working ·
+        driving this screen`** (approved) — the strongest proof there
+        is; you're reading its output. Approved reference render, both
+        machines:
+        ```
+        ·  GPU     Intel Iris Xe Graphics · i915 — tested, working · driving this screen
+        ·  GPU 2   NVIDIA GeForce RTX 4050 Max-Q · nvidia — tested, working · apps can use it on demand
+
+        ·  GPU     Intel Core Processor Graphics · i915 — tested, working · driving this screen
+        ·  GPU 2   AMD/ATI Radeon HD 6370M — tested, didn't wake up
+        ```
+      - **implementation note:** GPU rows use a SHORTENED name (the full
+        lspci string — "Intel Corporation Core Processor Integrated
+        Graphics Controller" — is 55 chars before the verdict starts and
+        pushes it off an 80-col console). Strip "Corporation"/bracket
+        noise so the verdict always fits the line. **2nd evidence
+        (ThinkPad, round 2): the Renoir string wraps even a 120-col
+        tmux pane** — `· amdgpu` landed on the next line with no verdict
+        involved at all; gpu_short renders it "AMD/ATI Renoir".
+      - vetoed on the way, with reasons (do not re-litigate in round 4):
+        "unhealthy" (silicon diagnosis we can't perfect — BIOS
+        modes/driver bugs mimic dead chips); "Golem keeps it off" (OS
+        confiscating hardware); "keeps Golem stable" (names instability
+        → plants it); "unsupported" (a claim about GOLEM, not the chip —
+        feeds the exact Linux-GPU trauma we're flipping, and is
+        contestable since radeon does support the chip).
+    - unclear (ambiguous evidence, single flake, odd states): **say
+      nothing** — no annotation, conservative config, raw evidence into
+      the audit bundle. Silence is reserved for the gray zone only.
+    - **verdict discipline:** three-way (working / didn't-wake /
+      unclear); didn't-wake requires a strict known-fatal error signature
+      at the device's own PCI address AND a reproducing retry — the HP
+      showed the polite signals lie (`runtime_status` read active after
+      a failed resume), so only the error log convicts. Both surface
+      strings go through the string table in all 6 languages (#18
+      discipline).
+- **where:** `system/hardware-detect.nix` (hybrid-aware gpu pick),
+  `system/hardware/` (dGPU power-off), `iso.nix`/audit (console loglevel).
+
+### 16. Very-low-RAM machines can't run the local install eval — [DECIDED · applied to source, round 3 — Comodore verifies on metal]
+**DECIDED:** option (b)'s refusal half, now: a RAM preflight before the
+eval — "this machine has N MB; installing Golem needs about **4 GB** of
+RAM" (figure per Max, 2026-09-07) — instead of thrashing into an
+unresponsive box.
+- **Message vs cutoff:** the message speaks sticker-language (4 GB); the
+  CHECK refuses below ~3300 MB, because a sticker-4 GB machine never
+  reports 4096 to the kernel — the lab's 4 GB-class boxes read 3718–3833
+  MB and ALL passed their evals (31–171 s). 3300 sits above the Comodore's
+  1931 / any sticker-2-or-3 GB box, below the lowest proven pass (3718).
+- **Placement (Max, 2026-09-07 — keep low-RAM machines testable):** a
+  REHEARSAL check in the checks.txt family (like round 1's UEFI check),
+  NOT a lockout at golem-setup launch. All six screens still walk; the
+  rehearsal reports `FAIL ram: …` as a finding and **skips the eval** —
+  the thrash never starts, the machine stays responsive, everything else
+  still gets exercised. Only a REAL install refuses outright. So the
+  Comodore remains a full lab participant, and its round-3 rehearsal
+  becomes the test of the refusal itself.
+- The prebuilt-closure path (option a) stays a ROUND-4 decision; the
+  preflight doesn't foreclose it, it makes low RAM fail honestly today.
+- **what:** on ~2 GB the boot census runs (barely) but `golem-install`
+  itself makes the machine unresponsive — not only the target eval, even
+  the early `nix eval` (swap rule) + seed copy thrash it into a swap spiral
+  (Comodore 1931 MB, round 2; Dell at 1.8 GB in round 1 same). A LOCAL
+  eval/build install is not viable below ~2–3 GB.
+- **why:** reinforces the closure-delivery open question (PLAN.md's biggest
+  item). Options: (a) deliver a PREBUILT closure and skip local evaluation
+  entirely on such machines; (b) have the installer detect very-low-RAM up
+  front and either refuse with a clear message or switch to a
+  no-local-eval path, rather than thrash into an unresponsive box; (c)
+  accept ~2 GB as below the supported floor and say so.
+- **where:** install strategy (closure delivery) + a RAM preflight in
+  `install.nix` / the surface.
+- **size:** NEEDS-MAX — ties into the closure-delivery decision (round 4).
+
+### R3-1. Touchpad reveal row had no driver — [applied to source · verified on Acer · round 3]
+- **what:** every reveal row reads "name · driver" except the touchpad,
+  which showed only the name (Max, round 2). `hw_input` returned just the
+  /proc Name; now it also reads the block's `S: Sysfs=` path and walks UP
+  it to the bound kernel driver. Acer touchpad now reads
+  `SYN1B81:01 06CB:2970 Touchpad · hid-multitouch`.
+- **also fixed a bug in the doing:** the parse used `exit` on match, and
+  awk's exit runs END with the vars still set — the SAME double-print trap
+  hw_pci hit in round 1 — which corrupted `$sysfs` and hid the driver.
+  Now a `found` flag, no exit.
+- **where:** `mockup/install-cli` `hw_input`.
+
+### R3-3. Encryption was too easy to enable by accident — [applied to source · verified live on Acer · round 3]
+Max drove the LUKS flow (round 2) and it let a stranger walk into
+irreversible data loss too easily. Made it deliberately hard, all verified
+live on the Acer (`mockup/install-cli`):
+- **passphrase typed twice** (`step_luks`): confirm field + mismatch retry.
+  The one secret with no recovery gets the same gate as the account
+  password, even though it's shown in the clear.
+- **a full-screen red warning** after confirmation — "asked EVERY time …
+  no recovery … lost forever" — that must be acknowledged; ESC turns
+  encryption off (`luks_warn` / `luks_ack` strings).
+- **state reads `LOCKED`** (was "on"), in the danger colour, on the
+  Advanced row and the summary item (translated: BLOQUEADO / VERROUILLÉ /
+  GESPERRT / BLOCCATO).
+- **default selection returns to Back** after enabling (`seed_row=3`), so
+  the person sees "— LOCKED" and one ENTER returns to the drive list.
+- **disk summary reads "(Will be erased and encrypted)"** when on
+  (`erased_enc` string).
+- **why:** Max — "we don't want people to use encryption if they don't
+  know what that is … they can lose data. so scare them." LOCKED (not
+  "on") tells the truth without lying about what it costs.
+
+### R3-2. zram row shows a confusing percentage — [applied to source · verified · round 3]
+- **what:** the zram row read "150% of ram". Interpolating the real RAM
+  ("150% of 3833 MB") made it WORSE, not better: the % is RAM-tiered and
+  EXCEEDS 100% on small machines (1 GB → 150% → a 1.5 GiB device, which
+  looks impossible until you know zram is compressed), and even "50% of
+  8 GB" is misread as "am I losing half my RAM / do they only see half?".
+  **Decision (Max, round 2): show no number — just `active`.** A number a
+  stranger will misread is worse than no number.
+- **now reads:** `zram   active, zstd, priority 100` on every machine.
+- **where:** `system/hardware/decide.nix` (the ram section's zram row).
+
+
+### 1. Hardware reveal shows only the last PCI device — [applied to source · verified live on Acer + MacBook]
+- **what:** rewrite `hw_pci` so it captures the FIRST device matching the
+  class and strips the "busid class:" prefix. `lspci -k` has no blank lines
+  between devices, so the current awk (which prints a device only at a
+  blank line, else at `END`) keeps just the last PCI device — Wi-Fi — and
+  drops GPU/audio. It also mis-strips the name (bus id has a colon), so
+  Wi-Fi rendered as "03:00.0 Network controller: …".
+- **why:** round 1, Acer — Max: "why there is not GPU, audio, etc.. only
+  WIFI, and touchpad." The reveal is meant to name GPU/Wi-Fi/audio/etc.
+- **where:** `mockup/install-cli` `hw_pci()` (~line 2739).
+- **verified fix** (against the Acer's real `lspci -k` — GPU/Wi-Fi/audio
+  all render clean, exactly one line each):
+  ```awk
+  hw_pci() {
+    printf '%s' "$1" | awk -v want="$2" '
+      /^[0-9a-f]+:[0-9a-f]+/ {
+        if (matched) exit                      # first match fully captured
+        if ($0 ~ want) { matched=1; line=$0
+          sub(/ \(rev [0-9a-f]+\)$/,"",line)
+          i=index(line,": "); out=substr(line,i+2) }
+        next
+      }
+      matched && /Kernel driver in use:/ { out = out " \xc2\xb7 " $NF }
+      END { if (matched) print out }'
+  }
+  ```
+- **size:** small.
+
+### 2. Bluetooth row misses combo cards the census detects — [applied to source · verified live on Acer + MacBook]
+- **what:** the reveal's `hw_usb 'Bluetooth'` greps lsusb for the literal
+  word "Bluetooth"; the Acer's QCA9377 BT doesn't say it, so no row — even
+  though the census reports `hasBluetooth = true` (triangulated: sysfs
+  class ∨ rfkill ∨ USB class e0). Align the reveal with the census: show a
+  Bluetooth row when the probe says the radio is present (read
+  decision.json / the same triangulation), rather than a lone lsusb grep.
+- **why:** round 1, Acer — bluetooth present but absent from the reveal.
+- **where:** `mockup/install-cli` `hw_usb`/`hardware_reveal` (~2732, 2748).
+- **size:** small–medium (decide the source of truth: reuse the probe's
+  bluetooth verdict).
+
+### 3. golem-setup reaches outside its closure for lspci/lsusb — [applied to source · verified live on Acer + MacBook]
+- **what:** add `pciutils` and `usbutils` to setup.nix `runtimeInputs`. The
+  reveal + `driver_count` call `lspci`/`lsusb`, which are NOT declared;
+  they resolve only from the medium's system PATH. Same class as the gawk
+  bug (a tool that reaches outside its closure works until a stripped PATH).
+- **why:** round 1, Acer — noticed while tracing finding 1; works today
+  only by the installation-cd profile leaking the tools in.
+- **where:** `setup.nix` runtimeInputs / makeWrapper `--prefix PATH`.
+- **size:** small.
+
+### 4. Progress bar stops at 83% on a rehearsal — [applied to source · verified live on Acer + MacBook]
+- **what:** when step_go sees `##golem rehearsed`, fill the bar to 100%
+  with a "rehearsed" label before printing the outcome. Rehearse emits up
+  to `5/6` (83%) then `rehearsed` (never `6/6`, which is the reboot
+  trigger), so the bar currently sits at 83% and reads as stuck.
+- **why:** round 1, Acer — Max: "stop at 83% … the bar has stuck at 83%."
+- **where:** `mockup/install-cli` step_go, the `'##golem rehearsed'*)` arm
+  (~line 2958) — call `paint_bar "$max" "$max" "<rehearsed label>"`.
+- **size:** small.
+
+### 6. Medium's console keymap is implicit (English by accident) — [applied to source · round 3]
+- **what:** pin `console.keyMap = lib.mkDefault "us"` on the MiniGolem ISO
+  (iso.nix). Today the fresh-boot tty is English only because it's the
+  kernel default — `systemd-vconsole-setup` logs "Configuration of first
+  virtual console was skipped", so `KEYMAP=us` from vconsole.conf is never
+  actively applied. Pinning makes English-on-fresh-boot a guarantee, not an
+  accident. Also investigate WHY vconsole-setup skips, so the pin takes.
+- **why:** round 1, MacBook+Acer — chasing a reported "Spanish tty on fresh
+  boot". PROVEN NOT an ISO bug: the fresh default is us (keycode 39 =
+  semicolon on a freshly booted machine); the Spanish was `loadkeys es`
+  residue from golem-setup runs that picked Español (Madrid timezone → ES →
+  Spanish). `loadkeys es` globally → keycode 39 = ñ; `loadkeys us` restores.
+  This item is hardening, not a fix for a live bug.
+- **where:** `iso.nix` — add `console.keyMap`. Possibly `console.earlySetup`.
+- **size:** small.
+
+### 7. golem-setup leaves the global console keymap changed — [DECIDED · applied to source, round 3]
+**Applied:** `kb_apply` dumps the arriving keymap before its first
+`loadkeys` (a full `dumpkeys` — the running map has no queryable name);
+`kb_restore` reloads it when the keyboard step is ESCaped or the surface
+exits without launching an install (EXIT trap + `INSTALL_LAUNCHED`).
+**DECIDED:** save the prior keymap when the step applies one; restore it
+when the user ESCs back out of the keyboard step or quits before
+installing. A completed install keeps the chosen map (the machine
+reboots into it). Round 3.
+- **what:** the keyboard step runs `loadkeys "$KB_CONSOLE"` globally
+  (install-cli:2050) so the live echo box reflects the chosen map — correct
+  DURING setup, but it persists to the bare tty after exit/back-out. Decide
+  whether to restore the prior keymap when the user backs out of the step
+  or quits before installing.
+- **why:** round 1 — this is what made the medium look "stuck in Spanish"
+  after test runs. Harmless for a real one-shot install (the machine
+  reboots into the chosen keymap), so low priority.
+- **where:** `mockup/install-cli` around the apply seam (~2025-2050) and
+  step exit paths.
+- **size:** needs-Max — is persisting the applied keymap desired or not?
+
+### 10. The driver count counted chipset bridges — [DONE · verified live on HP · round 3]
+**Fixed (round-2 build):** `probe_compute` now excludes PCI bridge-class
+devices (0x06xx — host/PCI/ISA bridges, QPI registers) that never bind a
+driver. HP went from a misleading "23 of 31 (74%)" to an honest **"19 of
+19 (100%)"** — every real peripheral driven. (The medium already carries
+all firmware; see the round-2 correction below for that story.)
+
+
+**CORRECTION (round-2 build, 2026-09-07).** Inspecting the round-2 squashfs
+showed the medium ALREADY carried `linux-firmware` all along (the
+installation-cd profile pulls it via all-hardware.nix) — 10,931 firmware
+files, incl. brcmfmac blobs. So the round-1 story "the minimal medium ships
+almost no firmware" was WRONG. `enableAllFirmware` in iso.nix now adds the
+UNFREE firmware on top (broadcom-bt for the MacBook's BT, facetimehd, etc.,
++4.5 MB) — a real but small gain, not the hundreds of MB I expected.
+
+Consequences to re-examine:
+- The HP's "74% (23/31)" is therefore NOT simply missing firmware. The 8
+  driverless devices were never enumerated (the HP dropped offline). Needs a
+  real look in round 2 — some may be genuinely unhandled on the medium, some
+  firmware-gated-but-now-present. The metric's "will be installed" wording is
+  still misleading and #10c (fix the wording) still stands.
+- The MacBook BCM4360 has NO brcmfmac firmware upstream (Broadcom never
+  released it) — which is exactly why it needs `wl`. So firmware-on-medium
+  does NOT light up the MacBook wifi; only `wl` does. That lives on the
+  INSTALLED target (finding #5, broadcom-wifi.nix) — and since the install
+  is OFFLINE, the medium never needs MacBook wifi. Optional future polish:
+  add `wl` to the medium for a live-session-with-wifi UX.
+
+**CONCRETE FIX (HP enumerated, round 2):** the HP's "23/31 (74%)" is
+chipset glue, not missing support — its 8 driverless PCI devices are ALL
+host bridges / PCI bridges / QPI registers (class 0x06xx), which no OS ever
+binds a driver to. Fix `probe_compute` (mockup/install-cli) to EXCLUDE PCI
+bridge-class devices (0x0600–0x06ff) from both numerator and denominator,
+so the count reflects real peripherals. Then the HP reads ~100%. This is
+the honest fix, better than rewording — round 3.
+
+Original (round-1) framing below, kept for the record:
+
+- **what:** `probe_compute` counts devices with a kernel driver bound ON
+  THE RUNNING MEDIUM (`lspci -k | grep -c 'Kernel driver in use'` +
+  USB with /driver), and the label says "%h of %t drivers **will be
+  installed**". But the medium is minimal and ships almost no firmware, so
+  firmware-gated devices (the AMD Radeon, some controllers, Broadcom wifi)
+  show driverless — undercounting what the INSTALLED Golem delivers. The
+  installed system sets `hardware.enableAllFirmware = true`
+  (configuration.nix:414) and drives them. HP read "23 of 31 (74%)" and
+  looked poorly supported when it is not.
+- **twin problem, same root cause:** the MacBook's internal Broadcom wifi
+  was dark on the medium for the same reason (finding #5) — no firmware on
+  the minimal medium.
+- **fix options (Max's call):**
+  a. **Carry all-hardware firmware on MiniGolem** (like the full live ISO
+     does) → the count is honest AND internal wifi works during install (no
+     USB dongle). Cost: a bigger image. This also softens #5.
+  b. Make the count reflect the INSTALLED target's driver coverage, not the
+     medium's loaded set (harder to measure honestly from the medium).
+  c. At minimum, stop the label promising "will be installed" about a
+     present-tense medium measurement.
+- **where:** `Installer/preinstall/iso.nix` (firmware on the medium) and/or
+  `mockup/install-cli` `probe_compute`/`drv_line`.
+- **size:** NEEDS-MAX — image-size vs honesty tradeoff.
+
+### 13. The rotating welcome shows boxes for non-Latin scripts on the console — [DONE · console-visual CONFIRMED on the VM, 2026-09-07]
+**CONFIRMED on a rendered console** (VM, qemu screendumps of tty1, 8
+frames across the full rotation): exactly the 7 ASCII welcomes rotate —
+es / romanized-hi / pt / fr / id / it / en, then the cycle wraps — every
+frame crisp, no boxes, no garbling. The French line uses ASCII "ENTER"
+(not "ENTRÉE"), so it survives the byte test legitimately. The last
+pending check on this item; it is closed.
+Max chose **option A**. Applied to source: on the console (ASCII=yes) the
+invitation keeps only the PURE-ASCII welcomes (tested by bytes, not a
+per-language flag), so the 7 that render rotate (en/es/fr/pt/it/id + the
+romanized hi) and CJK/Arabic/Cyrillic/accented lines are dropped;
+off-console the full native set still rotates. Verified via `--dump invite`
+(console = ASCII-only, endonym = native scripts present). Still wants a
+LOOK at the physical console to confirm no boxes — can't be seen over SSH.
+**Also (Max): rotation beat 5s → 4s** (`SECONDS_PER`), so `./mockup/install-cli
+--fake-disks` shows the faster beat.
+
+### 14. Touchpad reveal missed vendor-named pads (ALPS GlidePoint) — [applied · verified live on Comodore + Dell]
+- **what:** `hw_input`'s pattern was `ouchpad|rackpad`; the Comodore's pad
+  is `AlpsPS/2 ALPS GlidePoint` — no "touchpad"/"trackpad" in the name, so
+  no row. Broadened to `[Tt]ouch[Pp]ad|[Tt]rackpad|GlidePoint|Synaptics|
+  ALPS|Elan|Cypress`. A capability probe (input device with ABS axes +
+  BTN_TOOL_FINGER) would be fully robust — noted, not done.
+- **verified:** the Comodore reveal now shows `Touchpad AlpsPS/2 ALPS
+  GlidePoint`. **Round 2, Dell:** same row appears there too — and it
+  CORRECTS the round-1 Dell record, which read "touchpad didn't
+  enumerate (keyboard fault)". It enumerated fine; the old pattern
+  couldn't see a vendor-named ALPS pad. Two of five lab machines carry
+  one — this was never an edge case.
+- **where:** `mockup/install-cli` `hardware_reveal` touchpad row.
+
+### 15. Reveal showed no networking on a wired-only machine — [applied · verified live on Comodore]
+- **what:** `hardware_reveal` only queried the Wi-Fi PCI class (`Network
+  controller`), so a machine with only wired Ethernet (Comodore: Marvell
+  88E8055) showed no network at all. Added an Ethernet row (`hw_pci
+  'Ethernet controller'`). Machines with both now show Wi-Fi AND Ethernet.
+- **verified:** the Comodore reveal now shows `Ethernet Marvell … 88E8055 ·
+  sky2`.
+- **where:** `mockup/install-cli` `hardware_reveal` (+ the fake block).
+
+### 12. intelLegacy misclassifies ancient GMA GPUs (0x2xxx) as iHD-capable — [DONE — shipped in the round-2 build]
+**Verified during the round-3 close:** the source already carries the
+two-range test (`< 0x1600` OR `0x2500–0x2e99`) with the Comodore's GMA
+4500 (0x2a42) called out — it went in with the round-2 build (commit
+"GMA fix"). Nothing left to do; kept for the record.
+- **what:** the probe decides `intelLegacy` with `device-id < 0x1600 →
+  legacy (i965)`, else iHD. That holds from Ironlake through Skylake, but
+  the pre-Ironlake GMA parts have numerically HIGH ids (GM45 GMA 4500 =
+  0x2a42) despite being the OLDEST — so they fall above the threshold and
+  are wrongly marked iHD-capable. iHD supports Broadwell+ only; a Gen4 GMA
+  gets NO hardware video decode from iHD (needs i965, or accept none).
+  Fix: extend the legacy condition to cover the old GMA ranges (roughly
+  0x2500–0x2fff, the Gen4/GMA 4500 family), or replace the single threshold
+  with a generation lookup. Display is unaffected (kernel i915 handles
+  GMA 4500), so this is decode-quality, not a black-screen risk.
+- **why:** round 1, Comodore — `8086:2a42` GMA 4500 read as `intelLegacy =
+  false → iHD`.
+- **where:** `system/hardware-detect.nix` — the `intel_legacy` test
+  (~line 92, `(( dev < 0x1600 ))`).
+- **size:** medium — needs the right GMA id ranges; keep a fixture (the
+  Comodore's facts) so CI covers it.
+
+### 11. `video decode: none` reported for AMD/nvidia — [applied to source · round 3]
+**Live on metal (ThinkPad, round 2):** the lab's first AMD machine shows
+exactly this — `gpu = amd`, `video decode: none` on the frozen stick.
+The round-3 stick will read "vaapi, mesa radeonsi" on the same machine —
+a clean before/after for the record.
+- **what:** decide.nix's GPU "video decode" row only knows the Intel VA-API
+  driver names (i965/iHD) and prints "none" for AMD/nvidia — even though
+  `gpu="amd"` enables the AMD VA-API (hardware.nix:62). A reporting gap, not
+  a missing feature. Surface the AMD/nvidia VA-API in the census instead of
+  "none".
+- **why:** round 1, HP — `gpu="amd"` showed `video decode: none`,
+  reinforcing the "AMD unsupported" misimpression.
+- **where:** `system/hardware/decide.nix` (the gpu section's video-decode row).
+- **size:** small.
+
+### 9. Reveal GPU row shows the iGPU, not the decided dGPU (hybrid machines) — [DONE · verified live on HP · round 3]
+**Fixed (round-2 build):** `hw_pci_all` enumerates EVERY display controller,
+so a hybrid shows both. HP now lists `Intel … · i915` AND `AMD/ATI Robson
+CE [Radeon HD 6370M/7370M] · radeon` — matching the big red AMD sticker on
+the lid, which was Max's whole point (round 2: "our installer showing only
+an intel GPU"). Original diagnosis below.
+
+- **what:** on a switchable-graphics laptop, `hw_pci 'VGA|3D|Display'`
+  returns the FIRST VGA controller — the Intel iGPU — so the reveal says
+  "GPU: Intel · i915" while the census DECISION is about the discrete GPU
+  (AMD/nvidia) and installs its driver. The screen and the decision
+  disagree. Fix: for the GPU row, enumerate ALL display controllers (show
+  both on a hybrid), or prefer the discrete one to match the census
+  priority (nvidia > amd > intel). Showing both is the honest option — a
+  hybrid laptop has two.
+- **why:** round 1, HP Pavilion dm4 — `gpu = "amd"` (Radeon HD 6370M) but
+  reveal named the Intel iGPU.
+- **where:** `mockup/install-cli` `hardware_reveal`/`hw_pci` (GPU row).
+- **size:** small–medium (hw_pci returns one device by contract; showing
+  all GPUs means iterating matches for that row).
+
+### 8. BIOS/legacy-only machines can't boot the installed target — [DECIDED: support BIOS]
+- **what:** the target installs systemd-boot, which is UEFI-only. A machine
+  that can only boot BIOS/legacy (or is set to legacy) takes the install and
+  then can't boot it. The rehearsal's UEFI preflight already REFUSES this
+  cleanly (good) — the open question is whether Golem should SUPPORT such
+  machines (a GRUB-BIOS bootloader path on the target, chosen by a firmware
+  fact) or stay UEFI-only and rely on the refusal + telling the user to
+  enable UEFI in their firmware.
+- **why:** round 1 — Dell E6420, HP Pavilion dm4, AND the Comodore all
+  booted BIOS: **3 of the 5 lab machines**. Legacy boot is the MAJORITY
+  among old laptops, not an edge case. Some can likely do UEFI via a
+  firmware setting (so part of the answer may be "tell the user"), but 3/5
+  means Golem needs a real position on BIOS boot, not just a refusal.
+- **where:** target bootloader (`system/configuration.nix` boot.loader) +
+  possibly a firmware fact in the census; the refusal already lives in
+  `install.nix` preflight.
+- **size:** NEEDS-MAX — support-scope decision (UEFI-only vs BIOS fallback).
+
+### 5. Broadcom Macs lose Wi-Fi after install — [DELIVERED round-2 build · rehearsal-proven on MacBook · live proof = round 4]
+
+**Round-2 proof (MacBook, 2026-09-07):** census `broadcomWifi = true` →
+target golem-hardware.nix → broadcom-wifi.nix (broadcom_sta +
+kernelModules wl + scoped allowInsecurePredicate) → **broadcom-wl
+sources in the toplevel drv's closure**. Also closed on metal: brcmfmac
++ firmware does NOT light the BCM4360 on the medium (no interface,
+brcmfmac not loaded — bcma holds the card) — wl is the only path.
+**Small round-3 edit queued:** broadcom-wifi.nix's comment claims
+brcmfmac is "the clean default for most parts, incl. the BCM4360" —
+wrong for the 4360 (no upstream firmware; proven dark on the medium);
+fix the comment so the next reader isn't misled. Live wifi-up proof
+lands at round 4's first real install.
+- **what:** the installed Golem on a Broadcom-wifi Mac comes up with no
+  working internal wifi. The BCM4360 needs the UNFREE `broadcom-sta` (`wl`)
+  kernel module; `nixos-generate-config` never emits it, the census has no
+  wifi-chipset fact, and nothing tells the target to enable it. On the
+  medium the card binds `bcma-pci-bridge` (a bus bridge, not functional
+  wifi) — the reveal names it but it does not work, hence the lab's USB
+  dongle. This is the MacBook's whole reason to be in the lab.
+- **why:** round 1, MacBook — installed target's hardware-config carries no
+  Broadcom module; census has no wifi fact.
+- **where:** census (`system/hardware-detect.nix` — a wifi/broadcom fact)
+  + target (`system/hardware/` — enable `boot.extraModulePackages` /
+  `broadcom_sta` on that fact). PLAN.md already notes
+  `system/hardware-runtime.nix` carries the `wl` quirk for the LIVE
+  session; the open question is the INSTALLED system.
+- **size:** NEEDS-MAX — turns on an **unfree** driver (broadcom-sta), which
+  is a distro policy call (allowUnfree, and whether to auto-enable on
+  detection or ask). Also: which Broadcom chips get it. Not a mechanical
+  fix; Max decides scope before it's built.
+
+<!--
+Entry template:
+
+### <short title>
+- **what:** …
+- **why:** … (round N, surfaced on <laptop(s)>)
+- **where:** `path/to/file.nix:line` (if known)
+- **size:** small | medium | needs-Max
+-->
+
+## Applied
+
+- **Round 0 → Round 1 (2026-09-06, pre-constitution):** sysfs cores fix
+  (`system/hardware-detect.nix` — dropped the awk dependency the boot
+  audit's clean PATH stripped) and the hostname ghost-placeholder fix
+  (`mockup/install-cli` — typing no longer appends to the "Golem"
+  default). Both surfaced by the Acer's first rehearsal and baked into the
+  round-1 ISO before the queue discipline began.
+- **Round 5, wording (2026-09-08, Max: "i dont like the 'ENTER takes it',
+  something more professional?"):** the English picker footer
+  (`S[en:pick_keys]`) now reads `ENTER selects` — not just a tone fix,
+  it closes an i18n inconsistency: every other language already said
+  "selects/chooses" (`elige`/`wählt`/`choisit`/`sceglie`/`escolhe`) while
+  English alone used the idiom "takes it". Ships in the round-6 build;
+  the round-5 stick stays frozen (its own record still quotes the old
+  wording verbatim, as history).
