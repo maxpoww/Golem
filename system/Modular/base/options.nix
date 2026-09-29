@@ -80,6 +80,18 @@
   # the CHOOSER already consumed them to write modules.nix; they stay
   # set so the reveal, postinstall questions and any census re-derive
   # can compare against what was measured at install).
+  # How much the desktop's compositing effects may cost. "light" is set by a
+  # weak-GPU leaf (gpu/intel-legacy): the home layer then turns Hyprland's
+  # blur off. Measured on the 2013 MacBook Air (HD 5000), 2026-09-29: during
+  # YouTube playback the 3D engine sat at 98% busy and the video stuttered;
+  # blur off freed 13-17 points. Shadows, dimming and rounding cost nothing
+  # measurable, so they stay. Every other machine keeps "full".
+  options.golem.desktop.effects = lib.mkOption {
+    type = lib.types.enum [ "full" "light" ];
+    default = "full";
+    description = "Desktop effect budget: full, or light for weak GPUs (no compositor blur).";
+  };
+
   options.golem.hardware = {
     ramMB = lib.mkOption { type = lib.types.int; default = 0; };
     cpuModel = lib.mkOption { type = lib.types.str; default = "unknown"; };

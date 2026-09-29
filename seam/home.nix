@@ -157,9 +157,10 @@ in
     // other assistive tech is ever needed.
     user_pref("accessibility.force_disabled", 1);
 
-    // 31GB machine: memory cache 1GB (units are KB; auto caps far
-    // lower), disk cache fixed 1GB on the NVMe instead of smart sizing.
-    user_pref("browser.cache.memory.capacity", 1048576);
+    // Disk cache fixed 1GB instead of smart sizing. The MEMORY cache is
+    // sized per machine from its RAM by golem-chrome.js (PER-MACHINE
+    // MEMORY): 1 GB was right for the 31 GB dev box and wrong on a 4 GB
+    // MacBook (2026-09-29).
     user_pref("browser.cache.disk.smart_size.enabled", false);
     user_pref("browser.cache.disk.capacity", 1048576);
 
@@ -168,9 +169,8 @@ in
     // write jank. Cost: a hard crash loses up to 60s of tab state.
     user_pref("browser.sessionstore.interval", 60000);
 
-    // Back/forward cache: keep 12 pages alive (auto ~8) — instant
-    // back-button on this much RAM.
-    user_pref("browser.sessionhistory.max_total_viewers", 12);
+    // Back/forward cache size (12 live pages on the dev box): per machine,
+    // from its RAM, in golem-chrome.js (PER-MACHINE MEMORY).
 
     // BACK IS INSTANT (Max, 2026-09-26: "going back should be instant").
     // Firefox drops any page with an "unload" handler from that cache —

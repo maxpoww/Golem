@@ -1288,6 +1288,35 @@ try {
   try{ frApply(); }catch(e){}   // at autoconfig time: before the first window
 
   // =================================================================
+  // PER-MACHINE MEMORY (2026-09-29; Max, on the MacBook Air: "i know the macbook is a
+  // 4gb, but the playing on youtube is choppy"). home.nix pinned the in-memory cache to
+  // 1 GB and the back/forward cache to 12 live pages "on this much RAM" (Max's 31 GB
+  // box) on EVERY Golem machine: on a 4 GB machine that is a third of the RAM spent on
+  // caches while a video plays, and the MacBook swapped through playback. Now sized from
+  // MemTotal. The big box keeps exactly its tuning; a mid machine gets a quarter of the
+  // cache; a small one gets Firefox's own RAM-scaled defaults (both prefs cleared, which
+  // also drops the 1 GB value an older home.nix left in prefs.js). Both prefs are live.
+  // Recorded in golem-media.json (memory).
+  // =================================================================
+  var MM_CACHE="browser.cache.memory.capacity", MM_VIEWERS="browser.sessionhistory.max_total_viewers", mmState=null;
+  function mmDecide(totalKB){
+    var gb=totalKB/1048576;
+    if(gb>=24) return {tier:"large", cacheKB:1048576, viewers:12};
+    if(gb>=12) return {tier:"medium", cacheKB:262144, viewers:8};
+    return {tier:"small", cacheKB:null, viewers:null};   // null = Firefox's RAM-scaled auto
+  }
+  function mmApply(){
+    var m=/MemTotal:\s+(\d+)/.exec(csRead("/proc/meminfo")||""); if(!m) return;
+    var d=mmDecide(+m[1]); d.memTotalMB=Math.round(+m[1]/1024); mmState=d;
+    try{
+      if(d.cacheKB===null){ Services.prefs.clearUserPref(MM_CACHE); Services.prefs.clearUserPref(MM_VIEWERS); }
+      else { Services.prefs.setIntPref(MM_CACHE,d.cacheKB); Services.prefs.setIntPref(MM_VIEWERS,d.viewers); }
+    }catch(e){}
+    OVLOG("memory: "+d.memTotalMB+" MB -> "+d.tier);
+  }
+  try{ mmApply(); }catch(e){}   // at autoconfig time, like the display rate
+
+  // =================================================================
   // PER-MACHINE CODECS (2026-09-26, speed pass). Modern chips decode H.264, VP9 and AV1
   // in hardware; older ones (HD 5500, HD 5000, GM45 ...) only H.264 (or nothing), yet
   // YouTube serves VP9/AV1 by default -> software decode: stutter, fans, scroll jank.
@@ -1547,6 +1576,7 @@ try {
     if(nvOnly()){ r.nvidiaOnly={decode:nvMode, stamp:nvStamp(), crashesThisSession:nvState.crashes}; }
     r.display=frState ? {name:frState.name, rate:frState.rate, vrr:frState.vrr, source:frState.source, applied:Services.prefs.getIntPref(FR_PREF,-1)} : {detected:false, frameRatePref:Services.prefs.getIntPref(FR_PREF,-1)};
     r.cpuShare=csState;
+    r.memory=mmState ? {memTotalMB:mmState.memTotalMB, tier:mmState.tier, memoryCacheKB:Services.prefs.getIntPref(MM_CACHE,-1), backForwardPages:Services.prefs.getIntPref(MM_VIEWERS,-1)} : {detected:false};
     if(cbState){ r.codecPolicy={decoderReport:cbState.caps||null, blockForStreaming:cbState.block, decidedAt:cbState.reason, persisted:cbState.persisted, on:Services.prefs.getBoolPref(CB_ON,true)}; }
     return r;
   }

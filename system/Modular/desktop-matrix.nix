@@ -114,7 +114,24 @@ let
         })
       ]).config;
       owner = c.golem.owner;
+      # The same desktop on a weak GPU (gpu/intel-legacy): effects go light.
+      cLight = (mkMinimal (builtins.head rows).facts [
+        fakeDisk
+        desktop
+        ../../system/Modular/gpu/intel-legacy.nix
+        waverunner.nixosModules.notification-service
+        ({ config, ... }: {
+          home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
+          home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+        })
+      ]).config;
+      luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+      lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       checks = [
+        (ex "real desktop: full effects by default (no light block)"
+          (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
+        (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"
+          (cLight.golem.desktop.effects == "light" && lib.hasInfix lightBlock (luaOf cLight)))
         (ex "real desktop: waverunner (OPTIONS bar/dock) enabled for the owner"
           (c.home-manager.users.${owner}.programs.waverunner.enable or false))
         (ex "real desktop: still has the system compositor (hyprland + greetd)"

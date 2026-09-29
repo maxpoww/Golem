@@ -448,7 +448,18 @@
       silently keep the /home/max path(s) and boot without the overview.
       Update the needles in system/home/home.nix to match hyprland.lua:
       ${lib.concatMapStrings (n: "  MISSING: " + n + "\n") missing}'';
-    builtins.replaceStrings needles replacements raw;
+    builtins.replaceStrings needles replacements raw
+    # Weak GPU (golem.desktop.effects = "light", set by gpu/intel-legacy):
+    # no compositor blur. Appended last, so it wins over the decoration block.
+    # `or`: the fat profile doesn't declare the option and keeps full effects.
+    + lib.optionalString ((osConfig.golem.desktop.effects or "full") == "light") ''
+
+      ---- LIGHT EFFECTS (golem.desktop.effects = "light") ----
+      -- Generated for a weak GPU: Hyprland's blur off. On the 2013 MacBook
+      -- Air it held the 3D engine at 98% during video; the rest of the look
+      -- (shadows, dimming, rounding) costs nothing measurable and stays.
+      hl.config({ decoration = { blur = { enabled = false } } })
+    '';
 
   # Waverunner config
   xdg.configFile."waverunner/config.toml".text = ''
