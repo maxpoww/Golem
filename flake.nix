@@ -502,11 +502,19 @@
               # bar / OPTIONS surfaces + options-notify, hyprland.lua, Beam. The
               # waverunner & waveview flake inputs are in scope only here (not in a
               # leaf), so they are passed to home.nix via extraSpecialArgs.
-              # waverunner-packages (the owner's launcher-installed app list) is
-              # deliberately NOT wired — it is one machine's state, not the distro.
+              # The owner's drag-to-install app list is THIS machine's state:
+              # waverunner-apply generates hosts/target/apps.nix from
+              # packages.list (desktop/default.nix sets golem.appsFile), and it
+              # rides the home layer only once it exists. Never the dev box's
+              # system/home/waverunner-packages.nix.
               waverunner.nixosModules.notification-service
               ({ config, ... }: {
-                home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
+                home-manager.users.${config.golem.owner} = {
+                  imports = [ ./system/home/home.nix ]
+                    ++ nixpkgs.lib.optional
+                      (builtins.pathExists ./hosts/target/apps.nix)
+                      ./hosts/target/apps.nix;
+                };
                 home-manager.extraSpecialArgs = { inherit waverunner waveview; };
               })
               ./hosts/target/golem-hardware.nix

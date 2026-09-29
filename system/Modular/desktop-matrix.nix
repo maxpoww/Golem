@@ -127,6 +127,18 @@ let
         (ex "real desktop: Seam is installed"
           (lib.any (p: (p.pname or "") == "seam" || lib.hasPrefix "seam" (p.name or ""))
             (c.environment.systemPackages ++ c.home-manager.users.${owner}.home.packages)))
+        # Drag-to-install (2026-09-29, Brave on the thinkpad): the root helper
+        # must be on the desktop, watching the owner's list, writing the
+        # machine's own file — or every install fails without a word.
+        (ex "real desktop: waverunner-apply installs (service + path watch)"
+          ((c.systemd.services ? waverunner-apply)
+           && (c.systemd.paths ? waverunner-apply)
+           && lib.hasSuffix "/.config/waverunner/packages.list"
+                c.systemd.paths.waverunner-apply.pathConfig.PathChanged))
+        (ex "real desktop: rebuilds itself AS the desktop (flakeAttr), never golem-minimal"
+          (c.golem.flakeAttr == "golem-desktop"))
+        (ex "real desktop: installs land in hosts/target/apps.nix, not the dev box's list"
+          (c.golem.appsFile == "hosts/target/apps.nix"))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))

@@ -32,7 +32,8 @@ let
   userHome = "/home/${user}";
   listFile = "${userHome}/.config/waverunner/packages.list";
   statusFile = "${userHome}/.config/waverunner/apply-status.json";
-  generated = "${flakeDir}/system/home/waverunner-packages.nix";
+  appsFile = config.golem.appsFile;
+  generated = "${flakeDir}/${appsFile}";
 
   applyScript = pkgs.writeShellApplication {
     name = "waverunner-apply";
@@ -116,7 +117,7 @@ let
       mv "$gen.new" "$gen"
       # Root inside the user's checkout: /etc/gitconfig carries the
       # safe.directory entry (configuration.nix) for git AND nix's libgit2.
-      git -C "$flakedir" add system/home/waverunner-packages.nix || true
+      git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
@@ -154,7 +155,7 @@ let
       else
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
-          git -C "$flakedir" add system/home/waverunner-packages.nix || true
+          git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"
@@ -165,6 +166,16 @@ let
   };
 in
 {
+  # Where the generated list lives, relative to the checkout. The fat profile
+  # keeps its historical path; the Modular desktop puts it in hosts/target/
+  # beside the machine's other per-machine files (one machine's state, never
+  # the distro's), and golem-desktop imports it from there.
+  options.golem.appsFile = lib.mkOption {
+    type = lib.types.str;
+    default = "system/home/waverunner-packages.nix";
+    description = "Path (relative to golem.flakeDir) of the Nix file waverunner-apply generates from packages.list.";
+  };
+
   config = lib.mkIf (flakeDir != null) {
     systemd.services.waverunner-apply = {
       description = "Apply waverunner's declarative package list (nixos-rebuild switch --flake)";

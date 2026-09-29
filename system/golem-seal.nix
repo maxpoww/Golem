@@ -44,6 +44,8 @@ let
   exempt = [
     "./system/home/waverunner-packages.nix"
     "./system/home/waverunner-packages.nix.last-good"
+    "./hosts/target/apps.nix"            # the same channel on the Modular desktop
+    "./hosts/target/apps.nix.last-good"
     "./system/postinstall-generated.nix"
     "./system/postinstall-generated.nix.last-good"
   ];

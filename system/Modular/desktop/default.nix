@@ -10,7 +10,7 @@
 # opinions. It grows ONE leaf per concern as each lands (spec's growth rule),
 # and each leaf is a faithful port of the fat system/configuration.nix desktop
 # block (or a new leaf for a hole the fat path never filled).
-{ ... }:
+{ lib, ... }:
 
 {
   imports = [
@@ -23,6 +23,10 @@
                             # update lane). Its home half (seam/home.nix) needs the
                             # golem-seam overlay this module provides — without it the
                             # home layer fails to evaluate (pkgs.golem-seam missing).
+    ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
+                            # waverunner's packages.list into hosts/target/apps.nix
+                            # and rebuilds (without it installs fail silently —
+                            # Brave on the thinkpad, 2026-09-29)
     # Phase B, still to land (see the plan):
     #   waverunner.nix   the OPTIONS bar + dock (the body of OPTIONS)
     #   waveview.nix     the Hyprland overview/spread plugin
@@ -35,4 +39,18 @@
     # NOTE: desktop/test-chrome.nix is TEST-ONLY and deliberately NOT here —
     # it is composed only into the golem-desktop-test cut.
   ];
+
+  # The machine's own app list lives beside its other per-machine files.
+  golem.appsFile = "hosts/target/apps.nix";
+
+  # A machine running the desktop REBUILDS ITSELF AS the desktop. Every
+  # self-rebuild (first-boot, autoupdate, rebuild-golem, waverunner-apply)
+  # targets golem.flakeAttr, and base/loop.nix defaults it to golem-minimal.
+  # Left there, a desktop machine rebuilt itself WITHOUT the desktop: on the
+  # thinkpad (2026-09-29) a drag-install of Brave switched live to stage 0,
+  # took Hyprland down mid-session and killed the install; first-boot had
+  # already staged the desktop-less generation as the boot default.
+  # 900: beats base/loop.nix's mkDefault (1000); an explicit setting (a test
+  # cut, machine.nix) still wins.
+  golem.flakeAttr = lib.mkOverride 900 "golem-desktop";
 }
