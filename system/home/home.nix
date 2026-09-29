@@ -436,12 +436,25 @@
         "${kbPad}kb_options = \"\","
       ];
 
+      # SHELL follows the owner's REAL login shell. The literal in
+      # hyprland.lua is the dev box's zsh; on a Golem install the login
+      # shell is plain bash (base/shell.nix) and no system zsh exists, so
+      # every bare `foot` (Super+E) exec'd a missing $SHELL and died
+      # instantly — "failed to execute zsh: No such file" (thinkpad,
+      # 2026-09-29). Derived from users.users.<owner>.shell, it stays zsh
+      # wherever the owner's shell IS zsh.
+      ownerShell =
+        let s = osConfig.users.users.${osConfig.golem.owner}.shell; in
+        if builtins.isString s then s else "/run/current-system/sw${s.shellPath}";
+      shellNeedle = ''hl.env("SHELL",          "/run/current-system/sw/bin/zsh")'';
+
       needles = [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
         ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
         monitorNeedle
         kbNeedle
+        shellNeedle
       ];
       replacements = [
         "hyprctl plugin load ${waveview}/lib/libwaveview.so"
@@ -458,6 +471,7 @@
           "${kbPad}kb_model   = \"${kb.model}\","
           "${kbPad}kb_options = \"${kb.options}\","
         ])
+        ''hl.env("SHELL",          "${ownerShell}")''
       ];
       missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
     in

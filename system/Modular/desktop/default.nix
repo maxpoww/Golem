@@ -19,6 +19,10 @@
     ./audio.nix             # pipewire   (from system/audio.nix)
     ./bluetooth.nix         # bluez + blueman, census-gated (from system/bluetooth.nix)
     ./fonts.nix             # JetBrains Mono Nerd + DejaVu (from configuration.nix)
+    ../../../seam           # Seam, Golem's browser (system half: build + policies +
+                            # update lane). Its home half (seam/home.nix) needs the
+                            # golem-seam overlay this module provides — without it the
+                            # home layer fails to evaluate (pkgs.golem-seam missing).
     # Phase B, still to land (see the plan):
     #   waverunner.nix   the OPTIONS bar + dock (the body of OPTIONS)
     #   waveview.nix     the Hyprland overview/spread plugin

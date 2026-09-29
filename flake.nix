@@ -236,20 +236,24 @@
             (bakedFakeDisk firmware)
             { golem.locale.defaultLocale = locale; }
           ] ++ bakedLib.optionals bakeDesktopTest [
-            # the desktop stage + the test-chrome autostart, baked into gen-1
+            # THE REAL OPTIONS DESKTOP baked into gen-1 — the golem-desktop
+            # wiring (Hyprland + waverunner's bar/dock + options-notify,
+            # hyprland.lua, Beam), so a reflash boots straight into the real
+            # desktop, no online climb. waverunner/waveview passed as at the
+            # golem-desktop attr; the owner's app list stays out.
             ./system/Modular/desktop/default.nix
-            ./system/Modular/desktop/test-chrome.nix
-            {
-              golem.flakeAttr = "golem-desktop-test";
-              # NO maintenance spine on the test rig: the desktop is already
-              # baked into gen-1, so first-boot's full rebuild only pegs the CPU
-              # (load ~12, "system too slow") and fights the graphical session —
-              # THE "can't reach graphical" bug (2026-09-26). Turn it off; the
-              # baked desktop just runs.
+            waverunner.nixosModules.notification-service
+            ({ config, ... }: {
+              home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
+              home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+              golem.flakeAttr = "golem-desktop";
+              # No maintenance spine on this demo cut: the desktop is baked into
+              # gen-1, so first-boot's rebuild would only throttle the session
+              # (the 2026-09-26 "can't reach graphical" bug). Off; it just runs.
               systemd.services.golem-first-boot.enable = bakedLib.mkForce false;
               systemd.services.golem-autoupdate.enable = bakedLib.mkForce false;
               systemd.timers.golem-autoupdate.enable = bakedLib.mkForce false;
-            }
+            })
           ])).config.system.build.toplevel;
         };
       # COVERAGE: every class in BOTH firmwares (firmware picks grub-bios vs
