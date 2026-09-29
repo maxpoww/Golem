@@ -326,11 +326,12 @@ hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end) -- wavevi
 -- The Mac's own keys for the same two places (every MacBook with the classic
 -- F-row, 2011–2020: hid_apple maps them for all of them). No other keyboard
 -- sends these keysyms, so the binds cost nothing elsewhere.
---   F3, Mission Control (KEY_SCALE → XF86LaunchA): the spread → overview
---   ladder, the gesture's own walk (spread when windows hide each other, the
---   overview on the next press).
---   F4, Launchpad (KEY_DASHBOARD → XF86LaunchB): the apps box, as Super+Space.
-hl.bind("XF86LaunchA", function() hl.plugin.waveview.spread() end)
+--   F3, Mission Control (KEY_SCALE → XF86LaunchA): spread, overview, close:
+--   one step per press (waveview's cycle()).
+--   F4, Launchpad (KEY_DASHBOARD → XF86LaunchB): opens the apps box, as
+--   Super+Space. The open box holds the keyboard, so the second press is
+--   caught by the box itself, which closes (waverunner handle_key_event).
+hl.bind("XF86LaunchA", function() hl.plugin.waveview.cycle() end)
 hl.bind("XF86LaunchB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
 hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
 -- Pseudo through the Golem policy (tag + proportional size + frame rule),

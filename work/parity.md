@@ -69,6 +69,12 @@ failed units, and menubox launchers that run nothing.
   with P3. Meanwhile, waverunner could release its screencopy on the
   compositor's shutdown signal.
 
+- **P7. A session stopped while it is still starting takes ~50 s to go
+  down** (macbook, 2026-09-29: restarted 9 s after login; no timeout or kill
+  logged, a silent wait in uwsm's stop path). A normal logout takes ~3 s.
+  With the greeter wait + backstop the machine still comes back by itself;
+  it is just slow.
+
 ## Fixed
 
 | Date | Finding | Fix |
@@ -85,3 +91,5 @@ failed units, and menubox launchers that run nothing.
 | 2026-09-29 | brightness keys: "Operation not permitted" once the helper existed | golem-brightness.nix ships brightnessctl's udev rule (group `video` can write the backlight) |
 | 2026-09-29 | `stale:waveview-plugin`: the macbook ran titlebars 0.78 while 1.80 was installed (plugins load once per session) | new parity check `stale:*` (running vs installed Hyprland, plugin, dock); fixed by a session restart |
 | 2026-09-29 | keyboard light off, its keys dead (macbook): XF86KbdBrightnessUp/Down were never bound | bound in Golem's hyprland.lua to `brightnessctl -d '*::kbd_backlight'` (any laptop); permission from brightnessctl's udev rule; systemd-backlight keeps the level across reboots |
+| 2026-09-29 | MacBook F3/F4 did nothing: Mission Control and Launchpad were never bound | F3 → waveview `cycle()` (spread, overview, close; v1.81); F4 → apps box, closed by the box itself on the second press (waverunner 378d2d3); desktop-matrix asserts the Mac keys |
+| 2026-09-29 | black screen after a session restart: greetd hit its start limit while the old session (Hyprland SEGV on exit, P6) was still going down | greeter waits up to 30 s for the old session's targets, then execs uwsm; greetd retries every 2 s, up to 20 a minute. Proven: two back-to-back restarts both came back by themselves |
