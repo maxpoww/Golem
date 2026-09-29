@@ -119,6 +119,17 @@ let
           (c.home-manager.users.${owner}.programs.waverunner.enable or false))
         (ex "real desktop: still has the system compositor (hyprland + greetd)"
           (c.programs.hyprland.enable && c.services.greetd.enable))
+        # The debloat (2026-09-29): Seam is the only browser and the only app
+        # on the menubox. These fail the check if Chrome or the menubox
+        # overrides come back or go missing.
+        (ex "real desktop: no Chrome (Seam is the only browser)"
+          (!(c.home-manager.users.${owner}.programs.chromium.enable or false)))
+        (ex "real desktop: Seam is installed"
+          (lib.any (p: (p.pname or "") == "seam" || lib.hasPrefix "seam" (p.name or ""))
+            (c.environment.systemPackages ++ c.home-manager.users.${owner}.home.packages)))
+        (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
+          (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
+            [ "foot" "yazi" "xterm" "nixos-manual" ]))
       ];
       failed = builtins.filter (e: !e.ok) checks;
     in

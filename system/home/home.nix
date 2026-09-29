@@ -10,6 +10,7 @@
   imports = [
     ../../seam/home.nix   # Seam: prefs, look, and the profile
     ./zsh.nix
+    ./menubox.nix         # the menubox shows Seam only; the rest stays installed, hidden
     waverunner.homeManagerModules.default
   ];
   # ./waverunner-packages.nix (the owner's launcher-installed list) is NOT
@@ -74,29 +75,16 @@
     wf-recorder       # screen recording (the OPTIONS record control)
 
     playerctl
-  ] ++ lib.optionals (!osConfig.golem.lean) [
-    # Max's dev toolchain — not part of the system working (golem.lean).
-    gcc
 
-    android-tools
-    scrcpy
-    jdk21
-
-    claude-code
-    github-cli
     git
-
-    easyeffects
-    lsp-plugins
   ];
+  # Max's dev toolchain (gcc, android-tools, scrcpy, jdk21, claude-code,
+  # github-cli, easyeffects, lsp-plugins + JAVA_HOME/ANDROID_HOME) left the
+  # distro 2026-09-29 (the debloat): it is one machine's setup, and it lives
+  # in that machine's own config (/etc/nixos), not in Golem.
 
   home.sessionVariables = {
     _JAVA_AWT_WM_NONREPARENTING = "1";
-  } // lib.optionalAttrs (!osConfig.golem.lean) {
-    # JAVA_HOME interpolates the jdk store path, so on a lean system it
-    # would drag the whole JDK into the image by reference alone.
-    JAVA_HOME = "${pkgs.jdk21}";
-    ANDROID_HOME = "${config.home.homeDirectory}/Android/Sdk";
   };
 
   # ── Theming pass (roadmap S5) ─────────────────────────────────────────
@@ -168,28 +156,8 @@
     swww_transition_duration = 2
   '';
 
-  programs.chromium = {
-    enable = true;
-    package = pkgs.google-chrome;
-    commandLineArgs = [
-      "--disable-backgrounding-occluded-windows"
-      "--disable-renderer-backgrounding"
-      "--disable-background-timer-throttling"
-      # Hardware video decode via VA-API — without this Chrome CPU-decodes
-      # everything even when the driver (system/hardware.nix) is present.
-      # VaapiIgnoreDriverChecks was TRIED AND REMOVED (2026-09-02, 2013 Air):
-      # it made Chrome report hardware-efficient VP9 that Haswell cannot do,
-      # so YouTube stopped stepping down to 720p and pinned 1080p VP9 on a
-      # software decoder — 36% dropped frames at 92 °C, WORSE than honest
-      # software decode (15% at 720p). With plain VaapiVideoDecoder Chrome
-      # is truthful per-codec: H.264 accelerates where the driver has it,
-      # VP9 stays software and YouTube adapts its quality accordingly.
-      "--enable-features=VaapiVideoDecoder"
-      # Run native Wayland where the compositor offers it (else XWayland),
-      # so the video path isn't bounced through Xwayland.
-      "--ozone-platform-hint=auto"
-    ];
-  };
+  # No Chrome: Seam is Golem's only browser (the debloat, 2026-09-29). The
+  # webapps (Chrome --app windows) come back when they move onto Seam.
 
   programs.foot = {
     enable = true;
@@ -493,12 +461,9 @@
     link_unfurl = true
   '';
 
-  # Seed webapps list
-  home.activation.seedWebappsList = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if [ ! -e "$HOME/.config/webapps.list" ]; then
-      $DRY_RUN_CMD install -Dm644 ${./webapps.list} "$HOME/.config/webapps.list"
-    fi
-  '';
+  # The webapps catalog (./webapps.list) is NOT seeded: its entries launch
+  # through Chrome, which Golem no longer ships. It returns with the move of
+  # the webapps onto Seam.
 
   # Bundled webapp icons
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-claude.svg".source = ./webapp-claude.svg;
@@ -570,10 +535,10 @@
       files = [ "org.gnome.Nautilus.desktop" ];
       editor = [ "org.gnome.TextEditor.desktop" ];
       images = [ "org.gnome.Loupe.desktop" ];
-      video = [ "org.gnome.Showtime.desktop" ];
-      # Decibels is the play-this-one-file player, which is exactly what a
-      # double-click is. If todo5 item 6 keeps Amberol instead, this flips.
-      audio = [ "org.gnome.Decibels.desktop" ];
+      # mpv plays both (zsh.nix ships it with MPRIS); Showtime and Decibels
+      # left with the debloat (2026-09-29).
+      video = [ "mpv.desktop" ];
+      audio = [ "mpv.desktop" ];
       docs = [ "org.gnome.Papers.desktop" ];
       archives = [ "org.gnome.FileRoller.desktop" ];
     in

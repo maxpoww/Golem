@@ -31,35 +31,12 @@
     gnome-text-editor
     loupe # image viewer — fast, touch gestures
     papers # PDF viewer + fill & sign
-  ] ++ lib.optionals (!config.golem.lean) [
-    # Everyday desktop
-    gnome-calculator
-    gnome-calendar
-    gnome-clocks
-    gnome-weather
-    gnome-contacts # matters once android.md lands
-    gnome-maps # nice-to-have tier
-
-    # Media
-    showtime # video player (fall back to celluloid/mpv if codecs fight)
-    snapshot # webcam photo/video
-    gnome-sound-recorder
-
-    # Music: both ship until todo5 item 6 picks one — Decibels is the
-    # play-this-file player, Amberol the library one. The loser gets
-    # deleted from this list, not left installed.
-    decibels
-    amberol
-
-    simple-scan
-
-    # Disks / removable media
-    gnome-disk-utility
-
-    # Emoji & characters. The app half of apps.md's "must ALSO be
-    # system-wide input"; the input-method half is below.
-    gnome-characters
   ];
+  # The rest of the CURATE tier (calculator, calendar, clocks, weather,
+  # contacts, maps, showtime, snapshot, sound recorder, decibels, amberol,
+  # simple-scan, disks, characters) left 2026-09-29 — the debloat: "i only
+  # want seam on it … all rest on the menubox is bloat". What stays above is
+  # what opening a file needs.
 
   # Emoji everywhere, not just in an app (apps.md, todo5 item 8). fcitx5 is
   # the pick apps.md already made; its built-in Unicode addon is the
