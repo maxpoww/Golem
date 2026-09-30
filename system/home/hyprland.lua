@@ -345,12 +345,15 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
--- The control panel (the dock's gear): tap Ctrl while holding Super. On the
--- RELEASE of Ctrl — at that moment only Super is still held — and Hyprland
--- skips a release bind when another key came in between, so Super+Ctrl+<key>
--- combos never open it.
-hl.bind(mainMod .. " + Control_L", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl control-panel"), { release = true, description = "Control panel" })
-hl.bind(mainMod .. " + Control_R", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl control-panel"), { release = true, description = "Control panel" })
+-- The control panel (the dock's gear): Super+Ctrl, tapped. Fires on the
+-- RELEASE of whichever of the two keys lets go first while the other is still
+-- held — at that instant Hyprland 0.55 still counts the released key in the
+-- mods, hence SUPER + CTRL on all four. Binding only Ctrl's release missed the
+-- left-hand roll-off where Super lets go a hair before Ctrl (~2 in 10).
+local controlPanel = hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl control-panel")
+for _, key in ipairs({ "Control_L", "Control_R", "Super_L", "Super_R" }) do
+    hl.bind(mainMod .. " + CTRL + " .. key, controlPanel, { release = true, description = "Control panel" })
+end
 -- Usage-aware focus cycle — the same frecency brain as the current-task
 -- pill's clicks (waverunner ranks by decayed focus frequency).
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
