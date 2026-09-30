@@ -120,11 +120,13 @@ failed units, and menubox launchers that run nothing.
   boot (class `user`) and `default_session` is tuigreet on tty1 after a
   logout (name remembered, password, the same wrapped uwsm session).
   Applies at the next boot (greetd never restarts on a switch).
-- **P17. A live dock restart strands minimized windows.** A switch that
-  changes waverunner's unit restarts the dock mid-session (once per laptop
-  today, the 4b70533 → 0741d0e bump); windows parked on special:minimized
-  are known only to the daemon's memory, so they strand until `restore_min`.
-  Dock-side fix: persist the minimized set (launcher; see golem-minimize).
+- **P17 → FIXED 2026-09-30 (waveview 1.86, 5af9791).** A switch that changed
+  waverunner's unit restarted the dock mid-session (once per laptop today)
+  and the windows parked on special:minimized stranded: the tiles lived only
+  in the daemon's memory. The plugin, which owns the windows, now watches the
+  dock's socket file (inode + birth time, once a second) and announces every
+  minimized window again to a new dock. Nested: minimize → min-add; the dock
+  restarted → the same min-add again within a second.
 - **P15. ThinkPad slow to open apps (2026-09-30): the root is a USB spinning
   disk** (sda "BUP Slim BL", ROTA=1; the internal NVMe is unused). Cold
   `nautilus --version` 3277 ms vs 70 ms warm (47×): an app launch is hundreds
