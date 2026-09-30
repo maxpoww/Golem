@@ -214,6 +214,21 @@ check("a webapp window is named from its first frame, then takes the page's titl
 check("a titled page never reads 'Page — Mozilla Firefox' in a webapp window", isinstance(named, dict) and named.get("early") and not any("Firefox" in t or "Seam" in t for t in named["early"][1:]) and named["early"][-1] == "Second App", named)
 check("a slug missing from the catalog is named from its words", isinstance(named, dict) and named.get("fallback") == "No Such App", named)
 
+# 7c) a NORMAL window says Seam from its first painted frame, never Firefox (Max, 2026-09-30)
+plainT = m.js("""
+  let seen = [], t0 = Date.now(), watching = true, target = null;
+  let rec = (w) => { let t = w.document.title; if (!seen.length || seen[seen.length - 1][1] !== t) seen.push([Date.now() - t0, t]); };
+  Services.ww.registerNotification({ observe(w, topic) { if (topic !== "domwindowopened" || !watching || target) return; target = w;
+    w.addEventListener("MozAfterPaint", () => { rec(w); new w.MutationObserver(() => rec(w)).observe(w.document.documentElement, { subtree: true, childList: true, characterData: true }); }, { once: true }); } });
+  let top = [...Services.wm.getEnumerator("navigator:browser")].find(x => !x.document.documentElement.hasAttribute("taskbartab"));
+  top.OpenBrowserWindow();
+  await new Promise(r => setTimeout(r, 2500));
+  watching = false; if (target) { rec(target); target.close(); }
+  done({ seen });
+""")
+pt = [t for _, t in (plainT or {}).get("seen", [])] if isinstance(plainT, dict) else []
+check("a normal window says Seam from its first painted frame, never Firefox", bool(pt) and not any("Firefox" in t for t in pt) and "Seam" in pt[0], plainT)
+
 # 8) restart: webapps do not reopen (Firefox never saves a webapp window; Chrome's app
 #    windows were not restored either); the browser's windows and tabs all come back
 m.quit(); p.wait(timeout=30); time.sleep(1)

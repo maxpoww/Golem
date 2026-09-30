@@ -1407,6 +1407,25 @@ try {
       try{ gb.updateTitlebar(); }catch(e){}
     }catch(e){ OVLOG("title:"+e); }
   }
+  // FROM THE FIRST FRAME (Max, 2026-09-30: "it have to say seam. not firefox"). ttInit
+  // runs at browser-delayed-startup-finished, ~1.2 s in; until then Firefox's own builder
+  // wrote "Mozilla Firefox" (and "Page — Mozilla Firefox"). Every browser window gets a
+  // watch from the moment it has a document: whatever writes the title, the brand reads
+  // Seam. The replacement leaves no "Firefox" behind, so a rewrite never re-triggers; a
+  // title that does not stick stops the watch. A webapp is left to its own naming (waTitle).
+  function ttEarly(win){
+    try{ win.addEventListener("DOMContentLoaded",function(){
+      try{ var d=win.document, r=d.documentElement;
+        if(r.getAttribute("windowtype")!=="navigator:browser" || r.hasAttribute("taskbartab")) return;
+        var mo=null;
+        var fix=function(){ try{ var t=String(d.title||""), want=t.replace(/Mozilla Firefox/g,"Seam").replace(/\bFirefox\b/g,"Seam");
+          if(want===t) return; d.title=want; if(d.title!==want && mo){ mo.disconnect(); OVLOG("title-early did not stick"); } }catch(e){} };
+        mo=new win.MutationObserver(fix); fix();
+        mo.observe(r,{subtree:true,childList:true,characterData:true});
+      }catch(e){ OVLOG("title-early:"+e); } },{once:true}); }catch(e){}
+  }
+  try{ Services.ww.registerNotification({ observe:function(sub,topic){ if(topic==="domwindowopened") ttEarly(sub); } }); }catch(e){ OVLOG("title-early reg:"+e); }
+
   function ttTest(win,r,step,done){   // through Firefox's own updateTitlebar, as production does
     try{ var gb=win.gBrowser; try{ gb.updateTitlebar(); }catch(e){}
       win.setTimeout(function(){ var d=String(win.document.title||""); r.title={document:d, patched:!!gb.__golemTitle};
