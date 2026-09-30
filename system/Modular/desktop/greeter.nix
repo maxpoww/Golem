@@ -1,10 +1,19 @@
 # desktop/greeter — the login, stage 1. greetd launches the owner's Hyprland
 # session through uwsm (the same unit programs.hyprland.withUWSM installs, in
-# hyprland.nix). Ported verbatim from the fat system/configuration.nix.
+# hyprland.nix).
 #
-# This is Golem's current single-user behaviour: the session starts as the owner
-# without a password gate at the greeter. A real multi-user greeter is a
-# separate future decision; this leaf reproduces what the fat path does today.
+# TWO sessions, not one (parity P16, 2026-09-30). The owner's desktop used to
+# BE greetd's default_session, so logind classed it `greeter`: every session
+# policy treated the desktop as not-a-user — CanSuspend/mount refused whenever
+# a second login existed (P5), `loginctl lock-session` refused (P11), a
+# session that could never be the display session. Now:
+#   initial_session  the owner's desktop, started ONCE per boot with no
+#                    password (the single-owner machine as before) — logind
+#                    class `user`;
+#   default_session  what greetd shows AFTER a logout: tuigreet on tty1, the
+#                    owner's name remembered, a password, the same session.
+# greetd never restarts on its own with an initial_session (the module's
+# `restart` default): a restart would autologin again.
 { config, lib, pkgs, ... }:
 
 let
@@ -27,19 +36,28 @@ let
     done
     exec "$@" # after 30 s, start anyway and let uwsm say what is wrong
   '';
+  # uwsm narrates its start on stdout/stderr ("Entry "hyprland-uwsm.desktop"
+  # uses uwsm, reparsing args...", "Starting ... and waiting while it is
+  # running..."), which the login tty painted on screen until Hyprland took
+  # over (Max, 2026-09-30, on every boot of both laptops). systemd-cat sends
+  # it to the journal (tag uwsm): still there for debugging, never on the
+  # console. stdin stays the tty.
+  session = "${waitForOldSession} ${config.systemd.package}/bin/systemd-cat -t uwsm uwsm start hyprland-uwsm.desktop";
 in
 {
   services.greetd = {
     enable = true;
-    settings.default_session = {
-      # uwsm narrates its start on stdout/stderr ("Entry
-      # "hyprland-uwsm.desktop" uses uwsm, reparsing args...", "Starting ...
-      # and waiting while it is running..."), which the login tty painted on
-      # screen until Hyprland took over (Max, 2026-09-30, on every boot of
-      # both laptops). systemd-cat sends it to the journal (tag uwsm): still
-      # there for debugging, never on the console. stdin stays the tty.
-      command = "${waitForOldSession} ${config.systemd.package}/bin/systemd-cat -t uwsm uwsm start hyprland-uwsm.desktop";
-      user = config.golem.owner;
+    useTextGreeter = true; # tuigreet draws on tty1
+    settings = {
+      initial_session = {
+        command = session;
+        user = config.golem.owner;
+      };
+      # After a logout. --remember keeps the owner's name (the module owns
+      # /var/cache/tuigreet); --cmd is what greetd runs for the user once the
+      # password checks out — the same wrapped session.
+      default_session.command =
+        "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${lib.escapeShellArg session}";
     };
   };
 

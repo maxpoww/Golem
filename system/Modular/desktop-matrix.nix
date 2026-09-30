@@ -38,12 +38,18 @@ let
     (ex "hyprland under uwsm" c.programs.hyprland.withUWSM)
     (ex "hyprland xwayland on" c.programs.hyprland.xwayland.enable)
     (ex "greetd enabled" c.services.greetd.enable)
-    (ex "greetd starts hyprland via uwsm"
-      (lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command))
+    # P16: the desktop is a USER session (initial_session), never the greeter's.
+    (ex "greetd autologs the owner's desktop once per boot (initial_session, class user)"
+      (lib.hasInfix "uwsm start hyprland" (c.services.greetd.settings.initial_session.command or "")
+        && (c.services.greetd.settings.initial_session.user or "") == c.golem.owner))
     (ex "greetd: uwsm's start chatter goes to the journal, not the console"
-      (lib.hasInfix "systemd-cat -t uwsm uwsm start" c.services.greetd.settings.default_session.command))
-    (ex "greetd session runs as the owner"
-      (c.services.greetd.settings.default_session.user == c.golem.owner))
+      (lib.hasInfix "systemd-cat -t uwsm uwsm start" c.services.greetd.settings.initial_session.command))
+    (ex "greetd shows a real login after a logout (tuigreet), the same session behind it"
+      (lib.hasInfix "tuigreet" c.services.greetd.settings.default_session.command
+        && lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command
+        && !(c.services.greetd.settings.default_session ? user)))
+    (ex "greetd does not restart itself (an initial_session would autologin again)"
+      (!c.services.greetd.restart))
     (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)
     (ex "xserver on for XWayland xkb" c.services.xserver.enable)
     (ex "owner joined uinput + adbusers at the desktop stage"
@@ -171,7 +177,7 @@ let
         # A live switch must never stop the uwsm session skeleton (2026-09-07).
         (ex "real desktop: the uwsm session units carry X-RestartIfChanged=false"
           (lib.all (u: lib.hasInfix "X-RestartIfChanged=false" (c.systemd.user.units.${u}.text or ""))
-            [ "wayland-session-bindpid@.service" "wayland-wm@.service" "wayland-wm-env@.service" "wayland-session-waitenv.service" ]))
+            [ "wayland-session-bindpid@.service" "wayland-wm@.service" "wayland-wm-env@.service" "wayland-session-waitenv.service" "xdg-desktop-portal-hyprland.service" ]))
         (ex "real desktop: Hyprland survives a client dying with its subsurfaces mapped"
           (lib.any (p: lib.hasSuffix "hyprland-subsurface-orphan.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))

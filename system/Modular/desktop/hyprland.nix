@@ -47,6 +47,10 @@
       "wayland-wm@.service" = guard;
       "wayland-wm-env@.service" = guard;
       "wayland-session-waitenv.service" = guard;
+      # The Hyprland portal's unit embeds the compositor package, so every
+      # Hyprland rebuild restarted it mid-session and killed any screen share
+      # in flight (both laptops, 2026-09-30). Same rule: the new one at login.
+      "xdg-desktop-portal-hyprland.service" = guard;
     };
 
   # THREE keyboard sinks, not interchangeable (fat config's lesson): the TTY

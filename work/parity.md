@@ -113,15 +113,13 @@ failed units, and menubox launchers that run nothing.
   ×20 per boot (Alder Lake TC port, nvidia-tainted kernel); disk 86% full
   (730/904 GB); coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2,
   hyprsunset 2.
-- **P16. The session is greeter-class.** greetd's `default_session` runs the
-  owner's desktop, so logind lists it as `CLASS greeter` (both laptops,
-  2026-09-30). That is the root of P5 (CanSuspend/mount answers flip when a
-  second login exists), of `loginctl lock-session` being refused (the idle
-  lock now calls hyprlock directly), and it is why every logind session
-  policy treats the desktop as "not a user". The fix is greetd's
-  `initial_session` (autologin as class user) plus a real `default_session`
-  for the next login after a logout: Max's call, it changes what a logout
-  shows.
+- **P16 → FIXED 2026-09-30 (Max: "fix all of it").** greetd's
+  `default_session` ran the owner's desktop, so logind classed it `greeter`:
+  the root of P5 (CanSuspend/mount refused with a second login) and of the
+  `lock-session` refusal. Now `initial_session` autologs the owner once per
+  boot (class `user`) and `default_session` is tuigreet on tty1 after a
+  logout (name remembered, password, the same wrapped uwsm session).
+  Applies at the next boot (greetd never restarts on a switch).
 - **P17. A live dock restart strands minimized windows.** A switch that
   changes waverunner's unit restarts the dock mid-session (once per laptop
   today, the 4b70533 → 0741d0e bump); windows parked on special:minimized
@@ -201,4 +199,5 @@ on either laptop.
 | 2026-09-30 | (laptops) a dragged YouTube window narrowed when grabbed and shook: the float rule's 704x388 is below YouTube's minimum, the window drew itself 804 wide on commit (CWindow::clampWindowSize) but the layout's record stayed 704, so every drag frame re-applied 704; measured live on the ThinkPad (704/804 flips at 12 Hz), reproduced nested (856 → 804 on the first move) | the floating-resize-limits patch grows: commitWindow syncs the record when it clamps, and a floating box is clamped to the window's min/max when placed. Nested: 856 held through every move; the pinch fix still holds |
 | 2026-09-30 | (deep debug) installs had NO session guard: a live switch (seam-update, a dock install) on a checkout the autoupdate had already moved to a new nixpkgs would stop wayland-session-bindpid@ and tear the desktop down — the dev box has guarded its uwsm units since 2026-09-07 (P1 drift) | desktop/hyprland.nix: X-RestartIfChanged=false drop-ins on the four uwsm units; desktop-matrix asserts them |
 | 2026-09-30 | (deep debug) golem-deep reported `systemd-journald restarts=1` on every machine: the initrd → root journald handoff, not a death | deep-root.sh skips journald |
+| 2026-09-30 | (deep debug) every Hyprland rebuild restarted xdg-desktop-portal-hyprland mid-session (its unit embeds the package): a screen share in flight died with it | the same X-RestartIfChanged=false guard; the new portal at the next login |
 | 2026-09-30 | the "frozen lock" root cause, settled: a lock is only established once a frame reaches the screen. The dpms toggle bug left Hyprland believing the ThinkPad's panel was on while DRM had disabled it, so no frame ever came (lock never finished, unlock refused, clock frozen); only a session restart recovered. In a clean session with the fixes, the idle lock (via the compositor) → screen off → screen on → lock established → unlock worked (ThinkPad, 01:0x) | the fixes above; no stale dpms state can arise now |
