@@ -159,6 +159,9 @@ let
           (lib.any (p: lib.hasSuffix "hyprland-window-square-top.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))
         # A browser killed with a webapp open took the whole session down (P4).
+        (ex "real desktop: a scripted resize keeps a floating window's own min/max"
+          (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
+            (c.programs.hyprland.package.patches or [ ])))
         (ex "real desktop: Hyprland survives a client dying with its subsurfaces mapped"
           (lib.any (p: lib.hasSuffix "hyprland-subsurface-orphan.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))

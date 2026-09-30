@@ -1,0 +1,22 @@
+--- a/src/layout/algorithm/floating/default/DefaultFloatingAlgorithm.cpp
++++ b/src/layout/algorithm/floating/default/DefaultFloatingAlgorithm.cpp
+@@ -196,9 +196,16 @@
+ 
+ void CDefaultFloatingAlgorithm::resizeTarget(const Vector2D& Δ, SP<ITarget> target, eRectCorner corner) {
+     auto pos = target->position();
+-    pos.w += Δ.x;
+-    pos.h += Δ.y;
+-    pos.translate(-Δ / 2.F);
++    // A scripted resize keeps the window's own limits, as a hand drag does
++    // (DragController clamps to the same min/max): below its minimum the client
++    // keeps drawing at the minimum while the layout holds the smaller box, and
++    // the two fight — the window shook and wandered under a pinch-resize.
++    const Vector2D MINSIZE = target->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
++    const Vector2D MAXSIZE = target->maxSize().value_or(Math::VECTOR2D_MAX);
++    const Vector2D D       = (pos.size() + Δ).clamp(MINSIZE, MAXSIZE) - pos.size();
++    pos.w += D.x;
++    pos.h += D.y;
++    pos.translate(-D / 2.F);
+     target->setPositionGlobal(pos);
+ 
+     if (g_layoutManager->dragController()->target() == target)

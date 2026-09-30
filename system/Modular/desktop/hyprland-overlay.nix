@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus five patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus six patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -11,6 +11,11 @@
 # the windows to be flat when the titlebars are on… not applying on the
 # thinkpad and macbook"); parity.md P3.
 #
+#   floating-resize-limits  a scripted resize of a floating window (the
+#                         resize dispatcher, the OPTIONS pill's pinch) keeps the
+#                         window's own min/max, as a hand drag always did; below
+#                         its minimum the client and the layout fought and the
+#                         window shook (Max, 2026-09-30, YouTube on all three).
 #   gesture-null-deref    upstream SEGV when libinput morphs a swipe into a
 #                         pinch (ITrackpadGesture::distance). Drop once fixed
 #                         upstream.
@@ -40,6 +45,7 @@
 final: prev: {
   hyprland = prev.hyprland.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
+      ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
