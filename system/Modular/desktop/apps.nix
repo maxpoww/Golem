@@ -10,8 +10,16 @@
 # at an app that was never shipped, so "open folder" resolved to a dead entry,
 # images and PDFs to whatever browser the owner happened to install, and text
 # files to nothing.
-{ ... }:
+#
+# NOT the input method golem-apps.nix also turns on (fcitx5): an IME is its
+# own leaf (desktop/ime.nix, still to land, default.nix) and nobody decided to
+# ship one here. Imported with the apps on 2026-09-30, it started with every
+# session (app-org.fcitx.Fcitx5@autostart), put every keystroke through
+# fcitx5 (the MacBook's main keyboard became its virtual keyboard) and sat in
+# the Apps grid; the lock screen's password never matched while it ran.
+{ lib, ... }:
 
 {
   imports = [ ../../golem-apps.nix ];
+  i18n.inputMethod.enable = lib.mkForce false;
 }

@@ -167,6 +167,8 @@ let
         (ex "P9: the file-opening apps ship (Nautilus, Loupe, Papers, Text Editor, File Roller)"
           (lib.all (n: lib.any (p: (p.pname or "") == n) c.environment.systemPackages)
             [ "nautilus" "loupe" "papers" "gnome-text-editor" "file-roller" ]))
+        (ex "P9: no input method rides in with the apps (fcitx5 is desktop/ime.nix's call)"
+          (!c.i18n.inputMethod.enable))
         (ex "P9: the session plumbing (gvfs, dconf, udisks2) is on"
           (c.services.gvfs.enable && c.programs.dconf.enable && c.services.udisks2.enable))
         (ex "P9: TERMINAL and EDITOR reach every app (hyprland.lua env)"
