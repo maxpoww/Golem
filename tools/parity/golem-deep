@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# golem-deep: the deep probe of one Golem machine, both halves, saved.
+#
+#   tools/parity/golem-deep max@192.168.1.149        # -> work/deep/<ip>-<date>.txt
+#
+# The SESSION half (deep-user.sh) is spawned BY THE COMPOSITOR on the machine,
+# so it reads permissions, environment, D-Bus and portals exactly as an app
+# launched from a keybind would. The ROOT half (deep-root.sh) reads the
+# machine's health and its self-maintenance state over ssh as root.
+#
+# Read the result next to the patterns in work/parity.md: a probe that says
+# MISSING/DEAD/NO where the dev box says ok is a finding; a difference between
+# machines is a finding; a "silent" state (a timer that never fired, a loop
+# that exits 0 with nothing to do) is a finding.
+#
+# ⚠ While an ssh (or extra tty) login of the owner exists, logind picks it as
+# the user's display session and polkit answers "auth needed" for
+# suspend/power/mount. The session half prints the sessions it saw; read the
+# polkit rows with that in mind (2026-09-30, parity P5 was this artifact).
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+REPO=$(cd "$HERE/../.." && pwd)
+target=${1:?usage: golem-deep user@host}
+host=${target#*@}
+SSH=(ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ConnectTimeout=6)
+out="$REPO/work/deep/${host}-$(date +%F).txt"
+mkdir -p "$(dirname "$out")"
+{
+  echo "##### golem-deep $target $(date -Is)"
+  echo "##### SESSION half (spawned by Hyprland)"
+  scp -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$HERE/deep-user.sh" "$target:/tmp/golem-deep-user.sh"
+  "${SSH[@]}" "$target" 'export XDG_RUNTIME_DIR=/run/user/$(id -u); for d in "$XDG_RUNTIME_DIR"/hypr/*/; do export HYPRLAND_INSTANCE_SIGNATURE=$(basename "$d"); hyprctl version >/dev/null 2>&1 && break; done; rm -f /tmp/golem-deep.out /tmp/golem-deep.done; hyprctl eval "hl.exec_cmd(\"sh -c '"'"'bash /tmp/golem-deep-user.sh > /tmp/golem-deep.out 2>&1; touch /tmp/golem-deep.done'"'"'\")" >/dev/null; for i in $(seq 1 90); do [ -e /tmp/golem-deep.done ] && break; sleep 1; done; cat /tmp/golem-deep.out'
+  echo
+  echo "##### ROOT half"
+  "${SSH[@]}" "root@$host" 'bash -s' < "$HERE/deep-root.sh"
+} | tee "$out"
+echo "saved $out"

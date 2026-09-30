@@ -149,6 +149,16 @@ def main():
         if line.startswith("STALE"):
             comp = line.split()[1]
             findings.append((f"stale:{comp}", f"the running session is older than the system: {line[6:]} (restart the session)", None))
+    nt = tgt.get("notify", "").strip()
+    if nt.startswith("MISSING"):
+        findings.append(("notify", f"no notification server: {nt[8:]} (notify-send, browser and app alerts are lost)", None))
+    for line in tgt.get("xdg_defaults", "").splitlines():
+        mime, did, st = (line.split("\t") + ["", ""])[:3]
+        if st.startswith(("MISSING", "DEAD")):
+            fid = f"xdg-default:{mime}"
+            reason = acc("xdg-default", mime)
+            (explained if reason else findings).append(
+                (fid, f"default handler for {mime} is {did}: {st.replace('-', ' ')}", reason))
     sh = tgt.get("shell", "")
     if sh.startswith("MISSING"):
         findings.append(("shell", f"$SHELL does not exist: {sh}", None))

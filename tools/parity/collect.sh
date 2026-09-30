@@ -12,6 +12,7 @@ set -u
 hpid=$(pgrep -u "$(id -u)" -x Hyprland 2>/dev/null || pgrep -u "$(id -u)" -x .Hyprland-wrapp 2>/dev/null)
 hpid=${hpid%%$'\n'*}
 section() { printf '===%s===\n' "$1"; }
+have() { command -v "$1" >/dev/null 2>&1; }
 
 if [[ -z "$hpid" ]]; then
   section error; echo "no Hyprland session for $(id -un)"; exit 0
@@ -133,6 +134,38 @@ if [[ -n "$wpid" ]]; then
     echo "STALE waverunner running=$wrun installed=$wwant"
   else echo "ok waverunner"; fi
 fi
+
+# A notification server must be on the session bus, or every notify-send,
+# every browser and every app alert vanishes without a word (2026-09-30: the
+# installed Golems had none: options-notify was never enabled outside the
+# fat profile).
+section notify
+if have busctl; then
+  if busctl --user list --no-legend 2>/dev/null | awk '{print $1}' | grep -qx org.freedesktop.Notifications; then
+    echo "ok $(busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications GetServerInformation 2>/dev/null | cut -c1-60)"
+  else echo "MISSING no org.freedesktop.Notifications on the session bus"; fi
+else echo "n/a"; fi
+
+# Every default handler must resolve to an entry that exists and whose
+# program runs (2026-09-30: every file-type default on the installed Golems
+# pointed at apps the desktop never shipped, and "open folder" at a dead stub).
+section xdg_defaults
+if have xdg-mime; then
+  for m in text/html x-scheme-handler/https inode/directory text/plain image/png image/jpeg video/mp4 audio/mpeg application/pdf application/zip; do
+    id=$(xdg-mime query default "$m" 2>/dev/null); st=unset
+    if [ -n "$id" ]; then
+      f=""; for d in "$HOME/.local/share" ${henv[XDG_DATA_DIRS]//:/ }; do [ -e "$d/applications/$id" ] && { f="$d/applications/$id"; break; }; done
+      if [ -z "$f" ]; then st="MISSING-entry"
+      else
+        prog=$(grep -m1 -E '^Exec=' "$f" | sed -E 's/^Exec=//; s/^env( [A-Za-z_]+=[^ ]*)+ //' | awk '{print $1}')
+        if [ -z "$prog" ]; then st="DEAD-no-exec"
+        elif [ "${prog#/}" != "$prog" ]; then [ -x "$prog" ] && st=ok || st="DEAD-exec"
+        else PATH="${henv[PATH]:-$PATH}" command -v "$prog" >/dev/null 2>&1 && st=ok || st="DEAD-exec"; fi
+      fi
+    fi
+    printf '%s\t%s\t%s\n' "$m" "${id:--}" "$st"
+  done
+else echo n/a; fi
 
 section failed_user;   systemctl --user --failed --plain --no-legend 2>/dev/null
 section failed_system; systemctl --failed --plain --no-legend 2>/dev/null

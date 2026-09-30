@@ -23,3 +23,18 @@ tools/parity/golem-parity max@192.168.1.149 --save   # also writes work/parity/<
 
 Adding a check: collect it as a new `===section===` in `collect.sh`, then
 compare or verify it in `golem-parity`. Prefer checks a user would feel.
+
+## The deep probe
+
+```sh
+tools/parity/golem-deep max@192.168.1.149     # both halves, saved to work/deep/<ip>-<date>.txt
+```
+
+`deep-user.sh` is spawned by the compositor on the machine (what an app sees:
+logind session, polkit answers, env, D-Bus, portals, fonts, every default
+handler, Hyprland devices/clients, audio, network, Seam's report, user units,
+idle CPU). `deep-root.sh` reads health and maintenance as root (failed units
+and restart loops, timers, the seed and the update loop, crashes, journal
+errors, boot time, storage, memory, power, security, services, hardware).
+Run it after parity is clean; it is where the 2026-09-30 findings (P8–P14)
+came from. ⚠ an open ssh login changes the polkit answers (P5).

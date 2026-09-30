@@ -39,15 +39,14 @@ failed units, and menubox launchers that run nothing.
   go away with the webapps-to-Seam move, or with a one-time cleanup of
   `~/.config/webapps.list` + `~/.local/share/applications/webapp-*`.
 
-- **P5. The desktop is not a seat session.** greetd runs Hyprland in its
-  `default_session` (logind Class=greeter), and under uwsm the apps belong to
-  the systemd-user *manager* session (no seat). Anything gated on an active
-  seat session by logind or polkit can be refused. Brightness was
-  (fixed with a udev rule instead); USB mounting (udisks2), suspend
-  inhibitors and some NetworkManager actions are suspects. The dev box has
-  the same greetd setup. Investigate with a parity check that asks polkit for
-  the session's rights.
-
+- **P5 → CLOSED (2026-09-30): an artifact of the lab door.** With no ssh
+  login present, the session's `CanSuspend`/`CanPowerOff` answer **yes**
+  (logind's display session = the greeter session, local and active). Every
+  earlier "auth needed" was measured while my ssh login existed: logind then
+  picks that login (class user) as the display session and polkit sees a
+  remote one. Real-user exposure: a second tty/ssh login of the owner would
+  break Super+Escape (suspend) and USB mounting until it ends. `golem-deep`
+  prints the sessions it saw for this reason.
 - **P6. Every session exit crashes Hyprland (SIGSEGV).** Seen on logout,
   session restart and shutdown, on the macbook and the thinkpad. Two stacks:
   1. **Upstream (0.55.4):** at `exit()`, `CScreenshareManager`'s destructor
@@ -70,6 +69,69 @@ failed units, and menubox launchers that run nothing.
   logged, a silent wait in uwsm's stop path). A normal logout takes ~3 s.
   With the greeter wait + backstop the machine still comes back by itself;
   it is just slow.
+
+- **P8. Notifications are dead on installed Golems** (deep debug
+  2026-09-30). `services.options-notify.enable` is set only in the fat
+  golemModules; golem-desktop and the bake import the module but never enable
+  it → no `org.freedesktop.Notifications` on the session bus → notify-send,
+  browser and app alerts vanish silently (waverunner warned about it at every
+  start). Fix: enable in golem-desktop + bake (no KDE Connect); desktop-matrix
+  assert. Parity now checks `notify`.
+- **P9. The file-opening apps never landed in the Modular desktop.** No
+  Nautilus, Loupe, Papers, Text Editor or File Roller on an install
+  (golem-apps.nix is fat-only; desktop/default.nix lists `apps.nix` as still
+  to land). Every `mimeapps` default points at a missing app: "open folder"
+  resolves to the `lf` stub the debloat left without an Exec (DEAD), images
+  and PDFs to whatever browser got installed or nothing, text to `nvim.desktop`
+  (Terminal=true) with `TERMINAL` unset and no xdg-terminal-exec. Also 0 GIO
+  modules (no gvfs) and no gsettings: Nautilus trash/mounts won't work once
+  shipped (`session.nix` also still to land). Fix: desktop/apps.nix (the core
+  tier), desktop/session.nix (gvfs, dconf, udisks2), `hl.env TERMINAL=foot`,
+  hideCopy for lf. Parity now checks every default handler.
+- **P10. The self-update loop has nothing to pull.** The installer seeds a
+  plain copy (`cp -a`), not a git clone; golem-autoupdate exits 0 with "seed
+  has no upstream — correct no-op until Golem has an upstream" (it has one
+  now). `config-revision` = unknown, so a machine cannot name the Golem it
+  runs. The timer fired once per machine (first boot, a condition failed
+  then) and daily since. Decide: installs track `github:maxpoww/Golem` main
+  (or a release branch); the seed becomes a clone with the machine files
+  untracked; the build carries the revision.
+- **P11. Nothing on idle.** No hypridle/hyprlock/swayidle on any machine: the
+  screen never dims, locks or sleeps on idle (lid close → suspend-then-
+  hibernate works). Battery and security on a laptop. Decision.
+- **P12. The shell split.** Golem's owner shell is bash (#108) but the home
+  layer's shell config is zsh (starship, zoxide, aliases, `EDITOR=nvim` in
+  .zshenv, and the OPTIONS app-bridge hooks that feed the Brain the
+  terminal's activity). On an install: `EDITOR=nano`, a bare prompt, and the
+  Brain never hears from the terminal. Decision: port the bridge + prompt to
+  bash, or make zsh the shell.
+- **P13. The MacBook's battery data is garbage** (SMC: capacity 1%, status
+  Full, charge_full 8.6× design; upower says 0.2%). The engine reads
+  `capacity`, so on battery it would offer "plug in" at once and the gear
+  readout says 1%. Guard: charge_full ≤ 1.2× design or treat as unknown.
+- **P14. ThinkPad boot 66 s** (19 s firmware, 4 s loader, 18.7 s initrd,
+  23 s userspace; the login waits for network.target and NetworkManager took
+  5.4 s). Mostly the external USB SSD; the MacBook boots in 22 s. Decide
+  whether the greeter should wait for the network at all.
+- Cosmetic: dbus-broker logs "Ignoring duplicate name" ×12 at error level on
+  every boot (NixOS lists the system path and the package); blueman's
+  GameControllerWakelock warning.
+- Dev box only: i915 `drm_WARN_ON(tc->mode == TC_PORT_LEGACY)` ×20 per boot
+  (Alder Lake TC port, nvidia-tainted kernel); disk 86% full (730/904 GB);
+  coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2, hyprsunset 2.
+
+### Deep debug 2026-09-30: verified OK (no finding)
+
+Suspend/resume on the MacBook (rtcwake 25 s: same session, dock, wifi and
+brightness; only a facetimehd PLL warning), fonts incl. Noto Color Emoji and
+the Nerd font, all portals (FileChooser, Screenshot, ScreenCast, Settings,
+OpenURI, Inhibit), dark mode as apps see it (portal 1, dconf prefer-dark),
+Chromium runs native Wayland, clipboard, DNS and gateway, NTP, persistent
+journal, firewall on, owner password set and root locked, swap + resume set,
+zram, /boot at 20%, fstrim and gc timers, ppd/thermald per machine, Seam's
+per-machine adaptation (rate, codecs, memory tier), user dirs, keyboard layouts
+consistent across console/xkb/Hyprland, no failed units and no restart loops
+on either laptop.
 
 ## Fixed
 
@@ -95,3 +157,4 @@ failed units, and menubox launchers that run nothing.
 | 2026-09-29 | Seam pinned a 1 GB memory cache + 12 live back/forward pages (dev box tuning) on every machine; the 4 GB MacBook swapped during video | Seam sizes both from MemTotal (golem-chrome.js PER-MACHINE MEMORY): ≥24 GB keeps the dev box values, <12 GB gets Firefox's RAM-scaled defaults; selftest ALL PASS |
 | 2026-09-30 | Lenovo: fast Super+Space froze the dock 1-12 s (worst while the settings panel animated): a saturated iGPU made Vulkan's acquire wait on the event loop | waverunner e78c4fa: GPU pacing on every hardware backend; e964df8: each surface drawn at the output's real fractional scale (Lenovo GPU 74% → 66%, identical look). 60 overlapping presses: worst 13 ms |
 | 2026-09-30 | P3 closed: titlebars' straight top edge didn't apply on the laptops (stock Hyprland lacked the square-top patch) | Golem ships the dev box's 4 Hyprland patches (desktop/hyprland-overlay.nix: square-top, vfr-hold, swipe-one-empty, gesture crash fix); waveview is compiled against the same overlay (identical drv); desktop-matrix asserts the patch + ABI match; swipe-one-empty config ported |
+| 2026-09-30 | (deep debug) P5's "auth needed" was my ssh login being chosen as the display session | closed as an artifact; golem-deep prints the sessions it saw |
