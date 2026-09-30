@@ -152,6 +152,10 @@ def main():
     nt = tgt.get("notify", "").strip()
     if nt.startswith("MISSING"):
         findings.append(("notify", f"no notification server: {nt[8:]} (notify-send, browser and app alerts are lost)", None))
+    for line in tgt.get("sd_env", "").splitlines():
+        if line.startswith("STALE"):
+            var = line.split()[1]
+            findings.append((f"sd-env:{var}", f"systemd user services get a stale {line[6:]} (display-needing services abort; re-import: dbus-update-activation-environment --systemd {var})", None))
     for line in tgt.get("xdg_defaults", "").splitlines():
         mime, did, st = (line.split("\t") + ["", ""])[:3]
         if st.startswith(("MISSING", "DEAD")):

@@ -22,15 +22,19 @@ failed units, and menubox launchers that run nothing.
 
 ## Open
 
-- **P1. Two copies of the desktop (THE root cause).** The dev box runs
-  `/etc/nixos/{hyprland.lua,home.nix}`. Golem ships `system/home/{hyprland.lua,home.nix}`,
-  a copy taken months ago. Every change Max made on his machine since then
-  (click-to-focus for floats, STAGE mode, submap-proof control keys, shadows,
-  motion) never reached Golem. Parity catches the drift after the fact. Only
-  ONE source prevents it: the dev box becomes a Golem machine that imports
-  `~/Golem/system/home` (as it already imports `~/Golem/seam`), with its
-  personal bits (the Lenovo panel, dev toolchain, patched Hyprland) as a
-  per-machine layer. **Needs Max's go.**
+- **P1 → DONE 2026-09-30: one home layer.** The dev box imports
+  `~/Golem/system/home` (and Golem's bluetooth, audio, brightness, apps,
+  session, idle, the Hyprland overlay + patches, the launcher's notification
+  module). Its own layer is `/etc/nixos/home.nix` + `configuration.nix`,
+  holding only this machine: hardware, NVIDIA, power, the dev loop
+  (`golem.home.devCheckout`), no idle steps, its grid (`menubox.hidePlumbing
+  = false`), and P2's look (`hyprlandExtra`). Verified before the switch by
+  building both configs and diffing: identical Hyprland binary, no removals,
+  the Lua's effective values unchanged. Retired copies in
+  `~/.cache/golem-p1/`. **Still two copies:** `waverunner-apply.nix` (channel
+  rebuild vs flake rebuild) until the dev box moves onto the flake.
+  Open questions for Max: the menubox debloat on his own grid; idle on his
+  machine; GTK theming now applies there (Golem's look).
 - **P2. Window opacity + direct scanout.** Golem ships opaque windows and
   direct scanout (2026-09-02 perf pass for weak GPUs). The dev box has 0.95
   and no scanout. Decide whether one look is right for both.
@@ -130,3 +134,8 @@ on either laptop.
 | 2026-09-30 | P13 the MacBook's garbage battery gauge | waverunner edd18c9: a self-contradicting gauge reads as no battery (tests carry the MacBook's exact values) |
 | 2026-09-30 | (found by P10's first real pull) autoupdate ran `git pull` as root and left root-owned files in the owner's checkout; the owner's next pull failed | every git write into the checkout runs as the owner (runuser): autoupdate, golem-seed-adopt, waverunner-apply, postinstall |
 | 2026-09-30 | (found by P11 going live) `loginctl lock-session` is refused for Golem's greeter-class session ("Session does not support lock screen"): the 5-min lock never happened | the idle lock, the pre-sleep lock and Super+L call hyprlock directly; desktop-matrix refuses any lock-session in the idle config or keymap |
+
+| 2026-09-30 | (P1 diff) hyprsunset never shipped: the sunset option's "turn on" did nothing on an install | home.packages; desktop-matrix |
+| 2026-09-30 | (P1 diff) the MacBook's gear had no GPU % (the i915 PMU needs perf_event_paranoid 0) | gpu/intel-pmu.nix, imported by both Intel leaves |
+| 2026-09-30 | (P1 diff) Bluetooth devices stayed disconnected after hibernate on laptops | the dev box's reconnect service, in Modular + fat bluetooth.nix |
+| 2026-09-30 | (P1 switch) a nested test Hyprland (2026-09-29) left the dev box's systemd user env on a dead socket (WAYLAND_DISPLAY=wayland-2, no DISPLAY/HIS): every display-needing user service aborted | re-imported from the session; the nested runner sets HYPRLAND_NO_SD_VARS=1; parity `sd_env` check |

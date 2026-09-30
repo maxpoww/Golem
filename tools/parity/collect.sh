@@ -146,6 +146,22 @@ if have busctl; then
   else echo "MISSING no org.freedesktop.Notifications on the session bus"; fi
 else echo "n/a"; fi
 
+# The user manager's display variables must be the live session's: every
+# systemd user service (easyeffects, KDE Connect, the portals) starts with
+# them. Hyprland imports them at startup, so a NESTED test Hyprland run
+# without HYPRLAND_NO_SD_VARS=1 repoints them at its own socket and leaves them
+# dangling when it exits (the dev box, 2026-09-29 → 30: WAYLAND_DISPLAY=wayland-2
+# for a day; every display-needing user service aborted).
+section sd_env
+if have systemctl && [[ ${#henv[@]} -gt 0 ]]; then
+  sdenv=$(systemctl --user show-environment 2>/dev/null)
+  for k in WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE; do
+    want=${henv[$k]:-}; got=$(printf '%s\n' "$sdenv" | sed -n "s/^$k=//p")
+    if [[ -n "$want" && "$got" != "$want" ]]; then echo "STALE $k user-manager=${got:-unset} session=$want"; fi
+  done
+  echo "checked"
+else echo "n/a"; fi
+
 # Every default handler must resolve to an entry that exists and whose
 # program runs (2026-09-30: every file-type default on the installed Golems
 # pointed at apps the desktop never shipped, and "open folder" at a dead stub).
