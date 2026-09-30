@@ -86,11 +86,15 @@ lib.mkIf (config.golem.flakeDir != null) {
       # 1) real connectivity or a loud give-up (never a stale-cache no-op).
       ${golemWaitOnline}/bin/golem-wait-online || exit 1
 
+      # A seed still in its installed form (a plain copy) becomes a checkout of
+      # the upstream first (base/seed.nix; a no-op once it is one).
+      ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
+
       cd "$dir" || { echo "golem-autoupdate: seed $dir is gone — nothing to update" >&2; exit 1; }
 
       # 2) is there a trusted upstream to pull from?
       if [ -z "$(git remote 2>/dev/null)" ] || ! git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
-        echo "golem-autoupdate: seed has no upstream branch — nothing to pull (correct no-op until Golem has an upstream)."
+        echo "golem-autoupdate: the seed is not a checkout of an upstream yet (offline at every try so far?) — nothing to pull." >&2
         exit 0
       fi
 

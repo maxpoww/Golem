@@ -13,6 +13,7 @@
 "general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
 
 [bind]
+"main|SUPER|L" = "Super+L locks the screen (hyprlock, P11); the dev box has no lock screen yet"
 "main|-|XF86LaunchA"  = "MacBook F3 (Mission Control) → spread/overview: Golem binds the Mac keys for every MacBook; the dev box's Lenovo has none"
 "main|-|XF86LaunchB"  = "MacBook F4 (Launchpad) → the apps box; same reason as XF86LaunchA"
 "stage|-|XF86LaunchA" = "MacBook F3 inside STAGE → the overview; same reason as XF86LaunchA"

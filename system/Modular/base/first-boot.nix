@@ -61,6 +61,11 @@ lib.mkIf (config.golem.flakeDir != null) {
 
       ${golemWaitOnline} || exit 1
 
+      # The seed becomes a checkout of the upstream now that the network is
+      # there (base/seed.nix); it re-seals itself, so this comes BEFORE the
+      # seal baseline below.
+      ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
+
       # Establish the seal baseline (trust-on-first-use: seals what the
       # installer wrote), then stage the machine's real configuration.
       ${config.golem.seal.check}/bin/golem-seal-check || {

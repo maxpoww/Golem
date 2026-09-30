@@ -111,6 +111,7 @@ let
         desktop
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
+          services.options-notify.enable = true; # as the golem-desktop attr does (P8)
           home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
@@ -123,6 +124,7 @@ let
         ../../system/Modular/gpu/intel-legacy.nix
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
+          services.options-notify.enable = true; # as the golem-desktop attr does (P8)
           home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
@@ -139,6 +141,25 @@ let
         (ex "real desktop: waveview is built against the desktop's own Hyprland (ABI)"
           (lib.any (d: (d.drvPath or "") == c.programs.hyprland.package.drvPath)
             (waveview.buildInputs ++ waveview.nativeBuildInputs)))
+        # Deep debug 2026-09-30 (parity P8–P12): what an install must carry.
+        (ex "P8: the notification server is enabled and its user unit exists"
+          (c.services.options-notify.enable && (c.systemd.user.services ? options-notify)))
+        (ex "P9: the file-opening apps ship (Nautilus, Loupe, Papers, Text Editor, File Roller)"
+          (lib.all (n: lib.any (p: (p.pname or "") == n) c.environment.systemPackages)
+            [ "nautilus" "loupe" "papers" "gnome-text-editor" "file-roller" ]))
+        (ex "P9: the session plumbing (gvfs, dconf, udisks2) is on"
+          (c.services.gvfs.enable && c.programs.dconf.enable && c.services.udisks2.enable))
+        (ex "P9: TERMINAL and EDITOR reach every app (hyprland.lua env)"
+          (lib.all (k: lib.hasInfix ''hl.env("${k}"'' (luaOf c)) [ "TERMINAL" "EDITOR" ]))
+        (ex "P10: the seed has an upstream and golem-seed-adopt is on the PATH"
+          (c.golem.upstream.url != "" && lib.any (p: (p.pname or p.name or "") == "golem-seed-adopt") c.environment.systemPackages))
+        (ex "P11: idle → lock, screen off, suspend (hypridle + hyprlock + its PAM service)"
+          (c.home-manager.users.${owner}.services.hypridle.enable
+           && c.home-manager.users.${owner}.programs.hyprlock.enable
+           && (c.security.pam.services ? hyprlock)))
+        (ex "P12: the owner's bash carries the prompt, EDITOR and the OPTIONS bridge"
+          (c.home-manager.users.${owner}.programs.bash.enable
+           && lib.hasInfix "bridge.sock" c.home-manager.users.${owner}.programs.bash.initExtra))
         (ex "real desktop: full effects by default (no light block)"
           (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"

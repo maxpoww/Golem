@@ -11,6 +11,8 @@
     ../../seam/home.nix   # Seam: prefs, look, and the profile
     ./zsh.nix
     ./menubox.nix         # the menubox shows Seam only; the rest stays installed, hidden
+    ./bash.nix            # the owner's bash: prompt, EDITOR, the OPTIONS shell bridge (P12)
+    ./idle.nix            # hypridle + hyprlock: lock, screen off, suspend on idle (P11)
     waverunner.homeManagerModules.default
   ];
   # ./waverunner-packages.nix (the owner's launcher-installed list) is NOT
@@ -77,7 +79,11 @@
     playerctl
 
     git
+    xdg-terminal-exec # a .desktop entry with Terminal=true opens in the terminal below
   ];
+
+  # Which terminal a Terminal=true entry (nvim.desktop, …) opens in.
+  xdg.configFile."xdg-terminals.list".text = "foot.desktop\n";
   # Max's dev toolchain (gcc, android-tools, scrcpy, jdk21, claude-code,
   # github-cli, easyeffects, lsp-plugins + JAVA_HOME/ANDROID_HOME) left the
   # distro 2026-09-29 (the debloat): it is one machine's setup, and it lives

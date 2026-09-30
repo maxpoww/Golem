@@ -38,6 +38,7 @@
     # beside selfrebuild/loop — they share golem.flakeDir and the seal.
     ./base/first-boot.nix
     ./base/autoupdate.nix
+    ./base/seed.nix         # the seed's upstream + golem-seed-adopt (P10)
     # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
     # SSH-reachable by the dev box + auto-joins the lab wifi, so testing happens
     # over SSH not the console. DELETE this line (and lab/lab-door.nix) at the

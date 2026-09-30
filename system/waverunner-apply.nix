@@ -123,6 +123,7 @@ let
       # Root inside the user's checkout: /etc/gitconfig carries the
       # safe.directory entry (configuration.nix) for git AND nix's libgit2.
       git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
+      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
@@ -161,6 +162,7 @@ let
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
           git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
+      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"

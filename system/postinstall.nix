@@ -220,6 +220,7 @@ let
       } > "$gen.new"
       mv "$gen.new" "$gen"
       git -C "$flakedir" add system/postinstall-generated.nix || true
+      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
 
       # #35c: the switch's exit code proves the rebuild ran; it does NOT
       # prove the answers reached the system — #35 was `ok:true` over a
@@ -284,6 +285,7 @@ let
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
           git -C "$flakedir" add system/postinstall-generated.nix || true
+      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"

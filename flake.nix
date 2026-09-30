@@ -256,6 +256,8 @@
             ./system/Modular/desktop/default.nix
             waverunner.nixosModules.notification-service
             ({ config, ... }: {
+              services.options-notify.enable = true;
+              home-manager.backupFileExtension = "before-golem";
               home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
               home-manager.extraSpecialArgs = { inherit waverunner waveview; };
               golem.flakeAttr = "golem-desktop";
@@ -521,6 +523,13 @@
               # system/home/waverunner-packages.nix.
               waverunner.nixosModules.notification-service
               ({ config, ... }: {
+                # The notification server (org.freedesktop.Notifications). It
+                # was enabled only in the fat golemModules until 2026-09-30
+                # (parity P8): every install ran without one.
+                services.options-notify.enable = true;
+                # A stray ~/.bashrc or ~/.profile must not fail the whole
+                # switch: home-manager backs it up instead.
+                home-manager.backupFileExtension = "before-golem";
                 home-manager.users.${config.golem.owner} = {
                   imports = [ ./system/home/home.nix ]
                     ++ nixpkgs.lib.optional

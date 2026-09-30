@@ -27,6 +27,10 @@
                             # connected panel (was only in the fat profile → the keys
                             # ran a missing program on every install; golem-parity
                             # finding, thinkpad 2026-09-29)
+    ./apps.nix              # the file-opening core (Nautilus, Loupe, Papers, Text Editor,
+                            # File Roller) + system-wide emoji input — from golem-apps.nix
+    ./session.nix           # gvfs, dconf, udisks2, gsettings: what those apps assume
+    ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
                             # waverunner's packages.list into hosts/target/apps.nix
                             # and rebuilds (without it installs fail silently —
@@ -34,8 +38,6 @@
     # Phase B, still to land (see the plan):
     #   waverunner.nix   the OPTIONS bar + dock (the body of OPTIONS)
     #   waveview.nix     the Hyprland overview/spread plugin
-    #   session.nix      gvfs/GIO, dconf, udisks2
-    #   apps.nix         the app set          (from golem-apps.nix + systemPackages)
     #   portals.nix      xdg-desktop-portal   (NEW — absent everywhere today)
     #   ime.nix          fcitx5 + engines     (NEW — the global-input hole)
     #   printing.nix     CUPS                 (NEW — absent everywhere today)

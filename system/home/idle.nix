@@ -1,0 +1,75 @@
+# The owner's idle behaviour (parity P11, 2026-09-30). Before this a Golem
+# laptop left alone never dimmed, locked or slept: the screen stayed on at
+# full brightness, unlocked, until the battery ran out.
+#
+#   5 min   lock (hyprlock; unlock with the owner's password)
+#   6 min   screen off (the compositor's dpms, through Hyprland's Lua dispatch:
+#           `hyprctl dispatch dpms off` does NOT exist on Golem's Hyprland)
+#   15 min  suspend (the lid does suspend-then-hibernate on its own, base/power)
+#
+# A video, a call or anything that takes a systemd idle inhibitor keeps all
+# three away (ignore_dbus_inhibit = false). Both daemons are user services tied
+# to graphical-session.target. The lock screen's PAM service is the system's
+# (system/Modular/desktop/idle.nix).
+{ ... }:
+
+let
+  dpms = state: ''hyprctl dispatch 'hl.dsp.dpms("${state}")' '';
+in
+{
+  services.hypridle = {
+    enable = true;
+    settings = {
+      general = {
+        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = dpms "on";
+        ignore_dbus_inhibit = false;
+      };
+      listener = [
+        { timeout = 300; on-timeout = "loginctl lock-session"; }
+        { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
+        { timeout = 900; on-timeout = "systemctl suspend"; }
+      ];
+    };
+  };
+
+  programs.hyprlock = {
+    enable = true;
+    settings = {
+      general = {
+        hide_cursor = true;
+        ignore_empty_input = true;
+      };
+      background = [{
+        monitor = "";
+        color = "rgba(20, 20, 24, 1.0)";
+      }];
+      label = [{
+        monitor = "";
+        text = "$TIME";
+        font_size = 64;
+        color = "rgb(235, 235, 235)";
+        position = "0, 120";
+        halign = "center";
+        valign = "center";
+      }];
+      input-field = [{
+        monitor = "";
+        size = "260, 44";
+        position = "0, -40";
+        outline_thickness = 2;
+        dots_size = 0.25;
+        fade_on_empty = true;
+        placeholder_text = "<i>password</i>";
+        outer_color = "rgb(255, 190, 152)"; # the desktop's accent, hyprland.lua's active border
+        inner_color = "rgb(30, 30, 36)";
+        font_color = "rgb(235, 235, 235)";
+        check_color = "rgb(255, 190, 152)";
+        fail_color = "rgb(220, 80, 80)";
+        halign = "center";
+        valign = "center";
+      }];
+    };
+  };
+}

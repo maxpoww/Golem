@@ -35,13 +35,13 @@ in
       (hideCopy "foot" config.programs.foot.package)
       (hideCopy "nvim" config.programs.neovim.finalPackage)
       (hideCopy "yazi" config.programs.yazi.package)
+      (hideCopy "lf" pkgs.lf)   # a folder handler: a stub without Exec made "open folder" dead (P9)
       (hideCopy "mpv" pkgs.mpv)
       (hideCopy "umpv" pkgs.mpv)
     ]
     ++ map hideStub [
       "footclient"
       "foot-server"
-      "lf"
       "btop"
       "waypaper"
       "xterm"

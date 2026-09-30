@@ -47,6 +47,11 @@ end)
 
 ---- ENVIRONMENT VARIABLES ----
 hl.env("SHELL",          "/run/current-system/sw/bin/zsh")
+-- What apps launched from here should use (a .desktop entry with
+-- Terminal=true needs $TERMINAL; without it xdg-open had nothing to run).
+hl.env("TERMINAL",       "foot")
+hl.env("EDITOR",         "nvim")
+hl.env("VISUAL",         "nvim")
 hl.env("XCURSOR_THEME",  "phinger-cursors-light")
 hl.env("XCURSOR_SIZE",   "24")
 hl.env("HYPRCURSOR_THEME", "phinger-cursors-light")
@@ -322,6 +327,7 @@ hl.config({
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("loginctl lock-session")) -- the lock screen (hypridle/hyprlock, home/idle.nix)
 hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd(Suspend))
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
