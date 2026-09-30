@@ -38,10 +38,27 @@ failed units, and menubox launchers that run nothing.
 - **P2. Window opacity + direct scanout.** Golem ships opaque windows and
   direct scanout (2026-09-02 perf pass for weak GPUs). The dev box has 0.95
   and no scanout. Decide whether one look is right for both.
-- **P4. 71 dead webapp launchers** (`google-chrome-stable`) on machines seeded
-  before the debloat (thinkpad, macbook). Fresh installs don't seed them. They
-  go away with the webapps-to-Seam move, or with a one-time cleanup of
-  `~/.config/webapps.list` + `~/.local/share/applications/webapp-*`.
+- **P4. Webapps → Seam (IN PROGRESS 2026-09-30).** Installs showed 71 dead
+  webapp launchers (Chrome `--app`, and Golem ships no Chrome). Design, proven then
+  reviewed by max-79: a webapp is Firefox 157's own web-app window (Taskbar Tabs,
+  Linux branch: `taskbartabclass` = the Wayland class `webapp-<slug>` = the launcher's
+  id) inside the one running Seam: `seam -golem-app <slug> <url>`.
+  - LANDED: the Seam half (ee7db99, seam/golem-chrome.js WEBAPPS, 19-check
+    webapps-selftest.sh + selftest.sh green). Dormant until the dock sends the flag.
+  - WAITING FOR MAX: the dock half (launcher branch webapps-on-seam, 6bffa98 +
+    4b70533, not pushed: the launcher's rule is no push without Max). Then Golem:
+    bump waverunner, seed the catalog on installs, drop the Chrome extension, and
+    /etc/nixos/home.nix loses its own seedWebappsList (the same key, it would clash).
+  - LIVE CHECKS on a laptop (both were idle-suspended): remote relaunch, class/title
+    in Hyprland, OAuth popup class, no double bar floating, the prompt strip's
+    contents, a real Messenger notification off-workspace, Ctrl+W closes only the
+    webapp, relaunch from another workspace brings it.
+  - Decision for Max: webapps do not reopen when Seam restarts (Firefox never saves
+    a web-app window; Chrome's app windows did not come back either).
+  Found on the way (dock, fixed in 6bffa98/4b70533): Seam was missing from every
+  browser list: the Brain never classified a Seam window as Browsing, link clips from
+  Seam got no page snapshot and kept " — Seam" in titles, focus_browser never raised
+  Seam; and the new Exec made every Seam window count as the first webapp by name.
 
 - **P5 → CLOSED (2026-09-30): an artifact of the lab door.** With no ssh
   login present, the session's `CanSuspend`/`CanPowerOff` answer **yes**
