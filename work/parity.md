@@ -112,6 +112,12 @@ failed units, and menubox launchers that run nothing.
   ×20 per boot (Alder Lake TC port, nvidia-tainted kernel); disk 86% full
   (730/904 GB); coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2,
   hyprsunset 2.
+- **P15. ThinkPad slow to open apps (2026-09-30): the root is a USB spinning
+  disk** (sda "BUP Slim BL", ROTA=1; the internal NVMe is unused). Cold
+  `nautilus --version` 3277 ms vs 70 ms warm (47×): an app launch is hundreds
+  of scattered reads. Also: its firmware has no _CPC, so amd_pstate cannot load
+  (acpi-cpufreq, single-core boost 2.5 GHz of the 4700U's 4.1). Fix = install to
+  the internal NVMe (Max's call); the CPU side needs a firmware with CPPC.
 - **P14 → measured, no Golem-side cause** (2026-09-30): ThinkPad 66 s =
   19 s firmware (incl. the manual boot-menu pick of the external drive) +
   4 s loader + 18.7 s initrd + 23 s userspace; the initrd is the USB SSD's
@@ -175,4 +181,5 @@ on either laptop.
 | 2026-09-30 | (P9, mine) fcitx5 ran in EVERY session on the installs: desktop/apps.nix imported golem-apps.nix for the file apps and its input method came along; every keystroke went through fcitx5 (the MacBook's main keyboard became its virtual keyboard), it sat in the Apps grid, and no lock-screen password matched while it ran; the dev box would have started it at its next login (P1) | d99c6f0: the desktop's apps come without an IME (desktop/ime.nix is still Max's call); desktop-matrix refuses one. Deployed to both laptops and the dev box |
 | 2026-09-30 | (P4, nested test) the compositor SEGVs when a client dies with its subsurface tree still mapped: SIGKILL Seam with WhatsApp open and Hyprland died in `CWLSubsurfaceResource::posRelativeToParent` (upstream 0.55.4 walks a dead parent; 2 of 3 kills with waveview loaded, 0 of 4 without) | hyprland-subsurface-orphan.patch: the walk (and its twin t1Parent + caller) stops at the first dead link |
 | 2026-09-30 | (P4, title-bar look) Spotify, Netflix, Tidal… kept Seam's address strip for good: Firefox shows its DRM notice DISMISSED (an address-bar icon, no panel) and the prompt strip went up for any notification, with nothing to take it down | golem-chrome.js: a dismissed notification leaves the strip hidden; webapps-selftest checks it (fails on the old script) |
+| 2026-09-30 | (both laptops, after sleep) title bars stopped matching their webapps: the first readback after a resume from suspend came back all but clear ("Gemini: 0 0 0 a=0.012"), the bar took it and went invisible, and a static page never re-sampled | waveview 1.85 (7b41fe2): a sample under alpha 0.25 is a failed read; the bar keeps its last colour and retries (~6 s), then waits for the next commit |
 | 2026-09-30 | the "frozen lock" root cause, settled: a lock is only established once a frame reaches the screen. The dpms toggle bug left Hyprland believing the ThinkPad's panel was on while DRM had disabled it, so no frame ever came (lock never finished, unlock refused, clock frozen); only a session restart recovered. In a clean session with the fixes, the idle lock (via the compositor) → screen off → screen on → lock established → unlock worked (ThinkPad, 01:0x) | the fixes above; no stale dpms state can arise now |
