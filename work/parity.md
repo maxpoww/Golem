@@ -70,55 +70,19 @@ failed units, and menubox launchers that run nothing.
   With the greeter wait + backstop the machine still comes back by itself;
   it is just slow.
 
-- **P8. Notifications are dead on installed Golems** (deep debug
-  2026-09-30). `services.options-notify.enable` is set only in the fat
-  golemModules; golem-desktop and the bake import the module but never enable
-  it → no `org.freedesktop.Notifications` on the session bus → notify-send,
-  browser and app alerts vanish silently (waverunner warned about it at every
-  start). Fix: enable in golem-desktop + bake (no KDE Connect); desktop-matrix
-  assert. Parity now checks `notify`.
-- **P9. The file-opening apps never landed in the Modular desktop.** No
-  Nautilus, Loupe, Papers, Text Editor or File Roller on an install
-  (golem-apps.nix is fat-only; desktop/default.nix lists `apps.nix` as still
-  to land). Every `mimeapps` default points at a missing app: "open folder"
-  resolves to the `lf` stub the debloat left without an Exec (DEAD), images
-  and PDFs to whatever browser got installed or nothing, text to `nvim.desktop`
-  (Terminal=true) with `TERMINAL` unset and no xdg-terminal-exec. Also 0 GIO
-  modules (no gvfs) and no gsettings: Nautilus trash/mounts won't work once
-  shipped (`session.nix` also still to land). Fix: desktop/apps.nix (the core
-  tier), desktop/session.nix (gvfs, dconf, udisks2), `hl.env TERMINAL=foot`,
-  hideCopy for lf. Parity now checks every default handler.
-- **P10. The self-update loop has nothing to pull.** The installer seeds a
-  plain copy (`cp -a`), not a git clone; golem-autoupdate exits 0 with "seed
-  has no upstream — correct no-op until Golem has an upstream" (it has one
-  now). `config-revision` = unknown, so a machine cannot name the Golem it
-  runs. The timer fired once per machine (first boot, a condition failed
-  then) and daily since. Decide: installs track `github:maxpoww/Golem` main
-  (or a release branch); the seed becomes a clone with the machine files
-  untracked; the build carries the revision.
-- **P11. Nothing on idle.** No hypridle/hyprlock/swayidle on any machine: the
-  screen never dims, locks or sleeps on idle (lid close → suspend-then-
-  hibernate works). Battery and security on a laptop. Decision.
-- **P12. The shell split.** Golem's owner shell is bash (#108) but the home
-  layer's shell config is zsh (starship, zoxide, aliases, `EDITOR=nvim` in
-  .zshenv, and the OPTIONS app-bridge hooks that feed the Brain the
-  terminal's activity). On an install: `EDITOR=nano`, a bare prompt, and the
-  Brain never hears from the terminal. Decision: port the bridge + prompt to
-  bash, or make zsh the shell.
-- **P13. The MacBook's battery data is garbage** (SMC: capacity 1%, status
-  Full, charge_full 8.6× design; upower says 0.2%). The engine reads
-  `capacity`, so on battery it would offer "plug in" at once and the gear
-  readout says 1%. Guard: charge_full ≤ 1.2× design or treat as unknown.
-- **P14. ThinkPad boot 66 s** (19 s firmware, 4 s loader, 18.7 s initrd,
-  23 s userspace; the login waits for network.target and NetworkManager took
-  5.4 s). Mostly the external USB SSD; the MacBook boots in 22 s. Decide
-  whether the greeter should wait for the network at all.
-- Cosmetic: dbus-broker logs "Ignoring duplicate name" ×12 at error level on
-  every boot (NixOS lists the system path and the package); blueman's
-  GameControllerWakelock warning.
-- Dev box only: i915 `drm_WARN_ON(tc->mode == TC_PORT_LEGACY)` ×20 per boot
-  (Alder Lake TC port, nvidia-tainted kernel); disk 86% full (730/904 GB);
-  coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2, hyprsunset 2.
+- Cosmetic (still open): dbus-broker logs "Ignoring duplicate name" ×12 at
+  error level on every boot (NixOS lists the system path and the package);
+  blueman's GameControllerWakelock warning.
+- Dev box only (still open): i915 `drm_WARN_ON(tc->mode == TC_PORT_LEGACY)`
+  ×20 per boot (Alder Lake TC port, nvidia-tainted kernel); disk 86% full
+  (730/904 GB); coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2,
+  hyprsunset 2.
+- **P14 → measured, no Golem-side cause** (2026-09-30): ThinkPad 66 s =
+  19 s firmware (incl. the manual boot-menu pick of the external drive) +
+  4 s loader + 18.7 s initrd + 23 s userspace; the initrd is the USB SSD's
+  enumeration, userspace's chain ends in NetworkManager (5.4 s) because the
+  login waits for network.target (systemd's default; left alone: safe, 5 s).
+  MacBook 22 s. Nothing to fix in Golem.
 
 ### Deep debug 2026-09-30: verified OK (no finding)
 
@@ -158,3 +122,11 @@ on either laptop.
 | 2026-09-30 | Lenovo: fast Super+Space froze the dock 1-12 s (worst while the settings panel animated): a saturated iGPU made Vulkan's acquire wait on the event loop | waverunner e78c4fa: GPU pacing on every hardware backend; e964df8: each surface drawn at the output's real fractional scale (Lenovo GPU 74% → 66%, identical look). 60 overlapping presses: worst 13 ms |
 | 2026-09-30 | P3 closed: titlebars' straight top edge didn't apply on the laptops (stock Hyprland lacked the square-top patch) | Golem ships the dev box's 4 Hyprland patches (desktop/hyprland-overlay.nix: square-top, vfr-hold, swipe-one-empty, gesture crash fix); waveview is compiled against the same overlay (identical drv); desktop-matrix asserts the patch + ABI match; swipe-one-empty config ported |
 | 2026-09-30 | (deep debug) P5's "auth needed" was my ssh login being chosen as the display session | closed as an artifact; golem-deep prints the sessions it saw |
+| 2026-09-30 | P8 notifications dead on installs | services.options-notify.enable on golem-desktop + the bake (+ matrix); libnotify; parity `notify` check. Verified: a card posted through the bus on the MacBook |
+| 2026-09-30 | P9 no file-opening apps; "open folder" dead; text files could not open | desktop/apps.nix (golem-apps.nix core), desktop/session.nix (gvfs, dconf, udisks2, gsettings), TERMINAL/EDITOR/VISUAL in the session env + bashrc, xdg-terminal-exec → foot, lf keeps its Exec. Verified: Nautilus opens a folder, Text Editor a text file; defaults resolve on both laptops |
+| 2026-09-30 | P10 the update loop had no upstream; config-revision unknown | base/seed.nix: golem.upstream + golem-seed-adopt (first-boot and autoupdate). Verified on both laptops: the seed is a checkout of origin/main with the machine files staged, config-revision names the commit, `golem-autoupdate` answers "already up to date", and a real pull + rebuild delivered the next commit |
+| 2026-09-30 | P11 nothing on idle | hypridle (lock 5 min, screen off 6, suspend 15) + hyprlock + PAM + Super+L. Verified: hypridle active on both; the lock itself is Max's to try (Super+L) |
+| 2026-09-30 | P12 bash without prompt, EDITOR or the OPTIONS bridge | home/bash.nix: starship/zoxide/fzf integrations, exports, the bridge ported (bash-preexec + socat). Verified: hooks defined, starship on, bridge socket present |
+| 2026-09-30 | P13 the MacBook's garbage battery gauge | waverunner edd18c9: a self-contradicting gauge reads as no battery (tests carry the MacBook's exact values) |
+| 2026-09-30 | (found by P10's first real pull) autoupdate ran `git pull` as root and left root-owned files in the owner's checkout; the owner's next pull failed | every git write into the checkout runs as the owner (runuser): autoupdate, golem-seed-adopt, waverunner-apply, postinstall |
+| 2026-09-30 | (found by P11 going live) `loginctl lock-session` is refused for Golem's greeter-class session ("Session does not support lock screen"): the 5-min lock never happened | the idle lock, the pre-sleep lock and Super+L call hyprlock directly; desktop-matrix refuses any lock-session in the idle config or keymap |
