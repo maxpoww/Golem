@@ -177,6 +177,10 @@ let
           (c.home-manager.users.${owner}.services.hypridle.enable
            && c.home-manager.users.${owner}.programs.hyprlock.enable
            && (c.security.pam.services ? hyprlock)))
+        (ex "P11: the screen's power goes by action (a bare dpms string toggles), and input wakes it"
+          (!(lib.hasInfix "dsp.dpms(\"" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
+           && lib.hasInfix "golem-dpms" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings)
+           && lib.hasInfix "key_press_enables_dpms   = true" (luaOf c)))
         (ex "P11: the lock never goes through loginctl (a greeter-class session refuses it)"
           (!(lib.hasInfix "lock-session" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
            && !(lib.hasInfix "lock-session" (luaOf c))))

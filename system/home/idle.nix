@@ -4,8 +4,8 @@
 #
 #   5 min   lock (hyprlock, called directly: see `lock` below; unlock with the
 #           owner's password)
-#   6 min   screen off (the compositor's dpms, through Hyprland's Lua dispatch:
-#           `hyprctl dispatch dpms off` does NOT exist on Golem's Hyprland)
+#   6 min   screen off (the compositor's dpms through Hyprland's Lua dispatch,
+#           golem-dpms below; `hyprctl dispatch dpms off` does NOT exist here)
 #   15 min  suspend (the lid does suspend-then-hibernate on its own, base/power)
 #
 # A video, a call or anything that takes a systemd idle inhibitor keeps all
@@ -16,10 +16,20 @@
 # golem.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
-{ config, ... }:
+{ config, pkgs, ... }:
 
 let
-  dpms = state: ''hyprctl dispatch 'hl.dsp.dpms("${state}")' '';
+  # The display's power by ACTION: Golem's Hyprland takes
+  # hl.dsp.dpms({ action = "on" | "off" | "toggle" }). A bare string is IGNORED
+  # and the call TOGGLES: after a wake-up the screen was already on, the "on"
+  # turned it off, and both laptops woke to a dark screen with the keyboard
+  # alive (2026-09-30; the first test, off then on, could not tell the two
+  # apart). A script, not an inline command: hypridle's config language
+  # would read the braces.
+  golemDpms = pkgs.writeShellScript "golem-dpms" ''
+    exec hyprctl dispatch "hl.dsp.dpms({ action = \"$1\" })"
+  '';
+  dpms = state: "${golemDpms} ${state}";
   # hyprlock DIRECTLY, never `loginctl lock-session`: Golem's session is
   # greeter-class (greetd's default_session) and logind answers "Session does
   # not support lock screen" (seen live on the MacBook, 2026-09-30: the 5-min

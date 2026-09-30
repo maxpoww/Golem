@@ -273,6 +273,11 @@ hl.config({
         force_default_wallpaper = 0,
         disable_hyprland_logo   = true,
         disable_splash_rendering = true,
+        -- Any key or pointer motion wakes a display that is off, whatever
+        -- turned it off: the safety net under hypridle's own screen-on (which
+        -- once toggled the screen OFF on a wake-up, 2026-09-30).
+        key_press_enables_dpms   = true,
+        mouse_move_enables_dpms  = true,
     },
 })
 hl.config({
