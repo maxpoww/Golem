@@ -80,6 +80,7 @@
 
     git
     xdg-terminal-exec # a .desktop entry with Terminal=true opens in the terminal below
+    libnotify         # notify-send: the standard way a script or app posts a notification
   ];
 
   # Which terminal a Terminal=true entry (nvim.desktop, …) opens in.

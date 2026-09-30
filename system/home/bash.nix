@@ -19,6 +19,10 @@
     # the one-line send, in a subshell so the prompt never waits and no job
     # notice is printed. Silent and best-effort: no socket, nothing happens.
     initExtra = lib.mkAfter ''
+      # For every interactive shell, login or not: NixOS's own
+      # /etc/set-environment says EDITOR=nano first, and home.sessionVariables
+      # below only reach login shells (~/.profile).
+      export EDITOR=nvim VISUAL=nvim TERMINAL=foot
       source ${pkgs.bash-preexec}/share/bash/bash-preexec.sh
       _golem_bridge_last=""
       _golem_bridge_send() {
