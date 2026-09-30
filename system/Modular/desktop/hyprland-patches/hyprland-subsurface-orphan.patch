@@ -1,0 +1,49 @@
+--- a/src/protocols/core/Compositor.cpp
++++ b/src/protocols/core/Compositor.cpp
+@@ -618,7 +618,9 @@
+     auto parent = m_self;
+     if (parent->m_role->role() == SURFACE_ROLE_SUBSURFACE) {
+         auto subsurface = sc<CSubsurfaceRole*>(parent->m_role.get())->m_subsurface.lock();
+-        parent          = subsurface->t1Parent();
++        auto t1         = subsurface ? subsurface->t1Parent() : nullptr;
++        if (t1)
++            parent = t1;
+     }
+     WP<CMonitor> monitor;
+     if (parent->m_enteredOutputs.size() == 1)
+--- a/src/protocols/core/Subcompositor.cpp
++++ b/src/protocols/core/Subcompositor.cpp
+@@ -127,9 +127,15 @@
+     // surfaces we've visited and if we hit a surface we've visited we bail out.
+     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
+ 
+-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
++    // a client torn down with its tree still mapped (killed, crashed) can leave a
++    // subsurface unmapping after its parent, or the parent's subsurface, is
++    // already gone. The walk ends at the first dead link.
++    while (surf && surf->m_role && surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
++           std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+         surfacesVisited.emplace_back(surf);
+         auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
++        if (!subsurface)
++            break;
+         pos += subsurface->m_position;
+         surf = subsurface->m_parent.lock();
+     }
+@@ -144,10 +150,14 @@
+     SP<CWLSurfaceResource>              surf = m_parent.lock();
+     std::vector<SP<CWLSurfaceResource>> surfacesVisited;
+ 
+-    while (surf->m_role->role() == SURFACE_ROLE_SUBSURFACE && std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
++    // same dead links as posRelativeToParent; may return null
++    while (surf && surf->m_role && surf->m_role->role() == SURFACE_ROLE_SUBSURFACE &&
++           std::ranges::find_if(surfacesVisited, [surf](const auto& other) { return surf == other; }) == surfacesVisited.end()) {
+         surfacesVisited.emplace_back(surf);
+         auto subsurface = sc<CSubsurfaceRole*>(m_parent->m_role.get())->m_subsurface.lock();
+-        surf            = subsurface->m_parent.lock();
++        if (!subsurface)
++            return nullptr;
++        surf = subsurface->m_parent.lock();
+     }
+     return surf;
+ }

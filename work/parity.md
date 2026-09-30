@@ -38,21 +38,31 @@ failed units, and menubox launchers that run nothing.
 - **P2. Window opacity + direct scanout.** Golem ships opaque windows and
   direct scanout (2026-09-02 perf pass for weak GPUs). The dev box has 0.95
   and no scanout. Decide whether one look is right for both.
-- **P4. Webapps → Seam (IN PROGRESS 2026-09-30).** Installs showed 71 dead
-  webapp launchers (Chrome `--app`, and Golem ships no Chrome). Design, proven then
-  reviewed by max-79: a webapp is Firefox 157's own web-app window (Taskbar Tabs,
-  Linux branch: `taskbartabclass` = the Wayland class `webapp-<slug>` = the launcher's
-  id) inside the one running Seam: `seam -golem-app <slug> <url>`.
-  - LANDED: the Seam half (ee7db99, seam/golem-chrome.js WEBAPPS, 19-check
-    webapps-selftest.sh + selftest.sh green). Dormant until the dock sends the flag.
-  - WAITING FOR MAX: the dock half (launcher branch webapps-on-seam, 6bffa98 +
-    4b70533, not pushed: the launcher's rule is no push without Max). Then Golem:
-    bump waverunner, seed the catalog on installs, drop the Chrome extension, and
-    /etc/nixos/home.nix loses its own seedWebappsList (the same key, it would clash).
-  - LIVE CHECKS on a laptop (both were idle-suspended): remote relaunch, class/title
-    in Hyprland, OAuth popup class, no double bar floating, the prompt strip's
-    contents, a real Messenger notification off-workspace, Ctrl+W closes only the
-    webapp, relaunch from another workspace brings it.
+- **P4 → DONE on the dev box 2026-09-30: webapps run in Seam; no other
+  browser.** A webapp is Firefox 157's own web-app window (Taskbar Tabs, Linux
+  branch: `taskbartabclass` = the Wayland class `webapp-<slug>` = the launcher's
+  id) inside the one running Seam: `seam -golem-app <slug> <url>` (seam/golem-chrome.js
+  WEBAPPS, ee7db99; the dock half is waverunner 6bffa98 + 4b70533). Chrome, Chromium
+  and Edge are gone from the dev box (backups in `~/.cache/golem-p1/`); mailto → Seam.
+  - Verified on the dev box, all 71 catalog entries (`~/.cache/golem-webapp-tests/`,
+    run.py + results.json + a screenshot each): a window in 0.3–0.7 s, its own class,
+    floating with its title bar, in the ONE Seam process, the site's real title,
+    a relaunch focuses the same window (never a second), and the copy-link report
+    names the page. Four sites move to another domain by themselves (Hulu → Disney+,
+    Skype → Teams, mega.nz → mega.io, notion.so → notion.com); the report follows.
+  - Title bars on webapps (Max: "mimic the color of the window and feel like one
+    thing"): the bar sampled only the toplevel surface, which Firefox leaves as a
+    hole under the page (the page is a subsurface), and never re-sampled on the
+    page's own commits → waveview 1.83 composites the whole surface tree and
+    listens to subsurface commits; the square-top patch also squares a subsurface
+    that IS the window's top edge (7082820); userChrome dropped the 1px separator
+    under the bar in webapp windows (b2f4dbb). Verified nested: bar = page colour,
+    one straight seam. Live on the dev box at the next login (plugin + compositor
+    load together).
+  - Not yet exercised: an OAuth popup's class, a real Messenger notification from
+    another workspace, Ctrl+W in a webapp, each site's own sign-in (one-time:
+    WhatsApp's QR, Google, …), Spotify's DRM prompt. The laptops follow on their
+    next autoupdate (they were off).
   - Decision for Max: webapps do not reopen when Seam restarts (Firefox never saves
     a web-app window; Chrome's app windows did not come back either).
   Found on the way (dock, fixed in 6bffa98/4b70533): Seam was missing from every
@@ -159,4 +169,5 @@ on either laptop.
 | 2026-09-30 | (P11 live) both laptops woke to a dark screen, keyboard alive: `hl.dsp.dpms("on")` ignores the string and TOGGLES, so after a wake the "on" turned the already-on screen off and every later call ran out of phase | hypridle runs golem-dpms (`hl.dsp.dpms({ action = ... })`, idempotent, proven on the MacBook); misc key_press/mouse_move_enables_dpms as the safety net; desktop-matrix refuses the string form (970553d, deployed to both laptops) |
 | 2026-09-30 | (P11, my deploy) both laptops FROZE on the lock screen (last frame, clock only, no input unlocked): hypridle started hyprlock as its own child, and the switch that shipped the dpms fix restarted hypridle while locked; systemd killed hyprlock with hypridle.service, and Hyprland keeps a session locked when its lock client dies. A user would hit it on any `switch` while locked (dock installs use switch) | recovered live, no session lost (allow_session_lock_restore + a hyprlock from the compositor). d191956: golem-lock launches hyprlock from the COMPOSITOR (never a service's child); allow_session_lock_restore = true; Super+L is a locked bind (brings a live lock back). Verified on both: hypridle restarted while locked, the lock screen survives |
 | 2026-09-30 | (P9, mine) fcitx5 ran in EVERY session on the installs: desktop/apps.nix imported golem-apps.nix for the file apps and its input method came along; every keystroke went through fcitx5 (the MacBook's main keyboard became its virtual keyboard), it sat in the Apps grid, and no lock-screen password matched while it ran; the dev box would have started it at its next login (P1) | d99c6f0: the desktop's apps come without an IME (desktop/ime.nix is still Max's call); desktop-matrix refuses one. Deployed to both laptops and the dev box |
+| 2026-09-30 | (P4, nested test) the compositor SEGVs when a client dies with its subsurface tree still mapped: SIGKILL Seam with WhatsApp open and Hyprland died in `CWLSubsurfaceResource::posRelativeToParent` (upstream 0.55.4 walks a dead parent; 2 of 3 kills with waveview loaded, 0 of 4 without) | hyprland-subsurface-orphan.patch: the walk (and its twin t1Parent + caller) stops at the first dead link |
 | 2026-09-30 | the "frozen lock" root cause, settled: a lock is only established once a frame reaches the screen. The dpms toggle bug left Hyprland believing the ThinkPad's panel was on while DRM had disabled it, so no frame ever came (lock never finished, unlock refused, clock frozen); only a session restart recovered. In a clean session with the fixes, the idle lock (via the compositor) → screen off → screen on → lock established → unlock worked (ThinkPad, 01:0x) | the fixes above; no stale dpms state can arise now |

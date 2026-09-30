@@ -158,6 +158,10 @@ let
         (ex "real desktop: Hyprland carries the square-top titlebar patch"
           (lib.any (p: lib.hasSuffix "hyprland-window-square-top.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))
+        # A browser killed with a webapp open took the whole session down (P4).
+        (ex "real desktop: Hyprland survives a client dying with its subsurfaces mapped"
+          (lib.any (p: lib.hasSuffix "hyprland-subsurface-orphan.patch" (toString p))
+            (c.programs.hyprland.package.patches or [ ])))
         (ex "real desktop: waveview is built against the desktop's own Hyprland (ABI)"
           (lib.any (d: (d.drvPath or "") == c.programs.hyprland.package.drvPath)
             (waveview.buildInputs ++ waveview.nativeBuildInputs)))

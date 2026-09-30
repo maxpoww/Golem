@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus four patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus five patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -13,6 +13,12 @@
 #
 #   gesture-null-deref    upstream SEGV when libinput morphs a swipe into a
 #                         pinch (ITrackpadGesture::distance). Drop once fixed
+#                         upstream.
+#   subsurface-orphan     upstream SEGV when a client dies with its subsurface
+#                         tree mapped (CWLSubsurfaceResource::posRelativeToParent
+#                         walked a dead parent): SIGKILL a Seam webapp window
+#                         and the whole session went with it (2026-09-30). The
+#                         walk stops at the first dead link. Drop once fixed
 #                         upstream.
 #   vfr-hold              misc:vfr_hold_ms (default 2000, baked into the
 #                         patch): keeps the frame clock alive after damage on
@@ -35,6 +41,7 @@ final: prev: {
   hyprland = prev.hyprland.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       ./hyprland-patches/hyprland-gesture-null-deref.patch
+      ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch
