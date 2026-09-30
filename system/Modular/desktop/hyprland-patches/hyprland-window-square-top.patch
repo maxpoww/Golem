@@ -17,9 +17,9 @@ index a1fc209..def7875 100644
          roundingPower = 2.0f;
      }
  
-+    // Square top corners for the window's MAIN surface only: a popup or a
-+    // subsurface is its own quad, and squaring its top would square a menu.
-+    const bool SQUARE_TOP = m_data.squareTop && m_data.mainSurface && !m_data.popup && rounding > 0;
++    // Square top corners for the main surface, and for a subsurface that IS the window's top edge (at y 0,
++    // full width: a browser's page, 2026-09-30); a popup or a menu-like subsurface keeps its own rounded quad.
++    const bool SQUARE_TOP = m_data.squareTop && !m_data.popup && rounding > 0 && (m_data.mainSurface || (m_data.pWindow && m_data.surface && m_data.localPos.y < 0.5 && m_data.pWindow->wlSurface() && m_data.pWindow->wlSurface()->resource() && m_data.surface->m_current.size.x + 1.0 >= m_data.pWindow->wlSurface()->resource()->m_current.size.x));
 +
      const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
      const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding <= 0 && WINDOWOPAQUE;
