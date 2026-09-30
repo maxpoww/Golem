@@ -327,7 +327,7 @@ hl.config({
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'")) -- the lock screen, directly (logind refuses lock-session for a greeter-class session; home/idle.nix)
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'")) -- the lock screen, called directly: logind refuses to lock a greeter-class session (home/idle.nix)
 hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd(Suspend))
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
