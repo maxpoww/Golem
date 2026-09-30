@@ -35,7 +35,17 @@ let
   # not support lock screen" (seen live on the MacBook, 2026-09-30: the 5-min
   # lock never happened, the 6-min screen-off did). hyprlock locks through
   # the compositor's own session-lock protocol, which needs no logind.
-  lock = "pidof hyprlock || hyprlock";
+  # The lock screen is the COMPOSITOR's child, never hypridle's. Started from
+  # hypridle it lived in hypridle.service's cgroup, so a home-manager switch
+  # that restarted hypridle while the screen was locked killed hyprlock with
+  # it; Hyprland keeps a session locked when its lock client dies, so both
+  # laptops froze on the lock screen's last frame, clock and all, and no
+  # input could unlock them (2026-09-30). Super+L launches it the same way.
+  golemLock = pkgs.writeShellScript "golem-lock" ''
+    pidof hyprlock >/dev/null && exit 0
+    exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
+  '';
+  lock = "${golemLock}";
 in
 {
   services.hypridle = {

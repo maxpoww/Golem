@@ -278,6 +278,9 @@ hl.config({
         -- once toggled the screen OFF on a wake-up, 2026-09-30).
         key_press_enables_dpms   = true,
         mouse_move_enables_dpms  = true,
+        -- A locked session whose lock screen died accepts a new one (Super+L,
+        -- or the next idle lock) instead of staying frozen until a relogin.
+        allow_session_lock_restore = true,
     },
 })
 hl.config({
@@ -332,7 +335,11 @@ hl.config({
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'")) -- the lock screen, called directly: logind refuses to lock a greeter-class session (home/idle.nix)
+-- The lock screen, called directly (logind refuses to lock a greeter-class
+-- session; home/idle.nix). `locked`: it also works on a locked session, so if
+-- the lock screen ever dies (the session stays locked, frozen on its last
+-- frame), Super+L brings a live one back (allow_session_lock_restore below).
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'"), { locked = true })
 hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd(Suspend))
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))

@@ -181,6 +181,11 @@ let
           (!(lib.hasInfix "dsp.dpms(\"" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
            && lib.hasInfix "golem-dpms" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings)
            && lib.hasInfix "key_press_enables_dpms   = true" (luaOf c)))
+        (ex "P11: the lock screen is the compositor's child, and a dead one can be replaced"
+          (let s = builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings; in
+           lib.hasInfix "golem-lock" s && !(lib.hasInfix "|| hyprlock" s)
+           && lib.hasInfix "allow_session_lock_restore = true" (luaOf c)
+           && lib.hasInfix "hyprlock'\"), { locked = true })" (luaOf c)))
         (ex "P11: the lock never goes through loginctl (a greeter-class session refuses it)"
           (!(lib.hasInfix "lock-session" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
            && !(lib.hasInfix "lock-session" (luaOf c))))
