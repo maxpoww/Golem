@@ -128,6 +128,15 @@ let
       luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       checks = [
+        # Golem's patched Hyprland (desktop/hyprland-overlay.nix): the titlebar's
+        # straight top edge needs square-top, and the waveview plugin must be
+        # compiled against the very same Hyprland (struct layouts differ).
+        (ex "real desktop: Hyprland carries the square-top titlebar patch"
+          (lib.any (p: lib.hasSuffix "hyprland-window-square-top.patch" (toString p))
+            (c.programs.hyprland.package.patches or [ ])))
+        (ex "real desktop: waveview is built against the desktop's own Hyprland (ABI)"
+          (lib.any (d: (d.drvPath or "") == c.programs.hyprland.package.drvPath)
+            (waveview.buildInputs ++ waveview.nativeBuildInputs)))
         (ex "real desktop: full effects by default (no light block)"
           (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"

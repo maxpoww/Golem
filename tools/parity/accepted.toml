@@ -11,8 +11,6 @@
 "render:direct_scanout"       = "Golem turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
 "input:kb_model"              = "the installer's keyboard answer (golem.keyboard.model) — per machine by design"
 "general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
-"gestures:workspace_swipe_one_empty" = "needs the dev box's PATCHED Hyprland (hyprland-workspace-swipe-one-empty.patch); Golem runs stock Hyprland. OPEN: parity.md P3"
-"misc:vfr_hold_ms"            = "needs the dev box's PATCHED Hyprland (vfr-hold.patch); Golem runs stock Hyprland. OPEN: parity.md P3"
 
 [bind]
 "main|-|XF86LaunchA"  = "MacBook F3 (Mission Control) → spread/overview: Golem binds the Mac keys for every MacBook; the dev box's Lenovo has none"

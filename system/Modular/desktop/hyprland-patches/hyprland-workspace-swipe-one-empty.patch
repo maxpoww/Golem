@@ -1,0 +1,69 @@
+--- a/src/config/values/ConfigValues.cpp
++++ b/src/config/values/ConfigValues.cpp
+@@ -385,6 +385,8 @@
+         MS<Int>("gestures:workspace_swipe_direction_lock_threshold", "in px, the distance to swipe before direction lock activates.", 10, {.min = 0, .max = 200}),
+         MS<Bool>("gestures:workspace_swipe_forever", "if enabled, swiping will not clamp at the neighboring workspaces but continue to the further ones.", false),
+         MS<Bool>("gestures:workspace_swipe_use_r", "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.", false),
++        MS<Bool>("gestures:workspace_swipe_one_empty",
++                 "if enabled, swiping from an occupied workspace steps to the raw neighbor (one empty workspace is reachable), while swiping from an empty workspace jumps to the nearest occupied one. Overrides workspace_swipe_use_r.", false),
+         MS<Int>("gestures:close_max_timeout", "Timeout for closing windows with the close gesture, in ms.", 1000, {.min = 10, .max = 2000}),
+         MS<Bool>("gestures:scrolling:move_snap_to_grid", "When releasing the scroll move gesture, whether it shoud try to snap to the grid.", true),
+         MS<Bool>("gestures:scrolling:move_snap_cursor", "When releasing the scroll move gesture, whether it shoud snap the cursor to the newly focused window.", true),
+--- a/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
++++ b/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
+@@ -30,6 +30,29 @@
+     }
+ }
+ 
++// One-empty swipe targets (gestures:workspace_swipe_one_empty): from an
++// occupied workspace the swipe steps to the raw neighbor, so a single empty
++// workspace is always reachable — but from an empty workspace it jumps
++// straight to the nearest occupied one in that direction. Returns the current
++// workspace id when there is nothing further in that direction; the existing
++// delta clamps treat that as the end of the strip.
++static WORKSPACEID oneEmptySwipeTarget(const PHLWORKSPACE& current, const PHLMONITOR& monitor, int dir) {
++    if (current->getWindows() > 0)
++        return getWorkspaceIDNameFromString(dir > 0 ? "r+1" : "r-1").id;
++
++    WORKSPACEID nearest = WORKSPACE_INVALID;
++    for (auto const& w : g_pCompositor->getWorkspaces()) {
++        if (w->m_monitor != monitor || g_pCompositor->isWorkspaceSpecial(w->m_id) || w->getWindows() == 0)
++            continue;
++        if (dir > 0 ? w->m_id <= current->m_id : w->m_id >= current->m_id)
++            continue;
++        if (nearest == WORKSPACE_INVALID || (dir > 0 ? w->m_id < nearest : w->m_id > nearest))
++            nearest = w->m_id;
++    }
++
++    return nearest == WORKSPACE_INVALID ? current->m_id : nearest;
++}
++
+ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
+     if (!isGestureInProgress())
+         return;
+@@ -53,8 +76,10 @@
+     m_avgSpeed = (m_avgSpeed * m_speedPoints + abs(d)) / (m_speedPoints + 1);
+     m_speedPoints++;
+ 
+-    auto workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
+-    auto workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
++    static auto  PSWIPEONEEMPTY         = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_one_empty");
++
++    auto workspaceIDLeft  = *PSWIPEONEEMPTY ? oneEmptySwipeTarget(m_workspaceBegin, m_monitor.lock(), -1) : getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
++    auto workspaceIDRight = *PSWIPEONEEMPTY ? oneEmptySwipeTarget(m_workspaceBegin, m_monitor.lock(), +1) : getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
+ 
+     if ((workspaceIDLeft == WORKSPACE_INVALID || workspaceIDRight == WORKSPACE_INVALID || workspaceIDLeft == m_workspaceBegin->m_id) && !*PSWIPENEW) {
+         m_workspaceBegin = nullptr; // invalidate the swipe
+@@ -189,8 +214,10 @@
+     const bool  VERTANIMS     = ANIMSTYLE == "slidevert" || ANIMSTYLE.starts_with("slidefadevert");
+ 
+     // commit
+-    auto       workspaceIDLeft  = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
+-    auto       workspaceIDRight = getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
++    static auto PSWIPEONEEMPTY = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_one_empty");
++
++    auto       workspaceIDLeft  = *PSWIPEONEEMPTY ? oneEmptySwipeTarget(m_workspaceBegin, m_monitor.lock(), -1) : getWorkspaceIDNameFromString((*PSWIPEUSER ? "r-1" : "m-1")).id;
++    auto       workspaceIDRight = *PSWIPEONEEMPTY ? oneEmptySwipeTarget(m_workspaceBegin, m_monitor.lock(), +1) : getWorkspaceIDNameFromString((*PSWIPEUSER ? "r+1" : "m+1")).id;
+     const auto SWIPEDISTANCE    = std::clamp(*PSWIPEDIST, sc<int64_t>(1LL), sc<int64_t>(UINT32_MAX));
+ 
+     // If we've been swiping off the right end with PSWIPENEW enabled, there is

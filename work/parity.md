@@ -34,10 +34,6 @@ failed units, and menubox launchers that run nothing.
 - **P2. Window opacity + direct scanout.** Golem ships opaque windows and
   direct scanout (2026-09-02 perf pass for weak GPUs). The dev box has 0.95
   and no scanout. Decide whether one look is right for both.
-- **P3. Golem runs stock Hyprland.** The dev box's patched build adds
-  swipe-one-empty, vfr-hold (VRR flicker), square-top (titlebar seam) and the
-  gesture-crash fix. Golem has none of them. Ship the patch overlay in the
-  distro, which also locks the waveview plugin ABI to Golem's Hyprland.
 - **P4. 71 dead webapp launchers** (`google-chrome-stable`) on machines seeded
   before the debloat (thinkpad, macbook). Fresh installs don't seed them. They
   go away with the webapps-to-Seam move, or with a one-time cleanup of
@@ -98,3 +94,4 @@ failed units, and menubox launchers that run nothing.
 | 2026-09-29 | MacBook YouTube choppy: the 3D engine at 98% during playback (decode itself fine, 15% of the video engine) | `golem.desktop.effects = "light"` from gpu/intel-legacy → compositor blur off (98% → 81-85%); desktop-matrix asserts it |
 | 2026-09-29 | Seam pinned a 1 GB memory cache + 12 live back/forward pages (dev box tuning) on every machine; the 4 GB MacBook swapped during video | Seam sizes both from MemTotal (golem-chrome.js PER-MACHINE MEMORY): ≥24 GB keeps the dev box values, <12 GB gets Firefox's RAM-scaled defaults; selftest ALL PASS |
 | 2026-09-30 | Lenovo: fast Super+Space froze the dock 1-12 s (worst while the settings panel animated): a saturated iGPU made Vulkan's acquire wait on the event loop | waverunner e78c4fa: GPU pacing on every hardware backend; e964df8: each surface drawn at the output's real fractional scale (Lenovo GPU 74% → 66%, identical look). 60 overlapping presses: worst 13 ms |
+| 2026-09-30 | P3 closed: titlebars' straight top edge didn't apply on the laptops (stock Hyprland lacked the square-top patch) | Golem ships the dev box's 4 Hyprland patches (desktop/hyprland-overlay.nix: square-top, vfr-hold, swipe-one-empty, gesture crash fix); waveview is compiled against the same overlay (identical drv); desktop-matrix asserts the patch + ABI match; swipe-one-empty config ported |

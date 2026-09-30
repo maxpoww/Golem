@@ -1,0 +1,309 @@
+diff --git a/src/render/ElementRenderer.cpp b/src/render/ElementRenderer.cpp
+index a1fc209..def7875 100644
+--- a/src/render/ElementRenderer.cpp
++++ b/src/render/ElementRenderer.cpp
+@@ -166,6 +166,10 @@ void IElementRenderer::drawRect(WP<CRectPassElement> element, const CRegion& dam
+     m_renderData.renderModif.applyToBox(data.modifiedBox);
+ 
+     CBox transformedBox = data.box;
++    if (data.squareTop) { // the GL path's squareTopRoundingBox, for the cached uniforms
++        transformedBox.y -= 2.0 * data.round;
++        transformedBox.h += 2.0 * data.round;
++    }
+     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                              m_renderData.pMonitor->m_transformedSize.y);
+ 
+@@ -285,6 +289,10 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
+         roundingPower = 2.0f;
+     }
+ 
++    // Square top corners for the window's MAIN surface only: a popup or a
++    // subsurface is its own quad, and squaring its top would square a menu.
++    const bool SQUARE_TOP = m_data.squareTop && m_data.mainSurface && !m_data.popup && rounding > 0;
++
+     const bool WINDOWOPAQUE    = m_data.pWindow && m_data.pWindow->wlSurface()->resource() == m_data.surface ? m_data.pWindow->opaque() : false;
+     const bool CANDISABLEBLEND = ALPHA >= 1.f && OVERALL_ALPHA >= 1.f && rounding <= 0 && WINDOWOPAQUE;
+ 
+@@ -314,6 +322,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
+                             .discardOpacity        = m_data.discardOpacity,
+                             .clipRegion            = clipRegion,
+                             .currentLS             = m_data.pLS,
++                            .squareTop             = SQUARE_TOP,
+                         }),
+                         m_renderData.damage.copy().intersect(windowBox));
+         else
+@@ -330,6 +339,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
+                             .discardOpacity = m_data.discardOpacity,
+                             .clipRegion     = clipRegion,
+                             .currentLS      = m_data.pLS,
++                            .squareTop      = SQUARE_TOP,
+                         }),
+                         m_renderData.damage.copy().intersect(windowBox));
+     } else {
+@@ -350,6 +360,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
+                             .discardOpacity        = m_data.discardOpacity,
+                             .clipRegion            = clipRegion,
+                             .currentLS             = m_data.pLS,
++                            .squareTop             = SQUARE_TOP,
+                         }),
+                         m_renderData.damage.copy().intersect(windowBox));
+         else
+@@ -366,6 +377,7 @@ void IElementRenderer::drawSurface(WP<CSurfacePassElement> element, const CRegio
+                             .discardOpacity = m_data.discardOpacity,
+                             .clipRegion     = clipRegion,
+                             .currentLS      = m_data.pLS,
++                            .squareTop      = SQUARE_TOP,
+                         }),
+                         m_renderData.damage.copy().intersect(windowBox));
+     }
+diff --git a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
+index 40ac0cb..2d72f30 100644
+--- a/src/render/OpenGL.cpp
++++ b/src/render/OpenGL.cpp
+@@ -1040,6 +1040,19 @@ void CHyprOpenGLImpl::scissor(const int x, const int y, const int w, const int h
+     scissor(box, transform);
+ }
+ 
++// Square a box's top two corners in the rounding shaders without touching the
++// quad: the shader carves its arcs at the corners of the box it is handed as
++// topLeft/fullSize, so pushing that box's top edge up by twice the radius puts
++// the two top arcs above the quad — nothing of them is drawn — while the two
++// bottom arcs stay exactly where they were. Applied BEFORE the output transform,
++// so "up" is the window's top on any rotation. (Used by windows tagged
++// `square-top`: a titlebar decoration continuing the frame flat across the seam.)
++static CBox squareTopRoundingBox(CBox box, float radius) {
++    box.y -= 2.F * radius;
++    box.h += 2.F * radius;
++    return box;
++}
++
+ void CHyprOpenGLImpl::renderRect(const CBox& box, const CHyprColor& col, SRectRenderData data) {
+     if (!data.damage)
+         data.damage = &g_pHyprRenderer->m_renderData.damage;
+@@ -1092,7 +1105,7 @@ void CHyprOpenGLImpl::renderRectWithDamageInternal(const CBox& box, const CHyprC
+     shader->setUniformFloat4(SHADER_COLOR, converted.r, converted.g, converted.b, converted.a);
+     shader->setUniformFloat4(SHADER_COLOR_SRGB, premultiplied.r, premultiplied.g, premultiplied.b, premultiplied.a);
+ 
+-    CBox transformedBox = box;
++    CBox transformedBox = data.squareTop ? squareTopRoundingBox(box, data.round) : box;
+     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                              m_renderData.pMonitor->m_transformedSize.y);
+ 
+@@ -1420,7 +1433,7 @@ WP<CShader> CHyprOpenGLImpl::renderToFBInternal(SP<ITexture> tex, const STexture
+         shader->setUniformInt(SHADER_DISCARD_ALPHA, 0);
+     }
+ 
+-    CBox transformedBox = newBox;
++    CBox transformedBox = data.squareTop ? squareTopRoundingBox(newBox, data.round) : newBox;
+     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                              m_renderData.pMonitor->m_transformedSize.y);
+ 
+@@ -1979,6 +1992,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
+                               .currentLS                   = data.currentLS,
+                               .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+                               .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
++                              .squareTop                   = data.squareTop,
+                           }); // discard opaque and alpha < discardOpacity
+ 
+             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+@@ -2023,6 +2037,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
+ 
+                                   .primarySurfaceUVTopLeft     = monitorSpaceBox.pos() / m_renderData.pMonitor->m_transformedSize,
+                                   .primarySurfaceUVBottomRight = (monitorSpaceBox.pos() + monitorSpaceBox.size()) / m_renderData.pMonitor->m_transformedSize,
++                                  .squareTop                   = data.squareTop,
+                               });
+ 
+         g_pHyprRenderer->m_renderData.renderModif.enabled = renderModif;
+@@ -2054,6 +2069,7 @@ void CHyprOpenGLImpl::renderTextureWithBlurInternal(SP<ITexture> tex, const CBox
+ 
+                               .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+                               .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
++                              .squareTop                   = data.squareTop,
+                           });
+ 
+     GLFB(g_pHyprRenderer->m_renderData.currentFB)->invalidate({GL_STENCIL_ATTACHMENT});
+@@ -2109,7 +2125,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
+     shader->setUniformFloat(SHADER_ALPHA, data.a);
+     shader->setUniformInt(SHADER_GRADIENT2_LENGTH, 0);
+ 
+-    CBox transformedBox = newBox;
++    // Both arcs — the inner (`round`) and the outer (`outerRound`) — have to land
++    // above the quad, so the push takes the larger of the two.
++    CBox transformedBox = data.squareTop ? squareTopRoundingBox(newBox, std::max(round, data.outerRound == -1 ? round : sc<float>(data.outerRound))) : newBox;
+     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                              m_renderData.pMonitor->m_transformedSize.y);
+ 
+@@ -2198,7 +2216,9 @@ void CHyprOpenGLImpl::renderBorder(const CBox& box, const Config::CGradientValue
+     shader->setUniformFloat(SHADER_ALPHA, data.a);
+     shader->setUniformFloat(SHADER_GRADIENT_LERP, lerp);
+ 
+-    CBox transformedBox = newBox;
++    // Both arcs — the inner (`round`) and the outer (`outerRound`) — have to land
++    // above the quad, so the push takes the larger of the two.
++    CBox transformedBox = data.squareTop ? squareTopRoundingBox(newBox, std::max(round, data.outerRound == -1 ? round : sc<float>(data.outerRound))) : newBox;
+     transformedBox.transform(Math::wlTransformToHyprutils(Math::invertTransform(m_renderData.pMonitor->m_transform)), m_renderData.pMonitor->m_transformedSize.x,
+                              m_renderData.pMonitor->m_transformedSize.y);
+ 
+diff --git a/src/render/OpenGL.hpp b/src/render/OpenGL.hpp
+index 31d0488..d94fb98 100644
+--- a/src/render/OpenGL.hpp
++++ b/src/render/OpenGL.hpp
+@@ -154,6 +154,9 @@ namespace Render::GL {
+             bool           blur          = false;
+             float          blurA         = 1.F;
+             bool           xray          = false;
++            /// Render the two TOP corners square while the bottom two keep `round`
++            /// — see `squareTopRoundingBox` in OpenGL.cpp.
++            bool           squareTop     = false;
+         };
+ 
+         struct STextureRenderData {
+@@ -183,6 +186,7 @@ namespace Render::GL {
+ 
+             Vector2D               primarySurfaceUVTopLeft     = Vector2D(-1, -1);
+             Vector2D               primarySurfaceUVBottomRight = Vector2D(-1, -1);
++            bool                   squareTop                   = false; // see SRectRenderData::squareTop
+         };
+ 
+         struct SBorderRenderData {
+@@ -191,6 +195,7 @@ namespace Render::GL {
+             int   borderSize    = 1;
+             float a             = 1.0;
+             int   outerRound    = -1; /* use round */
++            bool  squareTop     = false; // see SRectRenderData::squareTop
+         };
+ 
+         void                           makeEGLCurrent();
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+index 5f62f0b..ce0afde 100644
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -593,6 +593,10 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
+     renderdata.decorate      = decorate && !pWindow->m_X11DoesntWantBorders && !pWindow->isEffectiveInternalFSMode(FSMODE_FULLSCREEN);
+     renderdata.rounding      = standalone || renderdata.dontRound ? 0 : pWindow->rounding() * pMonitor->m_scale;
+     renderdata.roundingPower = standalone || renderdata.dontRound ? 2.0f : pWindow->roundingPower();
++    // A window tagged `square-top` keeps its bottom rounding but renders its top two
++    // corners square — for a titlebar decoration that continues the frame flat across
++    // the seam. Decided here once; the pass elements carry it (surface, border, blur).
++    renderdata.squareTop     = renderdata.rounding > 0 && pWindow->m_ruleApplicator->m_tagKeeper.isTagged("square-top");
+     renderdata.blur          = !standalone && shouldBlur(pWindow);
+     renderdata.pWindow       = pWindow;
+ 
+@@ -672,6 +676,7 @@ void IHyprRenderer::renderWindow(PHLWINDOW pWindow, PHLMONITOR pMonitor, const T
+             data.color = CHyprColor(0, 0, 0, 0);
+             data.box   = wb;
+             data.round = renderdata.dontRound ? 0 : renderdata.rounding - 1;
++            data.squareTop = renderdata.squareTop;
+             data.blur  = true;
+             data.blurA = renderdata.fadeAlpha;
+             data.xray  = shouldUseNewBlurOptimizations(nullptr, pWindow);
+diff --git a/src/render/decorations/CHyprBorderDecoration.cpp b/src/render/decorations/CHyprBorderDecoration.cpp
+index 93565f1..458b8a5 100644
+--- a/src/render/decorations/CHyprBorderDecoration.cpp
++++ b/src/render/decorations/CHyprBorderDecoration.cpp
+@@ -4,6 +4,7 @@
+ #include "../../managers/eventLoop/EventLoopManager.hpp"
+ #include "../pass/BorderPassElement.hpp"
+ #include "../Renderer.hpp"
++#include "../../desktop/rule/windowRule/WindowRuleApplicator.hpp"
+ 
+ CHyprBorderDecoration::CHyprBorderDecoration(PHLWINDOW pWindow) : IHyprWindowDecoration(pWindow), m_window(pWindow) {
+     ;
+@@ -85,6 +86,7 @@ void CHyprBorderDecoration::draw(PHLMONITOR pMonitor, float const& a) {
+     data.a             = a;
+     data.borderSize    = borderSize;
+     data.window        = m_window;
++    data.squareTop     = ROUNDING > 0 && m_window->m_ruleApplicator->m_tagKeeper.isTagged("square-top"); // see renderWindow
+ 
+     if (ANIMATED) {
+         data.hasGrad2 = true;
+diff --git a/src/render/gl/GLElementRenderer.cpp b/src/render/gl/GLElementRenderer.cpp
+index 12eecb8..0b66e7b 100644
+--- a/src/render/gl/GLElementRenderer.cpp
++++ b/src/render/gl/GLElementRenderer.cpp
+@@ -12,11 +12,11 @@ void CGLElementRenderer::draw(WP<CBorderPassElement> element, const CRegion& dam
+     if (m_data.hasGrad2)
+         g_pHyprOpenGL->renderBorder(
+             m_data.box, m_data.grad1, m_data.grad2, m_data.lerp,
+-            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
++            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound, .squareTop = m_data.squareTop});
+     else
+         g_pHyprOpenGL->renderBorder(
+             m_data.box, m_data.grad1,
+-            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound});
++            {.round = m_data.round, .roundingPower = m_data.roundingPower, .borderSize = m_data.borderSize, .a = m_data.a, .outerRound = m_data.outerRound, .squareTop = m_data.squareTop});
+ };
+ 
+ void CGLElementRenderer::draw(WP<CClearPassElement> element, const CRegion& damage) {
+@@ -84,10 +84,10 @@ void CGLElementRenderer::draw(WP<CRectPassElement> element, const CRegion& damag
+     const auto& m_data = element->m_data;
+ 
+     if (m_data.color.a == 1.F || !m_data.blur)
+-        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower});
++        g_pHyprOpenGL->renderRect(m_data.box, m_data.color, {.damage = &damage, .round = m_data.round, .roundingPower = m_data.roundingPower, .squareTop = m_data.squareTop});
+     else
+         g_pHyprOpenGL->renderRect(m_data.box, m_data.color,
+-                                  {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray});
++                                  {.round = m_data.round, .roundingPower = m_data.roundingPower, .blur = true, .blurA = m_data.blurA, .xray = m_data.xray, .squareTop = m_data.squareTop});
+ };
+ 
+ void CGLElementRenderer::draw(WP<CShadowPassElement> element, const CRegion& damage) {
+@@ -129,6 +129,7 @@ void CGLElementRenderer::draw(WP<CTexPassElement> element, const CRegion& damage
+ 
+             .primarySurfaceUVTopLeft     = g_pHyprRenderer->m_renderData.primarySurfaceUVTopLeft,
+             .primarySurfaceUVBottomRight = g_pHyprRenderer->m_renderData.primarySurfaceUVBottomRight,
++            .squareTop                   = m_data.squareTop,
+         });
+ };
+ 
+diff --git a/src/render/pass/BorderPassElement.hpp b/src/render/pass/BorderPassElement.hpp
+index 80e9a9e..f183949 100644
+--- a/src/render/pass/BorderPassElement.hpp
++++ b/src/render/pass/BorderPassElement.hpp
+@@ -12,6 +12,7 @@ class CBorderPassElement : public IPassElement {
+         int                        round = 0, borderSize = 1, outerRound = -1;
+         float                      roundingPower = 2.F;
+         PHLWINDOWREF               window;
++        bool                       squareTop = false; // top corners square, bottom two keep `round`
+     };
+ 
+     CBorderPassElement(const SBorderData& data_);
+diff --git a/src/render/pass/RectPassElement.hpp b/src/render/pass/RectPassElement.hpp
+index a61ab15..047154a 100644
+--- a/src/render/pass/RectPassElement.hpp
++++ b/src/render/pass/RectPassElement.hpp
+@@ -12,6 +12,7 @@ class CRectPassElement : public IPassElement {
+         bool       blur = false, xray = false;
+         float      blurA = 1.F;
+         CBox       clipBox;
++        bool       squareTop = false; // top corners square, bottom two keep `round`
+ 
+         // internal
+         CBox    modifiedBox;
+diff --git a/src/render/pass/SurfacePassElement.hpp b/src/render/pass/SurfacePassElement.hpp
+index 26e1489..b590d23 100644
+--- a/src/render/pass/SurfacePassElement.hpp
++++ b/src/render/pass/SurfacePassElement.hpp
+@@ -50,6 +50,10 @@ class CSurfacePassElement : public IPassElement {
+         bool     useNearestNeighbor = false;
+ 
+         bool     flipEndFrame = false;
++
++        /// Render the top two corners square while the bottom two keep `rounding`
++        /// (the window is tagged `square-top`). Honoured for the main surface only.
++        bool     squareTop = false;
+     };
+ 
+     CSurfacePassElement(const SRenderData& data);
+diff --git a/src/render/pass/TexPassElement.hpp b/src/render/pass/TexPassElement.hpp
+index 413f987..a0c6b62 100644
+--- a/src/render/pass/TexPassElement.hpp
++++ b/src/render/pass/TexPassElement.hpp
+@@ -43,6 +43,7 @@ class CTexPassElement : public IPassElement {
+         PHLLSREF               currentLS;
+ 
+         SP<Render::ITexture>   blurredBG;
++        bool                   squareTop = false; // top corners square, bottom two keep `round`
+     };
+ 
+     CTexPassElement(const SRenderData& data);

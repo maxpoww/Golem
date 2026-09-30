@@ -58,7 +58,16 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
-      waveview = import "${waveview-src}/default.nix" { inherit pkgs; };
+      # The waveview plugin must be compiled against the SAME Hyprland the
+      # desktop runs: Golem's patched one (desktop/hyprland-overlay.nix, also
+      # applied by desktop/hyprland.nix). Stock headers would give it the
+      # wrong struct layouts.
+      waveview = import "${waveview-src}/default.nix" {
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import ./system/Modular/desktop/hyprland-overlay.nix) ];
+        };
+      };
 
       # Everything common to every Golem machine. Hardware lives in hosts/.
       golemModules = [
@@ -72,6 +81,9 @@
             self.rev or self.dirtyRev or "unknown";
         }
         ./system/configuration.nix
+        # The same patched Hyprland the waveview plugin is compiled against
+        # (desktop/hyprland-overlay.nix): plugin and compositor must match.
+        { nixpkgs.overlays = [ (import ./system/Modular/desktop/hyprland-overlay.nix) ]; }
         ./seam   # Seam: Golem's browser (Mozilla build + policies + chrome script + security update lane)
         home-manager.nixosModules.home-manager
         waverunner.nixosModules.notification-service

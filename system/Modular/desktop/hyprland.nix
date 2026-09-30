@@ -11,6 +11,11 @@
 { config, lib, ... }:
 
 {
+  # Golem's patched Hyprland (square-top titlebar seam, vfr-hold, swipe-one-
+  # empty, a gesture crash fix): see hyprland-overlay.nix. flake.nix builds
+  # the waveview plugin against the SAME overlay, so their ABIs match.
+  nixpkgs.overlays = [ (import ./hyprland-overlay.nix) ];
+
   programs.hyprland = {
     enable = true;
     withUWSM = true;          # greetd launches hyprland-uwsm.desktop (see greeter.nix)
