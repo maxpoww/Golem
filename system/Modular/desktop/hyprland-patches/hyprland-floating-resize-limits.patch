@@ -20,3 +20,46 @@
      target->setPositionGlobal(pos);
  
      if (g_layoutManager->dragController()->target() == target)
+--- a/src/layout/target/WindowTarget.cpp
++++ b/src/layout/target/WindowTarget.cpp
+@@ -47,6 +47,20 @@
+         return;
+ 
+     if (floating() && fullscreenMode() != FSMODE_MAXIMIZED) {
++        // The box never goes below the window's own minimum (or past its max),
++        // and the record keeps what the window can really be. A window placed
++        // smaller than its minimum (a float rule's size; YouTube in Seam wants
++        // >= 804 px) drew itself bigger while the box stayed small, so every
++        // drag frame and every move re-applied the small box: the window
++        // narrowed when grabbed and shook between the two sizes (2026-09-30).
++        const Vector2D MINSIZE = m_window->minSize().value_or(Vector2D{MIN_WINDOW_SIZE, MIN_WINDOW_SIZE});
++        const Vector2D MAXSIZE = m_window->maxSize().value_or(Math::VECTOR2D_MAX);
++        const Vector2D FIT     = m_box.logicalBox.size().clamp(MINSIZE, MAXSIZE);
++        if (FIT != m_box.logicalBox.size()) {
++            m_box.logicalBox.w = FIT.x;
++            m_box.logicalBox.h = FIT.y;
++        }
++
+         m_window->m_position = m_box.logicalBox.pos();
+         m_window->m_size     = m_box.logicalBox.size();
+ 
+--- a/src/desktop/view/Window.cpp
++++ b/src/desktop/view/Window.cpp
+@@ -2490,8 +2490,16 @@
+         const auto MINSIZE = m_xdgSurface->m_toplevel->layoutMinSize();
+         const auto MAXSIZE = m_xdgSurface->m_toplevel->layoutMaxSize();
+ 
+-        if (clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt))
++        if (clampWindowSize(MINSIZE, MAXSIZE > Vector2D{1, 1} ? std::optional<Vector2D>{MAXSIZE} : std::nullopt)) {
+             g_pHyprRenderer->damageWindow(m_self.lock());
++            // The layout's record follows the size the window was clamped to.
++            // Left behind, the next placement of the box (every drag frame,
++            // every move) re-applied the old, smaller size: YouTube in a
++            // 704-wide float drew itself 804 wide, narrowed when grabbed and
++            // shook between the two (the laptops, 2026-09-30).
++            if (const auto T = layoutTarget(); T && T->floating())
++                T->setPositionGlobal(CBox{m_realPosition->goal(), m_realSize->goal()});
++        }
+     }
+ 
+     if (!m_workspace->m_visible)

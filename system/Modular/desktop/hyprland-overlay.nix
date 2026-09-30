@@ -11,11 +11,14 @@
 # the windows to be flat when the titlebars are on… not applying on the
 # thinkpad and macbook"); parity.md P3.
 #
-#   floating-resize-limits  a scripted resize of a floating window (the
-#                         resize dispatcher, the OPTIONS pill's pinch) keeps the
-#                         window's own min/max, as a hand drag always did; below
-#                         its minimum the client and the layout fought and the
-#                         window shook (Max, 2026-09-30, YouTube on all three).
+#   floating-resize-limits  a floating window's box never goes below its own
+#                         min (or past its max): a scripted resize (the resize
+#                         dispatcher, the OPTIONS pill's pinch) and every placement
+#                         of the box (a drag frame, a move) clamp, as a hand
+#                         resize always did. Below its minimum the client and the
+#                         layout fought: the pinch threw YouTube off-screen, and
+#                         on the laptops (float size 704 < YouTube's 804) a drag
+#                         narrowed the window and shook it (Max, 2026-09-30).
 #   gesture-null-deref    upstream SEGV when libinput morphs a swipe into a
 #                         pinch (ITrackpadGesture::distance). Drop once fixed
 #                         upstream.
