@@ -165,6 +165,13 @@ let
         (ex "real desktop: a scripted resize keeps a floating window's own min/max"
           (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))
+        (ex "real desktop: Hyprland's exit survives a live screen capture (P6 stack 1)"
+          (lib.any (p: lib.hasSuffix "hyprland-screenshare-exit.patch" (toString p))
+            (c.programs.hyprland.package.patches or [ ])))
+        # A live switch must never stop the uwsm session skeleton (2026-09-07).
+        (ex "real desktop: the uwsm session units carry X-RestartIfChanged=false"
+          (lib.all (u: lib.hasInfix "X-RestartIfChanged=false" (c.systemd.user.units.${u}.text or ""))
+            [ "wayland-session-bindpid@.service" "wayland-wm@.service" "wayland-wm-env@.service" "wayland-session-waitenv.service" ]))
         (ex "real desktop: Hyprland survives a client dying with its subsurfaces mapped"
           (lib.any (p: lib.hasSuffix "hyprland-subsurface-orphan.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))

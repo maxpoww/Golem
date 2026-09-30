@@ -16,7 +16,8 @@ echo "config-revision=$(nixos-version --configuration-revision 2>/dev/null)"
 section failed_units
 systemctl --failed --no-legend --plain 2>/dev/null
 echo "-- restarts (units that died and came back this boot):"
-for u in $(systemctl list-units --type=service --no-legend --plain 2>/dev/null | awk '{print $1}'); do
+# journald's one restart every boot is the initrd → root handoff, not a death
+for u in $(systemctl list-units --type=service --no-legend --plain 2>/dev/null | awk '{print $1}' | grep -v '^systemd-journald.service$'); do
   n=$(systemctl show "$u" -p NRestarts --value 2>/dev/null); [ "${n:-0}" -gt 0 ] && echo "$u restarts=$n"
 done | head -10
 

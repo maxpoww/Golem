@@ -1,0 +1,17 @@
+--- a/src/managers/screenshare/ScreenshareSession.cpp
++++ b/src/managers/screenshare/ScreenshareSession.cpp
+@@ -135,6 +135,14 @@
+ }
+ 
+ void CScreenshareSession::screenshareEvents(bool startSharing) {
++    // At exit the manager (and a session still sharing) dies in a static
++    // destructor, after CCompositor::cleanup freed the event manager: the
++    // stop event went through a null pointer and every logout and shutdown
++    // with a live capture (the dock samples the screen) ended in a SEGV.
++    if (!g_pEventManager) {
++        m_sharing = startSharing;
++        return;
++    }
+     if (startSharing && !m_sharing) {
+         m_sharing = true;
+         g_pEventManager->postEvent(SHyprIPCEvent{.event = "screencast", .data = std::format("1,{}", m_type)});

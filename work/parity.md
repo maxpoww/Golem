@@ -80,12 +80,13 @@ failed units, and menubox launchers that run nothing.
   prints the sessions it saw for this reason.
 - **P6. Every session exit crashes Hyprland (SIGSEGV).** Seen on logout,
   session restart and shutdown, on the macbook and the thinkpad. Two stacks:
-  1. **Upstream (0.55.4):** at `exit()`, `CScreenshareManager`'s destructor
-     stops a live screencopy session (waverunner samples the screen to tint
-     the bar), and it posts an IPC event after the event manager is gone
-     (`CEventManager::postEvent` ← `CScreenshareSession::stop` ←
-     `__run_exit_handlers`). Reproduced with waveview 1.80, zero windows open,
-     macbook 2026-09-29 16:50.
+  1. **Upstream (0.55.4) → FIXED 2026-09-30 (hyprland-screenshare-exit.patch):**
+     at `exit()`, `CScreenshareManager`'s destructor stopped a live screencopy
+     session (waverunner samples the screen to tint the bar) and posted an IPC
+     event after `cleanup()` had freed the event manager (`postEvent.cold` ←
+     `screenshareEvents` ← `stop` ← `__run_exit_handlers`; the MacBook's core
+     of 2026-09-29 21:08). The stop now skips the IPC once the event manager is
+     gone. Intermittent: neither laptop dumped a core at today's reboots.
   2. **Plugin teardown → FIXED 2026-09-30 (waveview 1.84, bda6f2e):**
      `CCompositor::cleanup` deleted a `CWindow` that still carried a title bar
      after the plugin unmapped. Hyprland's unload only QUEUES the removal and
@@ -112,6 +113,20 @@ failed units, and menubox launchers that run nothing.
   ×20 per boot (Alder Lake TC port, nvidia-tainted kernel); disk 86% full
   (730/904 GB); coredumps in 7 days: Hyprland 5 (P6), firefox 3, awww 2,
   hyprsunset 2.
+- **P16. The session is greeter-class.** greetd's `default_session` runs the
+  owner's desktop, so logind lists it as `CLASS greeter` (both laptops,
+  2026-09-30). That is the root of P5 (CanSuspend/mount answers flip when a
+  second login exists), of `loginctl lock-session` being refused (the idle
+  lock now calls hyprlock directly), and it is why every logind session
+  policy treats the desktop as "not a user". The fix is greetd's
+  `initial_session` (autologin as class user) plus a real `default_session`
+  for the next login after a logout: Max's call, it changes what a logout
+  shows.
+- **P17. A live dock restart strands minimized windows.** A switch that
+  changes waverunner's unit restarts the dock mid-session (once per laptop
+  today, the 4b70533 → 0741d0e bump); windows parked on special:minimized
+  are known only to the daemon's memory, so they strand until `restore_min`.
+  Dock-side fix: persist the minimized set (launcher; see golem-minimize).
 - **P15. ThinkPad slow to open apps (2026-09-30): the root is a USB spinning
   disk** (sda "BUP Slim BL", ROTA=1; the internal NVMe is unused). Cold
   `nautilus --version` 3277 ms vs 70 ms warm (47×): an app launch is hundreds
@@ -184,4 +199,6 @@ on either laptop.
 | 2026-09-30 | (both laptops, after sleep) title bars stopped matching their webapps: the first readback after a resume from suspend came back all but clear ("Gemini: 0 0 0 a=0.012"), the bar took it and went invisible, and a static page never re-sampled | waveview 1.85 (7b41fe2): a sample under alpha 0.25 is a failed read; the bar keeps its last colour and retries (~6 s), then waits for the next commit |
 | 2026-09-30 | (all three) a pinch on the [current task] pill resized windows past their own minimum (YouTube in Seam wants >= 856 px; the pinch floored at 360): they shook and wandered; reproduced nested, the compositor threw the window ~900 px off-screen. A hand drag always clamped; the resize dispatcher did not | hyprland-floating-resize-limits.patch (a scripted floating resize keeps the window's min/max, as DragController does) + launcher 07dd7a8 (the pinch centres the size the window actually got). Nested: holds 793x240, centre fixed |
 | 2026-09-30 | (laptops) a dragged YouTube window narrowed when grabbed and shook: the float rule's 704x388 is below YouTube's minimum, the window drew itself 804 wide on commit (CWindow::clampWindowSize) but the layout's record stayed 704, so every drag frame re-applied 704; measured live on the ThinkPad (704/804 flips at 12 Hz), reproduced nested (856 → 804 on the first move) | the floating-resize-limits patch grows: commitWindow syncs the record when it clamps, and a floating box is clamped to the window's min/max when placed. Nested: 856 held through every move; the pinch fix still holds |
+| 2026-09-30 | (deep debug) installs had NO session guard: a live switch (seam-update, a dock install) on a checkout the autoupdate had already moved to a new nixpkgs would stop wayland-session-bindpid@ and tear the desktop down — the dev box has guarded its uwsm units since 2026-09-07 (P1 drift) | desktop/hyprland.nix: X-RestartIfChanged=false drop-ins on the four uwsm units; desktop-matrix asserts them |
+| 2026-09-30 | (deep debug) golem-deep reported `systemd-journald restarts=1` on every machine: the initrd → root journald handoff, not a death | deep-root.sh skips journald |
 | 2026-09-30 | the "frozen lock" root cause, settled: a lock is only established once a frame reaches the screen. The dpms toggle bug left Hyprland believing the ThinkPad's panel was on while DRM had disabled it, so no frame ever came (lock never finished, unlock refused, clock frozen); only a session restart recovered. In a clean session with the fixes, the idle lock (via the compositor) → screen off → screen on → lock established → unlock worked (ThinkPad, 01:0x) | the fixes above; no stale dpms state can arise now |

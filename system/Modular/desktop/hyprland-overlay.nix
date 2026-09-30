@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus six patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus seven patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -21,6 +21,13 @@
 #                         narrowed the window and shook it (Max, 2026-09-30).
 #   gesture-null-deref    upstream SEGV when libinput morphs a swipe into a
 #                         pinch (ITrackpadGesture::distance). Drop once fixed
+#                         upstream.
+#   screenshare-exit      upstream SEGV on EVERY logout/shutdown with a live
+#                         capture (the dock samples the screen): the screenshare
+#                         manager dies in a static destructor after cleanup()
+#                         freed the event manager, and a session's stop event
+#                         went through the null pointer (parity P6 stack 1,
+#                         core from the MacBook 2026-09-29). Drop once fixed
 #                         upstream.
 #   subsurface-orphan     upstream SEGV when a client dies with its subsurface
 #                         tree mapped (CWLSubsurfaceResource::posRelativeToParent
@@ -50,6 +57,7 @@ final: prev: {
     patches = (old.patches or [ ]) ++ [
       ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
+      ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-window-square-top.patch

@@ -22,6 +22,33 @@
     xwayland.enable = true;   # X11 clients under XWayland
   };
 
+  # THE SESSION GUARD: a live `nixos-rebuild switch` never stops or restarts
+  # uwsm's session skeleton. Each of these units embeds store paths (uwsm,
+  # util-linux), so a nixpkgs bump marks them "changed", and each propagates
+  # into wayland-session-shutdown.target: restarting any of them tears the
+  # whole desktop down under the user (the dev box, 2026-09-07). Installs
+  # switch LIVE from seam-update and from a dock install (waverunner-apply),
+  # on a checkout the autoupdate may already have moved to a new lock — the
+  # guard was only on the dev box until 2026-09-30 (parity P1 drift). The
+  # changed unit files apply at the next logout or reboot, the one safe moment;
+  # everything else still restarts live.
+  systemd.user.units =
+    let
+      guard = {
+        overrideStrategy = "asDropin";
+        text = ''
+          [Service]
+          X-RestartIfChanged=false
+        '';
+      };
+    in
+    {
+      "wayland-session-bindpid@.service" = guard;
+      "wayland-wm@.service" = guard;
+      "wayland-wm-env@.service" = guard;
+      "wayland-session-waitenv.service" = guard;
+    };
+
   # THREE keyboard sinks, not interchangeable (fat config's lesson): the TTY
   # reads console.keyMap (base/console.nix), XWayland clients read
   # services.xserver.xkb (here), and Hyprland's native input reads NEITHER — it

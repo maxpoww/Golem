@@ -12,7 +12,9 @@
 # FLAKE TWIST: the generated waverunner-packages.nix lives INSIDE the flake
 # checkout (system/home/) — flakes can't read outside their tree — and must
 # be git-tracked or the build won't see it, so the script `git add`s it.
-# Rebuilds run `nixos-rebuild switch --flake <flakeDir>#golem`.
+# Rebuilds run `nixos-rebuild switch --flake <flakeDir>#<golem.flakeAttr>`
+# (golem-desktop on an install; `#golem` is the generic systemd-boot config
+# and fails on a GRUB machine).
 #
 # TRIGGER: a systemd.path watches packages.list; writing it runs this once.
 # FEEDBACK: result is written to apply-status.json (chowned back to the user).
