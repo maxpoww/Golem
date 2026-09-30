@@ -77,11 +77,12 @@ lib.mkIf (config.golem.flakeDir != null) {
     # No wantedBy — the timer drives it. Serialized by Type=oneshot.
     serviceConfig.Type = "oneshot";
     # git (+ ssh/https transports), nix for the rebuild, coreutils for the flow.
-    path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils ];
+    path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];
     script = ''
       set -euo pipefail   # -e: a failed rebuild marks the service failed (visible), not silent
       dir=${lib.escapeShellArg config.golem.flakeDir}
       attr=${lib.escapeShellArg config.golem.flakeAttr}
+      owner=${lib.escapeShellArg config.golem.owner}
 
       # 1) real connectivity or a loud give-up (never a stale-cache no-op).
       ${golemWaitOnline}/bin/golem-wait-online || exit 1
@@ -99,7 +100,10 @@ lib.mkIf (config.golem.flakeDir != null) {
       fi
 
       before=$(git rev-parse HEAD)
-      if ! git pull --ff-only --quiet; then
+      # The checkout is the OWNER's: every git write runs as them, or root
+      # leaves FETCH_HEAD/objects behind that the owner can no longer touch
+      # (seen on the first real pull, 2026-09-30).
+      if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
         echo "golem-autoupdate: seed cannot fast-forward (local commits or a dirty tree) — leaving the current generation; run rebuild-golem yourself." >&2
         exit 0
       fi

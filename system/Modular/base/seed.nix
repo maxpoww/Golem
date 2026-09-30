@@ -32,7 +32,7 @@ let
 
   adopt = pkgs.writeShellApplication {
     name = "golem-seed-adopt";
-    runtimeInputs = [ pkgs.git pkgs.coreutils pkgs.findutils ];
+    runtimeInputs = [ pkgs.git pkgs.coreutils pkgs.findutils pkgs.util-linux ];
     text = ''
       dir=${lib.escapeShellArg (toString flakeDir)}
       url=${lib.escapeShellArg cfg.url}
@@ -44,9 +44,12 @@ let
         exit 0 # already a checkout
       fi
 
+      # Every git write below runs AS THE OWNER (the checkout is theirs; a
+      # root-written .git breaks their next pull). The parent is their home.
+      asowner() { runuser -u "$owner" -- "$@"; }
       tmp="$dir.adopt"
       rm -rf "$tmp"
-      if ! git clone --quiet --branch "$branch" "$url" "$tmp" 2>/dev/null; then
+      if ! asowner git clone --quiet --branch "$branch" "$url" "$tmp" 2>/dev/null; then
         echo "golem-seed-adopt: cannot reach $url — the seed stays a plain copy for now"
         rm -rf "$tmp"
         exit 0
@@ -55,8 +58,8 @@ let
       rev=$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null || true)
       rev=''${rev%-dirty}
       if [[ "$rev" =~ ^[0-9a-f]{40}$ ]] && git -C "$tmp" cat-file -e "$rev^{commit}" 2>/dev/null; then
-        git -C "$tmp" checkout -q -B "$branch" "$rev"
-        git -C "$tmp" branch -q --set-upstream-to="origin/$branch" "$branch"
+        asowner git -C "$tmp" checkout -q -B "$branch" "$rev"
+        asowner git -C "$tmp" branch -q --set-upstream-to="origin/$branch" "$branch"
         echo "golem-seed-adopt: at the installed revision $rev; autoupdate fast-forwards from here"
       else
         echo "golem-seed-adopt: the installed revision is not known upstream — taking $branch's head"
@@ -69,7 +72,8 @@ let
         [ -e "$dir/$f" ] || return 0
         mkdir -p "$tmp/$(dirname "$f")"
         cp -p "$dir/$f" "$tmp/$f"
-        git -C "$tmp" add -f "$f"
+        chown "$owner:" "$tmp/$f"
+        asowner git -C "$tmp" add -f "$f"
       }
       for f in $(cd "$dir" && find hosts/target -maxdepth 1 -type f 2>/dev/null); do
         [ "$f" = hosts/target/default.nix ] || carry "$f"
@@ -83,7 +87,6 @@ let
       mv "$dir" "$dir.pre-adopt"
       mv "$tmp" "$dir"
       rm -rf "$dir.pre-adopt"
-      chown -R "$owner:" "$dir"
       echo "golem-seed-adopt: $dir is now a checkout of $url ($branch), this machine's files staged"
       ${config.golem.seal.bless}/bin/golem-bless >/dev/null 2>&1 || true
     '';
