@@ -137,3 +137,10 @@
 *|*:root[taskbartab] *|*#sidebar-launcher-splitter {
   display: none !important;
 }
+/* The page starts at the window's very top edge: the content area keeps a 1px
+   (transparent) top border, the separator under a toolbar a webapp window does
+   not have. Through it showed Firefox's own dark chrome, a 1px line between the
+   title bar and the page. */
+*|*:root[taskbartab] *|*.browserContainer {
+  border-top: none !important;
+}

@@ -95,6 +95,8 @@ check("cold start opens the webapp window (Firefox's taskbartab)", len(apps) == 
 check("cold start: the browser session waits for a normal window", all(w["app"] for w in w1), w1)
 lin = m.js(APPWIN + 'let w = appw("spikeapp"); done(!!w && w.document.documentElement.id == "taskbartab-golem-spikeapp");')
 check("the class comes from Firefox's own Linux branch (browser-init)", lin is True, lin)
+top0 = m.js(APPWIN + 'let w = appw("spikeapp"); done(w.gBrowser.selectedBrowser.getBoundingClientRect().top);')
+check("webapp: the page starts at the window's very top (no 1px separator under the title bar)", top0 == 0, top0)
 check("webapp: page title, no toolbox, no tab strip, minimal-ui", a.get("title") == "Spike App" and a.get("toolboxShown") is False and a.get("tabstripShown") is False and a.get("mode") == "minimal-ui", a)
 time.sleep(1); check("apps.json reports the webapp url", isinstance(appsjson(), dict) and appsjson().get("spikeapp", {}).get("url") == U("app"), appsjson())
 
