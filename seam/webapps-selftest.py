@@ -107,6 +107,12 @@ w2b = wins(m); check("a link opened in the webapp loads in its window", [w["url"
 # 3) another slug: its own window
 remote(m, "-golem-app", "second", U("two")); time.sleep(3)
 w3 = wins(m); check("a second webapp gets its own window + class", any(w["app"] == "second" and w["cls"] == "webapp-second" for w in w3), w3)
+# the report keeps up after a webapp window closes (its debounce once ran on a window's
+# timer, died with the closing window, and nothing was reported again)
+m.js(APPWIN + 'appw("second").close(); done(1);'); time.sleep(1.5)
+remote(m, "-golem-app", "third", U("two")); time.sleep(3)
+rj = appsjson()
+check("the report follows a close and the next webapp", isinstance(rj, dict) and "second" not in rj and "third" in rj and "spikeapp" in rj, rj)
 
 # 4) a plain launch: a normal window, and the deferred session comes back into it
 remote(m, U("other")); time.sleep(5)

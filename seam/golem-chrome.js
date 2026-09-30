@@ -2475,21 +2475,28 @@ try {
   }
 
   // The dock's copy-link: slug -> the page each webapp window shows now.
-  var waReportPending=false;
+  // Debounced on a timer of its OWN, never a window's: a window's timer dies with
+  // the window, and the report asked for from a closing window's unload (which
+  // could be the most recent window) never ran, leaving the pending flag set for
+  // good. From then on no webapp was reported again (the live test of all the
+  // catalog webapps, 2026-09-30: fine for three apps, silent from the fourth).
+  var waReportTimer=null;
   function waReport(){
-    if(waReportPending) return; waReportPending=true;
-    var any=Services.wm.getMostRecentWindow(null);
-    var run=function(){ waReportPending=false;
-      try{
-        var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
-        dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
-        while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
-          try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||"")}; }catch(e2){} }
-        var io=(w0||any||{}).IOUtils; if(!io) return;
-        io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
-      }catch(e4){ WALOG("report:"+e4); }
-    };
-    try{ if(any) any.setTimeout(run,250); else run(); }catch(e){ run(); }
+    if(waReportTimer) return;
+    try{
+      waReportTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+      waReportTimer.initWithCallback({ notify:function(){ waReportTimer=null; waWriteReport(); } },250,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+    }catch(e){ waReportTimer=null; waWriteReport(); }
+  }
+  function waWriteReport(){
+    try{
+      var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
+      dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
+      while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
+        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||"")}; }catch(e2){} }
+      var io=(w0||{}).IOUtils; if(!io) return;   // no window left: nothing is open to copy from
+      io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
+    }catch(e4){ WALOG("report:"+e4); }
   }
 
   // Permission prompts anchor to the address bar, which a webapp window hides: the
