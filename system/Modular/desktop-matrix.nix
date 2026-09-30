@@ -157,6 +157,9 @@ let
           (c.home-manager.users.${owner}.services.hypridle.enable
            && c.home-manager.users.${owner}.programs.hyprlock.enable
            && (c.security.pam.services ? hyprlock)))
+        (ex "P11: the lock never goes through loginctl (a greeter-class session refuses it)"
+          (!(lib.hasInfix "lock-session" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
+           && !(lib.hasInfix "lock-session" (luaOf c))))
         (ex "P12: the owner's bash carries the prompt, EDITOR and the OPTIONS bridge"
           (c.home-manager.users.${owner}.programs.bash.enable
            && lib.hasInfix "bridge.sock" c.home-manager.users.${owner}.programs.bash.initExtra))

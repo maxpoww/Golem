@@ -2,7 +2,8 @@
 # laptop left alone never dimmed, locked or slept: the screen stayed on at
 # full brightness, unlocked, until the battery ran out.
 #
-#   5 min   lock (hyprlock; unlock with the owner's password)
+#   5 min   lock (hyprlock, called directly: see `lock` below; unlock with the
+#           owner's password)
 #   6 min   screen off (the compositor's dpms, through Hyprland's Lua dispatch:
 #           `hyprctl dispatch dpms off` does NOT exist on Golem's Hyprland)
 #   15 min  suspend (the lid does suspend-then-hibernate on its own, base/power)
@@ -15,19 +16,25 @@
 
 let
   dpms = state: ''hyprctl dispatch 'hl.dsp.dpms("${state}")' '';
+  # hyprlock DIRECTLY, never `loginctl lock-session`: Golem's session is
+  # greeter-class (greetd's default_session) and logind answers "Session does
+  # not support lock screen" (seen live on the MacBook, 2026-09-30: the 5-min
+  # lock never happened, the 6-min screen-off did). hyprlock locks through
+  # the compositor's own session-lock protocol, which needs no logind.
+  lock = "pidof hyprlock || hyprlock";
 in
 {
   services.hypridle = {
     enable = true;
     settings = {
       general = {
-        lock_cmd = "pidof hyprlock || hyprlock";
-        before_sleep_cmd = "loginctl lock-session";
+        lock_cmd = lock;
+        before_sleep_cmd = lock;
         after_sleep_cmd = dpms "on";
         ignore_dbus_inhibit = false;
       };
       listener = [
-        { timeout = 300; on-timeout = "loginctl lock-session"; }
+        { timeout = 300; on-timeout = lock; }
         { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
         { timeout = 900; on-timeout = "systemctl suspend"; }
       ];
