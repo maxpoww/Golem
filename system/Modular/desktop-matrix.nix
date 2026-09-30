@@ -194,6 +194,8 @@ let
           (!c.i18n.inputMethod.enable))
         (ex "P9: the session plumbing (gvfs, dconf, udisks2) is on"
           (c.services.gvfs.enable && c.programs.dconf.enable && c.services.udisks2.enable))
+        (ex "the placeholder wallpaper daemon cannot leave a crash dump when a session ends"
+          (lib.hasInfix ''hl.exec_cmd("prlimit --core=1 awww-daemon")'' (luaOf c)))
         (ex "P9: TERMINAL and EDITOR reach every app (hyprland.lua env)"
           (lib.all (k: lib.hasInfix ''hl.env("${k}"'' (luaOf c)) [ "TERMINAL" "EDITOR" ]))
         (ex "P10: the seed has an upstream and golem-seed-adopt is on the PATH"

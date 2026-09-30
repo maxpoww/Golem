@@ -37,7 +37,13 @@ hl.on("hyprland.start", function()
 hl.exec_cmd("hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so")
 hl.exec_cmd("hyprctl setcursor phinger-cursors-light 24")
 hl.exec_cmd("/home/max/launcher/waverunner-dev")
-hl.exec_cmd("awww-daemon")
+-- The wallpaper is a placeholder until it is designed (Max, 2026-09-30: "for
+-- now keep it quiet"). awww-daemon aborts (a Rust panic) the instant the
+-- compositor goes away, so every session that ended by itself left a core
+-- dump and an error in the journal. Core limit 1 is the kernel's "do not dump"
+-- value for a piped handler: no core, no coredumpctl entry, no error line
+-- (limit 0 still records the crash; measured).
+hl.exec_cmd("prlimit --core=1 awww-daemon")
 hl.exec_cmd("waypaper --restore")
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("blueman-applet")
