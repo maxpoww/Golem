@@ -86,9 +86,13 @@ failed units, and menubox launchers that run nothing.
      (`CEventManager::postEvent` ← `CScreenshareSession::stop` ←
      `__run_exit_handlers`). Reproduced with waveview 1.80, zero windows open,
      macbook 2026-09-29 16:50.
-  2. **Plugin teardown (waveview 0.78, old):** `CCompositor::cleanup` deletes
-     a `CWindow` that calls into the already unmapped plugin. Not yet seen
-     with 1.80.
+  2. **Plugin teardown → FIXED 2026-09-30 (waveview 1.84, bda6f2e):**
+     `CCompositor::cleanup` deleted a `CWindow` that still carried a title bar
+     after the plugin unmapped. Hyprland's unload only QUEUES the removal and
+     `updateWindowDecos` skips unmapped/hidden windows, so any titled window
+     closed shortly before exit (every logout) kept its bar. Reproduced nested
+     2/2, 0/2 without the plugin; the plugin now takes its bars off those
+     windows itself: 6/6 clean exits. Stack 1 (screenshare) stays open.
 
   Cost: slower logout/shutdown (core processing) and 4–5 MB of cores each
   time. Fix: a Hyprland patch (screenshare teardown order), which belongs
