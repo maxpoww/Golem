@@ -40,6 +40,8 @@ let
     (ex "greetd enabled" c.services.greetd.enable)
     (ex "greetd starts hyprland via uwsm"
       (lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command))
+    (ex "greetd: uwsm's start chatter goes to the journal, not the console"
+      (lib.hasInfix "systemd-cat -t uwsm uwsm start" c.services.greetd.settings.default_session.command))
     (ex "greetd session runs as the owner"
       (c.services.greetd.settings.default_session.user == c.golem.owner))
     (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)

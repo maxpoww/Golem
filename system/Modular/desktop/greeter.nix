@@ -32,7 +32,13 @@ in
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${waitForOldSession} uwsm start hyprland-uwsm.desktop";
+      # uwsm narrates its start on stdout/stderr ("Entry
+      # "hyprland-uwsm.desktop" uses uwsm, reparsing args...", "Starting ...
+      # and waiting while it is running..."), which the login tty painted on
+      # screen until Hyprland took over (Max, 2026-09-30, on every boot of
+      # both laptops). systemd-cat sends it to the journal (tag uwsm): still
+      # there for debugging, never on the console. stdin stays the tty.
+      command = "${waitForOldSession} ${config.systemd.package}/bin/systemd-cat -t uwsm uwsm start hyprland-uwsm.desktop";
       user = config.golem.owner;
     };
   };
