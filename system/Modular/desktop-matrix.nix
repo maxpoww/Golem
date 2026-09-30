@@ -47,7 +47,7 @@ let
     (ex "greetd shows a real login after a logout (tuigreet), the same session behind it"
       (lib.hasInfix "tuigreet" c.services.greetd.settings.default_session.command
         && lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command
-        && !(c.services.greetd.settings.default_session ? user)))
+        && (c.services.greetd.settings.default_session.user or "greeter") != c.golem.owner))
     (ex "greetd does not restart itself (an initial_session would autologin again)"
       (!c.services.greetd.restart))
     (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)
