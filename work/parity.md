@@ -119,7 +119,12 @@ failed units, and menubox launchers that run nothing.
   `lock-session` refusal. Now `initial_session` autologs the owner once per
   boot (class `user`) and `default_session` is tuigreet on tty1 after a
   logout (name remembered, password, the same wrapped uwsm session).
-  Applies at the next boot (greetd never restarts on a switch).
+  Applies at the next boot (greetd never restarts on a switch). Verified in
+  `golem-desktop-vm` (new, hosts/vm-desktop.nix: the Modular desktop stage on
+  the VM host — `golem-vm` runs the FAT tree, whose greetd block is the old
+  plain one): autologin → seat session class `user`; `hl.dsp.exit()` →
+  tuigreet as `greeter` in 6 s; typed name + password → a new `user`-class
+  Wayland session.
 - **P17 → FIXED 2026-09-30 (waveview 1.86, 5af9791).** A switch that changed
   waverunner's unit restarted the dock mid-session (once per laptop today)
   and the windows parked on special:minimized stranded: the tiles lived only

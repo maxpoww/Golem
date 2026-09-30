@@ -444,6 +444,38 @@
           modules = golemModules ++ [ ./hosts/vm.nix ];
         };
 
+        # The desktop stage in the VM (hosts/vm-desktop.nix): the same
+        # composition as golem-desktop on hosts/vm.nix's machine, so a login
+        # or session change is tried where a mistake costs nothing.
+        golem-desktop-vm = nixpkgs.lib.nixosSystem {
+          inherit system;
+          specialArgs = { golemSrc = self; };
+          modules = [
+            {
+              system.configurationRevision =
+                self.rev or self.dirtyRev or "unknown";
+            }
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+            }
+            ./system/Modular/composition.nix
+            ./system/Modular/desktop/default.nix
+            waverunner.nixosModules.notification-service
+            ({ config, ... }: {
+              services.options-notify.enable = true;
+              home-manager.backupFileExtension = "before-golem";
+              home-manager.users.${config.golem.owner} = {
+                imports = [ ./system/home/home.nix ];
+              };
+              home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+            })
+            ./hosts/vm.nix
+            ./hosts/vm-desktop.nix
+          ];
+        };
+
         golem-iso = nixpkgs.lib.nixosSystem {
           inherit system;
           # Same source-on-the-medium trick as the VM: the ISO carries the
