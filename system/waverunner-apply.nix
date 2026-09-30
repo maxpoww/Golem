@@ -46,6 +46,7 @@ let
       config.nix.package
       config.golem.seal.check
       pkgs.git
+      pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
       pkgs.coreutils
       pkgs.systemd # for the #61 reset-failed; a bare systemctl under a
@@ -122,8 +123,7 @@ let
       mv "$gen.new" "$gen"
       # Root inside the user's checkout: /etc/gitconfig carries the
       # safe.directory entry (configuration.nix) for git AND nix's libgit2.
-      git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
-      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
+      runuser -u ${user} -- git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true  # the checkout is the owner\'s: git writes run as them
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
@@ -161,8 +161,7 @@ let
       else
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
-          git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true
-      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
+          runuser -u ${user} -- git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true  # the checkout is the owner\'s: git writes run as them
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"

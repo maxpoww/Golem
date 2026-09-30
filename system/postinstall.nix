@@ -142,6 +142,7 @@ let
       config.nix.package
       config.golem.seal.check
       pkgs.git
+      pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
       pkgs.coreutils
       pkgs.systemd # #61 reset-failed (clean-PATH: must be declared)
@@ -219,8 +220,7 @@ let
         echo "}"
       } > "$gen.new"
       mv "$gen.new" "$gen"
-      git -C "$flakedir" add system/postinstall-generated.nix || true
-      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
+      runuser -u ${user} -- git -C "$flakedir" add system/postinstall-generated.nix || true  # the checkout is the owner\'s: git writes run as them
 
       # #35c: the switch's exit code proves the rebuild ran; it does NOT
       # prove the answers reached the system — #35 was `ok:true` over a
@@ -284,8 +284,7 @@ let
       else
         if [[ -f "$lastgood" ]]; then
           cp -f "$lastgood" "$gen"
-          git -C "$flakedir" add system/postinstall-generated.nix || true
-      chown ${user} "$flakedir/.git/index" 2>/dev/null || true  # root staged into the owner\'s checkout
+          runuser -u ${user} -- git -C "$flakedir" add system/postinstall-generated.nix || true  # the checkout is the owner\'s: git writes run as them
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"
