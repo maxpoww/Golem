@@ -201,6 +201,18 @@ let
           ((cLight.boot.kernel.sysctl."kernel.perf_event_paranoid" or null) == 0))
         (ex "trusted Bluetooth devices reconnect after hibernate"
           (c.systemd.services ? bluetooth-reconnect-after-hibernate))
+        # Webapps run in Seam (2026-09-30, parity P4): the catalog is seeded on an
+        # install again, Seam's chrome script carries the -golem-app handler, and the
+        # Chrome-only extension wiring is gone.
+        (ex "webapps: the catalog is seeded and Seam handles -golem-app"
+          ((c.home-manager.users.${owner}.home.activation ? seedWebappsList)
+           # contains, without a regex: lib.hasInfix's ".*x.*" match overflows the
+           # regex stack on the 150 KB chrome script
+           && (let has = n: f: builtins.replaceStrings [ n ] [ "" ] f != f; in
+               has "b-golem-app" (builtins.readFile ../../seam/golem-chrome.js)
+               && has "golem-app" (builtins.readFile ../../seam/userChrome.css))))
+        (ex "webapps: no Chrome extension drop-in on the dock"
+          (!(c.home-manager.users.${owner}.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
         # P1: the dev box runs this same home layer in its dev shape.
         (ex "P1 dev shape: live checkouts kept, no waverunner unit, never a store rewrite"
           (lib.hasInfix ''hl.exec_cmd("/home/max/launcher/waverunner-dev")'' (luaOf cDev)
