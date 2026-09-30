@@ -2504,13 +2504,17 @@ try {
   // show(browser, id, message, anchorID, mainAction, secondaryActions, options): the
   // strip goes up with the request (Firefox opens the panel once this window is the
   // active one) and down when the panel closes or the request goes away unanswered.
+  // Not for one shown DISMISSED: that is only an icon in the address bar, no panel
+  // ever opens, and nothing takes the strip down again. Firefox shows its DRM
+  // notice that way on every page that plays protected media: Spotify, Netflix,
+  // Tidal... kept the address bar for good (2026-09-30).
   function waPrompts(w){
     try{
       var pn=w.PopupNotifications, root=w.document.documentElement; if(!pn || pn.__golemApp) return; pn.__golemApp=true;
       var orig=pn.show;
       var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
       pn.show=function(b,id,msg,anchor,main,secondary,options){
-        try{ root.setAttribute("golem-app-prompt","true"); }catch(e){}
+        try{ if(!(options && options.dismissed)) root.setAttribute("golem-app-prompt","true"); }catch(e){}
         try{ options=options||{}; var cb=options.eventCallback;
           options.eventCallback=function(ev){ if(ev==="removed") clear(); return cb ? cb.apply(this,arguments) : false; }; }catch(e){}
         return orig.call(this,b,id,msg,anchor,main,secondary,options); };

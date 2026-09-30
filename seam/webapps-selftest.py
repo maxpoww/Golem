@@ -156,6 +156,16 @@ after = m.js(APPWIN + """
   done({ during, after: { attr: r.hasAttribute("golem-app-prompt"), toolboxH: tb() } });
 """)
 check("the address strip shows during the prompt and hides after", isinstance(after, dict) and after["during"]["attr"] and after["during"]["toolboxH"] > 0 and not after["after"]["attr"] and after["after"]["toolboxH"] == 0, after)
+# a notification shown DISMISSED is only the address bar's icon (Firefox's DRM notice on
+# Spotify, Netflix...): no panel opens, so it must not raise the strip for good
+dism = m.js(APPWIN + """
+  let w = appw("spikeapp"), r = w.document.documentElement, b = w.gBrowser.selectedBrowser;
+  w.PopupNotifications.show(b, "drmContentPlaying", "test", "eme-notification-icon", null, null, { dismissed: true, hideClose: true });
+  await new Promise(z => w.setTimeout(z, 800));
+  done({ shown: !!w.PopupNotifications.getNotification("drmContentPlaying", b), attr: r.hasAttribute("golem-app-prompt"),
+         toolboxH: w.document.getElementById("navigator-toolbox").getBoundingClientRect().height });
+""")
+check("a dismissed notification (the DRM icon) leaves the strip hidden", isinstance(dism, dict) and dism["shown"] and not dism["attr"] and dism["toolboxH"] == 0, dism)
 
 # 7) the focus-to-visibility bridge (Messenger's notifications): this test's host joins the list
 m.js('Services.prefs.setStringPref("golem.seam.apps.visibilityHosts", "facebook.com messenger.com instagram.com 127.0.0.1"); done(1);')
