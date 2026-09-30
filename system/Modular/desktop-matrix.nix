@@ -159,6 +159,9 @@ let
           (lib.any (p: lib.hasSuffix "hyprland-window-square-top.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))
         # A browser killed with a webapp open took the whole session down (P4).
+        (ex "real desktop: golem-caffeine (stay awake) ships with its inhibitor unit"
+          ((c.home-manager.users.${c.golem.owner}.systemd.user.services ? golem-caffeine)
+            && lib.any (p: (p.name or "") == "golem-caffeine") c.home-manager.users.${c.golem.owner}.home.packages))
         (ex "real desktop: a scripted resize keeps a floating window's own min/max"
           (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))

@@ -13,6 +13,13 @@
 # to graphical-session.target. The lock screen's PAM service is the system's
 # (system/Modular/desktop/idle.nix).
 #
+# CAFFEINE (Max, 2026-09-30: "configure a caffeine and toggle it on so they
+# stay awake"): `golem-caffeine on|off|status`. On holds a systemd inhibitor
+# (idle + sleep + the lid switch, block) from a user service: hypridle honours
+# it (no lock, no screen-off, no suspend) and logind will not sleep on the lid.
+# Nothing is removed; off brings every step back. The choice is a file
+# (~/.config/golem/caffeine), so it survives a reboot.
+#
 # golem.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
@@ -46,8 +53,36 @@ let
     exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
   '';
   lock = "${golemLock}";
+  golemCaffeine = pkgs.writeShellScriptBin "golem-caffeine" ''
+    state="$HOME/.config/golem/caffeine"
+    case "''${1:-status}" in
+      on)
+        mkdir -p "$(dirname "$state")" && touch "$state"
+        systemctl --user start golem-caffeine.service
+        echo "caffeine ON: no lock, no screen-off, no sleep (lid included). Undo: golem-caffeine off" ;;
+      off)
+        rm -f "$state"
+        systemctl --user stop golem-caffeine.service
+        echo "caffeine OFF: lock, screen-off and sleep are back" ;;
+      status)
+        if systemctl --user is-active --quiet golem-caffeine.service; then echo on; else echo off; fi ;;
+      *) echo "usage: golem-caffeine on|off|status" >&2; exit 2 ;;
+    esac
+  '';
 in
 {
+  home.packages = [ golemCaffeine ];
+  systemd.user.services.golem-caffeine = {
+    Unit = {
+      Description = "Golem caffeine: stay awake (golem-caffeine on|off)";
+      ConditionPathExists = "%h/.config/golem/caffeine";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service.ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=idle:sleep:handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   services.hypridle = {
     enable = config.golem.home.idle.enable;
     settings = {
