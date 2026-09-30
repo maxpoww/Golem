@@ -11,12 +11,17 @@ W = tempfile.mkdtemp(prefix="wa-www-")
 for n, t in [("app", "Spike App"), ("other", "Other Page"), ("two", "Second App"), ("plain", "Plain Page")]:
     open(f"{W}/{n}.html", "w").write(f"<html><head><title>{t}</title></head><body><h1>{t}</h1></body></html>")
 # a page that shows its own visibility in its title (the focus-to-visibility bridge test)
+open(f"{W}/slow.html", "w").write("<html><head><title>Slow Site Title</title></head><body>slow</body></html>")
 open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function s(){document.title='vis:'+document.visibilityState}document.addEventListener('visibilitychange',s);s()</script></head><body>vis</body></html>")
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
+    def do_GET(self):   # /slow*: a site that takes its time (the window must be named before it answers)
+        if self.path.startswith("/slow"): time.sleep(3)
+        return super().do_GET()
 threading.Thread(target=http.server.ThreadingHTTPServer(("127.0.0.1", PORT), functools.partial(Q, directory=W)).serve_forever, daemon=True).start()
 U = lambda n: f"http://127.0.0.1:{PORT}/{n}.html"
-PROF = tempfile.mkdtemp(prefix="wa-prof-"); os.makedirs(f"{PROF}/chrome")
+PROF = tempfile.mkdtemp(prefix="wa-prof-"); os.makedirs(f"{PROF}/chrome"); os.makedirs(f"{PROF}/.config")
+open(f"{PROF}/.config/webapps.list", "w").write("# Name | URL | icon\n*Slow  App (Beta) | http://example.invalid | x\n")   # the dock's catalog: slug slow-app-beta
 for f in ("userChrome.css", "userContent.css"): shutil.copy(f"{CHROME}/{f}", f"{PROF}/chrome/{f}")
 open(f"{PROF}/user.js", "w").write("\n".join([
  'user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);', f'user_pref("marionette.port", {MPORT});',
@@ -24,7 +29,7 @@ open(f"{PROF}/user.js", "w").write("\n".join([
  'user_pref("browser.startup.homepage_override.mstone", "ignore");', 'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
  'user_pref("browser.startup.page", 3);', 'user_pref("browser.sessionstore.resume_from_crash", true);', '']))
 RUN = tempfile.mkdtemp(prefix="wa-run-")
-ENV = dict(os.environ, HOME=PROF, XDG_RUNTIME_DIR=RUN, LD_LIBRARY_PATH=LDP, MOZ_HEADLESS="1", MOZ_CRASHREPORTER_DISABLE="1", MOZ_LEGACY_PROFILES="1")
+ENV = dict(os.environ, HOME=PROF, XDG_CONFIG_HOME=f"{PROF}/.config", XDG_RUNTIME_DIR=RUN, LD_LIBRARY_PATH=LDP, MOZ_HEADLESS="1", MOZ_CRASHREPORTER_DISABLE="1", MOZ_LEGACY_PROFILES="1")
 def ff(*args, wait=False):
     cmd = [f"{FARM}/firefox", "--headless", "--name", "seamtest", "--profile", PROF, *args]
     p = subprocess.Popen(cmd, env=ENV, stdout=subprocess.DEVNULL, stderr=open(f"{RUN}/ff.log", "a"))
@@ -180,6 +185,34 @@ vis = m.js(APPWIN + """
 """)
 check("a watched page reads hidden while its webapp is unfocused", isinstance(vis, dict) and vis["focusedT"] == "vis:visible" and vis["blurredT"] == "vis:hidden" and vis["backT"] == "vis:visible", vis)
 m.js('Services.prefs.clearUserPref("golem.seam.apps.visibilityHosts"); done(1);')
+
+# 7b) the window is named from its first frame: the catalog name until the page has a title,
+# never Firefox's brand (Max, 2026-09-30: webapps opened as "Mozilla Firefox") nor "Seam"
+named = m.js(APPWIN + """
+  let seen = [], t0 = Date.now(), done2 = false;
+  let rec = (w) => { let t = w.document.title; if (!seen.length || seen[seen.length - 1][1] !== t) seen.push([Date.now() - t0, t]); };
+  // from the window's first painted frame: a title written before anything is on screen is never seen
+  let obs = { observe(w) { w.addEventListener("MozAfterPaint", () => { rec(w); new w.MutationObserver(() => rec(w)).observe(w.document.documentElement, { subtree: true, childList: true, characterData: true }); }, { once: true }); } };
+  Services.ww.registerNotification({ observe(s, topic) { if (topic === "domwindowopened" && !done2) obs.observe(s); } });
+  let cl = Cu.createCommandLine(["-golem-app", "slow-app-beta", "%s"], null, Ci.nsICommandLine.STATE_REMOTE_EXPLICIT);
+  for (let e of [...Services.catMan.enumerateCategory("command-line-handler")]) { try { Cc[e.value].getService(Ci.nsICommandLineHandler).handle(cl); } catch (x) {} }
+  for (let i = 0; i < 60; i++) { let w = appw("slow-app-beta"); if (w) rec(w); await new Promise(r => setTimeout(r, 50)); }
+  done2 = true;
+  let other = [];   // a slug the catalog lacks: its words, capitalised
+  let cl2 = Cu.createCommandLine(["-golem-app", "no-such-app", "%s?fresh"], null, Ci.nsICommandLine.STATE_REMOTE_EXPLICIT);
+  for (let e of [...Services.catMan.enumerateCategory("command-line-handler")]) { try { Cc[e.value].getService(Ci.nsICommandLineHandler).handle(cl2); } catch (x) {} }
+  await new Promise(r => setTimeout(r, 800)); let w2 = appw("no-such-app");
+  let fb = w2 ? w2.document.title : null;
+  let cl3 = Cu.createCommandLine(["-golem-app", "fast-app", "%s"], null, Ci.nsICommandLine.STATE_REMOTE_EXPLICIT);
+  for (let e of [...Services.catMan.enumerateCategory("command-line-handler")]) { try { Cc[e.value].getService(Ci.nsICommandLineHandler).handle(cl3); } catch (x) {} }
+  let early = [];
+  for (let i = 0; i < 30; i++) { let w3 = appw("fast-app"); if (w3 && (!early.length || early[early.length - 1] !== w3.document.title)) early.push(w3.document.title); await new Promise(r => setTimeout(r, 50)); }
+  done({ seen, fallback: fb, early });
+""" % (U("slow"), U("slow"), U("two")))
+titles = [t for _, t in (named or {}).get("seen", [])] if isinstance(named, dict) else []
+check("a webapp window is named from its first frame, then takes the page's title", bool(titles) and titles[0] == "Slow App (Beta)" and titles[-1] == "Slow Site Title" and all(t in ("Slow App (Beta)", "Slow Site Title") for t in titles), named)
+check("a titled page never reads 'Page — Mozilla Firefox' in a webapp window", isinstance(named, dict) and named.get("early") and not any("Firefox" in t or "Seam" in t for t in named["early"][1:]) and named["early"][-1] == "Second App", named)
+check("a slug missing from the catalog is named from its words", isinstance(named, dict) and named.get("fallback") == "No Such App", named)
 
 # 8) restart: webapps do not reopen (Firefox never saves a webapp window; Chrome's app
 #    windows were not restored either); the browser's windows and tabs all come back

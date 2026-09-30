@@ -1401,7 +1401,8 @@ try {
       var orig=gb.getWindowTitleForBrowser;
       var app=false; try{ app=win.document.documentElement.hasAttribute("taskbartab"); }catch(e){}
       gb.getWindowTitleForBrowser=function(b){
-        if(app){ var ct=""; try{ ct=String((b && b.contentTitle) || ""); }catch(e){} if(ct) return ct; }   // a webapp: the page's own title
+        if(app){ var ct=""; try{ ct=String((b && b.contentTitle) || ""); }catch(e){} if(ct) return ct;   // a webapp: the page's own title,
+          if(win.__golemAppName) return win.__golemAppName; }                                                // its own name until there is one
         var t=orig.call(this,b); return (typeof t==="string") ? t.replace(/Mozilla Firefox/g,"Seam").replace(/\bFirefox\b/g,"Seam") : t; };
       try{ gb.updateTitlebar(); }catch(e){}
     }catch(e){ OVLOG("title:"+e); }
@@ -2565,6 +2566,56 @@ try {
     waPrompts(w); waVisibility(w); waReport();
   }
 
+  // A webapp's name, from the dock's catalog (~/.config/webapps.list, "Name | URL | icon")
+  // under the dock's slug rule (webapps.rs slug_of: lowercase, every other run of
+  // characters one dash). Read at each open: a few KB, and a new catalog applies at once.
+  function waName(slug){
+    try{
+      var Ci=Components.interfaces, f;
+      var cfg=Services.env.get("XDG_CONFIG_HOME");
+      if(cfg){ f=Components.classes["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile); f.initWithPath(cfg); }
+      else { f=Services.dirsvc.get("Home",Ci.nsIFile); f.append(".config"); }
+      f.append("webapps.list");
+      if(f.exists()){
+        var is=Components.classes["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream); is.init(f,-1,0,0);
+        var NU=ChromeUtils.importESModule("resource://gre/modules/NetUtil.sys.mjs").NetUtil;
+        var txt=NU.readInputStreamToString(is,is.available(),{charset:"UTF-8"}); is.close();
+        var lines=txt.split("\n");
+        for(var i=0;i<lines.length;i++){
+          var p=lines[i].split("|"); if(p.length<2 || /^\s*#/.test(lines[i])) continue;
+          var n=p[0].trim().replace(/^\*\s*/,"");
+          if(n.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"")===slug) return n;
+        }
+      }
+    }catch(e){ WALOG("name:"+e); }
+    return slug.split("-").map(function(x){ return x.charAt(0).toUpperCase()+x.slice(1); }).join(" ");
+  }
+
+  // The window is named from its first frame (Max, 2026-09-30: webapps opened as
+  // "Mozilla Firefox"). Until the page has a title of its own, Firefox writes its brand
+  // (then Seam's title wrapper wrote "Seam", ~1.2 s in); the name goes on as soon as the
+  // window has a document and holds against whatever else writes it (Firefox's own builder,
+  // "Page — Mozilla Firefox", runs until Seam's title wrapper is installed).
+  // The name is whitespace-collapsed first, as document.title reads back: an exact compare
+  // against "Slow  App" would never match and the observer would write the title forever
+  // (the selftest hung on exactly that). A title that still does not stick stops the watch.
+  function waTitle(w,name){
+    name=String(name).replace(/\s+/g," ").trim();
+    w.__golemAppName=name;
+    var mo=null;
+    var fix=function(){
+      try{ var ct=""; try{ ct=String(w.gBrowser.selectedBrowser.contentTitle||"").replace(/\s+/g," ").trim(); }catch(e){}
+        var want=ct||name;   // the page's own title, bare (no brand suffix), or the name until it has one
+        if(w.document.title===want) return;
+        w.document.title=want;
+        if(w.document.title!==want && mo){ mo.disconnect(); WALOG("title did not stick: "+want); } }catch(e){} };
+    w.addEventListener("DOMContentLoaded",function(){
+      try{ mo=new w.MutationObserver(fix); }catch(e){ WALOG("title:"+e); }
+      fix();
+      try{ if(mo) mo.observe(w.document.documentElement,{subtree:true,childList:true,characterData:true}); }catch(e){ WALOG("title:"+e); }
+    },{once:true});
+  }
+
   // Firefox's own web-app window: TaskbarTabsWindowManager.openWindow's arguments.
   function waArgs(slug,url){
     var Cc=Components.classes, Ci=Components.interfaces;
@@ -2591,6 +2642,7 @@ try {
     var BWT=ChromeUtils.importESModule("resource:///modules/BrowserWindowTracker.sys.mjs").BrowserWindowTracker;
     var w=BWT.openWindow({ args:waArgs(slug,start), features:WA_FEATURES, all:false });
     w.__golemAppStart=start;
+    waTitle(w,waName(slug));
     // Safety net: Firefox sets the class from the arguments at init; should a release stop
     // doing that, it still goes on here, while it can (before the window's load).
     w.addEventListener("DOMContentLoaded",function(){
