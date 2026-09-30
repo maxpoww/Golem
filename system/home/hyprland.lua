@@ -345,6 +345,12 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
+-- The control panel (the dock's gear): tap Ctrl while holding Super. On the
+-- RELEASE of Ctrl — at that moment only Super is still held — and Hyprland
+-- skips a release bind when another key came in between, so Super+Ctrl+<key>
+-- combos never open it.
+hl.bind(mainMod .. " + Control_L", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl control-panel"), { release = true, description = "Control panel" })
+hl.bind(mainMod .. " + Control_R", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl control-panel"), { release = true, description = "Control panel" })
 -- Usage-aware focus cycle — the same frecency brain as the current-task
 -- pill's clicks (waverunner ranks by decayed focus frequency).
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
