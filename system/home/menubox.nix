@@ -30,7 +30,9 @@ let
   };
 in
 {
-  xdg.dataFile = lib.listToAttrs (
+  # golem.home.menubox.hidePlumbing (./options.nix): on for every install;
+  # the dev box keeps its hand-arranged grid (parity P1).
+  xdg.dataFile = lib.mkIf config.golem.home.menubox.hidePlumbing (lib.listToAttrs (
     [
       (hideCopy "foot" config.programs.foot.package)
       (hideCopy "nvim" config.programs.neovim.finalPackage)
@@ -52,5 +54,5 @@ in
       "blueman-adapters"
       "blueman-manager"
     ]
-  );
+  ));
 }

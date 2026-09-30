@@ -1,13 +1,22 @@
-# Golem home layer — ported from /etc/nixos/home.nix.
-# Differences from the channel version, all homedir-assumption kills:
+# Golem's home layer: the desktop of EVERY Golem machine, the dev box included
+# (parity P1, 2026-09-30: the dev box imports this directory from its
+# /etc/nixos/home.nix instead of keeping its own copy). What differs per
+# machine is an option in ./options.nix, set by that machine's layer.
+#
+# On an install (golem.home.devCheckout = false, the default):
 #   • waverunner runs from its flake package via programs.waverunner
 #     (systemd user service), not /home/max/launcher/waverunner-dev
 #   • hyprland.lua's plugin-load / waverunner-ctl lines are rewritten to
 #     store paths / PATH bins at build time (see the replaceStrings below)
+# On the dev box (devCheckout = true) both stay pointed at the live checkouts.
 { config, osConfig, pkgs, lib, waverunner, waveview, ... }:
 
+let
+  dev = config.golem.home.devCheckout;
+in
 {
   imports = [
+    ./options.nix         # the per-machine knobs (devCheckout, idle, hyprlandExtra)
     ../../seam/home.nix   # Seam: prefs, look, and the profile
     ./zsh.nix
     ./menubox.nix         # the menubox shows Seam only; the rest stays installed, hidden
@@ -33,9 +42,12 @@
   # it should reap the runaway app instead. This lives here, not in
   # configuration.nix, because waverunner is a home-manager user unit and a
   # NixOS-level systemd.user override is shadowed by the ~/.config copy.
-  systemd.user.services.waverunner.Service.ManagedOOMPreference = "avoid";
+  # (Installs only: on the dev box the dock is not a systemd unit.)
+  systemd.user.services.waverunner = lib.mkIf (!dev) {
+    Service.ManagedOOMPreference = "avoid";
+  };
 
-  programs.waverunner.enable = true;
+  programs.waverunner.enable = !dev;
 
   # notification-fix (vendored in ./notification-fix): the Chrome extension
   # that un-breaks FB/Messenger/IG notifications on Wayland — Chromium does
@@ -50,10 +62,12 @@
   # --load-extension in 137, so there the extension still needs a one-time
   # manual chrome://extensions "Load unpacked" of this store path; Chromium
   # honours the flag. Matters for the open browser decision (todo5 item 1).
-  xdg.configFile."systemd/user/waverunner.service.d/webapp-extension.conf".text = ''
-    [Service]
-    Environment=WAVERUNNER_WEBAPP_EXTENSION=${./notification-fix}
-  '';
+  xdg.configFile."systemd/user/waverunner.service.d/webapp-extension.conf" = lib.mkIf (!dev) {
+    text = ''
+      [Service]
+      Environment=WAVERUNNER_WEBAPP_EXTENSION=${./notification-fix}
+    '';
+  };
 
   # Desktop plumbing every Golem needs, lean or not.
   home.packages = with pkgs; [
@@ -75,6 +89,9 @@
     grim
     slurp
     wf-recorder       # screen recording (the OPTIONS record control)
+    hyprsunset        # the SUNSET option's warm screen (daemon screen.rs runs it);
+                      # only the dev box had it until 2026-09-30, so "turn on" did
+                      # nothing on an install (found by the P1 diff)
 
     playerctl
 
@@ -423,18 +440,26 @@
         if builtins.isString s then s else "/run/current-system/sw${s.shellPath}";
       shellNeedle = ''hl.env("SHELL",          "/run/current-system/sw/bin/zsh")'';
 
-      needles = [
+      # The shell's three live-checkout paths become store paths / PATH bins
+      # on an install; the dev box keeps them (golem.home.devCheckout), which
+      # is its whole edit-build-restart loop. Built as conditional lists, so a
+      # dev eval never forces the waveview input.
+      shellNeedles = lib.optionals (!dev) [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
         ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
+      ];
+      shellReplacements = lib.optionals (!dev) [
+        "hyprctl plugin load ${waveview}/lib/libwaveview.so"
+        "-- waverunner autostarts via systemd (programs.waverunner)"
+        "waverunner-ctl"
+      ];
+      needles = shellNeedles ++ [
         monitorNeedle
         kbNeedle
         shellNeedle
       ];
-      replacements = [
-        "hyprctl plugin load ${waveview}/lib/libwaveview.so"
-        "-- waverunner autostarts via systemd (programs.waverunner)"
-        "waverunner-ctl"
+      replacements = shellReplacements ++ [
         (if edpScale == null then monitorNeedle else ''
           ${monitorNeedle}
           -- generated from the panelDpi fact (${toString panelDpi} DPI)
@@ -466,7 +491,10 @@
       -- Air it held the 3D engine at 98% during video; the rest of the look
       -- (shadows, dimming, rounding) costs nothing measurable and stays.
       hl.config({ decoration = { blur = { enabled = false } } })
-    '';
+    ''
+    # This machine's own Lua (golem.home.hyprlandExtra), after everything.
+    + lib.optionalString (config.golem.home.hyprlandExtra != "") (
+      "\n" + config.golem.home.hyprlandExtra);
 
   # Waverunner config
   xdg.configFile."waverunner/config.toml".text = ''

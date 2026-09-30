@@ -5,10 +5,13 @@
 { pkgs, ... }:
 
 {
+  imports = [ ./intel-pmu.nix ]; # the gear's GPU % (the i915 PMU)
+
   hardware.graphics.extraPackages = with pkgs; [
     intel-media-driver
     intel-vaapi-driver
     libvdpau-va-gl
   ];
   environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
+
 }

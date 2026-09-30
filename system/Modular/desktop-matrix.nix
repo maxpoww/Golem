@@ -129,6 +129,26 @@ let
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
       ]).config;
+      # The dev box's shape (parity P1): the same home layer with its own
+      # machine layer on top: live checkouts, no idle steps, a Lua tail.
+      cDev = (mkMinimal (builtins.head rows).facts [
+        fakeDisk
+        desktop
+        waverunner.nixosModules.notification-service
+        ({ config, ... }: {
+          services.options-notify.enable = true;
+          home-manager.users.${config.golem.owner} = {
+            imports = [ ../../system/home/home.nix ];
+            golem.home.devCheckout = true;
+            golem.home.idle.enable = false;
+            golem.home.hyprlandExtra = "-- DEV-LAYER-TAIL";
+            golem.home.menubox.hidePlumbing = false;
+          };
+          # waveview = null on purpose: a dev eval must never force it.
+          home-manager.extraSpecialArgs = { inherit waverunner; waveview = null; };
+        })
+      ]).config;
+      devHome = cDev.home-manager.users.${cDev.golem.owner};
       luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       checks = [
@@ -163,6 +183,27 @@ let
         (ex "P12: the owner's bash carries the prompt, EDITOR and the OPTIONS bridge"
           (c.home-manager.users.${owner}.programs.bash.enable
            && lib.hasInfix "bridge.sock" c.home-manager.users.${owner}.programs.bash.initExtra))
+        # Found by the P1 diff (2026-09-30): only the dev box had these.
+        (ex "the sunset option's hyprsunset ships in the home layer"
+          (lib.any (p: (p.pname or "") == "hyprsunset") c.home-manager.users.${owner}.home.packages))
+        (ex "an Intel iGPU can report its load (perf_event_paranoid 0 on intel leaves)"
+          ((cLight.boot.kernel.sysctl."kernel.perf_event_paranoid" or null) == 0))
+        (ex "trusted Bluetooth devices reconnect after hibernate"
+          (c.systemd.services ? bluetooth-reconnect-after-hibernate))
+        # P1: the dev box runs this same home layer in its dev shape.
+        (ex "P1 dev shape: live checkouts kept, no waverunner unit, never a store rewrite"
+          (lib.hasInfix ''hl.exec_cmd("/home/max/launcher/waverunner-dev")'' (luaOf cDev)
+           && lib.hasInfix "/home/max/waveview/result/lib/libwaveview.so" (luaOf cDev)
+           && !(devHome.programs.waverunner.enable or false)
+           && !(devHome.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
+        (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes last"
+          (!devHome.services.hypridle.enable && devHome.programs.hyprlock.enable
+           && lib.hasSuffix "-- DEV-LAYER-TAIL" (luaOf cDev)))
+        (ex "P1: the menubox debloat is on for installs and off in the dev shape"
+          ((c.home-manager.users.${owner}.xdg.dataFile ? "applications/xterm.desktop")
+           && !(devHome.xdg.dataFile ? "applications/xterm.desktop")))
+        (ex "P1 install shape: no live-checkout path survives the rewrite"
+          (!(lib.hasInfix "/home/max/launcher" (luaOf c)) && !(lib.hasInfix "/home/max/waveview" (luaOf c))))
         (ex "real desktop: full effects by default (no light block)"
           (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"

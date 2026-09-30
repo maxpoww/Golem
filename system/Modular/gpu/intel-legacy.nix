@@ -8,6 +8,8 @@
 { pkgs, ... }:
 
 {
+  imports = [ ./intel-pmu.nix ]; # the gear's GPU % (the i915 PMU)
+
   hardware.graphics.extraPackages = with pkgs; [
     intel-media-driver
     intel-vaapi-driver
@@ -26,4 +28,5 @@
         "omkfmpieigblcllmkgbflkikinpkodlk;https://clients2.google.com/service/update2/crx"
       ];
     };
+
 }

@@ -12,7 +12,11 @@
 # three away (ignore_dbus_inhibit = false). Both daemons are user services tied
 # to graphical-session.target. The lock screen's PAM service is the system's
 # (system/Modular/desktop/idle.nix).
-{ ... }:
+#
+# golem.home.idle.enable = false (a machine's own layer) drops the timed
+# steps only; hyprlock and Super+L stay. The dev box sets it: builds and
+# agent sessions run there unattended, and a suspend would stop them.
+{ config, ... }:
 
 let
   dpms = state: ''hyprctl dispatch 'hl.dsp.dpms("${state}")' '';
@@ -25,7 +29,7 @@ let
 in
 {
   services.hypridle = {
-    enable = true;
+    enable = config.golem.home.idle.enable;
     settings = {
       general = {
         lock_cmd = lock;
