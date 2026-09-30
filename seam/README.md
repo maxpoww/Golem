@@ -30,6 +30,7 @@ Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side
 | `sources.json` | **the pin**: Firefox version, Mozilla tarball URL, SHA-256 (from Mozilla's `SHA256SUMS`) |
 | `lane.nix` | security update lane: overlay from the pin, `seam-update`, `seam-selftest`, `seam-update.timer` |
 | `update.sh`, `selftest.sh` | bodies of `seam-update` / `seam-selftest` |
+| `webapps-selftest.sh` (+ `.py`) | the WEBAPPS module's own headless test (see Webapps below) |
 
 **Where it's imported:**
 - **Golem flake:** `flake.nix` `golemModules` imports `./seam`, and `system/home/home.nix` imports `../../seam/home.nix`.
@@ -187,6 +188,51 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
 - **Measured** (click bench, 300 ms server think-time, 150 ms connection delay): cacheable page 55–69 ms instead of ~375 ms, served from cache 3/3; forced revalidation (`max-age=0`) 347 vs 374 ms (body saved, think-time stays); no-store: nothing. A survey of 15 real sites: about a third cacheable (Guardian, MDN, Apple, Python docs), a third revalidating (BBC, Wikipedia, GitHub, Amazon), a third no-store (NYT, Reddit, Ars, YouTube).
 - ⚠ Firefox's own prefetch service (`nsIPrefetchService`, what `<link rel=prefetch>` uses) stores entries a top-level navigation NEVER uses (0/3 served from cache, even fresh) — the page `fetch()` route is the one that works (3/3). Its 2nd argument in 156 is an `nsIReferrerInfo`, and it refuses with a bare NS_ERROR_ABORT while `network.prefetch-next` is false (uBO's first run flips it off in a fresh profile before its managed setting lands; a live profile has it on).
 - Bench gotchas: `data:` URLs decode `+` to a space; the two variants share proxy ports; the proxy logs only the first request per connection (a click reusing the prefetch's connection is invisible there — count `http-on-modify-request` / `http-on-examine-cached-response` inside Firefox instead); temporary IPv6 addresses rotate on reboot (`BENCH_CLICK_HOST` must be re-read).
+
+## Webapps (2026-09-30): the dock's webapps run in Seam
+
+`seam -golem-app <slug> <url>` opens `<url>` as a **webapp window** of the running Seam:
+the page alone, its own title, its own window class `webapp-<slug>`, which is also the
+id of its launcher `webapp-<slug>.desktop`, so the dock pairs tile and window by
+`StartupWMClass`. One process and one sign-in with the browser (no second browser's
+memory). The dock materializes the launchers from `~/.config/webapps.list` (waverunner
+`webapps.rs`). They were Chrome `--app` windows until 2026-09-30; Golem ships no Chrome.
+
+The window is **Firefox's own web-app window**, Taskbar Tabs (Firefox 157,
+`moz-src/browser/components/taskbartabs`), opened with the arguments
+`TaskbarTabsWindowManager.openWindow` uses: a property bag `taskbartab=golem-<slug>` +
+`taskbartabclass=webapp-<slug>` (its Linux branch). Firefox then does by design:
+- `browser-init` sets the window's `windowclass` from the bag at init (before the first
+  frame), and Firefox maps `windowclass` to the Wayland app_id;
+- SessionStore **defers** the browser session while a webapp is the first window (it
+  comes back in the first normal window) and **never saves** a webapp window: a webapp
+  launched with Seam closed opens alone, and webapps do not reopen when Seam restarts
+  (as Chrome's app windows did not);
+- no tab strip; links from other apps and new tabs from inside go to a normal window;
+- `display-mode: minimal-ui`, so sites with a manifest show their app layout.
+
+Mozilla gates Taskbar Tabs to Windows, but the window path never asks;
+`webapps-selftest.sh` guards the Linux branch, and if a release stops setting the class,
+golem-chrome.js sets it at DOMContentLoaded (the safety net).
+
+What Seam adds (golem-chrome.js WEBAPPS):
+- the command-line handler (category key `b-golem-app`, ahead of the browser's), which
+  also receives a second launch handed to the running Seam;
+- one window per webapp: relaunching at the start URL focuses it; another URL (a link
+  the clipboard opens in its webapp) loads there;
+- **permission prompts** anchor to the address strip userChrome.css hides: while one is
+  up (`golem-app-prompt`) the strip shows, and hides again once answered;
+- the **focus-to-visibility bridge**: Facebook, Messenger and Instagram notify only while
+  the page reads hidden, and on Wayland an unfocused window stays "visible". In a webapp
+  window those pages read hidden while the window is unfocused (a frame script; was the
+  Chrome extension `system/home/notification-fix`). Hosts: `golem.seam.apps.visibilityHosts`;
+- **copy link:** every webapp window's page goes to `$XDG_RUNTIME_DIR/seam/apps.json`
+  (local only);
+- in a webapp window the tab UI modules stay out (overview, tint, warm tabs, the sidebar
+  build); codecs, CPU share, media report, hover prefetch and the title run.
+
+Kill switch `golem.seam.apps` (false: the flag is consumed and the URL opens as a plain
+tab). Test: `./webapps-selftest.sh` (19 checks, headless, real build).
 
 ## Why Mozilla's build and not nixpkgs'
 

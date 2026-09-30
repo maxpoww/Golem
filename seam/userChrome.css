@@ -120,3 +120,20 @@
   background-image: none !important;
 }
 */
+
+/* WEBAPPS (golem-chrome.js): a webapp window (Firefox's taskbartab window) is its
+   page, like a Chrome app window. No toolbox (Firefox's slim address strip, tabs),
+   no sidebar. Keys still work: back/forward (Alt+Left/Right), reload, find, zoom.
+   While a permission prompt is up (golem-app-prompt) the address strip shows: the
+   prompt anchors to it and would not open otherwise.
+   *|* on purpose: line 1 makes XUL the default namespace, and a selector without
+   a type then matches XUL elements only; the root of browser.xhtml and the
+   sidebar are HTML. */
+*|*:root[taskbartab]:not([golem-app-prompt]) *|*#navigator-toolbox,
+*|*:root[taskbartab] *|*#TabsToolbar,
+*|*:root[taskbartab] *|*#sidebar-main,
+*|*:root[taskbartab] *|*#sidebar-box,
+*|*:root[taskbartab] *|*#sidebar-splitter,
+*|*:root[taskbartab] *|*#sidebar-launcher-splitter {
+  display: none !important;
+}

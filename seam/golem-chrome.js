@@ -108,7 +108,8 @@ try {
     L("built "+made+" buttons (only ours) + styled, launcher expanded");
   }
 
-  Services.obs.addObserver({observe:function(w){try{w.setTimeout(function(){try{build(w)}catch(e){L("build:"+e)}},900)}catch(e){}}},"browser-delayed-startup-finished");
+  Services.obs.addObserver({observe:function(w){try{ if(w.document.documentElement.hasAttribute("taskbartab")) return;   // a webapp window has no tab UI (WEBAPPS)
+    w.setTimeout(function(){try{build(w)}catch(e){L("build:"+e)}},900)}catch(e){}}},"browser-delayed-startup-finished");
   L("golem foundation loaded");
 } catch(e){}
 
@@ -1398,7 +1399,10 @@ try {
   function ttInit(win){
     try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
       var orig=gb.getWindowTitleForBrowser;
-      gb.getWindowTitleForBrowser=function(b){ var t=orig.call(this,b); return (typeof t==="string") ? t.replace(/Mozilla Firefox/g,"Seam").replace(/\bFirefox\b/g,"Seam") : t; };
+      var app=false; try{ app=win.document.documentElement.hasAttribute("taskbartab"); }catch(e){}
+      gb.getWindowTitleForBrowser=function(b){
+        if(app){ var ct=""; try{ ct=String((b && b.contentTitle) || ""); }catch(e){} if(ct) return ct; }   // a webapp: the page's own title
+        var t=orig.call(this,b); return (typeof t==="string") ? t.replace(/Mozilla Firefox/g,"Seam").replace(/\bFirefox\b/g,"Seam") : t; };
       try{ gb.updateTitlebar(); }catch(e){}
     }catch(e){ OVLOG("title:"+e); }
   }
@@ -2334,6 +2338,19 @@ try {
   }
 
   Services.obs.addObserver({observe:function(w){
+    // A webapp window (WEBAPPS, at the end of this file) has no tabs and no toolbar:
+    // no overview, no tint, no warm tabs. It keeps what serves the page it shows:
+    // the codec policy, the CPU share, the media report, hover prefetch, the title.
+    try{ if(w.document.documentElement.hasAttribute("taskbartab")){
+      w.setTimeout(function(){
+        try{ mrInit(w); }catch(e){}
+        try{ cbInit(w); }catch(e){ OVLOG("codec init:"+e); }
+        try{ csInit(w); }catch(e){ OVLOG("cpushare init:"+e); }
+        try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
+        try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
+      },1100);
+      return;
+    } }catch(e){}
     // Start ON the overview at launch (first window, >1 tab). Two forces fight us:
     // session-restore may not have added the tabs yet at delayed-startup, and
     // Firefox's own startup RE-ACTIVATES the selected tab a moment after we open
@@ -2387,4 +2404,220 @@ try {
     },1100); }catch(e){}
   }},"browser-delayed-startup-finished");
   OVLOG("tab-overview module loaded");
+} catch(e){}
+
+// ===================================================================
+// WEBAPPS (2026-09-30, Max: "migrate webapps to Seam"). The dock's webapps
+// (~/.config/webapps.list, materialized as webapp-<slug>.desktop) used to be
+// Chrome --app windows on a shared Chrome profile. Seam runs them itself:
+//
+//   seam -golem-app <slug> <url>
+//
+// opens <url> as a WEBAPP WINDOW of the running Seam: the page alone, its own
+// window class webapp-<slug> (the dock groups it and shows its icon by that
+// class), the page's own title. One process and one profile with the browser,
+// so a webapp is signed in wherever Seam is and costs no second browser's
+// memory (the 4 GB MacBook). A second launch of the same slug focuses the
+// window it already has; with another URL (a link the clipboard opens in its
+// webapp) it loads that URL there.
+//
+// The window is Firefox's own web-app window, TASKBAR TABS (Mozilla's "web
+// apps", Firefox 157, moz-src/browser/components/taskbartabs), opened with
+// the arguments TaskbarTabsWindowManager.openWindow uses: a property bag with
+// taskbartab=<id> and, the Linux branch, taskbartabclass=<window class>.
+// Firefox then does, by design:
+//   * browser-init sets the XUL windowclass from the bag at window init,
+//     before the first frame; Firefox maps windowclass to the Wayland app_id
+//     (libxul resolves gdk_wayland_window_set_application_id);
+//   * SessionStore DEFERS the browser session while a webapp is the first
+//     window (it comes back in the first normal window) and never saves a
+//     webapp window: a cold start through the flag opens the webapp alone, and
+//     webapps do not reopen when Seam restarts, as Chrome's app windows did not;
+//   * no tab strip (tab-bar-visibility: a single-tab window), and links and
+//     new tabs go to a normal window (BrowserWindowTracker, URILoadingHelper
+//     and BrowserDOMWindow skip taskbartab windows);
+//   * display-mode minimal-ui, so sites with a manifest show their app layout.
+// Mozilla gates the feature to Windows (TaskbarTabsUtils.isEnabled) but the
+// window path never asks; webapps-selftest guards the Linux branch, and if a
+// release stops setting the class, the class still goes on at DOMContentLoaded.
+// The id is "golem-<slug>": not in Mozilla's registry, which Firefox handles
+// (the title lookup misses and keeps the page title).
+//
+// Found by testing and handled here:
+//   * permission prompts anchor to the address bar userChrome.css hides; while
+//     one is up the strip shows (golem-app-prompt), gone again when answered;
+//   * Facebook, Messenger and Instagram notify only while the page reads
+//     "hidden", and on Wayland an unfocused window stays "visible" (no
+//     occlusion; GTK3 does not surface xdg_toplevel suspended). In a webapp
+//     window those pages read hidden while the window is unfocused: the
+//     focus-to-visibility bridge the Chrome webapps carried as an extension
+//     (system/home/notification-fix, 2026-09-01), now a frame script.
+//     Hosts: golem.seam.apps.visibilityHosts.
+// The current URL of every webapp window goes to XDG_RUNTIME_DIR/seam/apps.json
+// for the dock's copy-link (Chrome's was read over its debugging port). Kill
+// switch: golem.seam.apps (false = the flag is consumed and the URL opens as a
+// plain tab).
+// ===================================================================
+try {
+  var WA_PREF="golem.seam.apps", WA_ID="golem-", WA_FEATURES="titlebar,toolbar,resizable";
+  var WA_VIS_PREF="golem.seam.apps.visibilityHosts", WA_VIS_DEFAULT="facebook.com messenger.com instagram.com";
+  function WALOG(m){ try{ OVLOG("apps: "+m); }catch(e){} }
+  function waOn(){ try{ return Services.prefs.getBoolPref(WA_PREF,true); }catch(e){ return true; } }
+  function waSlug(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9-]/g,"").slice(0,64); }   // the dock's slugs are [a-z0-9-] already
+  function waSlugOf(w){
+    var id=""; try{ id=w.document.documentElement.getAttribute("taskbartab")||""; }catch(e){}
+    return id.indexOf(WA_ID)===0 ? id.slice(WA_ID.length) : "";
+  }
+  function waFind(slug){
+    var e=Services.wm.getEnumerator("navigator:browser");
+    while(e.hasMoreElements()){ var w=e.getNext(); if(!w.closed && waSlugOf(w)===slug) return w; }
+    return null;
+  }
+
+  // The dock's copy-link: slug -> the page each webapp window shows now.
+  var waReportPending=false;
+  function waReport(){
+    if(waReportPending) return; waReportPending=true;
+    var any=Services.wm.getMostRecentWindow(null);
+    var run=function(){ waReportPending=false;
+      try{
+        var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
+        dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
+        while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
+          try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||"")}; }catch(e2){} }
+        var io=(w0||any||{}).IOUtils; if(!io) return;
+        io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
+      }catch(e4){ WALOG("report:"+e4); }
+    };
+    try{ if(any) any.setTimeout(run,250); else run(); }catch(e){ run(); }
+  }
+
+  // Permission prompts anchor to the address bar, which a webapp window hides: the
+  // request was registered but its panel never opened (headless test, 2026-09-30).
+  // show(browser, id, message, anchorID, mainAction, secondaryActions, options): the
+  // strip goes up with the request (Firefox opens the panel once this window is the
+  // active one) and down when the panel closes or the request goes away unanswered.
+  function waPrompts(w){
+    try{
+      var pn=w.PopupNotifications, root=w.document.documentElement; if(!pn || pn.__golemApp) return; pn.__golemApp=true;
+      var orig=pn.show;
+      var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
+      pn.show=function(b,id,msg,anchor,main,secondary,options){
+        try{ root.setAttribute("golem-app-prompt","true"); }catch(e){}
+        try{ options=options||{}; var cb=options.eventCallback;
+          options.eventCallback=function(ev){ if(ev==="removed") clear(); return cb ? cb.apply(this,arguments) : false; }; }catch(e){}
+        return orig.call(this,b,id,msg,anchor,main,secondary,options); };
+      pn.panel.addEventListener("popuphidden",clear);
+    }catch(e){ WALOG("prompts:"+e); }
+  }
+
+  // The focus-to-visibility bridge (see the header). A frame script in the webapp
+  // window's content: on the configured hosts every document (all frames, before the
+  // page's scripts) reports hidden = really hidden OR the window unfocused, and hears
+  // visibilitychange when the window's focus changes. Chrome side: the window's
+  // activate/deactivate. The host pattern is built here (string prefs do not reach web
+  // content processes).
+  function waVisFS(){
+    var hosts=WA_VIS_DEFAULT; try{ hosts=Services.prefs.getStringPref(WA_VIS_PREF,WA_VIS_DEFAULT); }catch(e){}
+    var list=String(hosts).toLowerCase().split(/[ ,]+/).map(function(h){ return h.replace(/[^a-z0-9.-]/g,""); }).filter(Boolean);
+    if(!list.length) return "";
+    return "data:application/javascript;charset=utf-8,"+encodeURIComponent(
+      "(function(){try{var hosts="+JSON.stringify(list)+",focused=true,docs=[];"+
+      "function ours(h){h=String(h||'');return hosts.some(function(x){return h===x||h.slice(-x.length-1)==='.'+x;});}"+
+      "function hid(d){var real=false;try{real=d.visibilityState==='hidden';}catch(e){}return real||!focused;}"+
+      "function patch(d){try{var w=d&&d.defaultView;if(!w||!ours(w.location.hostname))return;var u=d.wrappedJSObject;"+
+      "var def=function(n,f){try{Object.defineProperty(u,n,{configurable:true,get:Components.utils.exportFunction(f,w)});}catch(e){}};"+
+      "def('hidden',function(){return hid(d);});def('webkitHidden',function(){return hid(d);});"+
+      "def('visibilityState',function(){return hid(d)?'hidden':'visible';});def('webkitVisibilityState',function(){return hid(d)?'hidden':'visible';});"+
+      "docs.push(Components.utils.getWeakReference(d));}catch(e){}}"+
+      "addMessageListener('golem:app-focus',function(m){var f=!!(m.data&&m.data.focused);if(f===focused)return;focused=f;"+
+      "docs=docs.filter(function(r){var d=r.get();if(!d)return false;try{var E=d.defaultView.Event;d.dispatchEvent(new E('visibilitychange'));d.dispatchEvent(new E('webkitvisibilitychange'));}catch(e){}return true;});});"+
+      "addEventListener('DOMWindowCreated',function(e){patch(e.target);},true);patch(content.document);"+
+      "}catch(e){}})();");
+  }
+  function waVisibility(w){
+    try{
+      var fs=waVisFS(); if(!fs) return;
+      w.messageManager.loadFrameScript(fs,true);
+      var send=function(f){ try{ w.messageManager.broadcastAsyncMessage("golem:app-focus",{focused:f}); }catch(e){} };
+      w.addEventListener("activate",function(){ send(true); });
+      w.addEventListener("deactivate",function(){ send(false); });
+      send(Services.focus.activeWindow===w);
+    }catch(e){ WALOG("visibility:"+e); }
+  }
+
+  function waWatch(w){
+    try{ w.gBrowser.tabs.forEach(function(t){ try{ w.gBrowser.getBrowserForTab(t).browsingContext.displayMode="minimal-ui"; }catch(e){} }); }catch(e){}
+    try{ w.gBrowser.addProgressListener({ onLocationChange:function(){ waReport(); } }); }catch(e){ WALOG("watch:"+e); }
+    try{ w.addEventListener("pagetitlechanged",function(){ waReport(); },true); }catch(e){}
+    w.addEventListener("unload",function(){ waReport(); },{once:true});
+    waPrompts(w); waVisibility(w); waReport();
+  }
+
+  // Firefox's own web-app window: TaskbarTabsWindowManager.openWindow's arguments.
+  function waArgs(slug,url){
+    var Cc=Components.classes, Ci=Components.interfaces;
+    var s=Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString); s.data=url;
+    var bag=Cc["@mozilla.org/hash-property-bag;1"].createInstance(Ci.nsIWritablePropertyBag2);
+    bag.setPropertyAsAString("taskbartab",WA_ID+slug);
+    bag.setPropertyAsAString("taskbartabclass","webapp-"+slug);   // the Linux branch: the window class
+    var ctx=Cc["@mozilla.org/supports-PRUint32;1"].createInstance(Ci.nsISupportsPRUint32); ctx.data=0;
+    var a=Cc["@mozilla.org/array;1"].createInstance(Ci.nsIMutableArray);
+    [s,bag,null,null,undefined,ctx,null,null,Services.scriptSecurityManager.getSystemPrincipal()].forEach(function(x){ a.appendElement(x); });
+    return a;
+  }
+
+  function waOpen(slug,url){
+    slug=waSlug(slug); if(!slug) return null;
+    var have=waFind(slug);
+    if(have){
+      // The dock relaunching a running webapp passes its start URL: focus it, keep its page.
+      // Any other URL is a link opened in the webapp (the clipboard's Open): load it there.
+      try{ if(url && url!==have.__golemAppStart) have.openTrustedLinkIn(url,"current"); }catch(e){ WALOG("navigate:"+e); }
+      try{ have.focus(); }catch(e){} WALOG("focus "+slug); return have;
+    }
+    var start=url||"about:blank";
+    var BWT=ChromeUtils.importESModule("resource:///modules/BrowserWindowTracker.sys.mjs").BrowserWindowTracker;
+    var w=BWT.openWindow({ args:waArgs(slug,start), features:WA_FEATURES, all:false });
+    w.__golemAppStart=start;
+    // Safety net: Firefox sets the class from the arguments at init; should a release stop
+    // doing that, it still goes on here, while it can (before the window's load).
+    w.addEventListener("DOMContentLoaded",function(){
+      try{ var r=w.document.documentElement;
+        if(!r.getAttribute("windowclass")){ r.setAttribute("windowclass","webapp-"+slug); WALOG("class set by the safety net"); }
+        if(!r.hasAttribute("taskbartab")) r.setAttribute("taskbartab",WA_ID+slug); }catch(e){ WALOG("class:"+e); }
+    },{once:true});
+    w.addEventListener("load",function(){ w.setTimeout(function(){ waWatch(w); },0); },{once:true});
+    WALOG("open "+slug+" "+start);
+    return w;
+  }
+
+  // seam -golem-app <slug> <url>: ahead of the browser's own handler (b- sorts before m-browser).
+  var waHandler={
+    QueryInterface:function(iid){
+      if(iid.equals(Components.interfaces.nsICommandLineHandler)||iid.equals(Components.interfaces.nsISupports)) return this;
+      throw Components.results.NS_ERROR_NO_INTERFACE; },
+    handle:function(cl){
+      try{
+        var slug=cl.handleFlagWithParam("golem-app",false); if(!slug) return;
+        if(!waOn()) return;   // switched off: the flag is consumed and the URL opens as a plain tab
+        var url=cl.length ? cl.getArgument(0) : "";
+        if(cl.length) cl.removeArguments(0,cl.length-1);
+        cl.preventDefault=true;
+        waOpen(slug,url);
+      }catch(e){ WALOG("handle:"+e); }
+    },
+    helpInfo:"  -golem-app <slug> <url>  Open <url> as the Golem webapp <slug>.\n"
+  };
+  var waFactory={
+    createInstance:function(iid){ return waHandler.QueryInterface(iid); },
+    QueryInterface:function(iid){
+      if(iid.equals(Components.interfaces.nsIFactory)||iid.equals(Components.interfaces.nsISupports)) return this;
+      throw Components.results.NS_ERROR_NO_INTERFACE; }
+  };
+  var WA_CONTRACT="@golem.os/seam-webapp-clh;1";
+  Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar)
+    .registerFactory(Components.ID("{6c7f1b36-7a1e-4d0b-9c5e-5a1c2b7f0e11}"),"Golem webapp command line",WA_CONTRACT,waFactory);
+  Services.catMan.addCategoryEntry("command-line-handler","b-golem-app",WA_CONTRACT,false,true);
+  WALOG("webapps module loaded");
 } catch(e){}
