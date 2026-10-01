@@ -145,6 +145,26 @@ failed units, and menubox launchers that run nothing.
   login waits for network.target (systemd's default; left alone: safe, 5 s).
   MacBook 22 s. Nothing to fix in Golem.
 
+- **P18. The MacBook's dock is an override build (2026-10-01).** The live
+  settings (Scale, Resolution) need the dock from `~/launcher` main, which is
+  not pushed (51 commits ahead of `github:maxpoww/launcher`; Golem pins
+  0741d0e). The MacBook was switched with `nixos-rebuild switch --flake
+  ~/Golem#golem-desktop --override-input waverunner
+  path:/nix/store/wygr7j4h4l5qx1f9bqnwsgvr1xki13ca-source` (launcher 7c0fe9a,
+  local branch `display-live-macbook`; the dock packages were built on the dev
+  box and copied). The daily autoupdate builds from the lock (`nixos-rebuild
+  boot`), so **the next reboot after it brings the old dock back** — the
+  saved choices still apply at login (the hook is in Golem), but the panel
+  shows placeholders again. Closes when the launcher line is pushed and
+  `flake.lock` bumped. The ThinkPad has the hook and the old dock.
+- **P19. The MacBook's Wi-Fi drops under load (2026-10-01).** BCM4360 on the
+  proprietary `wl` driver. During a 2 GB copy to it the 5 GHz AP was dropped
+  four times in 21 minutes (22:00, 22:11, 22:16, 22:21, `reason=0`; one drop
+  per boot on the three boots before), wpa_supplicant fell back to 2.4 GHz
+  and blocked the 5 GHz BSSID for 30 minutes; twice the machine was then
+  unreachable for 1 to 2 minutes with nothing in the log. Not investigated
+  further. First things to try: power save off for `wl`, or pin the band.
+
 ### Deep debug 2026-09-30: verified OK (no finding)
 
 Suspend/resume on the MacBook (rtcwake 25 s: same session, dock, wifi and
@@ -211,3 +231,4 @@ on either laptop.
 | 2026-10-01 | (data-layout review) the owner's password hash was world-readable: the installer wrote `hashedPassword` into the seed's machine.nix, so it sat in every generation's users-groups.json and every flake source copy in the Nix store (12 on the ThinkPad; four machines' hashes in the dev box's store) | base/users.nix: `hashedPasswordFile` → /var/lib/golem/secrets/owner-password-hash (root 0600), mirrored from /etc/shadow at activation; the installer writes that file instead; autoupdate strips the old line; desktop-matrix asserts it; GolemSecurity.md Phase 1b |
 | 2026-09-30 | (deep debug) every Hyprland rebuild restarted xdg-desktop-portal-hyprland mid-session (its unit embeds the package): a screen share in flight died with it | the same X-RestartIfChanged=false guard; the new portal at the next login |
 | 2026-09-30 | the "frozen lock" root cause, settled: a lock is only established once a frame reaches the screen. The dpms toggle bug left Hyprland believing the ThinkPad's panel was on while DRM had disabled it, so no frame ever came (lock never finished, unlock refused, clock frozen); only a session restart recovered. In a clean session with the fixes, the idle lock (via the compositor) → screen off → screen on → lock established → unlock worked (ThinkPad, 01:0x) | the fixes above; no stale dpms state can arise now |
+| 2026-10-01 | (live settings, first two) a screen's scale and resolution needed a rebuild and a logout: both lived only in the generated hyprland.lua | the control panel's Scale and Resolution set them live (`hl.monitor` through eval), save the owner's choice to `~/.config/golem/settings.json` and a generated `settings.lua` that hyprland.lua now runs last (`home.nix`, the LIVE SETTINGS block; docs/system/LiveSettings.md). Dock: launcher 98a1186 (local main). Verified nested (live change, try/keep/back, reload, cold start with no dock, reset) and on the MacBook (scale 1.25 live, kept across a config reload, reset); see P18 for how the MacBook got the dock |
