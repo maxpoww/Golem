@@ -128,6 +128,8 @@ let
         (ex "laptop: power-profiles-daemon on" c.services.power-profiles-daemon.enable)
         (ex "AMD laptop: thermald OFF (intel-only daemon)" (!c.services.thermald.enable))
         (ex "tier2 (7159 MB): swappiness 60" (c.boot.kernel.sysctl."vm.swappiness" == 60))
+        (ex "hibernate image as small as possible (amdgpu -12 on 2026-09-30)"
+          (lib.elem "w /sys/power/image_size - - - - 0" c.systemd.tmpfiles.rules))
         (ex "UEFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
       ];
     }
