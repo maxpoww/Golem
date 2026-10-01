@@ -177,9 +177,19 @@ in
   # and the medium's trust anchor SHOULD be pinned in-repo anyway.
   users.users.nixos.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
+    # The dev box's own key (~/.ssh/id_ed25519): the private half of
+    # golem-vm-loop is no longer on any machine (2026-10-01), so without it
+    # nothing could reach the medium. Same key the lab door authorizes on
+    # installs (system/Modular/lab/lab-door.nix).
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPGzyAbOC4icrUkntYWzPhKN0hjZ3J12FV0HOjZrEI70 dev-lab"
   ];
   users.users.root.openssh.authorizedKeys.keys = [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
+    # The dev box's own key (~/.ssh/id_ed25519): the private half of
+    # golem-vm-loop is no longer on any machine (2026-10-01), so without it
+    # nothing could reach the medium. Same key the lab door authorizes on
+    # installs (system/Modular/lab/lab-door.nix).
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPGzyAbOC4icrUkntYWzPhKN0hjZ3J12FV0HOjZrEI70 dev-lab"
   ];
   # The installer profile allows password logins with EMPTY passwords —
   # fine air-gapped, not on lab LAN with sshd up. Keys only.
