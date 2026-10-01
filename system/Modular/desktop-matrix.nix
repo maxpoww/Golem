@@ -174,6 +174,11 @@ let
         (ex "real desktop: golem-caffeine (stay awake) ships with its inhibitor unit"
           ((c.home-manager.users.${c.golem.owner}.systemd.user.services ? golem-caffeine)
             && lib.any (p: (p.name or "") == "golem-caffeine") c.home-manager.users.${c.golem.owner}.home.packages))
+        # A systemd inhibitor does not stop hypridle (it reads Wayland and
+        # D-Bus inhibits only): caffeine keeps the idle daemon itself off.
+        (ex "caffeine: hypridle does not run while ~/.config/golem/caffeine exists"
+          (c.home-manager.users.${c.golem.owner}.systemd.user.services.hypridle.Unit.ConditionPathExists
+            == "!%h/.config/golem/caffeine"))
         (ex "real desktop: a scripted resize keeps a floating window's own min/max"
           (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
             (c.programs.hyprland.package.patches or [ ])))

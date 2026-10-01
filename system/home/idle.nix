@@ -14,16 +14,23 @@
 # (system/Modular/desktop/idle.nix).
 #
 # CAFFEINE (Max, 2026-09-30: "configure a caffeine and toggle it on so they
-# stay awake"): `golem-caffeine on|off|status`. On holds a systemd inhibitor
-# (idle + sleep + the lid switch, block) from a user service: hypridle honours
-# it (no lock, no screen-off, no suspend) and logind will not sleep on the lid.
+# stay awake"): `golem-caffeine on|off|status`. On does two things:
+#   - hypridle does not run at all (no lock, no screen-off, no idle suspend):
+#     its unit only starts while ~/.config/golem/caffeine is absent;
+#   - a systemd inhibitor (sleep + the lid switch, block) so logind will not
+#     sleep on the lid either.
+# The inhibitor alone was the first version and it did NOT keep the screen on:
+# hypridle reads Wayland and D-Bus (org.freedesktop.ScreenSaver) inhibits, not
+# systemd ones, so both laptops kept locking at 5 min and blanking at 6 with
+# caffeine "on" (2026-10-01, ThinkPad: locks at 23:57, 00:17, 00:24).
 # Nothing is removed; off brings every step back. The choice is a file
-# (~/.config/golem/caffeine), so it survives a reboot.
+# (~/.config/golem/caffeine), so it survives a reboot, a relogin and a
+# home-manager switch (which restarts hypridle: the condition keeps it off).
 #
 # golem.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   # The display's power by ACTION: Golem's Hyprland takes
@@ -58,11 +65,13 @@ let
     case "''${1:-status}" in
       on)
         mkdir -p "$(dirname "$state")" && touch "$state"
+        systemctl --user stop hypridle.service 2>/dev/null
         systemctl --user start golem-caffeine.service
         echo "caffeine ON: no lock, no screen-off, no sleep (lid included). Undo: golem-caffeine off" ;;
       off)
         rm -f "$state"
         systemctl --user stop golem-caffeine.service
+        systemctl --user start hypridle.service 2>/dev/null
         echo "caffeine OFF: lock, screen-off and sleep are back" ;;
       status)
         if systemctl --user is-active --quiet golem-caffeine.service; then echo on; else echo off; fi ;;
@@ -82,6 +91,10 @@ in
     Service.ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=idle:sleep:handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # Caffeine on: hypridle stays off (see CAFFEINE above).
+  systemd.user.services.hypridle.Unit.ConditionPathExists =
+    lib.mkIf config.golem.home.idle.enable "!%h/.config/golem/caffeine";
 
   services.hypridle = {
     enable = config.golem.home.idle.enable;
