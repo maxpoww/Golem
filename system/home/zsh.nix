@@ -25,6 +25,11 @@
     settings = {
       "$schema" = "https://starship.rs/config-schema.json";
       add_newline = true;
+      # The 30 ms default scan budget is too short for a cold spinning
+      # disk (ThinkPad on its USB HDD, 2026-10-01: every new terminal said
+      # "[WARN] Scanning current directory timed out"). 300 ms is still
+      # instant on SSDs, where the scan takes a few ms.
+      scan_timeout = 300;
       format = "$directory$os$git_branch$git_status$nodejs$rust$golang$php $character";
 
       os = {
