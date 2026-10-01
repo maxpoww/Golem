@@ -196,7 +196,7 @@ let
             == "!%h/.config/golem/caffeine"))
         # ...and it never blocks sleep itself: a low battery must still suspend.
         (ex "caffeine: holds only the lid switch, never sleep (the low-battery suspend must go through)"
-          (let start = c.home-manager.users.${c.golem.owner}.systemd.user.services.golem-caffeine.Service.ExecStart; in
+          (let es = c.home-manager.users.${c.golem.owner}.systemd.user.services.golem-caffeine.Service.ExecStart; start = if lib.isList es then lib.concatStringsSep " " es else es; in
             lib.hasInfix "--what=handle-lid-switch " start && !(lib.hasInfix "sleep" (lib.head (lib.match ".*--what=([^ ]*).*" start)))))
         (ex "real desktop: a scripted resize keeps a floating window's own min/max"
           (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
