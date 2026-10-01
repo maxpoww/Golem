@@ -299,6 +299,10 @@ let
           && seed ? DesktopAudioDevice1 && seed ? AuxAudioDevice1
           && item ? pos_rel && item ? scale_rel && item ? scale_ref && item ? bounds_rel
           && item.bounds_type == 2))
+        (ex "ups ships on the desktop: the CLI, rootless podman, ~/.local/bin on PATH, the built-in recipes"
+          (lib.any (p: (p.name or "") == "ups") c.environment.systemPackages
+            && c.virtualisation.podman.enable && c.environment.localBinInPath
+            && c.environment.etc ? "ups/recipes.d/opencode.sh"))
         # The Install section's list is Golem's checked one, made for the
         # nixpkgs this flake pins (refresh.sh after every nixpkgs bump).
         (ex "install list: Golem's checked package index, made for the pinned nixpkgs"

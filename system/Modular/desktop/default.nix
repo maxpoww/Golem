@@ -31,6 +31,8 @@
                             # File Roller) + system-wide emoji input — from golem-apps.nix
     ./session.nix           # gvfs, dconf, udisks2, gsettings: what those apps assume
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
+    ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
+                            # an overlay on the stock app (ups erase brings it back)
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
                             # waverunner's packages.list into hosts/target/apps.nix
                             # and rebuilds (without it installs fail silently —
