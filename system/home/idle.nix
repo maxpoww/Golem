@@ -17,8 +17,12 @@
 # stay awake"): `golem-caffeine on|off|status`. On does two things:
 #   - hypridle does not run at all (no lock, no screen-off, no idle suspend):
 #     its unit only starts while ~/.config/golem/caffeine is absent;
-#   - a systemd inhibitor (sleep + the lid switch, block) so logind will not
-#     sleep on the lid either.
+#   - a systemd inhibitor on the LID SWITCH only, so closing the lid does
+#     not sleep it either.
+# Never on "sleep": that also refused the low-battery suspend — the dock's
+# own "5% and discharging — suspending" (ThinkPad, 2026-10-01 20:00, on
+# battery with caffeine on) and logind's/UPower's. Staying awake must never
+# mean running the battery flat.
 # The inhibitor alone was the first version and it did NOT keep the screen on:
 # hypridle reads Wayland and D-Bus (org.freedesktop.ScreenSaver) inhibits, not
 # systemd ones, so both laptops kept locking at 5 min and blanking at 6 with
@@ -81,7 +85,7 @@ let
         mkdir -p "$(dirname "$state")" && touch "$state"
         systemctl --user stop hypridle.service 2>/dev/null
         systemctl --user start golem-caffeine.service
-        echo "caffeine ON: no lock, no screen-off, no sleep (lid included). Undo: golem-caffeine off" ;;
+        echo "caffeine ON: no lock, no screen-off, no idle sleep, the lid does not sleep (a nearly flat battery still does). Undo: golem-caffeine off" ;;
       off)
         rm -f "$state"
         systemctl --user stop golem-caffeine.service
@@ -102,7 +106,7 @@ in
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };
-    Service.ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=idle:sleep:handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
+    Service.ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
