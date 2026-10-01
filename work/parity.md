@@ -152,8 +152,11 @@ failed units, and menubox launchers that run nothing.
   work on the macbook") the launcher line was pushed (0741d0e..98a1186) and
   Golem's lock bumped (3230bf7); the MacBook was switched from the lock, and a
   dry-build there now finds nothing to build, so the nightly autoupdate keeps
-  this dock. The ThinkPad was off: it gets the dock and the hook from its
-  autoupdate (`nixos-rebuild boot`), live at its next reboot.
+  this dock. The ThinkPad was off then; deployed the same way the same
+  night (Golem 2a96bb6, dock 02d741a): scale 150 % -> 125 % -> 150 %
+  dissolved, pointer pixel unchanged, nothing left saved. Its panel has
+  several modes, so Resolution has real choices there; a mode change on
+  metal is still untested (the machine locked on its idle timer mid-check).
 - **P19. The MacBook's Wi-Fi drops under load (2026-10-01).** BCM4360 on the
   proprietary `wl` driver. During a 2 GB copy to it the 5 GHz AP was dropped
   four times in 21 minutes (22:00, 22:11, 22:16, 22:21, `reason=0`; one drop
