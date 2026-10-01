@@ -2688,6 +2688,7 @@ try {
         var slug=cl.handleFlagWithParam("golem-app",false); if(!slug) return;
         if(!waOn()) return;   // switched off: the flag is consumed and the URL opens as a plain tab
         var url=cl.length ? cl.getArgument(0) : "";
+        if(url.charAt(0)==="-") url="";   // a stray flag is never the page
         if(cl.length) cl.removeArguments(0,cl.length-1);
         cl.preventDefault=true;
         waOpen(slug,url,fresh);

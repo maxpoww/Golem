@@ -111,7 +111,9 @@ w2 = wins(m); check("relaunch at its start URL: one window, its page kept", [w["
 remote(m, "-golem-app", "spikeapp", U("other")); time.sleep(2)
 w2b = wins(m); check("a link opened in the webapp loads in its window", [w["url"] for w in w2b if w["app"] == "spikeapp"] == [U("other")], w2b)
 # the dock's "new instance" (a box launch, a right-click): another window of the webapp
-remote(m, "-golem-new", "-golem-app", "spikeapp", U("app")); time.sleep(3)
+# (the dock appends the flag AFTER the url: a Seam predating it read the first
+# argument after the slug as the page, and loaded "-golem-new" into the window)
+remote(m, "-golem-app", "spikeapp", U("app"), "-golem-new"); time.sleep(3)
 w2c = wins(m); sp = [w for w in w2c if w["app"] == "spikeapp"]
 check("-golem-new opens another window of the running webapp", len(sp) == 2 and all(w["cls"] == "webapp-spikeapp" for w in sp), w2c)
 m.js('let ws = [...Services.wm.getEnumerator("navigator:browser")].filter(x => x.document.documentElement.getAttribute("taskbartab") == "golem-spikeapp" && x.gBrowser.currentURI.spec == %s); ws.forEach(x => x.close()); done(ws.length);' % json.dumps(U("app"))); time.sleep(1.5)
