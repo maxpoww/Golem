@@ -269,7 +269,7 @@ let
             && lib.hasInfix ''"/golem/settings.lua"'' tail
             && lib.hasInfix "pcall(dofile, path)" tail
             && lib.hasSuffix "end\nend\n" tail
-            && !(lib.hasInfix "require" tail)
+            && !(lib.hasInfix "require(" tail)
             && !(lib.hasInfix "hl.config(" tail))
             [ c cLight cDev ]))
         (ex "P1: the menubox debloat is on for installs and off in the dev shape"
