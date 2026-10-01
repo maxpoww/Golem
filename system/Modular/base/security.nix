@@ -25,7 +25,7 @@
   # fail2ban (no python), which matters on the minimal.
   services.sshguard.enable = true;
 
-  # Sudo hygiene (additive to users.nix's NOPASSWD-nixos-rebuild rule):
+  # Sudo hygiene (no NOPASSWD anywhere on an install, see users.nix):
   # explain itself once, and don't leave a long-lived unlocked timestamp.
   security.sudo.extraConfig = ''
     Defaults lecture = once

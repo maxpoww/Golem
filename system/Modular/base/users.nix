@@ -61,11 +61,14 @@
   warnings = lib.optional (config.users.users.${config.golem.owner}.hashedPassword != null)
     "golem: the owner's password hash is declared in the system source (hosts/target/machine.nix) and is therefore world-readable in the Nix store; remove that line — the account keeps its password (see base/users.nix).";
 
-  security.sudo.extraRules = [{
-    users = [ config.golem.owner ];
-    commands = [{
-      command = "/run/current-system/sw/bin/nixos-rebuild";
-      options = [ "NOPASSWD" ];
-    }];
-  }];
+  # No passwordless sudo on an install (GolemSecurity: "sudo requires a
+  # password, no NOPASSWD anywhere in shipped config"). A NOPASSWD rule for
+  # nixos-rebuild here was a root escalation for any program running as the
+  # owner: `sudo nixos-rebuild switch --flake <its own flake>` (or
+  # `nixos-rebuild edit`) — no password, and the seed's seal never asked.
+  # Found by golem-deep on the MacBook, 2026-10-01. Unattended rebuilds run
+  # as root services (waverunner-apply, golem-autoupdate, seam-update); the
+  # owner's own rebuild-golem asks for the password, which is the consent
+  # its golem-bless relies on. (The dev box keeps its own NOPASSWD dev loop
+  # in system/configuration.nix.)
 }
