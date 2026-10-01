@@ -244,6 +244,17 @@ p = ff(*MF); m = M(); time.sleep(7)
 w8 = wins(m); t8 = tabs(m)
 check("after a restart no webapp window reopens", not any(w["app"] for w in w8), w8)
 check("after a restart no browser tab is lost", sum(1 for t in t8 if t["url"] == U("plain")) >= 2 and any(t["url"] == U("other") for t in t8), t8)
+m.quit(); p.wait(timeout=30); time.sleep(1)
+
+# 9) the dock's "new instance" with Seam NOT running: a cold start through the flag in
+#    the dock's order opens the webapp alone — no stray tab, no "-golem-new" page
+p = ff(*MF, "-golem-app", "spikeapp", U("app"), "-golem-new"); m = M(); time.sleep(6)
+w9 = wins(m); t9 = tabs(m)
+check("cold start with -golem-new: the webapp window alone, at its page", [w["url"] for w in w9 if w["app"] == "spikeapp"] == [U("app")] and not any("golem-new" in str(t["url"]) for t in t9), {"wins": w9, "tabs": t9})
+# and twice in a row (a double right-click): two windows, both at its page, nothing else
+remote(m, "-golem-app", "spikeapp", U("app"), "-golem-new"); remote(m, "-golem-app", "spikeapp", U("app"), "-golem-new"); time.sleep(4)
+w9b = wins(m)
+check("two quick new-instance launches: two more windows, all at the page", [w["url"] for w in w9b if w["app"] == "spikeapp"] == [U("app")] * 3, w9b)
 m.quit(); p.wait(timeout=30)
 fails = [k for k, v in R.items() if v[0] != "PASS"]
 print("\nRESULT:", "ALL PASS" if not fails else f"{len(fails)} FAIL: {fails}")
