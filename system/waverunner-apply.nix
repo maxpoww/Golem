@@ -194,6 +194,14 @@ in
       # #58 self-kill). A oneshot picks up the new definition on its next
       # run anyway.
       restartIfChanged = false;
+      # No start limit: the dock retries a failed install at once, and three
+      # quick failures (systemd's default is 5 starts in 10 s, counted with
+      # the path unit's own triggers) put the unit AND its path watch into
+      # "start-limit-hit" — the next install was then never picked up at all
+      # and the dock gave up after its nudges (ThinkPad, DaVinci Resolve,
+      # 2026-10-01: three seal refusals, then a silent fourth failure). Each
+      # run is a whole rebuild; there is no storm to guard against.
+      startLimitIntervalSec = 0;
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${applyScript}/bin/waverunner-apply";
@@ -203,6 +211,7 @@ in
     systemd.paths.waverunner-apply = {
       description = "Watch waverunner's packages.list for changes";
       wantedBy = [ "multi-user.target" ];
+      unitConfig.StartLimitIntervalSec = 0;
       pathConfig = {
         PathChanged = listFile;
         Unit = "waverunner-apply.service";
