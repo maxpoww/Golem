@@ -28,6 +28,7 @@ let
       facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
       expect = c: [
         (ex "UEFI → GRUB-EFI on, no systemd-boot (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport && !c.boot.loader.systemd-boot.enable))
+        (ex "first-boot never holds a boot target (the desktop must not wait for its rebuild): timer-started, low priority" (c.systemd.services.golem-first-boot.wantedBy == [ ] && c.systemd.timers ? golem-first-boot && c.systemd.services.golem-first-boot.serviceConfig.IOSchedulingClass == "idle"))
         (ex "no passwordless sudo on an install (GolemSecurity)" (!(lib.any (r: lib.any (cmd: lib.elem "NOPASSWD" (cmd.options or [ ])) (r.commands or [ ])) c.security.sudo.extraRules) && !(lib.hasInfix "NOPASSWD" c.security.sudo.extraConfig)))
         (ex "Broadwell (not legacy) → LIBVA iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
         (ex "intel microcode on" c.hardware.cpu.intel.updateMicrocode)

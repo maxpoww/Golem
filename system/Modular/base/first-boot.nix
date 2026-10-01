@@ -41,17 +41,32 @@ let
   }}/bin/golem-wait-online-fb";
 in
 lib.mkIf (config.golem.flakeDir != null) {
+  systemd.timers.golem-first-boot = {
+    description = "Golem first-boot convergence, shortly after boot";
+    wantedBy = [ "timers.target" ];
+    timerConfig.OnBootSec = "30s";
+  };
+
   systemd.services.golem-first-boot = {
     description = "Golem first-boot convergence: rebuild onto measured hardware + machine.nix (once)";
-    wantedBy = [ "multi-user.target" ];
+    # Started by its TIMER (below), never by a boot target. A oneshot wanted
+    # by multi-user.target holds every target after it until it finishes —
+    # graphical.target too — so the desktop's session (uwsm waits for
+    # graphical.target) sat on a black screen for the whole first rebuild
+    # (the 2026-09-26 "can't reach graphical" bug, found again installing the
+    # desktop-baked ISO in a VM, 2026-10-01). A timer-started unit is outside
+    # the boot transaction: the desktop comes up at once, this converges
+    # quietly behind it.
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    # Runs ONCE: skip if the stamp is already there. Nothing Requires this
-    # unit, so a slow rebuild never blocks getty/login — it converges quietly.
+    # Runs ONCE: skip if the stamp is already there.
     unitConfig.ConditionPathExists = "!${stamp}";
     serviceConfig = {
       Type = "oneshot";
       TimeoutStartSec = "infinity";   # a full first rebuild on a slow disk/2 GB box
+      # The owner is using the machine meanwhile: stay out of the way.
+      Nice = 19;
+      IOSchedulingClass = "idle";
     };
     path = [ config.nix.package pkgs.coreutils ];
     script = ''

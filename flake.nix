@@ -231,13 +231,23 @@
       # session LANG differ, a few tiny paths. So this multiplies the MANIFEST,
       # not the ISO size. Keep it to the languages actually offered/tested; an
       # unbaked choice falls back to the en_US baked (boots, English) below.
-      # TEST CUT (2026-09-26, UNCOMMITTED): bake the desktop-test system
-      # (Hyprland + autostart Chrome, desktop/test-chrome.nix) instead of the
-      # minimal, so the ISO installs straight to a driver/A-V test desktop.
-      # en_US only keeps the heavier desktop bake sane. Flip to false to
-      # restore the normal minimal bake — do NOT commit this = true.
-      bakeDesktopTest = false;
-      bakeLocales = if bakeDesktopTest
+      # THE DESKTOP IS BAKED (Max, 2026-10-01: "tomorrow i will install it
+      # manually and it should work out of the box on the last Golem version").
+      # Before, the ISO baked the stage-0 minimal: an install booted to a text
+      # login and stayed there until someone set golem.flakeAttr and ran
+      # rebuild-golem — the lab laptops only had desktops because they were
+      # moved onto #golem-desktop by hand. Now gen-1 IS the desktop (Hyprland,
+      # the dock + OPTIONS, Seam, the apps, ups…), installed by direct copy,
+      # offline, nothing compiled on the machine. first-boot then converges it
+      # onto the machine's measured hardware + answers as golem-desktop (the
+      # desktop leaf sets golem.flakeAttr), and every derivation it needs is
+      # already on the disk from the bake.
+      bakeDesktop = true;
+      # English only: evaluating every machine × firmware × language as a full
+      # desktop took 28 GB on the dev box and was stopped (2026-10-01). Another
+      # language chosen at install gets the en_US variant (the installer's own
+      # fallback) and arrives with first-boot's rebuild, live after one reboot.
+      bakeLocales = if bakeDesktop
         then [ "en_US.UTF-8" ]
         else (import ./system/golem-locales.nix).baked;   # memory-safe core; `.all` is the archive
       mkBakedEntry = { name, firmware, isFloor, facts, locale }:
@@ -247,7 +257,7 @@
           toplevel = (mkMinimal facts ([
             (bakedFakeDisk firmware)
             { golem.locale.defaultLocale = locale; }
-          ] ++ bakedLib.optionals bakeDesktopTest [
+          ] ++ bakedLib.optionals bakeDesktop [
             # THE REAL OPTIONS DESKTOP baked into gen-1 — the golem-desktop
             # wiring (Hyprland + waverunner's bar/dock + options-notify,
             # hyprland.lua, Beam), so a reflash boots straight into the real
@@ -261,12 +271,6 @@
               home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
               home-manager.extraSpecialArgs = { inherit waverunner waveview; };
               golem.flakeAttr = "golem-desktop";
-              # No maintenance spine on this demo cut: the desktop is baked into
-              # gen-1, so first-boot's rebuild would only throttle the session
-              # (the 2026-09-26 "can't reach graphical" bug). Off; it just runs.
-              systemd.services.golem-first-boot.enable = bakedLib.mkForce false;
-              systemd.services.golem-autoupdate.enable = bakedLib.mkForce false;
-              systemd.timers.golem-autoupdate.enable = bakedLib.mkForce false;
             })
           ])).config.system.build.toplevel;
         };
