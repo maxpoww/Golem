@@ -3,7 +3,12 @@
 <!-- Runs alongside S8–S10, closes last. -->
 
 - [ ] **SOON — a non-English install must be in its language end to end**
-      (Max, 2026-10-01, ThinkPad installed in FRENCH from the final ISO:
+      THE RULE (Max, 2026-10-01): "a system on spanish for spanish, french
+      for french" — the language picked in the installer is the language of
+      EVERYTHING Golem shows, from the first login on: shell, OPTIONS,
+      settings, notifications, folders, browser. English only as the
+      per-string fallback, never as the default.
+      (ThinkPad installed in FRENCH from the final ISO:
       "configuration, notification, options, all in english"). Checked on
       the machine before it left: the LOCALE is right (machine.nix
       fr_FR.UTF-8, Europe/Paris; the session runs LANG=fr_FR.UTF-8
