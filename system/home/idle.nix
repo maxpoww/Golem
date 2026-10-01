@@ -60,6 +60,20 @@ let
     exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
   '';
   lock = "${golemLock}";
+  # The idle suspend waits for a running install or system update: an app
+  # from the dock can take longer than the 15 minutes (DaVinci Resolve, 25
+  # min on the ThinkPad), and a suspend in the middle stalls the download or
+  # the switch. Only the IDLE suspend: closing the lid still suspends.
+  golemIdleSuspend = pkgs.writeShellScript "golem-idle-suspend" ''
+    for u in waverunner-apply golem-postinstall-apply golem-autoupdate seam-update golem-first-boot; do
+      if systemctl is-active --quiet "$u.service"; then
+        echo "golem-idle-suspend: $u is running — not suspending"
+        exit 0
+      fi
+    done
+    exec systemctl suspend
+  '';
+  idleSuspend = "${golemIdleSuspend}";
   golemCaffeine = pkgs.writeShellScriptBin "golem-caffeine" ''
     state="$HOME/.config/golem/caffeine"
     case "''${1:-status}" in
@@ -108,7 +122,7 @@ in
       listener = [
         { timeout = 300; on-timeout = lock; }
         { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
-        { timeout = 900; on-timeout = "systemctl suspend"; }
+        { timeout = 900; on-timeout = idleSuspend; }
       ];
     };
   };

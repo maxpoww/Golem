@@ -45,8 +45,20 @@ sha=$(curl -fsS --retry 3 "https://archive.mozilla.org/pub/firefox/releases/$lat
 [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || { log "no SHA256 for $latest in Mozilla's SHA256SUMS"; exit 1; }
 
 log "updating $pinned -> $latest"
-exec 9>/run/golem-rebuild.lock
+# Golem's one rebuild lock (golem-rebuild uses it too): never two system rebuilds at once.
+# We hold it ourselves, so the rebuild below is a plain nixos-rebuild.
+exec 9>>/run/golem-rebuild.lock
 flock 9
+
+# The checkout is the OWNER's: git writes run as them (root-written index/object files
+# are ones the owner can no longer touch). And the seal: when the checkout was blessed
+# before this update, the pin written below is ours (root, from Mozilla's SHA256SUMS)
+# and is re-blessed after — otherwise the dock's next app install is refused ("the
+# system configuration changed since the last blessing"). Checked BEFORE writing.
+asowner(){ runuser -u "$(stat -c %U "$SEAM_FLAKE")" -- "$@"; }
+sealed_before=no
+if [ -n "${SEAM_SEAL_CHECK:-}" ] && "$SEAM_SEAL_CHECK" >/dev/null 2>&1; then sealed_before=yes; fi
+reseal(){ if [ "$sealed_before" = yes ] && [ -n "${SEAM_SEAL_BLESS:-}" ]; then "$SEAM_SEAL_BLESS" >/dev/null && log "re-sealed the checkout"; fi; }
 
 cp -p "$SRC" "$SRC.prev"
 tmp=$(mktemp "$SRC.XXXX")
@@ -57,7 +69,7 @@ mv "$tmp" "$SRC"
 if [ -n "${SEAM_FLAKE:-}" ]; then
   # flake system: the build only sees git-TRACKED files — stage the new pin, then
   # rebuild this machine's own composition from its checkout (safe.directory is set)
-  git -C "$SEAM_FLAKE" add seam/sources.json
+  asowner git -C "$SEAM_FLAKE" add seam/sources.json
   rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
 else
   rebuild(){ nixos-rebuild switch; }
@@ -65,9 +77,11 @@ fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
   mv "$SRC.prev" "$SRC"
-  [ -n "${SEAM_FLAKE:-}" ] && git -C "$SEAM_FLAKE" add seam/sources.json
+  [ -n "${SEAM_FLAKE:-}" ] && asowner git -C "$SEAM_FLAKE" add seam/sources.json
+  reseal
   exit 1
 fi
+reseal
 log "Seam is now $latest"
 
 # Test the NEW build headless (as nobody: Firefox must not run as root). Never blocks

@@ -478,7 +478,11 @@
     ] ++ lib.optional (config.golem.flakeDir != null)
       (pkgs.writeShellScriptBin "rebuild-golem" ''
         set -euo pipefail
-        sudo nixos-rebuild switch --flake "${config.golem.flakeDir}#${config.golem.flakeAttr}" "$@"
+        sudo golem-rebuild switch --flake "${config.golem.flakeDir}#${config.golem.flakeAttr}" "$@"
+      # Built and switched with sudo: that IS the owner's consent to what is
+      # in the checkout now. Re-seal it, or every app install from the dock
+      # would be refused until a separate `sudo golem-bless`.
+      sudo golem-bless
 
         current=$(readlink -f /run/current-system)
         latest=$(readlink -f /nix/var/nix/profiles/system)

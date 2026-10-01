@@ -72,7 +72,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         echo "first-boot: seal check failed — refusing to converge" >&2; exit 1; }
 
       echo "first-boot: converging onto measured hardware + machine.nix (boot)…"
-      /run/current-system/sw/bin/nixos-rebuild boot --flake "$dir#$attr"
+      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"
 
       mkdir -p "$(dirname ${lib.escapeShellArg stamp})"
       chmod 700 "$(dirname ${lib.escapeShellArg stamp})"

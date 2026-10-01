@@ -141,6 +141,7 @@ let
       config.system.build.nixos-rebuild
       config.nix.package
       config.golem.seal.check
+      config.golem.rebuild
       pkgs.git
       pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
@@ -275,7 +276,7 @@ let
       # actually changed and treat that as success (Golem #44; mirrors
       # system/waverunner-apply.nix).
       before=$(readlink -f /run/current-system 2>/dev/null || echo none)
-      if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
+      if err=$(golem-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         finish_ok
       elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
         echo "$err" | grep -qi "user activation" \

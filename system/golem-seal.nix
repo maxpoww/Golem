@@ -64,6 +64,26 @@ let
     }
   '';
 
+  # ONE rebuild at a time, for every rebuilder Golem has: the dock's app
+  # installs, post-install answers, first boot, the nightly update, Seam's
+  # update lane and the owner's rebuild-golem. switch-to-configuration takes
+  # its own lock WITHOUT waiting ("Could not acquire lock"), and by then
+  # nixos-rebuild has already made the new generation the boot default — so
+  # an app install that met the nightly update failed in the dock while the
+  # next reboot quietly brought the app in. Here the second rebuilder waits
+  # its turn instead. The lock file is Seam's lane's, which already took it.
+  rebuild = pkgs.writeShellApplication {
+    name = "golem-rebuild";
+    runtimeInputs = [ pkgs.util-linux config.system.build.nixos-rebuild ];
+    text = ''
+      exec 9>>/run/golem-rebuild.lock
+      if ! flock -n 9; then
+        echo "golem-rebuild: another system rebuild is running — waiting for it…" >&2
+        flock -w 7200 9 || { echo "golem-rebuild: still busy after 2 h — giving up" >&2; exit 1; }
+      fi
+      nixos-rebuild "$@"
+    '';
+  };
   sealCheck = pkgs.writeShellApplication {
     name = "golem-seal-check";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.diffutils pkgs.gawk ];
@@ -80,7 +100,10 @@ let
         echo "golem-seal: first run — seed sealed ($(printf '%s\n' "$current" | wc -l) files)"
         exit 0
       fi
-      if diff -q <(printf '%s\n' "$current") "$manifest" >/dev/null 2>&1; then
+      # A plain string comparison: `diff -q` stopped reading early and the
+      # writer died of SIGPIPE ("printf: write error: Broken pipe"), noise
+      # that ended up in the error the dock reports.
+      if [[ "$current" == "$(cat "$manifest")" ]]; then
         exit 0
       fi
       echo "golem-seal: the system configuration changed since the last blessing." >&2
@@ -105,7 +128,7 @@ let
       ${computeFn}
       current=$(compute)
       if [[ -f "$manifest" ]]; then
-        if diff -q <(printf '%s\n' "$current") "$manifest" >/dev/null 2>&1; then
+        if [[ "$current" == "$(cat "$manifest")" ]]; then
           echo "golem-bless: nothing changed — the seed is already blessed."
           exit 0
         fi
@@ -138,9 +161,17 @@ in
     description = "The seed re-seal tool (golem-bless), for trusted unattended re-baselining.";
   };
 
-  config = lib.mkIf (flakeDir != null) {
-    golem.seal.check = sealCheck;
-    golem.seal.bless = bless;
-    environment.systemPackages = [ bless ];
+  options.golem.rebuild = lib.mkOption {
+    type = lib.types.package;
+    description = "golem-rebuild: nixos-rebuild behind Golem's one rebuild lock (every rebuilder uses it).";
   };
+
+  config = lib.mkMerge [
+    { golem.rebuild = rebuild; }
+    (lib.mkIf (flakeDir != null) {
+      golem.seal.check = sealCheck;
+      golem.seal.bless = bless;
+      environment.systemPackages = [ bless rebuild ];
+    })
+  ];
 }

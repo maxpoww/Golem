@@ -23,10 +23,15 @@ let
   flakeAttr = lib.attrByPath [ "golem" "flakeAttr" ] null config;
   isFlake = flakeDir != null && flakeAttr != null;
   seamDir = if isFlake then "${flakeDir}/seam" else toString ./.;
-  flakeEnv = lib.optionalString isFlake ''
+  sealCheck = lib.attrByPath [ "golem" "seal" "check" ] null config;
+  sealBless = lib.attrByPath [ "golem" "seal" "bless" ] null config;
+  flakeEnv = lib.optionalString isFlake (''
     export SEAM_FLAKE=${lib.escapeShellArg flakeDir}
     export SEAM_FLAKE_ATTR=${lib.escapeShellArg flakeAttr}
-  '';
+  '' + lib.optionalString (sealCheck != null && sealBless != null) ''
+    export SEAM_SEAL_CHECK=${sealCheck}/bin/golem-seal-check
+    export SEAM_SEAL_BLESS=${sealBless}/bin/golem-bless
+  '');
   src = builtins.fromJSON (builtins.readFile ./sources.json);
 
   selftest = pkgs.writeShellApplication {

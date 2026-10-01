@@ -47,6 +47,7 @@ let
       config.system.build.nixos-rebuild
       config.nix.package
       config.golem.seal.check
+      config.golem.rebuild
       pkgs.git
       pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
@@ -74,6 +75,18 @@ let
 
       write_status "building" null null
 
+      # 4. The list changed while this pass ran (another install queued, an
+      #    edit): run again from the top, so nothing waits for a trigger that
+      #    systemd dropped. Bounded, so a list rewritten in a loop can't keep
+      #    the machine rebuilding forever.
+      again_if_list_changed() {
+        local pass="''${GOLEM_APPLY_PASS:-1}"
+        if [[ "$(sha256sum < "$list" 2>/dev/null || echo none)" != "$listsum" && "$pass" -lt 5 ]]; then
+          echo "waverunner-apply: the list changed during the rebuild — applying again (pass $((pass + 1)))" >&2
+          GOLEM_APPLY_PASS=$((pass + 1)) exec "$0"
+        fi
+      }
+
       # 0. The seed blessing gate (#56, golem-seal.nix): an unattended
       #    root rebuild only proceeds when the seed matches its blessed
       #    manifest. The list this script exists to apply is exempt (it's
@@ -85,6 +98,12 @@ let
         echo "$sealmsg" >&2
         exit 1
       fi
+
+      # What this pass applies. A change to the list while it runs is NOT
+      # seen by systemd (the path watch drops triggers while the service is
+      # running — measured on the ThinkPad, 2026-10-01: four edits, one run),
+      # so the end of a successful pass looks again (step 4).
+      listsum=$(sha256sum < "$list" 2>/dev/null || echo none)
 
       # 1. Validate: keep only strict nixpkgs attr tokens; anything else is
       #    dropped (never interpreted).
@@ -125,7 +144,24 @@ let
       mv "$gen.new" "$gen"
       # Root inside the user's checkout: /etc/gitconfig carries the
       # safe.directory entry (configuration.nix) for git AND nix's libgit2.
-      runuser -u ${user} -- git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true  # the checkout is the owner\'s: git writes run as them
+      # It MUST be tracked: a flake only sees tracked files, and on a fresh
+      # machine the very first install creates the file — if `git add` lost
+      # a race with another git command (index.lock), the rebuild "succeeded"
+      # without the app and the dock waited for an app that never came.
+      staged=false
+      for _ in 1 2 3 4 5 6 7 8 9 10; do
+        runuser -u ${user} -- git -C "$flakedir" add ${lib.escapeShellArg appsFile} 2>/dev/null || true  # the checkout is the owner\'s: git writes run as them
+        if runuser -u ${user} -- git -C "$flakedir" ls-files --error-unmatch ${lib.escapeShellArg appsFile} >/dev/null 2>&1; then
+          staged=true; break
+        fi
+        sleep 1
+      done
+      if [[ "$staged" != true ]]; then
+        msg="Golem could not add its app list to the system checkout (git is busy in $flakedir?). Try again in a moment."
+        write_status "done" false "$(printf '%s' "$msg" | jq -Rs .)"
+        echo "$msg" >&2
+        exit 1
+      fi
 
       # 3. Rebuild. On success snapshot last-good; on failure restore it so
       #    the next rebuild is never poisoned by a bad add.
@@ -150,8 +186,9 @@ let
       # A RUNNING unit is not "failed", so this never touches a live switch.
       systemctl reset-failed nixos-rebuild-switch-to-configuration.service 2>/dev/null || true
       before=$(readlink -f /run/current-system 2>/dev/null || echo none)
-      if err=$(nixos-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
+      if err=$(golem-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
         cp -f "$gen" "$lastgood"
+        again_if_list_changed
         write_status "done" true null
       elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
         # System switched; only user activation (root, no user manager here)
@@ -159,6 +196,7 @@ let
         cp -f "$gen" "$lastgood"
         echo "$err" | grep -qi "user activation" \
           && echo "waverunner-apply: system switched; a user-activation warning was ignored (#44)" >&2
+        again_if_list_changed
         write_status "done" true null
       else
         if [[ -f "$lastgood" ]]; then

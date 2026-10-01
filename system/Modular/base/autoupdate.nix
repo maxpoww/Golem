@@ -113,15 +113,42 @@ lib.mkIf (config.golem.flakeDir != null) {
         echo "golem-autoupdate: removed the owner's password hash from the system source (it stays in /etc/shadow)."
       fi
 
+      # Seam's update lane pins a newer browser IN the checkout between our
+      # pulls (seam/sources.json). Left there, the fast-forward below refuses
+      # the dirty tree the day upstream moves the pin too, and the machine
+      # stops updating for good. Set it aside, pull, and put it back only if
+      # it is still the newer one (never step the browser down: Firefox
+      # refuses a profile a newer version has used).
+      pin=seam/sources.json; heldpin=""
+      if ! runuser -u "$owner" -- git -C "$dir" diff --quiet HEAD -- "$pin" 2>/dev/null; then
+        heldpin=$(mktemp); cp "$dir/$pin" "$heldpin"
+        runuser -u "$owner" -- git -C "$dir" checkout -q HEAD -- "$pin"
+      fi
+
       before=$(git rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch
       # (seen on the first real pull, 2026-09-30).
       if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
         echo "golem-autoupdate: seed cannot fast-forward (local commits or a dirty tree) — leaving the current generation; run rebuild-golem yourself." >&2
+        if [ -n "$heldpin" ]; then   # leave the tree exactly as we found it
+          cat "$heldpin" > "$dir/$pin"; runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
+        fi
         exit 0
       fi
       after=$(git rev-parse HEAD)
+      if [ -n "$heldpin" ]; then
+        held=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$heldpin")
+        up=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$dir/$pin")
+        if [ "$(printf '%s\n%s\n' "$held" "$up" | sort -V | tail -1)" = "$held" ] && [ "$held" != "$up" ]; then
+          cat "$heldpin" > "$dir/$pin"   # into the owner's existing file: keeps its owner
+          runuser -u "$owner" -- git -C "$dir" add "$pin"
+          echo "golem-autoupdate: kept this machine's newer Seam pin ($held over upstream's $up)."
+        else
+          migrated=1   # the pin moved to upstream's: the tree changed, re-seal and rebuild below
+        fi
+        rm -f "$heldpin"
+      fi
       if [ "$before" = "$after" ] && [ "$migrated" = 0 ]; then
         echo "golem-autoupdate: already up to date ($after)."
         exit 0
@@ -131,7 +158,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       #    then stage the new generation for the next reboot.
       ${config.golem.seal.bless}/bin/golem-bless || true
       echo "golem-autoupdate: $before -> $after, rebuilding (boot)…"
-      /run/current-system/sw/bin/nixos-rebuild boot --flake "$dir#$attr"
+      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
     '';
   };
