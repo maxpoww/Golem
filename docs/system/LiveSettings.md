@@ -54,6 +54,31 @@ undo it. Examples: 1440×900 → 75 83 90 100 113 125 150 %; 1920×1080 → 75 8
 
 A scale is saved the moment it is set.
 
+### The change is dissolved
+
+A change of scale is not one change. The compositor rescales the output at
+once; every client is then shown with its old buffer stretched until it has
+redrawn; the compositor slides every layer surface (dock, bar) to its new
+place over about 0.4 s (its `layers` animation runs on each monitor
+re-arrangement); tiled windows fly to new sizes; and the pointer leaps,
+because it keeps its logical position while a logical pixel changes size.
+Shown bare, that read as the screen "jumping as crazy" (Max, 2026-10-01).
+
+So none of it is shown (the dock's `transition.rs`):
+
+1. the screen is captured and that still is laid over everything (an overlay
+   layer surface, `golem-transition`, no input);
+2. the scale changes underneath, with nothing gliding: while the still is up
+   two named compositor rules turn animation off for the shell's layers and
+   for windows, and the dock's own motion snaps;
+3. the still fades out: one cross-fade from the old screen to the new;
+4. the pointer is put back on the pixel it was on.
+
+The still's size at the new scale is committed just before the change, so it
+never shows magnified. If anything is missing or late the change is made bare,
+and the still cannot stay up longer than 2 s. With reduced motion there is no
+dissolve.
+
 ## Resolution
 
 A resolution can leave a screen black, so it is only **tried**: it goes back
