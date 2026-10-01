@@ -472,9 +472,37 @@ in
       -- (shadows, dimming, rounding) costs nothing measurable and stays.
       hl.config({ decoration = { blur = { enabled = false } } })
     ''
-    # This machine's own Lua (golem.home.hyprlandExtra), after everything.
+    # This machine's own Lua (golem.home.hyprlandExtra), after everything
+    # Golem declares.
     + lib.optionalString (config.golem.home.hyprlandExtra != "") (
-      "\n" + config.golem.home.hyprlandExtra);
+      "\n" + config.golem.home.hyprlandExtra)
+    # The owner's LIVE SETTINGS, truly last: what was chosen in the control
+    # panel wins over everything declared above (docs/system/LiveSettings.md).
+    + ''
+
+      ---- LIVE SETTINGS (the control panel) ----
+      -- What the owner chose in the control panel (a screen's scale and
+      -- resolution so far). The dock sets a choice live and saves it to
+      -- ~/.config/golem/settings.json, with a copy as Lua beside it. That
+      -- copy runs here, last: a choice wins over every default above, is on
+      -- the screen from the compositor's first frame, and comes back on
+      -- every reload, whether or not the dock is running.
+      -- dofile, not require: a required file is watched, and each click in
+      -- the panel would reload this whole config. A missing or broken file
+      -- changes nothing.
+      do
+          local dir = os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")
+          local path = dir .. "/golem/settings.lua"
+          local file = io.open(path, "r")
+          if file then
+              file:close()
+              local ok, err = pcall(dofile, path)
+              if not ok then
+                  print("golem: live settings not applied: " .. tostring(err))
+              end
+          end
+      end
+    '';
 
   # Waverunner config
   xdg.configFile."waverunner/config.toml".text = ''

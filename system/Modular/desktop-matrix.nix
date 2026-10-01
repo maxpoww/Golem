@@ -250,9 +250,28 @@ let
            && lib.hasInfix "/home/max/waveview/result/lib/libwaveview.so" (luaOf cDev)
            && !(devHome.programs.waverunner.enable or false)
            && !(devHome.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
-        (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes last"
+        (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes after Golem's, right before the live settings"
           (!devHome.services.hypridle.enable && devHome.programs.hyprlock.enable
-           && lib.hasSuffix "-- DEV-LAYER-TAIL" (luaOf cDev)))
+           && lib.hasInfix "-- DEV-LAYER-TAIL\n---- LIVE SETTINGS" (luaOf cDev)))
+        # Live settings (the control panel's scale and resolution): the dock
+        # saves the owner's choices as ~/.config/golem/settings.lua and the
+        # compositor runs that file last, guarded, never watched.
+        (ex "live settings: hyprland.lua ends by running the owner's settings.lua, guarded (every tier, the dev shape too)"
+          (lib.all (cfg:
+            let
+              lua = luaOf cfg;
+              # Only the file's end is searched (a split over the whole
+              # config is a regex over tens of kilobytes).
+              end = builtins.substring (builtins.stringLength lua - 2000) 2000 lua;
+              tail = lib.last (lib.splitString "---- LIVE SETTINGS" end);
+            in
+            lib.hasInfix "---- LIVE SETTINGS" end
+            && lib.hasInfix ''"/golem/settings.lua"'' tail
+            && lib.hasInfix "pcall(dofile, path)" tail
+            && lib.hasSuffix "end\nend\n" tail
+            && !(lib.hasInfix "require" tail)
+            && !(lib.hasInfix "hl.config(" tail))
+            [ c cLight cDev ]))
         (ex "P1: the menubox debloat is on for installs and off in the dev shape"
           ((c.home-manager.users.${owner}.xdg.dataFile ? "applications/xterm.desktop")
            && !(devHome.xdg.dataFile ? "applications/xterm.desktop")))
