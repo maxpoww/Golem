@@ -110,6 +110,12 @@ remote(m, "-golem-app", "spikeapp", U("app")); time.sleep(2)
 w2 = wins(m); check("relaunch at its start URL: one window, its page kept", [w["url"] for w in w2 if w["app"] == "spikeapp"] == [U("app")], w2)
 remote(m, "-golem-app", "spikeapp", U("other")); time.sleep(2)
 w2b = wins(m); check("a link opened in the webapp loads in its window", [w["url"] for w in w2b if w["app"] == "spikeapp"] == [U("other")], w2b)
+# the dock's "new instance" (a box launch, a right-click): another window of the webapp
+remote(m, "-golem-new", "-golem-app", "spikeapp", U("app")); time.sleep(3)
+w2c = wins(m); sp = [w for w in w2c if w["app"] == "spikeapp"]
+check("-golem-new opens another window of the running webapp", len(sp) == 2 and all(w["cls"] == "webapp-spikeapp" for w in sp), w2c)
+m.js('let ws = [...Services.wm.getEnumerator("navigator:browser")].filter(x => x.document.documentElement.getAttribute("taskbartab") == "golem-spikeapp" && x.gBrowser.currentURI.spec == %s); ws.forEach(x => x.close()); done(ws.length);' % json.dumps(U("app"))); time.sleep(1.5)
+w2d = wins(m); check("closing the extra window leaves the first", [w["url"] for w in w2d if w["app"] == "spikeapp"] == [U("other")], w2d)
 
 # 3) another slug: its own window
 remote(m, "-golem-app", "second", U("two")); time.sleep(3)

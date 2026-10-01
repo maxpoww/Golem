@@ -2439,7 +2439,8 @@ try {
 // so a webapp is signed in wherever Seam is and costs no second browser's
 // memory (the 4 GB MacBook). A second launch of the same slug focuses the
 // window it already has; with another URL (a link the clipboard opens in its
-// webapp) it loads that URL there.
+// webapp) it loads that URL there. -golem-new opens another window instead
+// (the dock's "new instance": a launch from the apps box, a right-click).
 //
 // The window is Firefox's own web-app window, TASKBAR TABS (Mozilla's "web
 // apps", Firefox 157, moz-src/browser/components/taskbartabs), opened with
@@ -2648,9 +2649,11 @@ try {
     return a;
   }
 
-  function waOpen(slug,url){
+  function waOpen(slug,url,fresh){
     slug=waSlug(slug); if(!slug) return null;
-    var have=waFind(slug);
+    // -golem-new (the dock's "new instance": a launch from the apps box, a
+    // right-click on the dock) always opens another window of the webapp.
+    var have=fresh ? null : waFind(slug);
     if(have){
       // The dock relaunching a running webapp passes its start URL: focus it, keep its page.
       // Any other URL is a link opened in the webapp (the clipboard's Open): load it there.
@@ -2681,15 +2684,17 @@ try {
       throw Components.results.NS_ERROR_NO_INTERFACE; },
     handle:function(cl){
       try{
+        var fresh=cl.handleFlag("golem-new",false);
         var slug=cl.handleFlagWithParam("golem-app",false); if(!slug) return;
         if(!waOn()) return;   // switched off: the flag is consumed and the URL opens as a plain tab
         var url=cl.length ? cl.getArgument(0) : "";
         if(cl.length) cl.removeArguments(0,cl.length-1);
         cl.preventDefault=true;
-        waOpen(slug,url);
+        waOpen(slug,url,fresh);
       }catch(e){ WALOG("handle:"+e); }
     },
-    helpInfo:"  -golem-app <slug> <url>  Open <url> as the Golem webapp <slug>.\n"
+    helpInfo:"  -golem-app <slug> <url>  Open <url> as the Golem webapp <slug>.\n"+
+             "  -golem-new               With -golem-app: open another window even if one is open.\n"
   };
   var waFactory={
     createInstance:function(iid){ return waHandler.QueryInterface(iid); },
