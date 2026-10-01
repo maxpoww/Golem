@@ -2,6 +2,35 @@
 
 <!-- Runs alongside S8–S10, closes last. -->
 
+- [ ] **SOON — a non-English install must be in its language end to end**
+      (Max, 2026-10-01, ThinkPad installed in FRENCH from the final ISO:
+      "configuration, notification, options, all in english"). Checked on
+      the machine before it left: the LOCALE is right (machine.nix
+      fr_FR.UTF-8, Europe/Paris; the session runs LANG=fr_FR.UTF-8
+      LANGUAGE=fr_FR:fr; coreutils already answer in French). What stays
+      English:
+      1. OUR shell — dock, OPTIONS, settings panel, Golem's own
+         notifications: waverunner has no translations (the i18n pass
+         below only made strings extractable). Needs: a catalogue per
+         language (fr first, es, pt, it — the installer's roster), the
+         dock reading LANGUAGE/LANG, and a fallback to English per string.
+      2. The home folders: Desktop/Documents/Downloads… not Bureau/
+         Téléchargements. The ISO bakes an English-only desktop
+         (flake.nix bakeDesktop, bakeLocales = [ en_US ]), the first login
+         runs English and creates the dirs; the switch to French at
+         first-boot never renames them. Fix: create the user dirs from
+         machine.nix's locale at install (or rename once at the first
+         French login — xdg-user-dirs-update --force in the owner's
+         locale), and/or bake the chosen language's desktop.
+      3. Seam (Firefox): verify it follows the locale (langpack for the
+         installer's roster).
+      4. Every first-boot until 2. is fixed shows English for the whole
+         first session (known since 3a79533; the language arrives after
+         first-boot + a reboot).
+      Acceptance: install in French in the VM, log in once, and NOTHING
+      the user sees from Golem is English.
+
+
 - [x] i18n pass: shell strings extractable, Spanish first (dictionary
       already leads the way)
       *(UNPARKED 2026-09-01: "the shell" is waverunner's Rust and ~/launcher
