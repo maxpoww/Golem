@@ -47,7 +47,11 @@ let
       config.system.build.nixos-rebuild
       config.nix.package
       config.golem.seal.check
+      config.golem.seal.heal
       config.golem.rebuild
+      pkgs.gnugrep
+      pkgs.gnutar
+      pkgs.glibc.bin # getent: the connectivity wait
       pkgs.git
       pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
@@ -92,11 +96,27 @@ let
       #    manifest. The list this script exists to apply is exempt (it's
       #    validated DATA, below) — the gate guards everything else in the
       #    tree from being edited into a silent root rebuild.
+      #
+      #    An install must not fail on it, though (Max, 2026-10-01: "it cant
+      #    fail.. it have to install"). So: when every change is upstream's
+      #    own code (a pull nobody re-blessed), golem-seal-heal re-blesses it.
+      #    When the owner has edits not yet approved, the install builds from
+      #    the root-only copy of the last approved state (+ this list): the
+      #    app installs, and the edit waits for its owner's `sudo golem-bless`.
+      buildfrom="$flakedir"
       if ! sealmsg=$(golem-seal-check 2>&1); then
-        errjson=$(printf '%s' "$sealmsg" | tail -c 2000 | jq -Rs .)
-        write_status "done" false "$errjson"
-        echo "$sealmsg" >&2
-        exit 1
+        if healmsg=$(golem-seal-heal 2>&1); then
+          echo "$healmsg" >&2
+        elif [[ -d ${lib.escapeShellArg config.golem.seal.snapshot} ]]; then
+          echo "$healmsg" >&2
+          echo "waverunner-apply: building from the last approved state; the local edits above wait for: sudo golem-bless" >&2
+          buildfrom=/var/lib/golem/build
+        else
+          errjson=$(printf '%s\n%s' "$sealmsg" "$healmsg" | tail -c 2000 | jq -Rs .)
+          write_status "done" false "$errjson"
+          echo "$sealmsg" >&2
+          exit 1
+        fi
       fi
 
       # What this pass applies. A change to the list while it runs is NOT
@@ -185,17 +205,59 @@ let
       # map machines, 2026-09-10). We are root: clear any corpse first.
       # A RUNNING unit is not "failed", so this never touches a live switch.
       systemctl reset-failed nixos-rebuild-switch-to-configuration.service 2>/dev/null || true
-      before=$(readlink -f /run/current-system 2>/dev/null || echo none)
-      if err=$(golem-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
+      # The approved copy + this list, when building from it (see the gate).
+      if [[ "$buildfrom" != "$flakedir" ]]; then
+        rm -rf "$buildfrom"; mkdir -p "$buildfrom"; chmod 700 "$buildfrom"
+        (cd ${lib.escapeShellArg config.golem.seal.snapshot} && tar -cf - .) | tar -xf - -C "$buildfrom"
+        install -D -m644 "$gen" "$buildfrom/${appsFile}"
+        flakeref="path:$buildfrom#${flakeAttr}"
+      else
+        flakeref="$flakedir#${flakeAttr}"
+      fi
+
+      # Transient failures are retried, never reported: the network went
+      # away (a download, the binary cache), the disk filled up (the store is
+      # collected, then again), something held a lock. The dock keeps showing
+      # the install as running meanwhile. Only a failure that comes back the
+      # same after the retries is a real one.
+      transient() {
+        grep -qiE 'unable to download|Could not resolve|resolve host|Connection (reset|refused|timed out)|timed out|Network is unreachable|Failure when receiving|Operation too slow|HTTP error (5[0-9][0-9]|429)|error: download|curl error|SSL|TLS|cannot connect|Could not acquire lock|No space left on device|unexpected end of file|Temporary failure'
+      }
+      wait_online() {
+        for _ in $(seq 1 60); do getent ahosts cache.nixos.org >/dev/null 2>&1 && return 0; sleep 5; done
+        return 1
+      }
+      attempt=1; backoff=20
+      while :; do
+        before=$(readlink -f /run/current-system 2>/dev/null || echo none)
+        if err=$(golem-rebuild switch --flake "$flakeref" 2>&1); then
+          ok=yes
+        elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
+          # System switched; only user activation (root, no user manager here)
+          # warned. The package is installed (#44).
+          echo "$err" | grep -qi "user activation" \
+            && echo "waverunner-apply: system switched; a user-activation warning was ignored (#44)" >&2
+          ok=yes
+        else
+          ok=no
+        fi
+        [[ "$ok" == yes ]] && break
+        if (( attempt < 6 )) && printf '%s' "$err" | transient; then
+          echo "waverunner-apply: attempt $attempt hit a passing problem — retrying in ''${backoff}s:" >&2
+          printf '%s\n' "$err" | tail -n 3 >&2
+          if printf '%s' "$err" | grep -qi 'No space left on device'; then
+            echo "waverunner-apply: the disk is full — collecting the store (old generations kept)" >&2
+            nix-store --gc >/dev/null 2>&1 || true
+          fi
+          sleep "$backoff"; wait_online || true
+          attempt=$((attempt + 1)); backoff=$((backoff * 2))
+          continue
+        fi
+        break
+      done
+
+      if [[ "$ok" == yes ]]; then
         cp -f "$gen" "$lastgood"
-        again_if_list_changed
-        write_status "done" true null
-      elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
-        # System switched; only user activation (root, no user manager here)
-        # warned. The package is installed — treat as success, keep the list.
-        cp -f "$gen" "$lastgood"
-        echo "$err" | grep -qi "user activation" \
-          && echo "waverunner-apply: system switched; a user-activation warning was ignored (#44)" >&2
         again_if_list_changed
         write_status "done" true null
       else
