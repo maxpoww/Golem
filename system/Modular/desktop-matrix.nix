@@ -295,6 +295,16 @@ let
           && seed ? DesktopAudioDevice1 && seed ? AuxAudioDevice1
           && item ? pos_rel && item ? scale_rel && item ? scale_ref && item ? bounds_rel
           && item.bounds_type == 2))
+        # The Install section's list is Golem's checked one, made for the
+        # nixpkgs this flake pins (refresh.sh after every nixpkgs bump).
+        (ex "install list: Golem's checked package index, made for the pinned nixpkgs"
+          (let
+            lock = builtins.fromJSON (builtins.readFile ../../flake.lock);
+            made = lib.removeSuffix "\n" (builtins.readFile ../home/package-index.rev);
+            idx = c.home-manager.users.${owner}.programs.waverunner.packageIndex;
+          in
+          made == lock.nodes.nixpkgs.locked.rev
+          && lib.hasPrefix "golem-package-index" (idx.name or "")))
         # Live settings (the control panel's scale and resolution): the dock
         # saves the owner's choices as ~/.config/golem/settings.lua and the
         # compositor runs that file last, guarded, never watched.

@@ -49,6 +49,14 @@ in
   };
 
   programs.waverunner.enable = !dev;
+  # The Install section offers Golem's checked package list, never the
+  # launcher's raw one: only packages that can actually install on this
+  # nixpkgs (617 of ~23,700 could not, 2026-10-01), and no laptop ever runs
+  # the ~6.5 GB evaluation that builds it. tools/package-index/refresh.sh
+  # regenerates it whenever flake.lock's nixpkgs moves (the matrix insists).
+  programs.waverunner.packageIndex = pkgs.runCommand "golem-package-index" { } ''
+    install -D -m644 ${./package-index.tsv} $out/share/waverunner/nixpkgs-index.tsv
+  '';
 
   # Desktop plumbing every Golem needs, lean or not.
   home.packages = with pkgs; [
