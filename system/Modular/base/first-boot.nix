@@ -67,6 +67,10 @@ lib.mkIf (config.golem.flakeDir != null) {
       # The owner is using the machine meanwhile: stay out of the way.
       Nice = 19;
       IOSchedulingClass = "idle";
+      # ...and do not start until the desktop is up (base/quiet-login): on a
+      # spinning disk this rebuild's seeks made the first login a ~50 s black
+      # screen even at idle IO priority (ThinkPad, 2026-10-01).
+      ExecStartPre = [ "${config.golem.quietLogin}/bin/golem-quiet-login" ];
     };
     path = [ config.nix.package pkgs.coreutils ];
     script = ''

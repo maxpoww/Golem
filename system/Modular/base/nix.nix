@@ -24,8 +24,9 @@
     automatic = true;
     dates = "daily";
   };
-  systemd.services.nix-gc.serviceConfig.ExecStartPre =
-    "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15";
+  systemd.services.nix-gc.serviceConfig.ExecStartPre = [
+    "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15"
+  ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
 
   # Survive memory pressure instead of freezing under it: oomd kills
   # the greediest slice at sustained PSI pressure — a survivable

@@ -37,6 +37,7 @@
     # first boot, then keep current daily from the trusted upstream seed. Ride
     # beside selfrebuild/loop — they share golem.flakeDir and the seal.
     ./base/first-boot.nix
+    ./base/quiet-login.nix
     ./base/autoupdate.nix
     ./base/seed.nix         # the seed's upstream + golem-seed-adopt (P10)
     # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
