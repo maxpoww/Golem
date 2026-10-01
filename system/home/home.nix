@@ -22,6 +22,7 @@ in
     ./menubox.nix         # the menubox shows Seam only; the rest stays installed, hidden
     ./bash.nix            # the owner's bash: prompt, EDITOR, the OPTIONS shell bridge (P12)
     ./idle.nix            # hypridle + hyprlock: lock, screen off, suspend on idle (P11)
+    ./fits.nix            # an app the owner installs works the moment it lands (OBS)
     waverunner.homeManagerModules.default
   ];
   # ./waverunner-packages.nix (the owner's launcher-installed list) is NOT

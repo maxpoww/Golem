@@ -1,0 +1,61 @@
+{
+  "name": "Untitled",
+  "version": 2,
+  "current_scene": "Scene",
+  "current_program_scene": "Scene",
+  "scene_order": [ { "name": "Scene" } ],
+  "DesktopAudioDevice1": {
+    "name": "Desktop Audio",
+    "uuid": "9f1c2a54-6f0e-4d57-8a30-676f6c656d03",
+    "id": "pulse_output_capture",
+    "versioned_id": "pulse_output_capture",
+    "settings": { "device_id": "default" },
+    "mixers": 255, "sync": 0, "flags": 0, "volume": 1.0, "balance": 0.5,
+    "enabled": true, "muted": false
+  },
+  "AuxAudioDevice1": {
+    "name": "Mic/Aux",
+    "uuid": "9f1c2a54-6f0e-4d57-8a30-676f6c656d04",
+    "id": "pulse_input_capture",
+    "versioned_id": "pulse_input_capture",
+    "settings": { "device_id": "default" },
+    "mixers": 255, "sync": 0, "flags": 0, "volume": 1.0, "balance": 0.5,
+    "enabled": true, "muted": false
+  },
+  "sources": [
+    {
+      "name": "Screen",
+      "uuid": "9f1c2a54-6f0e-4d57-8a30-676f6c656d01",
+      "id": "pipewire-screen-capture-source",
+      "versioned_id": "pipewire-screen-capture-source",
+      "settings": { "ShowCursor": true },
+      "mixers": 0, "sync": 0, "flags": 0, "volume": 1.0, "balance": 0.5,
+      "enabled": true, "muted": false
+    },
+    {
+      "name": "Scene",
+      "uuid": "9f1c2a54-6f0e-4d57-8a30-676f6c656d02",
+      "id": "scene",
+      "versioned_id": "scene",
+      "settings": {
+        "custom_size": false,
+        "id_counter": 1,
+        "items": [
+          {
+            "name": "Screen",
+            "source_uuid": "9f1c2a54-6f0e-4d57-8a30-676f6c656d01",
+            "visible": true, "locked": false, "id": 1,
+            "rot": 0.0, "align": 0,
+            "pos_rel": { "x": 0.0, "y": 0.0 },
+            "scale_rel": { "x": 1.0, "y": 1.0 },
+            "scale_ref": { "x": 1920.0, "y": 1080.0 },
+            "bounds_type": 2, "bounds_align": 0, "bounds_crop": false,
+            "bounds_rel": { "x": 20.0, "y": 2.0 }
+          }
+        ]
+      },
+      "mixers": 0, "sync": 0, "flags": 0, "volume": 1.0, "balance": 0.5,
+      "enabled": true, "muted": false
+    }
+  ]
+}

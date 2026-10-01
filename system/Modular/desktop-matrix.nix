@@ -128,6 +128,21 @@ let
         })
       ]).config;
       owner = c.golem.owner;
+      # The same desktop after the owner installed OBS from the dock (as the
+      # generated hosts/target/apps.nix adds it): its fit rides along.
+      cObs = (mkMinimal (builtins.head rows).facts [
+        fakeDisk
+        desktop
+        waverunner.nixosModules.notification-service
+        ({ config, pkgs, ... }: {
+          services.options-notify.enable = true;
+          home-manager.users.${config.golem.owner} = {
+            imports = [ ../../system/home/home.nix ];
+            home.packages = map lib.lowPrio [ pkgs.obs-studio ];
+          };
+          home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+        })
+      ]).config;
       # The same desktop on a weak GPU (gpu/intel-legacy): effects go light.
       cLight = (mkMinimal (builtins.head rows).facts [
         fakeDisk
@@ -258,6 +273,28 @@ let
         (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes after Golem's, right before the live settings"
           (!devHome.services.hypridle.enable && devHome.programs.hyprlock.enable
            && lib.hasInfix "-- DEV-LAYER-TAIL\n---- LIVE SETTINGS" (luaOf cDev)))
+        # Fits (system/home/fits.nix): an app the owner installs works the
+        # moment it lands. OBS: a first-run scene that already holds the
+        # screen-capture source, in OBS's relative form (any canvas), with
+        # desktop audio and the microphone — and nothing at all when OBS is
+        # not installed.
+        (ex "fits: OBS installed by the owner gets its first-run scene; no OBS, no fit"
+          (let
+            hm = cfg: cfg.home-manager.users.${cfg.golem.owner};
+            seed = builtins.fromJSON (builtins.readFile ../home/fits/obs-studio/Untitled.json);
+            scene = lib.findFirst (s: s.id == "scene") { settings.items = [ { } ]; } seed.sources;
+            item = builtins.head scene.settings.items;
+            script = (hm cObs).home.activation.fitObsStudio.data;
+          in
+          (hm cObs).home.activation ? fitObsStudio
+          && !((hm c).home.activation ? fitObsStudio)
+          && lib.hasInfix "golem/fits/obs-studio" script
+          && lib.hasInfix ".before-golem" script
+          && seed.version == 2
+          && lib.any (s: s.id == "pipewire-screen-capture-source") seed.sources
+          && seed ? DesktopAudioDevice1 && seed ? AuxAudioDevice1
+          && item ? pos_rel && item ? scale_rel && item ? scale_ref && item ? bounds_rel
+          && item.bounds_type == 2))
         # Live settings (the control panel's scale and resolution): the dock
         # saves the owner's choices as ~/.config/golem/settings.lua and the
         # compositor runs that file last, guarded, never watched.
