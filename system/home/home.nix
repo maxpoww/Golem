@@ -480,6 +480,17 @@ in
   xdg.configFile."waverunner/config.toml".text = ''
     [theme]
     icon_theme = "Papirus-Dark"
+  ''
+  # Weak GPU (golem.desktop.effects = "light"): the compositor does not blur
+  # what is behind the shell, so the dock's glass (the dock, the apps card,
+  # the box panels: all built from this one colour, 50% by default) showed
+  # the raw page straight through its labels. Denser glass, still glass
+  # (Max, 2026-10-01, picked on the MacBook: 90%). `or`: the fat profile
+  # doesn't declare the option and keeps the default.
+  + lib.optionalString ((osConfig.golem.desktop.effects or "full") == "light") ''
+    background = "#050709e6"
+  ''
+  + ''
 
     [options]
     # Fetch each copied link's title + og:image over the network

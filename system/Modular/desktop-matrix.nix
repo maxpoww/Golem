@@ -157,6 +157,7 @@ let
       devHome = cDev.home-manager.users.${cDev.golem.owner};
       luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
+      dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;
       checks = [
         # Golem's patched Hyprland (desktop/hyprland-overlay.nix): the titlebar's
         # straight top edge needs square-top, and the waveview plugin must be
@@ -256,6 +257,10 @@ let
           (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"
           (cLight.golem.desktop.effects == "light" && lib.hasInfix lightBlock (luaOf cLight)))
+        # No blur behind the shell → denser glass (90%), and only there.
+        (ex "light effects: the dock's glass is denser (no blur behind it); full effects keep the default"
+          (lib.hasInfix ''background = "#050709e6"'' (dockCfgOf cLight)
+            && !(lib.hasInfix "background =" (dockCfgOf c))))
         (ex "real desktop: waverunner (OPTIONS bar/dock) enabled for the owner"
           (c.home-manager.users.${owner}.programs.waverunner.enable or false))
         (ex "real desktop: still has the system compositor (hyprland + greetd)"
