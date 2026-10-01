@@ -229,6 +229,8 @@ let
       current=$(compute)
       if [[ -f "$manifest" ]]; then
         if [[ "$current" == "$(cat "$manifest")" ]]; then
+          # Machines sealed before the snapshot existed get theirs here too.
+          [[ -d ${lib.escapeShellArg snapshotDir} ]] || snapshot
           echo "golem-bless: nothing changed — the seed is already blessed."
           exit 0
         fi
