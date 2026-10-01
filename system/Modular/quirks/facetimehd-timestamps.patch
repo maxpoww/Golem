@@ -1,0 +1,57 @@
+From b238cd935cf65a8ea143a57832523b6ba8abafd9 Mon Sep 17 00:00:00 2001
+From: Patrik Jakobsson <patrik.r.jakobsson@gmail.com>
+Date: Thu, 4 Jun 2026 12:06:20 +0200
+Subject: [PATCH] v4l2: Provide sequence and timestamp to vbuf
+
+Some frameworks like gstreamer and pipewire require the sequence and
+timestamp fields to be populated. Otherwise frames doesn't advance
+properly. Fixes #315.
+
+Link: https://github.com/patjak/facetimehd/issues/315
+Signed-off-by: Patrik Jakobsson <patrik.r.jakobsson@gmail.com>
+---
+ fthd_drv.h  | 1 +
+ fthd_v4l2.c | 8 ++++++++
+ 2 files changed, 9 insertions(+)
+
+diff --git a/fthd_drv.h b/fthd_drv.h
+index c77fbd4..723c85f 100644
+--- a/fthd_drv.h
++++ b/fthd_drv.h
+@@ -116,6 +116,7 @@ struct fthd_private {
+ 
+ 	struct v4l2_ctrl_handler v4l2_ctrl_handler;
+ 	int frametime;
++	unsigned int sequence;
+ 	struct dentry *debugfs;
+ };
+ 
+diff --git a/fthd_v4l2.c b/fthd_v4l2.c
+index 140690d..f8b75aa 100644
+--- a/fthd_v4l2.c
++++ b/fthd_v4l2.c
+@@ -240,6 +240,12 @@ void fthd_buffer_return_handler(struct fthd_private *dev_priv, u32 offset, int s
+ 			 list.desc[i].count, list.desc[i].pool, list.desc[i].addr0, list.desc[i].addr1, list.desc[i].tag, ctx->vb, ctx);
+ 
+ 		if (ctx->state == BUF_HW_QUEUED || ctx->state == BUF_DRV_QUEUED) {
++			struct vb2_v4l2_buffer *vbuf = to_vb2_v4l2_buffer(ctx->vb);
++
++			vbuf->sequence = dev_priv->sequence++;
++			vbuf->vb2_buf.timestamp = ktime_get_ns();
++			vbuf->field = V4L2_FIELD_NONE;
++
+ 			ctx->state = BUF_ALLOC;
+ 			vb2_buffer_done(ctx->vb, VB2_BUF_STATE_DONE);
+ 		}
+@@ -254,6 +260,8 @@ static int fthd_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 	int i, ret;
+ 
+ 	pr_debug("count = %d\n", count);
++	dev_priv->sequence = 0;
++
+ 	ret = fthd_start_channel(dev_priv, 0);
+ 	if (ret)
+ 		return ret;
+-- 
+2.55.0
+

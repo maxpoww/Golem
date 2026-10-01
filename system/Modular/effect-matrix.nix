@@ -104,6 +104,11 @@ let
         (ex "Apple EFI → GRUB-EFI (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport))
         (ex "intel laptop: thermald on" c.services.thermald.enable)
         (ex "tier1 (3858 MB): swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
+        (ex "facetimehd carries the frame-timestamp fix (frozen PipeWire/GStreamer picture)"
+          (lib.any (p: lib.hasSuffix "facetimehd-timestamps.patch" (toString p))
+            (c.boot.kernelPackages.facetimehd.patches or [ ])))
+        (ex "facetimehd relock runs at boot only, not on every switch"
+          (!c.systemd.services.golem-facetimehd-relock.restartIfChanged))
       ];
     }
     {

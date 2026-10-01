@@ -20,10 +20,32 @@
 # re-bind the driver to the device once at boot (re-runs probe), the same
 # sysfs lever gpu2/failing uses — no module-path fragility, no-op if the
 # driver never bound, safe because nothing opens the camera this early.
+# Boot only: RemainAfterExit + no restart on switch. Before, every switch
+# (a dock install, 2026-10-01 11:30) re-ran it mid-session and yanked the
+# camera out from under PipeWire.
+#
+# FROZEN PICTURE IN EVERY PIPEWIRE/GSTREAMER APP (2026-10-01, Cheese on
+# the .242): nixpkgs ships facetimehd 0.6.13, which hands every frame
+# timestamp 0 and sequence 0. PipeWire and GStreamer take each new frame
+# for a duplicate of the first and show it forever (frames kept flowing:
+# 30 distinct raw frames via v4l2-ctl; Firefox reads v4l2 directly and
+# never noticed). Upstream fixed it in b238cd9 ("v4l2: Provide sequence
+# and timestamp to vbuf", issue #315, first in 0.7.0.3); we carry that one
+# commit until nixpkgs moves past 0.7.0.3, so the fix rides whatever
+# kernel set boot.kernelPackages defaults to.
 { pkgs, lib, ... }:
 
 {
   hardware.facetimehd.enable = true;
+  nixpkgs.overlays = [
+    (final: prev: {
+      linuxPackages = prev.linuxPackages.extend (lpFinal: lpPrev: {
+        facetimehd = lpPrev.facetimehd.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [ ./facetimehd-timestamps.patch ];
+        });
+      });
+    })
+  ];
   # facetimehd-firmware is unfree (extracted from Apple's driver). Permit
   # it by NAME, scoped to this leaf — only a FaceTime-HD machine relaxes
   # the policy, exactly as broadcom-wl scopes broadcom-sta's insecure flag.
@@ -39,6 +61,8 @@
     before = [ "graphical.target" ];             # camera ready before any desktop session
     path = [ pkgs.coreutils ];
     serviceConfig.Type = "oneshot";
+    serviceConfig.RemainAfterExit = true;
+    restartIfChanged = false;
     script = ''
       drv=/sys/bus/pci/drivers/facetimehd
       for dev in "$drv"/0000:*; do
