@@ -690,6 +690,14 @@ pkgs.writeShellApplication {
       rm -f /mnt/etc/nixos/configuration.nix
     fi
 
+    # The owner's password hash, root-only and OUTSIDE the system source
+    # (base/users.nix: hashedPasswordFile). Without it the account would be
+    # created with no password on the from-seed path.
+    if [[ -n "$passhash" && "$passhash" != "!unhashed" ]]; then
+      run install -d -m 700 /mnt/var/lib/golem /mnt/var/lib/golem/secrets
+      ( umask 077; printf '%s\n' "$passhash" > /mnt/var/lib/golem/secrets/owner-password-hash )
+    fi
+
     {
       echo "# The human choices for this machine, written by golem-install."
       echo "# Everything else about this system comes from the flake."
@@ -704,12 +712,10 @@ pkgs.writeShellApplication {
       echo "  # back to C at first boot without saying so."
       echo "  golem.locale.defaultLocale = \"$locale\";"
       echo "  golem.locale.timeZone = \"$timezone\";"
-      # Without this the account has NO password at all — which is what
-      # every install produced before the You step existed, since
-      # nixos-install also runs --no-root-password.
-      if [[ -n "$passhash" && "$passhash" != "!unhashed" ]]; then
-        echo "  users.users.$owner.hashedPassword = \"$passhash\";"
-      fi
+      # The owner's password is NOT written here: anything in this file is
+      # copied into the world-readable Nix store. It goes to the root-only
+      # /var/lib/golem/secrets/owner-password-hash (below, and applied to
+      # /etc/shadow in step 5b); base/users.nix reads it at account creation.
       # The container's UUID, so initrd knows what to ask a passphrase for.
       # nixos-generate-config does NOT write this: it describes filesystems
       # it can see through an already-open mapper, not the thing that has to
@@ -993,7 +999,7 @@ pkgs.writeShellApplication {
     # imperative password + authorized_keys set here PERSIST on the generic
     # system — it is loginable on first boot, offline, with no rebuild. The
     # seed's machine.nix still carries the DECLARATIVE answers (owner,
-    # hostname, hashedPassword, keys), so the first `rebuild-golem` makes them
+    # hostname, keys), so the first `rebuild-golem` makes them
     # permanent AND swaps the generic hardware config for this box's measured
     # one. Harmless on the from-seed path (same values, re-applied). The
     # hostname stays the baked default until that first rebuild — cosmetic,

@@ -20,6 +20,46 @@
 
   # The dev/deploy loop: the owner rebuilds without a password. Build
   # always runs before switch; generations are the net.
+  # THE OWNER'S PASSWORD NEVER ENTERS THE SYSTEM SOURCE (2026-10-01).
+  # machine.nix used to carry `hashedPassword`, and everything in the flake is
+  # copied into the world-readable Nix store: the hash sat in every
+  # generation's users-groups.json and in every source copy (12 on the
+  # ThinkPad), readable by any process — an offline-guessing target that
+  # /etc/shadow exists to prevent. Accounts are mutable here (NixOS's default:
+  # the declared hash is used only when the account is CREATED, /etc/shadow
+  # is the truth after that), so the hash is only a seed for creation: it
+  # lives in a root-only file the installer writes, outside the store.
+  users.users.${config.golem.owner}.hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
+
+  # Keep that file equal to the account's real password, before the users
+  # step reads it: an existing machine gets the file from /etc/shadow (no
+  # hand migration), a later `passwd` is followed, and an account that ever
+  # had to be created again would get the CURRENT password, not install day's.
+  # A fresh install has no shadow entry yet: the installer's file stands.
+  system.activationScripts.golemOwnerSecret = {
+    text = ''
+      f=/var/lib/golem/secrets/owner-password-hash
+      h=$(${pkgs.gnugrep}/bin/grep "^${config.golem.owner}:" /etc/shadow 2>/dev/null | ${pkgs.coreutils}/bin/cut -d: -f2 || true)
+      case "$h" in
+        \$*)
+          if [ ! -f "$f" ] || [ "$(${pkgs.coreutils}/bin/cat "$f")" != "$h" ]; then
+            ${pkgs.coreutils}/bin/install -d -m 0700 /var/lib/golem /var/lib/golem/secrets
+            ( umask 077; printf '%s\n' "$h" > "$f.tmp" && ${pkgs.coreutils}/bin/mv "$f.tmp" "$f" )
+          fi ;;
+      esac
+    '';
+  };
+  # (Only the classic users script reads the file at activation; sysusers and
+  # userborn define no such script to order against.)
+  system.activationScripts.users = lib.mkIf
+    (!config.systemd.sysusers.enable && !config.services.userborn.enable)
+    { deps = [ "golemOwnerSecret" ]; };
+
+  # A machine file that still declares the hash (written by an installer
+  # before 2026-10-01) keeps working and says so; golem-autoupdate removes it.
+  warnings = lib.optional (config.users.users.${config.golem.owner}.hashedPassword != null)
+    "golem: the owner's password hash is declared in the system source (hosts/target/machine.nix) and is therefore world-readable in the Nix store; remove that line — the account keeps its password (see base/users.nix).";
+
   security.sudo.extraRules = [{
     users = [ config.golem.owner ];
     commands = [{

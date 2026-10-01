@@ -38,6 +38,11 @@ let
     (ex "hyprland under uwsm" c.programs.hyprland.withUWSM)
     (ex "hyprland xwayland on" c.programs.hyprland.xwayland.enable)
     (ex "greetd enabled" c.services.greetd.enable)
+    # The owner's password hash never enters the (world-readable) store.
+    (ex "the owner's password comes from a root-only file, never from the system source"
+      (c.users.users.${c.golem.owner}.hashedPasswordFile == "/var/lib/golem/secrets/owner-password-hash"
+        && c.users.users.${c.golem.owner}.hashedPassword == null
+        && c.users.users.${c.golem.owner}.password == null))
     # P16: the desktop is a USER session (initial_session), never the greeter's.
     (ex "greetd autologs the owner's desktop once per boot (initial_session, class user)"
       (lib.hasInfix "uwsm start hyprland" (c.services.greetd.settings.initial_session.command or "")

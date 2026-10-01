@@ -3848,8 +3848,9 @@ write_module() {
     if [ -n "${OWNER:-}" ]; then
       printf '  golem.owner = "%s";\n' "$OWNER"
       printf '  networking.hostName = "%s";\n' "$HOSTNAME_V"
-      [ -n "${PASS_HASH:-}" ] && [ "$PASS_HASH" != '!unhashed' ] &&
-        printf '  users.users.%s.hashedPassword = "%s";\n' "$OWNER" "$PASS_HASH"
+      # The password hash is never written into a module: it would be copied
+      # into the world-readable Nix store. It reaches golem-install through
+      # the answers file (GOLEM_PASS_HASH) and lands in a root-only file.
       printf '\n'
     fi
     printf '  golem.keyboard = {\n'

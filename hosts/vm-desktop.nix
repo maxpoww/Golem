@@ -12,7 +12,5 @@
     firmware = "bios";   # qemu-vm boots the kernel directly; no loader
     cpuVendor = "intel";
   };
-  # The owner's password in the VM is "golem" (base/users.nix wants a hash;
-  # hosts/vm.nix's initialPassword is the fat path's). Never a real one.
-  users.users.max.hashedPassword = "$6$OQ6mT9Z2t9.sj/cV$kDNwo.oVUHCpsYMtmjy8y/NPwThO0S2u2B.e7zrPY1A.IWY52WhYrSX3NxUvx7xPcq5mxYzW2xWqDo/.oqeKE.";
+  # The owner's password in the VM is "golem": hosts/vm.nix's initialPassword.
 }

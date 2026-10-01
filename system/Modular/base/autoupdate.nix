@@ -99,6 +99,20 @@ lib.mkIf (config.golem.flakeDir != null) {
         exit 0
       fi
 
+      # A machine file from an installer before 2026-10-01 declares the owner's
+      # password hash, which puts it in the world-readable store (base/users.nix).
+      # Remove the line: the account is mutable and keeps its password, and the
+      # activation step has already mirrored it into the root-only secret file.
+      migrated=0
+      mf="$dir/hosts/target/machine.nix"
+      if [ -f "$mf" ] && [ -s /var/lib/golem/secrets/owner-password-hash ] \
+         && grep -q '\.hashedPassword = ' "$mf"; then
+        runuser -u "$owner" -- sed -i '/users\.users\.[^ ]*\.hashedPassword = /d' "$mf"
+        runuser -u "$owner" -- git -C "$dir" add -f hosts/target/machine.nix || true
+        migrated=1
+        echo "golem-autoupdate: removed the owner's password hash from the system source (it stays in /etc/shadow)."
+      fi
+
       before=$(git rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch
@@ -108,7 +122,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         exit 0
       fi
       after=$(git rev-parse HEAD)
-      if [ "$before" = "$after" ]; then
+      if [ "$before" = "$after" ] && [ "$migrated" = 0 ]; then
         echo "golem-autoupdate: already up to date ($after)."
         exit 0
       fi

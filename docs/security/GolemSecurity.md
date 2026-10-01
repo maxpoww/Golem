@@ -35,6 +35,28 @@ password ever shown. Closed by `system/golem-seal.nix`:
   the gate guards escalation, not a lost root. DNS-level nix input
   trust rides the flake.lock, which is INSIDE the seal.
 
+## Phase 1b — the owner's password hash never enters the store · LANDED 2026-10-01
+
+The installer wrote `users.users.<owner>.hashedPassword` into the seed's
+`machine.nix`. Everything in the flake is copied into the world-readable Nix
+store, so the hash sat in every generation's `users-groups.json` and every
+source copy (12 on the ThinkPad): any process could read it and guess the
+password offline — exactly what `/etc/shadow`'s permissions exist to prevent.
+
+- Accounts are mutable (NixOS's default): the declared hash only seeds the
+  account's CREATION; `/etc/shadow` is the truth afterwards. So the hash now
+  lives in `/var/lib/golem/secrets/owner-password-hash` (root, 0600), read
+  through `hashedPasswordFile`; the installer writes it there and still
+  applies it to the new system's shadow (step 5b).
+- An activation step mirrors the account's current shadow hash into that
+  file, so existing machines migrate themselves and a later `passwd` is
+  followed.
+- A machine file that still declares the hash keeps working with a build
+  warning; `golem-autoupdate` removes the line.
+- Old generations still contain the hash until they are deleted and
+  collected: on a migrated machine, delete the old system generations.
+- RULE: no secret is ever written into the flake or anything it imports.
+
 ## Phase 2 — root-owned seed as the INSTALLER DEFAULT (queued, design set)
 
 For users, the strongest model costs nothing: they never edit config
