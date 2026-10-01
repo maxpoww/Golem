@@ -8,6 +8,8 @@
 {
   users.users.${config.golem.owner} = {
     isNormalUser = true;
+    # The password seed: a root-only file, never the system source (below).
+    hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
     description = lib.mkDefault "Max";
     shell = pkgs.bashInteractive;
     extraGroups = [
@@ -28,9 +30,8 @@
   # /etc/shadow exists to prevent. Accounts are mutable here (NixOS's default:
   # the declared hash is used only when the account is CREATED, /etc/shadow
   # is the truth after that), so the hash is only a seed for creation: it
-  # lives in a root-only file the installer writes, outside the store.
-  users.users.${config.golem.owner}.hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
-
+  # lives in a root-only file the installer writes, outside the store
+  # (`hashedPasswordFile` in the account above).
   # Keep that file equal to the account's real password, before the users
   # step reads it: an existing machine gets the file from /etc/shadow (no
   # hand migration), a later `passwd` is followed, and an account that ever
