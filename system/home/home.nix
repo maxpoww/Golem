@@ -429,6 +429,17 @@ in
         if builtins.isString s then s else "/run/current-system/sw${s.shellPath}";
       shellNeedle = ''hl.env("SHELL",          "/run/current-system/sw/bin/zsh")'';
 
+      # BLUETOOTH autostart only where there IS Bluetooth: the census turns
+      # the stack off on a machine without an adapter (desktop/bluetooth.nix),
+      # and the session still exec'd bluetoothctl and blueman-applet — two
+      # commands with no program (ASUS X550LC parity, 2026-10-02).
+      btNeedle = lib.concatStringsSep "\n" [
+        ''hl.exec_cmd("bluetoothctl power on")''
+        ''hl.exec_cmd("blueman-applet")''
+        ''hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")''
+      ];
+      hasBluetooth = osConfig.hardware.bluetooth.enable or true;
+
       # The shell's three live-checkout paths become store paths / PATH bins
       # on an install; the dev box keeps them (golem.home.devCheckout), which
       # is its whole edit-build-restart loop. Built as conditional lists, so a
@@ -447,6 +458,7 @@ in
         monitorNeedle
         kbNeedle
         shellNeedle
+        btNeedle
       ];
       replacements = shellReplacements ++ [
         (if edpScale == null then monitorNeedle else ''
@@ -461,6 +473,7 @@ in
           "${kbPad}kb_options = \"${kb.options}\","
         ])
         ''hl.env("SHELL",          "${ownerShell}")''
+        (if hasBluetooth then btNeedle else "-- no Bluetooth adapter on this machine (census): no Bluetooth autostart")
       ];
       missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
     in

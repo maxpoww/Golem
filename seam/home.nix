@@ -12,7 +12,10 @@ let
   profile = ".local/share/seam";
 in
 {
-  home.packages = [ pkgs.golem-seam ];
+  home.packages = [
+    pkgs.golem-seam
+    (pkgs.writeShellScriptBin "seam-open" ''exec seam "$@"'')   # $BROWSER, see below
+  ];
 
   # The Golem look (sidebar auto-hide, new-tab = bar colour, separator fix), shipped with Golem.
   home.file."${profile}/chrome/userChrome.css".source = ./userChrome.css;
@@ -30,7 +33,13 @@ in
       "x-scheme-handler/unknown" = [ "seam.desktop" ];
     };
   };
-  home.sessionVariables.BROWSER = "seam";
+  # $BROWSER names a launcher of its OWN, not `seam`: xdg-settings answers "which app
+  # is the default browser" by taking the first .desktop whose command is $BROWSER's
+  # program, ~/.local/share first — and every webapp runs `seam -golem-app …`. With
+  # BROWSER=seam it named webapp-1password.desktop, and `check default-web-browser
+  # seam.desktop` said NO (ASUS deep probe, 2026-10-02). No .desktop runs seam-open,
+  # so the lookup falls through to the mime default above: seam.desktop.
+  home.sessionVariables.BROWSER = "seam-open";
 
   # One-time move of a Beam-era profile (~/.mozilla/firefox/golem, 2026-09-27) into Seam's
   # own place, before home-manager links this generation's files into it; the old profile
