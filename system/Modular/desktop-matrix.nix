@@ -70,6 +70,7 @@ let
     (ex "rtkit on (realtime audio)" c.security.rtkit.enable)
     # bluetooth: these fixtures have a radio → blueman + bluez on
     (ex "bluetooth on (census hasBluetooth)" (c.hardware.bluetooth.enable && c.services.blueman.enable))
+    (ex "home-manager activates only when something changed (desktop/home-boot: no 13 s re-link on every HDD boot)" (lib.hasInfix "golem-home-needs-activation" (c.systemd.services."home-manager-${c.golem.owner}".serviceConfig.ExecCondition or "")))
     # fonts: the Nerd Font ships, sans-serif pinned to DejaVu
     (ex "JetBrains Mono Nerd Font shipped"
       (lib.any (p: lib.hasInfix "jetbrains-mono" (p.pname or p.name or "")) c.fonts.packages))

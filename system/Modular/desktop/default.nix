@@ -30,6 +30,7 @@
     ./apps.nix              # the file-opening core (Nautilus, Loupe, Papers, Text Editor,
                             # File Roller) + system-wide emoji input — from golem-apps.nix
     ./session.nix           # gvfs, dconf, udisks2, gsettings: what those apps assume
+    ./home-boot.nix         # home-manager activates only when something changed
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
