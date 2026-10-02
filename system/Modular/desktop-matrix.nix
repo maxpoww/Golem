@@ -345,7 +345,7 @@ let
         # No blur behind the shell → denser glass (90%), and only there.
         (ex "light effects: the dock's glass is denser (no blur behind it); full effects keep the default"
           (lib.hasInfix ''background = "#050709e6"'' (dockCfgOf cLight)
-            && lib.hasInfix "open_opacity = 0.98" (dockCfgOf cLight)
+            && lib.hasInfix "open_opacity = 0.95" (dockCfgOf cLight)
             && !(lib.hasInfix "background =" (dockCfgOf c))
             && !(lib.hasInfix "open_opacity" (dockCfgOf c))))
         (ex "real desktop: waverunner (OPTIONS bar/dock) enabled for the owner"
