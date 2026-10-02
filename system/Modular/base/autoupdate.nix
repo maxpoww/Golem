@@ -125,16 +125,52 @@ lib.mkIf (config.golem.flakeDir != null) {
         runuser -u "$owner" -- git -C "$dir" checkout -q HEAD -- "$pin"
       fi
 
+      # The owner's edits to Golem's OWN files must not freeze the machine.
+      # ~/Golem sits in their home (Files shows it); one edited file that
+      # upstream later changes made `pull --ff-only` refuse, and the machine
+      # never updated again — while this unit reported success (ASUS,
+      # 2026-10-02). The machine's own layer is theirs and stays put:
+      # hosts/target/ (installer + dock), seam/sources.json (set aside above),
+      # the post-install answers. Anything else edited is copied to
+      # ~/Golem-local-edits/<when>/ and restored to Golem's version; the owner
+      # is told where their copy went.
+      home=${lib.escapeShellArg config.users.users.${config.golem.owner}.home}
+      edited=$(runuser -u "$owner" -- git -C "$dir" diff --name-only HEAD 2>/dev/null \
+        | grep -vE '^(hosts/target/|seam/sources\.json$|system/postinstall-generated\.nix)' || true)
+      if [ -n "$edited" ]; then
+        keep="$home/Golem-local-edits/$(date +%Y-%m-%d-%H%M%S)"
+        runuser -u "$owner" -- mkdir -p "$keep"
+        printf '%s\n' "$edited" | while IFS= read -r f; do
+          if [ -e "$dir/$f" ]; then
+            runuser -u "$owner" -- mkdir -p "$keep/$(dirname "$f")"
+            runuser -u "$owner" -- cp -a "$dir/$f" "$keep/$f"
+          fi
+          runuser -u "$owner" -- git -C "$dir" checkout -q HEAD -- "$f" 2>/dev/null \
+            || runuser -u "$owner" -- git -C "$dir" reset -q HEAD -- "$f"
+        done
+        n=$(printf '%s\n' "$edited" | wc -l)
+        echo "golem-autoupdate: $n edited Golem file(s) set aside in $keep and restored, so the update can go on:"
+        printf '  %s\n' $edited
+        uid=$(id -u "$owner")
+        if [ -S "/run/user/$uid/bus" ]; then
+          runuser -u "$owner" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            ${pkgs.libnotify}/bin/notify-send -a Golem "Golem kept your edits aside" \
+            "$n file(s) you changed in ~/Golem were copied to $keep so Golem could update." || true
+        fi
+      fi
+
       before=$(git rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch
       # (seen on the first real pull, 2026-09-30).
       if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
-        echo "golem-autoupdate: seed cannot fast-forward (local commits or a dirty tree) — leaving the current generation; run rebuild-golem yourself." >&2
+        echo "golem-autoupdate: seed cannot fast-forward (local commits?) — leaving the current generation; run rebuild-golem yourself." >&2
         if [ -n "$heldpin" ]; then   # leave the tree exactly as we found it
           cat "$heldpin" > "$dir/$pin"; runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
         fi
-        exit 0
+        # FAILED, not success: a machine that can no longer update must show
+        # up in systemctl --failed and every probe, not look healthy forever.
+        exit 1
       fi
       after=$(git rev-parse HEAD)
       if [ -n "$heldpin" ]; then
