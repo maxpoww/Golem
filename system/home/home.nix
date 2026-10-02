@@ -545,8 +545,12 @@ in
   # the raw page straight through its labels. Denser glass, still glass
   # (Max, 2026-10-01, picked on the MacBook: 90%). `or`: the fat profile
   # doesn't declare the option and keeps the default.
+  # The OPEN menubox (Apps / Install / Files) goes denser still: at 90% a
+  # page's titles read straight through it with nothing blurring them (ASUS
+  # X550LC, 2026-10-02; previewed live at 95/98/100 %, Max: "lets try 98%").
   + lib.optionalString ((osConfig.golem.desktop.effects or "full") == "light") ''
     background = "#050709e6"
+    open_opacity = 0.98
   ''
   + ''
 
