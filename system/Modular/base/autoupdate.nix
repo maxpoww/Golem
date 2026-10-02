@@ -185,9 +185,20 @@ lib.mkIf (config.golem.flakeDir != null) {
         fi
         rm -f "$heldpin"
       fi
-      if [ "$before" = "$after" ] && [ "$migrated" = 0 ]; then
+      # Up to date only if the NEWEST BUILT system is this revision too. A run
+      # that pulled and then died in the rebuild (lid closed, power cut, a
+      # download that broke) left HEAD new and the system old; comparing only
+      # before/after, every later run said "already up to date" and the
+      # machine waited for upstream's next commit to build what it had
+      # (ASUS dogfood, 2026-10-02). The built system carries its revision.
+      built=$(/nix/var/nix/profiles/system/sw/bin/nixos-version --configuration-revision 2>/dev/null || true)
+      built=''${built%-dirty}
+      if [ "$before" = "$after" ] && [ "$migrated" = 0 ] && [ "$built" = "$after" ]; then
         echo "golem-autoupdate: already up to date ($after)."
         exit 0
+      fi
+      if [ "$before" = "$after" ] && [ "$built" != "$after" ]; then
+        echo "golem-autoupdate: the checkout is at $after but the newest built system is ''${built:-unknown} — finishing that build."
       fi
 
       # 3) the fast-forwarded tree is upstream-trusted → re-baseline the seal,
