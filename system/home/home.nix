@@ -124,6 +124,13 @@ in
     # GTK3 apps (file-roller, simple-scan) only go dark if told to.
     gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
     gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+    # No window buttons in the apps' own header bars: Golem's titlebar
+    # already has close/minimize/maximize (red/yellow/green), and GNOME apps
+    # showed a second close × beside it (ASUS dogfood, 2026-10-02; Max: "yes
+    # hide it, floating is the default anyway"). The libadwaita half is the
+    # dconf key below; these cover GTK3/GTK4 apps reading settings.ini.
+    gtk3.extraConfig.gtk-decoration-layout = ":";
+    gtk4.extraConfig.gtk-decoration-layout = ":";
 
     # libadwaita reads ~/.config/gtk-4.0/gtk.css and lets these named
     # colours be overridden — the only way to get the desktop's exact amber
@@ -142,6 +149,7 @@ in
   # NAME to #ffbe98 — the exact colour comes from the CSS above, but apps
   # that ask for the name still get a warm one. Cursor is deliberately
   # absent: hyprland.lua already exports it for every client.
+  dconf.settings."org/gnome/desktop/wm/preferences".button-layout = ":";   # see gtk-decoration-layout above
   dconf.settings."org/gnome/desktop/interface" = {
     color-scheme = "prefer-dark";
     accent-color = "orange";
