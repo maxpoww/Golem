@@ -2,6 +2,22 @@
 
 <!-- Runs alongside S8–S10, closes last. -->
 
+- [ ] **LATER (Max, 2026-10-02: "we are gonna work on the post install later")
+      — installed Golems never ask their post-install questions.** The
+      asker (system/postinstall.nix: golem-postinstall-ask at graphical
+      login → postinstall-answers.json → golem-postinstall-apply rebuild)
+      is imported only by the dev box's system/configuration.nix, never by
+      the Modular composition; base/options.nix declares
+      golem.postinstall.answers and says the asker "arrives with the
+      desktop stage" — that port never happened. Seen on the ASUS X550LC
+      (2026-10-02): its GF117M failed the wake test, hosts/target/
+      postinstall-questions.json holds the gpu2-failing-action question,
+      nobody asked, so the chip stays powered (D0, control=on) forever.
+      Do: port the asker into the Modular desktop stage (and decide its
+      look — today it pops a foot terminal; an OPTIONS-native ask is
+      Max's call), matrix-check that a machine with questions gets the
+      asker, VM-test with a fixture question. Ledger: work/parity.md.
+
 - [ ] **SOON — a non-English install must be in its language end to end**
       THE RULE (Max, 2026-10-01): "a system on spanish for spanish, french
       for french" — the language picked in the installer is the language of
