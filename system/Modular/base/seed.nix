@@ -39,6 +39,25 @@ let
       branch=${lib.escapeShellArg cfg.branch}
       owner=${lib.escapeShellArg owner}
       [ -n "$url" ] || exit 0
+      # The seed GONE — ~/Golem is a folder in the owner's home, and an owner
+      # who does not know it deletes it (ASUS dogfood, 2026-10-02): updates
+      # failed forever and dock installs had nowhere to write. Rebuild it
+      # from the root-owned blessed snapshot (the last sealed tree, machine
+      # files included); the adopt below then makes it a checkout of the
+      # upstream again, exactly as on an installer's first boot.
+      blessed=/var/lib/golem/blessed
+      if [ ! -d "$dir" ] && [ -f "$blessed/flake.nix" ]; then
+        cp -a "$blessed" "$dir"
+        chown -R "$owner": "$dir"
+        chmod 755 "$dir"
+        echo "golem-seed-adopt: $dir was missing — rebuilt from the sealed snapshot"
+        uid=$(id -u "$owner")
+        if [ -S "/run/user/$uid/bus" ]; then
+          runuser -u "$owner" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            ${pkgs.libnotify}/bin/notify-send -a Golem "Golem restored its system folder" \
+            "The Golem folder in your home is the system's own source; it was missing and has been put back." || true
+        fi
+      fi
       [ -d "$dir" ] || { echo "golem-seed-adopt: no seed at $dir" >&2; exit 1; }
       if [ -d "$dir/.git" ]; then
         exit 0 # already a checkout
