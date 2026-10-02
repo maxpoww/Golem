@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus seven patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus eight patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -11,6 +11,14 @@
 # the windows to be flat when the titlebars are on… not applying on the
 # thinkpad and macbook"); parity.md P3.
 #
+#   crash-restart-normal  start-hyprland (the watchdog) restarted EVERY unclean
+#                         exit in safe mode: stock config, no plugins, kitty on
+#                         Super+Q, Hyprland's wallpaper and a "your last session
+#                         crashed" dialog — not Golem (MacBook, a SIGSEGV'd
+#                         compositor, 2026-10-02). A crash after the session ran
+#                         a minute now comes back as the owner's desktop; only a
+#                         crash within a minute of starting (a loop, likely the
+#                         config) falls to safe mode. Golem's own; keep.
 #   floating-resize-limits  a floating window's box never goes below its own
 #                         min (or past its max): a scripted resize (the resize
 #                         dispatcher, the OPTIONS pill's pinch) and every placement
@@ -55,6 +63,7 @@
 final: prev: {
   hyprland = prev.hyprland.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
+      ./hyprland-patches/hyprland-crash-restart-normal.patch
       ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch

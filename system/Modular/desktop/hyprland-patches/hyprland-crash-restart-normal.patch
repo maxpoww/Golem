@@ -1,0 +1,31 @@
+--- a/start/src/main.cpp	2026-10-02 22:50:00.579855816 +0000
++++ b/start/src/main.cpp	2026-10-02 22:50:00.604443398 +0000
+@@ -1,3 +1,4 @@
++#include <chrono>
+ #include <csignal>
+ #include <cstring>
+ #include <print>
+@@ -103,13 +104,19 @@
+ 
+     bool safeMode = false;
+     while (true) {
+-        g_instance     = makeUnique<CHyprlandInstance>();
+-        const bool RET = g_instance->run(safeMode);
++        const auto STARTED = std::chrono::steady_clock::now();
++        g_instance         = makeUnique<CHyprlandInstance>();
++        const bool RET     = g_instance->run(safeMode);
+         g_instance.reset();
+ 
+         if (!RET) {
+-            g_logger->log(Hyprutils::CLI::LOG_ERR, "Hyprland exit not-cleanly, restarting");
+-            safeMode = true;
++            // Golem: a crash after the session has been running is a crash, not
++            // a broken config — come back as the owner's desktop. Safe mode
++            // (stock config, no plugins, a "your session crashed" dialog) is for
++            // a crash LOOP: Hyprland dying within a minute of starting.
++            const bool LOOP = std::chrono::steady_clock::now() - STARTED < std::chrono::seconds(60);
++            g_logger->log(Hyprutils::CLI::LOG_ERR, "Hyprland exit not-cleanly, restarting{}", LOOP ? " in safe mode (it crashed within a minute of starting)" : "");
++            safeMode = LOOP;
+             continue;
+         }
+ 
