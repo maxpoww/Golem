@@ -152,13 +152,25 @@ let
         # owner's mpv collided with Golem's mpv-with-scripts on bin/umpv and
         # took kdenlive, gimp and thunderbird down with it. Golem's copy wins
         # the shared paths; everything else of the app is installed.
+        # Each name is LOOKED UP, not referenced: a name nixpkgs does not have
+        # — a bad entry, or an app a nixpkgs update renamed or removed — is
+        # skipped with a warning instead of failing the evaluation of the whole
+        # system. Referenced bare (`with pkgs; [ name ]`), one such name made
+        # every later install fail AND every rebuild, the nightly update
+        # included (ASUS dogfood, 2026-10-02).
         echo "{ pkgs, lib, ... }:"
-        echo "{"
-        echo "  home.packages = map lib.lowPrio (with pkgs; ["
+        echo "let"
+        echo "  wanted = ["
         for a in ''${attrs[@]+"''${attrs[@]}"}; do
-          echo "    $a"
+          echo "    \"$a\""
         done
-        echo "  ]);"
+        echo "  ];"
+        echo "  find = n: lib.attrByPath (lib.splitString \".\" n) null pkgs;"
+        echo "  missing = builtins.filter (n: find n == null) wanted;"
+        echo "in"
+        echo "{"
+        echo "  warnings = map (n: \"waverunner: '\''${n}' is not in nixpkgs (renamed or removed?) — skipped\") missing;"
+        echo "  home.packages = map lib.lowPrio (builtins.filter (p: p != null) (map find wanted));"
         echo "}"
       } > "$gen.new"
       mv "$gen.new" "$gen"
