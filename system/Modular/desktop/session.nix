@@ -7,6 +7,12 @@
 #            colour scheme, every gsettings write
 #   udisks2  removable drives for the desktop's user (plug in a USB stick)
 #   glib     `gsettings` and `gio` on the PATH
+#   wsdd     what gvfs spawns for Files' "Network" view (Web Service
+#            Discovery): without it the view failed outright — "Failed to
+#            spawn the wsdd daemon" (ASUS dogfood, 2026-10-02). The firewall
+#            stays closed: auto-discovering Windows hosts would need UDP 3702
+#            open on every network the laptop joins; typing smb://host still
+#            works.
 #
 # Ported from the fat system/configuration.nix (gvfs + GIO_EXTRA_MODULES).
 # Landed 2026-09-30 (deep debug, parity P9): installs had 0 GIO modules and no
@@ -18,5 +24,5 @@
   environment.sessionVariables.GIO_EXTRA_MODULES = [ "${pkgs.gvfs}/lib/gio/modules" ];
   programs.dconf.enable = true;
   services.udisks2.enable = true;
-  environment.systemPackages = [ pkgs.glib ];
+  environment.systemPackages = [ pkgs.glib pkgs.wsdd ];
 }
