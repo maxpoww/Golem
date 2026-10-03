@@ -74,9 +74,8 @@ let
           # list golem-seed-adopt carries. Without this the next rebuild had
           # no hosts/target (MacBook test, 2026-10-03).
           ( cd ${lib.escapeShellArg dir}
-            for f in $(find hosts/target -maxdepth 1 -type f); do
-              [ "$f" = hosts/target/default.nix ] || runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"
-            done
+            find hosts/target -maxdepth 1 -type f ! -name default.nix -print0 \
+              | while IFS= read -r -d "" f; do runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"; done
             for f in system/postinstall-generated.nix system/home/waverunner-packages.nix; do
               [ -e "$f" ] && runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"
             done
