@@ -72,6 +72,7 @@ let
     (ex "bluetooth on (census hasBluetooth)" (c.hardware.bluetooth.enable && c.services.blueman.enable))
     (ex "home-manager activates only when something changed (desktop/home-boot: no 13 s re-link on every HDD boot)" (lib.hasInfix "golem-home-needs-activation" (c.systemd.services."home-manager-${c.golem.owner}".serviceConfig.ExecCondition or "")))
     (ex "an update waiting 2+ days for a restart is announced (desktop/update-notice: autoupdate stages for the next boot; laptops that only sleep never boot)" (c.systemd.user.timers ? golem-update-notice && c.systemd.user.services ? golem-update-notice))
+    (ex "a desktop crash loop goes back to the previous version, never Hyprland's safe mode (desktop/crash-recovery: last-resort config, golem-rollback, polkit for the owner)" (c.environment.etc ? "golem/last-resort.lua" && c.systemd.services ? golem-rollback && lib.hasInfix "golem-rollback.service" c.security.polkit.extraConfig))
     # fonts: the Nerd Font ships, sans-serif pinned to DejaVu
     (ex "JetBrains Mono Nerd Font shipped"
       (lib.any (p: lib.hasInfix "jetbrains-mono" (p.pname or p.name or "")) c.fonts.packages))

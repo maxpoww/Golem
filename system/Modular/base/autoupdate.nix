@@ -159,6 +159,19 @@ lib.mkIf (config.golem.flakeDir != null) {
         fi
       fi
 
+      # A revision that crash-looped the desktop is HELD (desktop/
+      # crash-recovery.nix rolled the machine back from it): never pull to it
+      # or build it — wait for upstream's next one.
+      heldfile=/var/lib/golem/held-revisions
+      if [ -s "$heldfile" ]; then
+        runuser -u "$owner" -- git -C "$dir" fetch --quiet || true
+        upstream=$(runuser -u "$owner" -- git -C "$dir" rev-parse '@{u}' 2>/dev/null || true)
+        if [ -n "$upstream" ] && grep -qx "$upstream" "$heldfile"; then
+          echo "golem-autoupdate: upstream is at $upstream, which crashed this machine's desktop — holding until a newer version is out."
+          exit 0
+        fi
+      fi
+
       before=$(git rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch

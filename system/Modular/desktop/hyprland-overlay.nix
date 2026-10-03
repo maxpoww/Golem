@@ -12,13 +12,14 @@
 # thinkpad and macbook"); parity.md P3.
 #
 #   crash-restart-normal  start-hyprland (the watchdog) restarted EVERY unclean
-#                         exit in safe mode: stock config, no plugins, kitty on
-#                         Super+Q, Hyprland's wallpaper and a "your last session
-#                         crashed" dialog — not Golem (MacBook, a SIGSEGV'd
-#                         compositor, 2026-10-02). A crash after the session ran
-#                         a minute now comes back as the owner's desktop; only a
-#                         crash within a minute of starting (a loop, likely the
-#                         config) falls to safe mode. Golem's own; keep.
+#                         exit in stock safe mode — Hyprland's config, wallpaper
+#                         and "your session crashed" dialog, not Golem (MacBook,
+#                         2026-10-02). Now: a crash restarts the desktop; two in
+#                         a row, each within a minute of starting, run
+#                         golem-crash-loop (back to the previous version, see
+#                         desktop/crash-recovery.nix) and show Golem's
+#                         last-resort screen (/etc/golem/last-resort.lua) —
+#                         never the stock safe mode. Golem's own; keep.
 #   floating-resize-limits  a floating window's box never goes below its own
 #                         min (or past its max): a scripted resize (the resize
 #                         dispatcher, the OPTIONS pill's pinch) and every placement
@@ -72,5 +73,17 @@ final: prev: {
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch
     ];
+    # Hyprland's own pictures — three anime wallpapers (48 MB) and the
+    # "lock screen died" images — are drawn whenever Golem's config is not in
+    # charge. Max (2026-10-03): "get rid of them, i hate them". Deleted, they
+    # would show Hyprland's missing-texture pattern instead, so: plain black.
+    postInstall = (old.postInstall or "") + ''
+      for f in wall0.png wall1.png wall2.png lockdead.png lockdead2.png; do
+        if [ -e "$out/share/hypr/$f" ]; then
+          rm -f "$out/share/hypr/$f"
+          ${final.imagemagick}/bin/magick -size 16x16 xc:black "PNG32:$out/share/hypr/$f"
+        fi
+      done
+    '';
   });
 }

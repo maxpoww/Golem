@@ -32,6 +32,7 @@
     ./session.nix           # gvfs, dconf, udisks2, gsettings: what those apps assume
     ./home-boot.nix         # home-manager activates only when something changed
     ./update-notice.nix     # "Golem has an update ready" after 2 days waiting for a restart
+    ./crash-recovery.nix    # a crash loop → back to the previous version; never Hyprland's safe mode
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
