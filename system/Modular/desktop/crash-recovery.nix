@@ -26,7 +26,9 @@ let
   owner = config.golem.owner;
   dir = toString config.golem.flakeDir;
   held = "/var/lib/golem/held-revisions";
-  note = "/var/lib/golem/rolled-back";
+  # NOT in /var/lib/golem (root-only: it holds the owner's password hash) —
+  # the owner's notice has to read it (MacBook test, 2026-10-03).
+  note = "/var/lib/golem-notices/rolled-back";
   kb = config.golem.keyboard;
   dialog = "${pkgs.hyprland-qtutils}/bin/hyprland-dialog";
 
@@ -66,10 +68,26 @@ let
       # The checkout follows, keeping this machine's own staged files
       # (hosts/target): the nightly update builds from it.
       if [ -n "$target_rev" ] && [ -d ${lib.escapeShellArg dir}/.git ]; then
-        runuser -u ${lib.escapeShellArg owner} -- git -C ${lib.escapeShellArg dir} reset -q --keep "$target_rev" \
-          || echo "golem-rollback: could not move the checkout back (it stays where it is)" >&2
+        if runuser -u ${lib.escapeShellArg owner} -- git -C ${lib.escapeShellArg dir} reset -q --keep "$target_rev"; then
+          # reset drops the machine's own STAGED files from the index (a flake
+          # only sees tracked or staged files): stage them again, the same
+          # list golem-seed-adopt carries. Without this the next rebuild had
+          # no hosts/target (MacBook test, 2026-10-03).
+          ( cd ${lib.escapeShellArg dir}
+            for f in $(find hosts/target -maxdepth 1 -type f); do
+              [ "$f" = hosts/target/default.nix ] || runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"
+            done
+            for f in system/postinstall-generated.nix system/home/waverunner-packages.nix; do
+              [ -e "$f" ] && runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"
+            done
+            true )
+        else
+          echo "golem-rollback: could not move the checkout back (it stays where it is)" >&2
+        fi
       fi
+      install -d -m 755 "$(dirname ${note})"
       printf 'from=%s\nto=%s\nat=%s\n' "''${bad:-unknown}" "''${target_rev:-unknown}" "$(date -Is)" > ${note}
+      chmod 644 ${note}
       mkdir -p /run/golem; touch /run/golem/rollback-pending
       systemd-run --on-active=6 --unit=golem-rollback-reboot systemctl reboot
     '';
