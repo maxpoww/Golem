@@ -59,10 +59,18 @@ let
       edited=$(asowner git diff --name-only HEAD 2>/dev/null | grep -v '^hosts/target/' || true)
       if [ -n "$edited" ] || { [ -d "$snap" ] && ! diff -rq "$snap" hosts/target >/dev/null 2>&1; }; then
         asowner mkdir -p "$keep"
-        printf '%s\n' "$edited" | while IFS= read -r f; do
-          [ -n "$f" ] && [ -e "$f" ] && { asowner mkdir -p "$keep/$(dirname "$f")"; asowner cp -a "$f" "$keep/$f"; }
-        done
-        [ -d hosts/target ] && { asowner mkdir -p "$keep/hosts"; asowner cp -a hosts/target "$keep/hosts/"; }
+        # (if, not `a && b`: under set -e + pipefail a false test as a
+        #  loop's last command ended the whole script, silently)
+        while IFS= read -r f; do
+          if [ -n "$f" ] && [ -e "$f" ]; then
+            asowner mkdir -p "$keep/$(dirname "$f")"
+            asowner cp -a "$f" "$keep/$f"
+          fi
+        done <<< "$edited"
+        if [ -d hosts/target ]; then
+          asowner mkdir -p "$keep/hosts"
+          asowner cp -a hosts/target "$keep/hosts/"
+        fi
         echo "golem-recover: the current edits are kept in $keep"
       fi
 
@@ -76,11 +84,27 @@ let
       # 3. the machine layer: the system's own copy (or, from a generation
       #    built before it kept one, the files that were there), staged
       src="$snap"; [ -d "$src" ] || { src="$held"; echo "golem-recover: $(basename "$sys") keeps no machine layer (built before 2026-10-03) — keeping the current one" >&2; }
-      find "$src" -maxdepth 1 -type f -print0 | while IFS= read -r -d "" f; do
+      # -L: /etc/golem/machine is a symlink into the store, and find does not
+      # follow a symlinked starting point by itself (it copied NOTHING once,
+      # and reset had already removed the machine files — MacBook, 2026-10-03)
+      find -L "$src/" -maxdepth 1 -type f -print0 | while IFS= read -r -d "" f; do
         b=$(basename "$f")
-        [ "$b" = default.nix ] && continue
+        if [ "$b" = default.nix ]; then continue; fi
         install -m 0644 -o "$owner" -g "$(id -gn "$owner")" "$f" "hosts/target/$b"
         asowner git add -f "hosts/target/$b"
+      done
+      # Never leave a machine without its machine layer: if the essential
+      # files did not come back, put back what was there and say so.
+      for need in machine.nix hardware-configuration.nix; do
+        if [ ! -f "hosts/target/$need" ]; then
+          echo "golem-recover: hosts/target/$need did not come back — restoring the machine layer as it was" >&2
+          cp -a "$held/." hosts/target/
+          chown -R "$owner": hosts/target
+          find hosts/target -maxdepth 1 -type f ! -name default.nix -print0 \
+            | while IFS= read -r -d "" f; do asowner git add -f "$f"; done
+          rm -rf "$held"
+          exit 1
+        fi
       done
       rm -rf "$held"
 
