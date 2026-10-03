@@ -71,6 +71,7 @@ in
     # the Acer's spinning disk that cost ~5 s before the first pixel (night
     # dogfood, 2026-10-03). An unknown GPU keeps the loader's full list.
     Service.ExecStart = lib.mkForce "${vulkanDrivers} ${config.programs.waverunner.package}/bin/waverunner";
+    Service.SyslogIdentifier = "waverunner";   # not the wrapper's store name
   };
 
   programs.waverunner.enable = !dev;
