@@ -162,6 +162,22 @@ let
         find "$g/refs/remotes" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty ref |'
       fi
 
+      # The machine layer, cut to nothing by the same kind of stop
+      # (hosts/target/golem-hardware.nix EMPTY on the ISO VM, 2026-10-03:
+      # no rebuild could evaluate, so every install failed, and the nightly
+      # update saw nothing new to build). An empty file is never the owner's
+      # intent: it comes back from the running system's own copy.
+      snap=/etc/golem/machine
+      if [ -d "$d/hosts/target" ] && [ -d "$snap" ]; then
+        for f in "$d"/hosts/target/*; do
+          b=$(basename "$f")
+          if [ -f "$f" ] && [ ! -s "$f" ] && [ -s "$snap/$b" ]; then
+            install -m 0644 -o ${lib.escapeShellArg owner} -g "$(id -gn ${lib.escapeShellArg owner})" "$snap/$b" "$f"
+            echo "golem-git-heal: hosts/target/$b was empty — restored from the running system"
+          fi
+        done
+      fi
+
       healthy() { asowner git -C "$d" rev-parse --verify -q HEAD >/dev/null 2>&1 \
                   && asowner git -C "$d" fsck --connectivity-only --no-dangling >/dev/null 2>&1; }
       healthy && exit 0
