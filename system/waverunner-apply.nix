@@ -76,6 +76,7 @@ let
       export GOLEM_REBUILD_LOCK_HELD=1
       ${config.golem.gitHeal or pkgs.coreutils}/bin/golem-git-heal "$flakedir" 2>/dev/null || true
 
+
       write_status() {
         # $1 phase ("building"|"done")   $2 ok (true|false|null)   $3 error (json string or null)
         tmp=$(mktemp)
@@ -85,6 +86,31 @@ let
         chown ${user}:users "$status" 2>/dev/null || true
         chmod 644 "$status" 2>/dev/null || true
       }
+
+      # A CUT-OFF list is not "uninstall everything". The dock writes the list
+      # in place (the path unit watches that inode), so a full disk truncated
+      # it to 0 bytes (MacBook, 2026-10-03) — and the next pass would have
+      # removed every app. The dock always writes its header first and ends
+      # with a newline; a list without both is a broken write: the last list
+      # this installer applied comes back, and the owner is told.
+      listgood="$list.last-good"
+      listok() { [ -s "$list" ] && head -n 1 "$list" | grep -q '^# waverunner declarative packages' && [ -z "$(tail -c 1 "$list")" ]; }
+      if [ -e "$list" ] && ! listok; then
+        if [ -f "$listgood" ]; then
+          echo "waverunner-apply: the app list is cut off (a full disk?) — restoring the last one applied" >&2
+          cat "$listgood" > "$list" || true
+          uid=$(id -u ${user})
+          if [ -S "/run/user/$uid/bus" ]; then
+            runuser -u ${user} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+              notify-send -a Golem "Golem couldn't save the change to your apps" \
+              "The disk may be full. Nothing was removed; free some space and try again." || true
+          fi
+        else
+          echo "waverunner-apply: the app list is cut off and there is no earlier one — changing nothing" >&2
+        fi
+        write_status "done" false "\"the app list was cut off; nothing changed\""
+        exit 0
+      fi
 
       write_status "building" null null
 
@@ -279,6 +305,7 @@ let
 
       if [[ "$ok" == yes ]]; then
         cp -f "$gen" "$lastgood"
+        if listok; then cp -f "$list" "$listgood"; chown ${user}: "$listgood" 2>/dev/null || true; fi
         again_if_list_changed
         write_status "done" true null
       else
