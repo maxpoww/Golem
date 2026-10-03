@@ -21,11 +21,24 @@ let
   hasDesktop = config.services.greetd.enable or false;
   gate = pkgs.writeShellApplication {
     name = "golem-quiet-login";
-    runtimeInputs = [ pkgs.procps pkgs.coreutils pkgs.gawk ];
+    runtimeInputs = [ pkgs.procps pkgs.coreutils pkgs.gawk pkgs.getconf ];
     text = ''
       ${lib.optionalString (!hasDesktop) "exit 0"}
+      hz=$(getconf CLK_TCK)
+      # The dock's age on the MONOTONIC clock: `ps etimes` counts from the
+      # wall-clock boot time, and a clock corrected after boot (a dead CMOS
+      # battery: the laptop woke in 2020, NTP moved it to today) made every
+      # process "6 years old" and opened the gate at once (Acer, 2026-10-03).
+      shell_age() {
+        local pid st
+        pid=$(ps -eo pid=,args= | awk '$2 ~ /\/bin\/waverunner$/ { print $1; exit }')
+        [ -n "$pid" ] || return 0
+        st=$(cat "/proc/$pid/stat" 2>/dev/null) || return 0
+        st=''${st##*) }   # after the command name (which may hold spaces)
+        awk -v up="$(cut -d' ' -f1 /proc/uptime)" -v hz="$hz" '{ printf "%d\n", up - $20 / hz }' <<< "$st"
+      }
       for _ in $(seq 1 720); do
-        shell_age=$(ps -eo etimes=,args= | awk '$2 ~ /\/bin\/waverunner$/ { print $1; exit }')
+        shell_age=$(shell_age)
         if [ -n "$shell_age" ] && [ "$shell_age" -ge 60 ]; then
           exit 0
         fi

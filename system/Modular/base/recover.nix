@@ -140,7 +140,9 @@ let
       find "$g" -maxdepth 5 -name '*.lock' -not -path '*/objects/*' -print0 \
         | while IFS= read -r -d "" l; do
             m=$(stat -c %Y "$l")
-            if [ "$m" -lt "$boot" ] || { [ "$gitrunning" = 0 ] && [ $(( now - m )) -gt 600 ]; }; then
+            # never while git runs: a clock that was AHEAD at boot puts the
+            # boot time after a live lock's mtime
+            if [ "$gitrunning" = 0 ] && { [ "$m" -lt "$boot" ] || [ $(( now - m )) -gt 600 ]; }; then
               rm -f "$l"
               echo "golem-git-heal: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
             fi
