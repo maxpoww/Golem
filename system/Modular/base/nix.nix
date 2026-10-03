@@ -35,6 +35,35 @@
     "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15"
   ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
 
+  # A WEEKLY store check: every path's contents against its hash, and
+  # whatever is damaged fetched again (--repair). A store can be damaged
+  # without anyone noticing — the ASUS's power cut on 2026-10-03 left two
+  # paths "modified" that Nix trusted as valid (before fsync-store-paths),
+  # and a failing disk does the same. Idle IO, after the desktop is up
+  # (base/quiet-login's gate), caught up if the laptop was off; ~15 min on a
+  # spinning disk.
+  systemd.services.golem-store-check = {
+    description = "Golem: check the store's contents and repair what is damaged";
+    path = [ config.nix.package ];
+    serviceConfig = {
+      Type = "oneshot";
+      Nice = 19;
+      IOSchedulingClass = "idle";
+      ExecStartPre = [ "${config.golem.quietLogin}/bin/golem-quiet-login" ];
+      TimeoutStartSec = "infinity";
+    };
+    script = ''
+      out=$(nix-store --verify --check-contents --repair 2>&1) || true
+      bad=$(printf '%s\n' "$out" | grep -c "was modified" || true)
+      echo "golem-store-check: $bad damaged path(s) found and repaired"
+      printf '%s\n' "$out" | grep "was modified" || true
+    '';
+  };
+  systemd.timers.golem-store-check = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnCalendar = "weekly"; Persistent = true; RandomizedDelaySec = "6h"; };
+  };
+
   # Survive memory pressure instead of freezing under it: oomd kills
   # the greediest slice at sustained PSI pressure — a survivable
   # failure beats a dead machine. Needs zram (the memory tier leaf) to
