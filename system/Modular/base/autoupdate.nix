@@ -172,6 +172,14 @@ lib.mkIf (config.golem.flakeDir != null) {
         fi
       fi
 
+      # From the pull to the end (build, or recover), the source is in
+      # flux: hold the rebuild lock for all of it, so a dock install never
+      # reads a pulled-but-unbuilt (maybe broken) tree (MacBook, 2026-10-03:
+      # an install during a failing update built the broken source).
+      exec 8>>/run/golem-rebuild.lock
+      flock -w 7200 8 || { echo "golem-autoupdate: another rebuild has held the lock for 2 h — trying again tomorrow" >&2; exit 1; }
+      export GOLEM_REBUILD_LOCK_HELD=1
+
       before=$(git rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch

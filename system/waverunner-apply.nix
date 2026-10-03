@@ -67,6 +67,13 @@ let
       lastgood="$gen.last-good"
       started=$(date +%s.%N)
 
+      # The whole install under the rebuild lock: never read or write the
+      # source while a nightly update has it in flux (golem-seal.nix,
+      # base/autoupdate.nix; MacBook 2026-10-03).
+      exec 8>>/run/golem-rebuild.lock
+      flock -w 7200 8 || true
+      export GOLEM_REBUILD_LOCK_HELD=1
+
       write_status() {
         # $1 phase ("building"|"done")   $2 ok (true|false|null)   $3 error (json string or null)
         tmp=$(mktemp)

@@ -85,10 +85,15 @@ let
     name = "golem-rebuild";
     runtimeInputs = [ pkgs.util-linux config.system.build.nixos-rebuild ];
     text = ''
-      exec 9>>/run/golem-rebuild.lock
-      if ! flock -n 9; then
-        echo "golem-rebuild: another system rebuild is running — waiting for it…" >&2
-        flock -w 7200 9 || { echo "golem-rebuild: still busy after 2 h — giving up" >&2; exit 1; }
+      # A caller that holds the lock around MORE than the rebuild (the nightly
+      # update: pull → build → recover; a dock install: read → generate →
+      # build) says so, and is not made to wait for itself.
+      if [ "''${GOLEM_REBUILD_LOCK_HELD:-}" != 1 ]; then
+        exec 9>>/run/golem-rebuild.lock
+        if ! flock -n 9; then
+          echo "golem-rebuild: another system rebuild is running — waiting for it…" >&2
+          flock -w 7200 9 || { echo "golem-rebuild: still busy after 2 h — giving up" >&2; exit 1; }
+        fi
       fi
       nixos-rebuild "$@"
     '';
