@@ -53,7 +53,18 @@ let
     fi
     if ${check}; then
       echo "golem-home-heal: Golem's own files in the home are gone or replaced — putting them back"
-      exec ${hm.home.activationPackage}/activate
+      hypr_gone=0; dock_gone=0
+      [ -e "${home}/.config/hypr/hyprland.lua" ] || hypr_gone=1
+      [ -e "${home}/.config/waverunner/config.toml" ] || dock_gone=1
+      ${hm.home.activationPackage}/activate
+      # Re-linked is not re-read: Hyprland's watcher lost the deleted file
+      # and kept its red "cannot open …/hyprland.lua" banner (Acer test).
+      if [ "$hypr_gone" = 1 ] && [ -n "''${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
+        ${pkgs.hyprland}/bin/hyprctl reload >/dev/null 2>&1 || true
+      fi
+      if [ "$dock_gone" = 1 ]; then
+        ${pkgs.systemd}/bin/systemctl --user try-restart waverunner.service || true
+      fi
     fi
   '';
 in
