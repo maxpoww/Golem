@@ -127,7 +127,7 @@ let
   # Run first by the nightly update, dock installs and golem-recover.
   heal = pkgs.writeShellApplication {
     name = "golem-git-heal";
-    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.procps pkgs.gawk pkgs.git pkgs.util-linux ];
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.procps pkgs.gawk pkgs.gnused pkgs.git pkgs.util-linux ];
     text = ''
       d="''${1:-${dir}}"; g="$d/.git"
       [ -d "$g" ] || exit 0
@@ -147,6 +147,20 @@ let
               echo "golem-git-heal: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
             fi
           done
+
+      # Refs git writes for itself and can always do without: a cut left
+      # ORIG_HEAD EMPTY and every merge/pull failed on it ("cannot lock ref
+      # 'ORIG_HEAD': reference broken" — the ISO VM, 2026-10-03). The same
+      # for an empty remote-tracking ref: the next fetch writes it again.
+      for r in ORIG_HEAD FETCH_HEAD MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD REBASE_HEAD AUTO_MERGE; do
+        if [ -f "$g/$r" ] && ! asowner git -C "$d" rev-parse -q --verify "$r" >/dev/null 2>&1; then
+          rm -f "$g/$r"
+          echo "golem-git-heal: removed a broken $r left by an interrupted git"
+        fi
+      done
+      if [ -d "$g/refs/remotes" ]; then
+        find "$g/refs/remotes" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty ref |'
+      fi
 
       healthy() { asowner git -C "$d" rev-parse --verify -q HEAD >/dev/null 2>&1 \
                   && asowner git -C "$d" fsck --connectivity-only --no-dangling >/dev/null 2>&1; }
