@@ -34,6 +34,12 @@
   systemd.services.nix-gc.serviceConfig.ExecStartPre = [
     "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15"
   ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
+  # A switch never restarts a long background oneshot: switch-to-configuration
+  # waits for a restarted oneshot to FINISH, so a dock install (which
+  # switches) sat behind a store check running on the Acer's spinning disk
+  # for as long as the check took (night dogfood, 2026-10-03). A changed job
+  # simply runs its new version next time.
+  systemd.services.nix-gc.restartIfChanged = false;
 
   # A WEEKLY store check: every path's contents against its hash, and
   # whatever is damaged fetched again (--repair). A store can be damaged
@@ -44,6 +50,7 @@
   # spinning disk.
   systemd.services.golem-store-check = {
     description = "Golem: check the store's contents and repair what is damaged";
+    restartIfChanged = false;   # see nix-gc above
     path = [ config.nix.package ];
     serviceConfig = {
       Type = "oneshot";

@@ -61,6 +61,7 @@ lib.mkIf (config.golem.flakeDir != null) {
     wants = [ "network-online.target" ];
     # Runs ONCE: skip if the stamp is already there.
     unitConfig.ConditionPathExists = "!${stamp}";
+    restartIfChanged = false;   # a switch never waits on it (base/nix.nix, nix-gc)
     serviceConfig = {
       Type = "oneshot";
       TimeoutStartSec = "infinity";   # a full first rebuild on a slow disk/2 GB box

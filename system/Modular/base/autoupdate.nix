@@ -76,6 +76,7 @@ lib.mkIf (config.golem.flakeDir != null) {
     description = "Golem self-update: gate on network, fast-forward the trusted seed, rebuild boot";
     # No wantedBy — the timer drives it. Serialized by Type=oneshot.
     serviceConfig.Type = "oneshot";
+    restartIfChanged = false;   # a switch never waits on it (base/nix.nix, nix-gc)
     # git (+ ssh/https transports), nix for the rebuild, coreutils for the flow.
     path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];
     script = ''
