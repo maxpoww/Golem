@@ -317,7 +317,7 @@ export_apps() {
   for app in $UPS_APPS; do
     marker="$PREFIX$name-$app"
     out="$(distrobox enter --name "$cname" -- bash "$helper" "$app" "$marker" "$ICONS_ROOT" 2>/dev/null || true)"
-    if printf '%s\n' "$out" | grep -q '^UPS_ERR='; then
+    if grep -q '^UPS_ERR=' <<< "$out"; then   # a here-string: under pipefail a pipe into grep -q can read FALSE on a match
       info "$(printf '%s\n' "$out" | sed -n 's/^UPS_ERR=//p' | head -1)"; continue
     fi
     nm="$(printf '%s\n' "$out" | sed -n 's/^UPS_NAME=//p' | head -1)"

@@ -267,6 +267,10 @@ let
       # collected, then again), something held a lock. The dock keeps showing
       # the install as running meanwhile. Only a failure that comes back the
       # same after the retries is a real one.
+      # Every check on $err reads a here-string, never a pipe: `printf | grep
+      # -q` under pipefail reports FALSE when grep stops early on a match
+      # (printf gets SIGPIPE) — a network drop was read as a permanent
+      # failure and the install gave up in 72 s (Acer, Wi-Fi off, 2026-10-03).
       transient() {
         grep -qiE 'unable to download|Could not resolve|resolve host|Connection (reset|refused|timed out)|timed out|Network is unreachable|Failure when receiving|Operation too slow|HTTP error (5[0-9][0-9]|429)|error: download|curl error|SSL|TLS|cannot connect|Could not acquire lock|No space left on device|unexpected end of file|Temporary failure'
       }
@@ -282,17 +286,17 @@ let
         elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
           # System switched; only user activation (root, no user manager here)
           # warned. The package is installed (#44).
-          echo "$err" | grep -qi "user activation" \
+          grep -qi "user activation" <<< "$err" \
             && echo "waverunner-apply: system switched; a user-activation warning was ignored (#44)" >&2
           ok=yes
         else
           ok=no
         fi
         [[ "$ok" == yes ]] && break
-        if (( attempt < 6 )) && printf '%s' "$err" | transient; then
+        if (( attempt < 6 )) && transient <<< "$err"; then
           echo "waverunner-apply: attempt $attempt hit a passing problem — retrying in ''${backoff}s:" >&2
           printf '%s\n' "$err" | tail -n 3 >&2
-          if printf '%s' "$err" | grep -qi 'No space left on device'; then
+          if grep -qi 'No space left on device' <<< "$err"; then
             echo "waverunner-apply: the disk is full — collecting the store (old generations kept)" >&2
             nix-store --gc >/dev/null 2>&1 || true
           fi
@@ -320,7 +324,7 @@ let
         # off, and the raw tail never even held "No space left" (MacBook, disk
         # filled on purpose, 2026-10-03).
         freemb=$(df --output=avail -BM / 2>/dev/null | tail -1 | tr -dc 0-9)
-        if printf '%s' "$err" | grep -qi 'No space left on device' || [ "''${freemb:-9999}" -lt 400 ]; then
+        if grep -qi 'No space left on device' <<< "$err" || [ "''${freemb:-9999}" -lt 400 ]; then
           why="Your disk is full (only ''${freemb:-a few} MB free). Empty the Trash or remove apps you don't use, then try again."
         elif ! getent ahosts cache.nixos.org >/dev/null 2>&1; then
           why="There is no internet connection. Connect, then try again."
