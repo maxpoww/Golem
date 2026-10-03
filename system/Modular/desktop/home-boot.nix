@@ -32,7 +32,40 @@ let
     echo "home ${owner}: generation already applied, every link intact — skipping activation"
     exit 1
   '';
+  # LIVE repair (night dogfood, Acer 2026-10-03): the owner deleted
+  # ~/.config/hypr, ~/.config/waverunner and ~/.config/foot — Hyprland showed
+  # "Your config has errors: cannot open …/hyprland.lua" in a red banner until
+  # the next boot, when the condition above saw the missing links. A minute
+  # is enough: the same check, run as the owner every minute, re-runs the
+  # home activation when Golem's links are gone; and a deleted app list
+  # comes back from the running system's own machine layer, so a dock
+  # restart cannot read "no apps" and uninstall everything on the next
+  # install.
+  heal = pkgs.writeShellScript "golem-home-heal" ''
+    list="${home}/.config/waverunner/packages.list"
+    snap=/etc/golem/machine/apps.nix
+    if [ ! -e "$list" ] && [ -f "$snap" ]; then
+      mkdir -p "$(dirname "$list")"
+      { echo "# waverunner declarative packages — one nixpkgs attr per line."
+        ${pkgs.gnugrep}/bin/grep -oE '^    "[A-Za-z0-9._-]+"' "$snap" | ${pkgs.coreutils}/bin/tr -d ' "'
+      } > "$list.golem-heal" && mv "$list.golem-heal" "$list"
+      echo "golem-home-heal: the app list was missing — rebuilt from the running system"
+    fi
+    if ${check}; then
+      echo "golem-home-heal: Golem's own files in the home are gone or replaced — putting them back"
+      exec ${hm.home.activationPackage}/activate
+    fi
+  '';
 in
 lib.mkIf (hm != null) {
   systemd.services."home-manager-${owner}".serviceConfig.ExecCondition = "${check}";
+
+  systemd.user.services.golem-home-heal = {
+    description = "Golem: put the home's own files back if they went missing";
+    serviceConfig = { Type = "oneshot"; ExecStart = "${heal}"; };
+  };
+  systemd.user.timers.golem-home-heal = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnStartupSec = "2min"; OnUnitActiveSec = "1min"; };
+  };
 }
