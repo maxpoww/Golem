@@ -46,6 +46,7 @@ let
         exit 1
       fi
       cd "$dir"
+      ${unlock}/bin/golem-git-unlock "$dir"
       if ! asowner git cat-file -e "$rev^{commit}" 2>/dev/null; then
         asowner git fetch --quiet || true
       fi
@@ -113,8 +114,41 @@ let
       echo "golem-recover: the source now matches $(basename "$sys") (revision ''${rev:0:8}) — a rebuild reproduces it"
     '';
   };
+  # A power cut while git writes leaves .git/index.lock (or HEAD.lock, a
+  # ref's .lock) behind, and every git command in the checkout refuses from
+  # then on: the nightly update, dock installs and recovery all stuck
+  # (Acer, 2026-10-03). A lock is removed only when it is certainly an
+  # orphan: made before this boot, or older than 10 minutes with no git
+  # running at all.
+  unlock = pkgs.writeShellApplication {
+    name = "golem-git-unlock";
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.procps pkgs.gawk ];
+    text = ''
+      g="''${1:-${dir}}/.git"
+      [ -d "$g" ] || exit 0
+      boot=$(awk '/^btime/ {print $2}' /proc/stat)
+      now=$(date +%s)
+      gitrunning=0
+      if pgrep -x git >/dev/null; then gitrunning=1; fi
+      find "$g" -maxdepth 5 -name '*.lock' -not -path '*/objects/*' -print0 \
+        | while IFS= read -r -d "" l; do
+            m=$(stat -c %Y "$l")
+            if [ "$m" -lt "$boot" ] || { [ "$gitrunning" = 0 ] && [ $(( now - m )) -gt 600 ]; }; then
+              rm -f "$l"
+              echo "golem-git-unlock: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
+            fi
+          done
+    '';
+  };
 in
 {
+  options.golem.gitUnlock = lib.mkOption {
+    type = lib.types.package;
+    internal = true;
+    readOnly = true;
+    default = unlock;
+    description = "golem-git-unlock: remove git locks an interrupted git left behind.";
+  };
   options.golem.recover = lib.mkOption {
     type = lib.types.package;
     internal = true;
@@ -123,6 +157,6 @@ in
     description = "golem-recover: put the source back to what built a given system.";
   };
   config = lib.mkIf (config.golem.flakeDir != null) {
-    environment.systemPackages = [ recover ];
+    environment.systemPackages = [ recover unlock ];
   };
 }

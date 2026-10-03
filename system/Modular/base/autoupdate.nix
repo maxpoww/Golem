@@ -92,6 +92,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
 
       cd "$dir" || { echo "golem-autoupdate: seed $dir is gone — nothing to update" >&2; exit 1; }
+      ${config.golem.gitUnlock}/bin/golem-git-unlock "$dir"
 
       # 2) is there a trusted upstream to pull from?
       if [ -z "$(git remote 2>/dev/null)" ] || ! git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then

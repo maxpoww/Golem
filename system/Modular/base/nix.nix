@@ -5,6 +5,13 @@
 {
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;
+  # A store path's CONTENTS reach the disk before the path is registered
+  # valid. Off (Nix's default), a power cut during an install left files
+  # whose hashes no longer match but which Nix trusted as valid — the ASUS,
+  # plug pulled mid dock-install (2026-10-03): openjdk-minimal-jre "was
+  # modified!". Laptops with dead batteries lose power without warning.
+  # Costs some install speed (each file is flushed); correctness first.
+  nix.settings.fsync-store-paths = true;
 
   # Flakes-only, no channels. Without this, every `nix-shell` / `nix search`
   # on an installed Golem prints:

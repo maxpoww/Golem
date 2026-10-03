@@ -73,6 +73,7 @@ let
       exec 8>>/run/golem-rebuild.lock
       flock -w 7200 8 || true
       export GOLEM_REBUILD_LOCK_HELD=1
+      ${config.golem.gitUnlock or pkgs.coreutils}/bin/golem-git-unlock "$flakedir" 2>/dev/null || true
 
       write_status() {
         # $1 phase ("building"|"done")   $2 ok (true|false|null)   $3 error (json string or null)
