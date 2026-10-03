@@ -46,7 +46,7 @@ let
         exit 1
       fi
       cd "$dir"
-      ${unlock}/bin/golem-git-unlock "$dir"
+      ${heal}/bin/golem-git-heal "$dir" || true
       if ! asowner git cat-file -e "$rev^{commit}" 2>/dev/null; then
         asowner git fetch --quiet || true
       fi
@@ -114,18 +114,25 @@ let
       echo "golem-recover: the source now matches $(basename "$sys") (revision ''${rev:0:8}) — a rebuild reproduces it"
     '';
   };
-  # A power cut while git writes leaves .git/index.lock (or HEAD.lock, a
-  # ref's .lock) behind, and every git command in the checkout refuses from
-  # then on: the nightly update, dock installs and recovery all stuck
-  # (Acer, 2026-10-03). A lock is removed only when it is certainly an
-  # orphan: made before this boot, or older than 10 minutes with no git
-  # running at all.
-  unlock = pkgs.writeShellApplication {
-    name = "golem-git-unlock";
-    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.procps pkgs.gawk ];
+  # golem-git-heal: what a power cut can do to the owner's checkout, undone.
+  #   - a stale lock (.git/index.lock, HEAD.lock, a ref's .lock): every git
+  #     command refused, the nightly update failed every night (Acer,
+  #     2026-10-03). Removed when certainly an orphan: made before this boot,
+  #     or older than 10 minutes with no git running.
+  #   - damaged objects: the cut emptied the new HEAD's object file ("bad
+  #     object HEAD", MacBook 2026-10-03). Empty objects are deleted and
+  #     fetched again from the upstream; if the repository is still broken,
+  #     its .git is set aside and golem-seed-adopt makes a fresh checkout,
+  #     carrying this machine's own files over.
+  # Run first by the nightly update, dock installs and golem-recover.
+  heal = pkgs.writeShellApplication {
+    name = "golem-git-heal";
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.procps pkgs.gawk pkgs.git pkgs.util-linux ];
     text = ''
-      g="''${1:-${dir}}/.git"
+      d="''${1:-${dir}}"; g="$d/.git"
       [ -d "$g" ] || exit 0
+      asowner() { runuser -u ${lib.escapeShellArg owner} -- "$@"; }
+
       boot=$(awk '/^btime/ {print $2}' /proc/stat)
       now=$(date +%s)
       gitrunning=0
@@ -135,19 +142,35 @@ let
             m=$(stat -c %Y "$l")
             if [ "$m" -lt "$boot" ] || { [ "$gitrunning" = 0 ] && [ $(( now - m )) -gt 600 ]; }; then
               rm -f "$l"
-              echo "golem-git-unlock: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
+              echo "golem-git-heal: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
             fi
           done
+
+      healthy() { asowner git -C "$d" rev-parse --verify -q HEAD >/dev/null 2>&1 \
+                  && asowner git -C "$d" fsck --connectivity-only --no-dangling >/dev/null 2>&1; }
+      healthy && exit 0
+
+      echo "golem-git-heal: the checkout's git data is damaged (an interrupted write?) — repairing"
+      find "$g/objects" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty object |'
+      asowner git -C "$d" fetch --quiet origin 2>/dev/null || true
+      if healthy; then
+        echo "golem-git-heal: repaired from the upstream"
+        exit 0
+      fi
+      echo "golem-git-heal: still damaged — a fresh checkout of the upstream, keeping this machine's files" >&2
+      mv "$g" "$g.damaged-$now"
+      ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
+      healthy || { echo "golem-git-heal: could not repair the checkout (offline?)" >&2; exit 1; }
     '';
   };
 in
 {
-  options.golem.gitUnlock = lib.mkOption {
+  options.golem.gitHeal = lib.mkOption {
     type = lib.types.package;
     internal = true;
     readOnly = true;
-    default = unlock;
-    description = "golem-git-unlock: remove git locks an interrupted git left behind.";
+    default = heal;
+    description = "golem-git-heal: undo what an interrupted git leaves in the checkout (stale locks, damaged objects).";
   };
   options.golem.recover = lib.mkOption {
     type = lib.types.package;
@@ -157,6 +180,6 @@ in
     description = "golem-recover: put the source back to what built a given system.";
   };
   config = lib.mkIf (config.golem.flakeDir != null) {
-    environment.systemPackages = [ recover unlock ];
+    environment.systemPackages = [ recover heal ];
   };
 }

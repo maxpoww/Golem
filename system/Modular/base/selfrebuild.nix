@@ -12,6 +12,12 @@
   programs.git = lib.mkIf (config.golem.flakeDir != null) {
     enable = true;
     config.safe.directory = config.golem.flakeDir;
+    # Git's objects reach the disk before a ref points at them. Off (git's
+    # default), a power cut during the nightly pull left an EMPTY object
+    # file for the new HEAD — "bad object HEAD": no update, no install, no
+    # recovery could touch the checkout again (MacBook, 2026-10-03).
+    config.core.fsync = "added";
+    config.core.fsyncMethod = "fsync";
   };
 
   environment.systemPackages = [
