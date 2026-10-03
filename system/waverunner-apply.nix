@@ -55,6 +55,7 @@ let
       pkgs.git
       pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
+      pkgs.libnotify # notify-send: why an install failed, in plain words
       pkgs.coreutils
       pkgs.systemd # for the #61 reset-failed; a bare systemctl under a
                    # writeShellApplication's clean PATH would break silently.
@@ -288,6 +289,22 @@ let
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
         write_status "done" false "$errjson"
         echo "$err" >&2
+        # Tell the owner WHY, in plain words: the dock only takes the app back
+        # off, and the raw tail never even held "No space left" (MacBook, disk
+        # filled on purpose, 2026-10-03).
+        freemb=$(df --output=avail -BM / 2>/dev/null | tail -1 | tr -dc 0-9)
+        if printf '%s' "$err" | grep -qi 'No space left on device' || [ "''${freemb:-9999}" -lt 400 ]; then
+          why="Your disk is full (only ''${freemb:-a few} MB free). Empty the Trash or remove apps you don't use, then try again."
+        elif ! getent ahosts cache.nixos.org >/dev/null 2>&1; then
+          why="There is no internet connection. Connect, then try again."
+        else
+          why="Something went wrong while installing it. Try again later; Golem keeps the details (journalctl -u waverunner-apply)."
+        fi
+        uid=$(id -u ${user})
+        if [ -S "/run/user/$uid/bus" ]; then
+          runuser -u ${user} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
+            notify-send -a Golem "Golem couldn't install the app" "$why" || true
+        fi
         exit 1
       fi
     '';
