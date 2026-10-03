@@ -30,6 +30,8 @@
     # The general fast+reliable boot pass (#125): skip legacy serial probing,
     # don't block the boot on the network. Rides with plymouth/#124 on the boot.
     ./boot/boot-speed.nix
+    # Unit directories as real files: ~10 s off a spinning-disk boot (the file).
+    ./boot/flat-units.nix
     ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix
