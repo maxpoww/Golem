@@ -13,6 +13,25 @@
 
 let
   dev = config.golem.home.devCheckout;
+  # VK_LOADER_DRIVERS_SELECT from the GPUs present (PCI vendor ids), then
+  # exec the command. No GPU found or one we don't know: no selection.
+  vulkanDrivers = pkgs.writeShellScript "golem-vulkan-drivers" ''
+    sel=""; known=1
+    for v in /sys/class/drm/card*/device/vendor; do
+      [ -r "$v" ] || continue
+      case "$(cat "$v")" in
+        0x8086) sel="$sel,*intel*" ;;
+        0x1002) sel="$sel,*radeon*" ;;
+        0x10de) sel="$sel,*nouveau*,*nvidia*" ;;
+        0x1af4) sel="$sel,*virtio*" ;;
+        *) known=0 ;;
+      esac
+    done
+    if [ "$known" = 1 ] && [ -n "$sel" ]; then
+      export VK_LOADER_DRIVERS_SELECT="''${sel#,}"
+    fi
+    exec "$@"
+  '';
 in
 {
   imports = [
@@ -46,6 +65,12 @@ in
   # (Installs only: on the dev box the dock is not a systemd unit.)
   systemd.user.services.waverunner = lib.mkIf (!dev) {
     Service.ManagedOOMPreference = "avoid";
+    # Only the Vulkan drivers for the GPUs this machine has. The loader opens
+    # EVERY installed driver otherwise — 13 of them on a Golem, ~200 MB, and
+    # lavapipe + radeon pull in LLVM (180 MB) — once per dock surface. On
+    # the Acer's spinning disk that cost ~5 s before the first pixel (night
+    # dogfood, 2026-10-03). An unknown GPU keeps the loader's full list.
+    Service.ExecStart = lib.mkForce "${vulkanDrivers} ${config.programs.waverunner.package}/bin/waverunner";
   };
 
   programs.waverunner.enable = !dev;
