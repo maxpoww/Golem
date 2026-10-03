@@ -495,7 +495,19 @@
       # hosts/target/ — in the repo as published a target with no disk
       # layout cannot evaluate, and `nix flake check` must stay green.
       // nixpkgs.lib.optionalAttrs
-        (builtins.pathExists ./hosts/target/hardware-configuration.nix) {
+        (builtins.pathExists ./hosts/target/hardware-configuration.nix) (let
+          # Every generation keeps the MACHINE LAYER it was built from
+          # (hosts/target exactly as this build saw it: staged, not in git
+          # history) at /etc/golem/machine. With the generation's git revision
+          # (system.configurationRevision) it names the whole source of the
+          # system, so golem-recover can always rebuild what runs (Max,
+          # 2026-10-03: "how do we recovery the system so it really comes back
+          # and rebuild?"). No secrets: the password lives outside the flake.
+          machineLayer = {
+            environment.etc."golem/machine".source =
+              builtins.path { path = ./hosts/target; name = "golem-machine-layer"; };
+          };
+        in {
           golem-target = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = golemModules ++ [ ./hosts/target ];
@@ -513,6 +525,7 @@
                 system.configurationRevision =
                   self.rev or self.dirtyRev or "unknown";
               }
+              machineLayer
               home-manager.nixosModules.home-manager
               {
                 home-manager.useGlobalPkgs = true;
@@ -540,6 +553,7 @@
                 system.configurationRevision =
                   self.rev or self.dirtyRev or "unknown";
               }
+              machineLayer
               home-manager.nixosModules.home-manager
               {
                 home-manager.useGlobalPkgs = true;
@@ -611,6 +625,6 @@
               (builtins.pathExists ./hosts/target/modules.nix)
               ./hosts/target/modules.nix;
           };
-        };
+        });
     };
 }

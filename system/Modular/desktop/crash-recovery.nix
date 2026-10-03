@@ -65,25 +65,11 @@ let
       echo "golem-rollback: going back to generation $target (''${target_rev:-unknown})"
       nix-env -p "$profiles/system" --switch-generation "$target"
       "$profiles/system/bin/switch-to-configuration" boot
-      # The checkout follows, keeping this machine's own staged files
-      # (hosts/target): the nightly update builds from it.
-      if [ -n "$target_rev" ] && [ -d ${lib.escapeShellArg dir}/.git ]; then
-        if runuser -u ${lib.escapeShellArg owner} -- git -C ${lib.escapeShellArg dir} reset -q --keep "$target_rev"; then
-          # reset drops the machine's own STAGED files from the index (a flake
-          # only sees tracked or staged files): stage them again, the same
-          # list golem-seed-adopt carries. Without this the next rebuild had
-          # no hosts/target (MacBook test, 2026-10-03).
-          ( cd ${lib.escapeShellArg dir}
-            find hosts/target -maxdepth 1 -type f ! -name default.nix -print0 \
-              | while IFS= read -r -d "" f; do runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"; done
-            for f in system/postinstall-generated.nix system/home/waverunner-packages.nix; do
-              [ -e "$f" ] && runuser -u ${lib.escapeShellArg owner} -- git add -f "$f"
-            done
-            true )
-        else
-          echo "golem-rollback: could not move the checkout back (it stays where it is)" >&2
-        fi
-      fi
+      # The source follows: code AND machine layer exactly as they built the
+      # version we go back to, so the machine can rebuild again (golem-recover,
+      # base/recover.nix).
+      ${config.golem.recover}/bin/golem-recover "$profiles/system" \
+        || echo "golem-rollback: golem-recover could not reset the source (it stays where it is)" >&2
       install -d -m 755 "$(dirname ${note})"
       printf 'from=%s\nto=%s\nat=%s\n' "''${bad:-unknown}" "''${target_rev:-unknown}" "$(date -Is)" > ${note}
       chmod 644 ${note}

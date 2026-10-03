@@ -218,7 +218,15 @@ lib.mkIf (config.golem.flakeDir != null) {
       #    then stage the new generation for the next reboot.
       ${config.golem.seal.bless}/bin/golem-bless || true
       echo "golem-autoupdate: $before -> $after, rebuilding (boot)…"
-      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"
+      if ! ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"; then
+        # The pulled source does not build. Leave it there and every later
+        # rebuild — dock installs included — fails too: put the source back to
+        # what built the newest system (base/recover.nix). The next run tries
+        # upstream again (a download that broke is not a broken version).
+        echo "golem-autoupdate: $after does not build — putting the source back to what built this machine's newest system" >&2
+        ${config.golem.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
+        exit 1
+      fi
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
     '';
   };
