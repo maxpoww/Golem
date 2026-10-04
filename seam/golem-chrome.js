@@ -1567,6 +1567,90 @@ try {
     }
   }
 
+  // =================================================================
+  // TRAFFIC LIGHTS WHILE SEAM FLOATS (Max, 2026-10-04: "add the traffic lights on SEAM when
+  // it is floating (left from the back button)"). A floating Seam has no Golem title bar
+  // (the bar stands down for it), so it had no window buttons at all. The three are the
+  // title bar's own, same colours, same meaning: RED closes the window, ORANGE minimizes it
+  // to the dock (the plugin's own minimize), GREEN puts it back into the layout (through the
+  // dock daemon, like the bar: Golem's "tiled" is more than "not floating").
+  // Floating or not is the compositor's knowledge: asked (hyprctl clients) on the events a
+  // float flip causes — a resize, an activation — never polled. The window is found by this
+  // process's pid; with several Seam windows, by title, then by size. A window on the STAGE
+  // (tag golem-stage) counts as not floating, as it does for the title bar.
+  // (The plugin's one-file signal /tmp/golem-ff-float is NOT used: one file for every
+  // browser window — closing a tiled window left "0" behind for a floating one, seen in
+  // the first test on the MacBook. The 2026-09-17 version polled it every 600ms; cut.)
+  // Kill switch: golem.seam.trafficLights.
+  // =================================================================
+  var TL_SET=[["close","#FF2E2E"],["min","#FF9500"],["tile","#21D758"]];
+  async function tlRun(name,args){
+    var S=ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs").Subprocess;
+    var cands=[]; if(name==="hyprctl"){ try{ var e=Services.env.get("GOLEM_HYPRCTL"); if(e) cands.push(e); }catch(e2){} }
+    try{ var p=await S.pathSearch(name); if(p) cands.push(p); }catch(e3){}
+    cands.push("/run/current-system/sw/bin/"+name);
+    for(var i=0;i<cands.length;i++){
+      try{ var pr=await S.call({command:cands[i], arguments:args}); var out="", c; while((c=await pr.stdout.readString())) out+=c; await pr.wait(); return out; }catch(e4){}
+    }
+    return null;
+  }
+  function tlPick(list,pid,title,w,h){
+    var mine=(list||[]).filter(function(c){ return c && c.pid===pid && !/^webapp-/.test(c.class||"") && c.mapped!==false; });
+    if(!mine.length) return null;
+    if(mine.length>1){ var t=mine.filter(function(c){ return c.title===title; }); if(t.length) mine=t; }
+    if(mine.length>1){ var d=function(c){ var s=c.size||[0,0]; return Math.abs(s[0]-w)+Math.abs(s[1]-h); }; mine.sort(function(x,y){ return d(x)-d(y); }); }
+    return mine[0];
+  }
+  async function tlFloating(win){
+    var txt=await tlRun("hyprctl",["clients","-j"]); if(!txt) return false;
+    var c=tlPick(JSON.parse(txt),Services.appinfo.processID,win.document.title,win.outerWidth,win.outerHeight);
+    return !!c && !!c.floating && !(c.fullscreen>0) && (c.tags||[]).indexOf("golem-stage")<0;
+  }
+  function tlAct(win,kind){
+    try{
+      if(kind==="close"){ try{ win.BrowserCommands.tryToCloseWindow(); }catch(e){ win.close(); } }
+      else if(kind==="min"){ tlRun("hyprctl",["dispatch","hl.plugin.waveview.minimize(\"\")"]); }   // empty = the focused window: the one just clicked
+      else if(kind==="tile"){ tlRun("waverunner-ctl",["window-mode","tiled"]).then(function(o){ if(o===null) tlRun("hyprctl",["dispatch","hl.dsp.window.float({ action = \"toggle\" })"]); }); }
+    }catch(e){ OVLOG("traffic act:"+e); }
+    win.setTimeout(function(){ tlSync(win); },600);
+  }
+  function tlBuild(win){
+    if(win.__golemTraffic) return win.__golemTraffic;
+    var d=win.document, nb=d.getElementById("nav-bar"); if(!nb) return null;
+    var box=d.createElementNS(OV_HTML,"div"); box.id="golem-traffic";
+    box.style.cssText="display:none;align-items:center;gap:7px;padding:0 4px 0 10px;flex:0 0 auto;align-self:center;";
+    var st=d.createElementNS(OV_HTML,"style");
+    st.textContent="#golem-traffic>div{width:14px;height:14px;border-radius:50%;flex:0 0 auto;transition:transform 90ms ease,filter 90ms ease;}"+
+      "#golem-traffic>div:hover{transform:scale(1.14);filter:brightness(1.15);}"+
+      "#golem-traffic:-moz-window-inactive>div{background:#5b5b5f !important;}";
+    box.appendChild(st);
+    TL_SET.forEach(function(t){
+      var b=d.createElementNS(OV_HTML,"div"); b.setAttribute("data-golem-tl",t[0]); b.style.background=t[1];
+      b.addEventListener("mousedown",function(ev){ ev.stopPropagation(); });   // never a window drag
+      b.addEventListener("click",function(ev){ ev.stopPropagation(); ev.preventDefault(); tlAct(win,t[0]); });
+      box.appendChild(b);
+    });
+    win.__golemTraffic=box;
+    return box;
+  }
+  function tlSync(win){
+    try{
+      var box=tlBuild(win); if(!box) return;
+      var nb=win.document.getElementById("nav-bar");
+      if(nb && (box.parentNode!==nb || nb.firstChild!==box)) nb.insertBefore(box,nb.firstChild);   // left of the back button
+      var seq=win.__golemTlSeq=(win.__golemTlSeq||0)+1;
+      tlFloating(win).then(function(f){ if(win.__golemTlSeq===seq && !win.closed) box.style.display=f?"flex":"none"; },function(e){ OVLOG("traffic float:"+e); });
+    }catch(e){ OVLOG("traffic sync:"+e); }
+  }
+  function tlInit(win){
+    if(win.__golemTlInit) return; win.__golemTlInit=true;
+    var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.trafficLights",true); }catch(e){}
+    if(!on) return;
+    var t=null, soon=function(){ if(t) win.clearTimeout(t); t=win.setTimeout(function(){ t=null; tlSync(win); },250); };
+    win.addEventListener("resize",soon); win.addEventListener("activate",soon); win.addEventListener("sizemodechange",soon);
+    tlSync(win); win.setTimeout(function(){ tlSync(win); },1500);
+  }
+
   function ttInit(win){
     try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
       var orig=gb.getWindowTitleForBrowser;
@@ -2591,6 +2675,7 @@ try {
       try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
       try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
       try{ nsInit(w); }catch(e){ OVLOG("newtab suggest init:"+e); }
+      try{ tlInit(w); }catch(e){ OVLOG("traffic init:"+e); }
       if(!OV_SELFTEST){ try{ nbInit(w); }catch(e){ OVLOG("one new tab init:"+e); } }   // the selftest's own fixtures are empty tabs
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
