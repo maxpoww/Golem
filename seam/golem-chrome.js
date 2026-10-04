@@ -1519,6 +1519,54 @@ try {
     });
   }
 
+  // =================================================================
+  // ONE EMPTY TAB AT MOST (Max, 2026-10-04: "i dont want a bunch of new tabs with no
+  // content"). A new tab you leave may wait for you (go to a site's tab and come back:
+  // it is still there), but opening ANOTHER new tab closes the one that was waiting, and
+  // closing the browser closes them all: Seam reopens on your sites and the New Tab
+  // button. Empty = a blank page that is not loading and not a tab still to be restored;
+  // a tab opened a moment ago (a link on its way) is never taken for one. The window's
+  // last tab is never closed. Kill switch: golem.seam.oneNewTab.
+  // =================================================================
+  function nbIsBlank(win,tab,anyAge){
+    try{
+      if(!tab || tab.closing || tab.pinned || tab.hasAttribute("pending") || tab.hasAttribute("busy") || !tab.linkedPanel) return false;
+      if(!anyAge && Date.now()-(tab.__golemBorn||0)<1500) return false;
+      var b=tab.linkedBrowser; if(!b) return false;
+      try{ if(b.webProgress && b.webProgress.isLoadingDocument) return false; }catch(e){}
+      return !!win.isBlankPageURL(b.currentURI.spec);
+    }catch(e){ return false; }
+  }
+  function nbSweep(win,keep,anyAge){
+    var n=0;
+    try{
+      var gb=win.gBrowser;
+      Array.prototype.slice.call(gb.tabs).forEach(function(t){
+        if(t===keep || gb.tabs.length<=1 || !nbIsBlank(win,t,anyAge)) return;
+        try{ gb.removeTab(t,{animate:false}); n++; }catch(e){}
+      });
+    }catch(e){ OVLOG("one new tab:"+e); }
+    return n;
+  }
+  var nbQuitObs=false;
+  function nbInit(win){
+    if(win.__golemNbInit) return; win.__golemNbInit=true;
+    var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.oneNewTab",true); }catch(e){}
+    if(!on) return;
+    var tc=win.gBrowser.tabContainer;
+    Array.prototype.forEach.call(win.gBrowser.tabs,function(t){ if(!t.__golemBorn) t.__golemBorn=1; });
+    tc.addEventListener("TabOpen",function(ev){
+      var tab=ev.target; tab.__golemBorn=Date.now();
+      // is the new one a NEW TAB (still empty a beat later)? then it replaces the waiting one
+      win.setTimeout(function(){ if(nbIsBlank(win,tab,true)) nbSweep(win,tab,false); },120);
+    });
+    win.addEventListener("close",function(){ nbSweep(win,null,true); },true);
+    if(!nbQuitObs){ nbQuitObs=true;
+      var all=function(){ try{ var e=Services.wm.getEnumerator("navigator:browser"); while(e.hasMoreElements()){ var w=e.getNext(); if(w.__golemNbInit) nbSweep(w,null,true); } }catch(e2){} };
+      try{ Services.obs.addObserver({observe:all},"quit-application-requested"); Services.obs.addObserver({observe:all},"quit-application-granted"); }catch(e){}
+    }
+  }
+
   function ttInit(win){
     try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
       var orig=gb.getWindowTitleForBrowser;
@@ -2543,6 +2591,7 @@ try {
       try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
       try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
       try{ nsInit(w); }catch(e){ OVLOG("newtab suggest init:"+e); }
+      try{ nbInit(w); }catch(e){ OVLOG("one new tab init:"+e); }
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
     },1100); }catch(e){}
