@@ -1466,11 +1466,41 @@ try {
       u.view.autoOpen({ event:new win.CustomEvent("command"), suppressFocusBorder:false });
     }catch(e){ OVLOG("newtab suggest:"+e); }
   }
+  // The list is CURRENT (Max, same day: "i enter cuantarazon.com, open a new tab and its not
+  // on the suggestions"). Two lazy steps stood between a visit and the list: Firefox ranks
+  // a page's visits in a background task that runs every two minutes, and the list itself
+  // is re-read every five. Both are run here shortly after a page finishes loading (a few
+  // rows of the history database, off the main thread), so the next new tab already has it.
+  var nsTimer=null, nsBusy=false;
+  function nsRefresh(){
+    if(nsBusy) return null; nsBusy=true;
+    var done=function(){ nsBusy=false; };
+    try{
+      var rec=Components.classes["@mozilla.org/places/frecency-recalculator;1"].getService(Components.interfaces.nsIObserver).wrappedJSObject;
+      return rec.recalculateSomeFrecencies().then(function(){
+        var as=ChromeUtils.importESModule("resource:///modules/AboutNewTab.sys.mjs").AboutNewTab.activityStream;
+        var feed=as&&as.store&&as.store.feeds.get("feeds.system.topsites");
+        if(!feed) return null;
+        feed.frecentCache.expire();
+        return feed.refresh({broadcast:false});
+      }).then(done,function(e){ done(); OVLOG("newtab list refresh:"+e); });
+    }catch(e){ done(); OVLOG("newtab list refresh:"+e); return null; }
+  }
+  function nsRefreshSoon(){
+    if(nsTimer) return;
+    nsTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+    nsTimer.initWithCallback({ notify:function(){ nsTimer=null; nsRefresh(); } },1500,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+  }
   function nsInit(win){
     if(win.__golemNsInit) return; win.__golemNsInit=true;
     var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.newTabSuggest",true); }catch(e){}
     if(!on) return;
     var tc=win.gBrowser.tabContainer;
+    try{ var WPL=Components.interfaces.nsIWebProgressListener;
+      win.gBrowser.addTabsProgressListener({ onStateChange:function(b,wp,req,fl){
+        try{ if(wp.isTopLevel && (fl&WPL.STATE_STOP) && (fl&WPL.STATE_IS_NETWORK) && /^https?:/i.test(b.currentURI.spec) && !b.browsingContext.usePrivateBrowsing) nsRefreshSoon(); }catch(e){}
+      }});
+    }catch(e){ OVLOG("newtab list watch:"+e); }
     tc.addEventListener("TabOpen",function(ev){ try{ ev.target.__golemNew=Date.now(); }catch(e){} });
     tc.addEventListener("TabSelect",function(ev){
       var tab=ev.target; if(!tab.__golemNew || Date.now()-tab.__golemNew>3000) return; tab.__golemNew=0;
