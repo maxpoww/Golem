@@ -409,6 +409,16 @@ in
     user_pref("browser.newtabpage.activity-stream.showWeather", false);
     user_pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", false);
     user_pref("browser.startup.homepage.abouthome_cache.enabled", false);
+    // That list is YOUR most used sites and nothing else (Max, 2026-10-04: "it shows
+    // weird things, i want it to show most used websites" — a new tab listed YouTube,
+    // Wikipedia, Reddit and "Add-ons for Firefox" on a machine that never visited
+    // them, then "Recent Searches"). Firefox pads the list with its own default
+    // sites (fetched from Mozilla, or a built-in per-country set) and with search-
+    // engine shortcuts: none of them. No recent-searches block under it either.
+    user_pref("browser.topsites.useRemoteSetting", false);
+    user_pref("browser.newtabpage.activity-stream.default.sites", "");
+    user_pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
+    user_pref("browser.urlbar.suggest.recentsearches", false);
 
     // --- Address bar: history, bookmarks, open tabs, search suggestions. Nothing else. ---
     user_pref("browser.urlbar.quicksuggest.enabled", false);
