@@ -1481,6 +1481,16 @@ try {
         var as=ChromeUtils.importESModule("resource:///modules/AboutNewTab.sys.mjs").AboutNewTab.activityStream;
         var feed=as&&as.store&&as.store.feeds.get("feeds.system.topsites");
         if(!feed) return null;
+        // EVERY site you visited is eligible, not only "used enough" ones (Max, same day:
+        // "i opened msn.com, open a new tab and it is not on the suggestions" — one visit by
+        // a link ranks under Firefox's bar of five visits a month ago). The list is still
+        // ordered most used first, one entry per site, search-result pages left out (all
+        // Firefox's own). If this hook ever stops matching, Firefox's bar simply applies.
+        if(!feed.__golemAll && feed.frecentCache && typeof feed.frecentCache.request==="function"){
+          var req=feed.frecentCache.request.bind(feed.frecentCache);
+          feed.frecentCache.request=function(o){ return req(Object.assign({},o||{},{topsiteFrecency:1})); };
+          feed.__golemAll=true;
+        }
         feed.frecentCache.expire();
         return feed.refresh({broadcast:false});
       }).then(done,function(e){ done(); OVLOG("newtab list refresh:"+e); });
@@ -1496,6 +1506,7 @@ try {
     var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.newTabSuggest",true); }catch(e){}
     if(!on) return;
     var tc=win.gBrowser.tabContainer;
+    nsRefreshSoon(); win.setTimeout(nsRefreshSoon,8000);   // the list as Seam wants it before the first new tab (twice: Firefox builds its own a few seconds in)
     try{ var WPL=Components.interfaces.nsIWebProgressListener;
       win.gBrowser.addTabsProgressListener({ onStateChange:function(b,wp,req,fl){
         try{ if(wp.isTopLevel && (fl&WPL.STATE_STOP) && (fl&WPL.STATE_IS_NETWORK) && /^https?:/i.test(b.currentURI.spec) && !b.browsingContext.usePrivateBrowsing) nsRefreshSoon(); }catch(e){}
