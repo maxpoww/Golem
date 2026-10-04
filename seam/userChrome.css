@@ -134,6 +134,13 @@
   border-color: transparent !important;
   outline: none !important;
 }
+/* ...and the suggestions box under it casts NO shadow (Max, same day: "it is awful").
+   Firefox draws the open box in two halves (the field's background and the list's),
+   each with a 14px blurred shadow. */
+*|*.urlbar-background,
+*|*.urlbarView-background {
+  box-shadow: none !important;
+}
 
 /* ===================== TOP BAR COLOUR =====================
    Match the sidebar's rgb(41,45,54) (a cold, blueish dark). The top bar's
