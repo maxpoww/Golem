@@ -88,6 +88,12 @@ try {
     st.textContent="button-group.actions-list{display:flex !important;justify-content:space-evenly !important;align-items:center !important;width:100% !important;box-sizing:border-box !important;padding:0 6px !important;}.buttons-wrapper{width:100% !important;}#golem-save,#golem-downloads,#golem-private,#golem-newwin,#golem-bookmarks,#golem-history{"+
       "--button-background-color:transparent;--button-background-color-hover:transparent;--button-background-color-active:transparent;"+
       "--button-border-color:transparent;--button-border-color-hover:transparent;--button-border-color-active:transparent;"+
+      // Firefox 157 gives ghost buttons their OWN border/background tokens, resolved at the
+      // root from the plain ones: overriding the plain ones here no longer reached them, and
+      // each icon wore an accent-coloured ring (MacBook, 2026-10-04). No border at all, and
+      // the ghost tokens cleared too.
+      "--button-border:none;--button-border-color-ghost:transparent;--button-border-color-ghost-hover:transparent;--button-border-color-ghost-active:transparent;--button-border-color-ghost-selected:transparent;--button-border-color-ghost-disabled:transparent;"+
+      "--button-background-color-ghost:transparent;--button-background-color-ghost-hover:transparent;--button-background-color-ghost-active:transparent;--button-background-color-ghost-selected:transparent;"+
       "--button-box-shadow:none;--button-outer-padding-inline:2px;--button-outer-padding-block:2px;"+
       "--button-size-icon:20px;--button-min-height:28px;box-shadow:none;vertical-align:middle;}";
     root.appendChild(st);

@@ -126,6 +126,15 @@
   --chrome-content-separator-color: transparent !important;
 }
 
+/* The address field has NO border and no focus ring (Max, 2026-10-04: "borders around
+   the buttons and the search… we dont need them"). The field's own slightly lighter
+   fill and the caret say where you are typing. */
+*|*.urlbar-background,
+*|*.urlbar-input-container {
+  border-color: transparent !important;
+  outline: none !important;
+}
+
 /* ===================== TOP BAR COLOUR =====================
    Match the sidebar's rgb(41,45,54) (a cold, blueish dark). The top bar's
    visible background is painted by a NATIVE-appearance element under the
