@@ -1637,8 +1637,12 @@ try {
   //    3%) wherever in the column the pointer is;
   //  · the button acts on the PRESS, not the release (doButtonPress);
   //  · RED shares the window's corner: in the first 20px only the disc itself (one px
-  //    generous) is the button — a near miss in the corner does not close the window
-  //    (there it resizes; here it does nothing). golemBarZone.
+  //    generous) is the button — a near miss in the corner does not close the window: it
+  //    RESIZES it, as on every other float. That grip (and the right corner's) is the
+  //    title-bar plugin's doing even for bare Seam (waveview v1.88, golemBareZone): the
+  //    compositor takes those presses before Seam sees them. KEEP IN STEP: the plugin
+  //    knows the red disc's centre as 14,15 from the surface — move the lights here and
+  //    its constants (GOLEM_BARE_DISC_CX/CY) move with them.
   function tlHit(win,kind,ev,disc){
     if(kind!=="close") return true;
     try{ var r=disc.getBoundingClientRect(); if(ev.clientX>=19) return true;   // 20 from the outer corner = 19 from Seam's surface (1px border)
