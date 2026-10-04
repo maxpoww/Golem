@@ -72,10 +72,22 @@
 #sidebar-container:hover {
   transform: translateX(0) !important;
   opacity: 1 !important;   /* fade the whole sidebar in when opened */
+  /* Hover INTENT (Max, 2026-10-04: "if i pass over the edge, it does not reveal the
+     tabs"): the reveal waits 220ms; a pointer that only crosses the edge has left by
+     then and nothing moves. Closing has no delay (the base rule). One number to tune. */
+  transition-delay: 220ms !important;
   /* Colour comes from the base rule (adaptive --lwt-sidebar-background-color /
      --lwt-accent-color). No drop-shadow: a blurred one bleeds up over the top
      edge as a dark band; the sliding panel already reads as "on top". */
 }
+
+/* CLOSED = its contents are not rendered at all (2026-10-04). opacity:0 only makes the
+   sidebar invisible: its tab rows were still styled and animated (loading spinners) off
+   screen. The container itself stays hit-testable, so the catch strip still opens it;
+   on close the contents stay until the 180ms slide-out has finished. Measured on the
+   MacBook Air with two loading tabs: ~0.1 s of CPU per 10 s — small. */
+#sidebar-container > *|* { visibility: hidden !important; transition: visibility 0s linear 180ms !important; }
+#sidebar-container:hover > *|* { visibility: visible !important; transition-delay: 220ms !important; }   /* with the reveal */
 
 /* When the window is UNFOCUSED, Hyprland dims it 30% (dim_strength 0.3), but
    #sidebar-container is a CSS-transform layer that escapes that window-level
@@ -97,6 +109,18 @@
    uniform with its neighbours — line gone. (Also drop FF156's content-elevation
    shadow so nothing else marks the boundary.) */
 .browserContainer { box-shadow: none !important; }
+/* NO line between the bar and the page, and the page's top is straight (Max, 2026-10-04,
+   MacBook, a white page: first "rounded on one end and straight on the other", then "get
+   rid of the line"). Firefox 157 draws it as the page container's own top border — and,
+   on the side where the sidebar is, runs it down that side around a rounded corner (the
+   sidebar is "shown" to Firefox even while ours is slid away). The transparent separator
+   colour above did not reach it on a light page; removing the borders does not depend on
+   a colour. */
+*|*.browserContainer {
+  border: none !important;
+  border-start-start-radius: 0 !important;
+  border-start-end-radius: 0 !important;
+}
 #main-window, #navigator-toolbox, #nav-bar,
 #browser, #tabbrowser-tabbox, #tabbrowser-tabpanels {
   --chrome-content-separator-color: transparent !important;
