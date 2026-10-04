@@ -142,6 +142,25 @@
   box-shadow: none !important;
 }
 
+/* ===================== THE BAR IS ONE ROW WITH THE TRAFFIC LIGHTS =====================
+   (Max, 2026-10-04: "the whole bar to feel aligned but also the traffic buttons to feel
+   as equal as on the other windows as possible".) The lights sit where every Golem
+   window has them (golem-chrome.js: 2px lower than the title bar's, centre 15px from the
+   top); Firefox's bar was 40px tall with its buttons and the address field centred at
+   20, 7px under them. The bar is now 32px: the field 30 (was 32) with 1px above and
+   below (was 4), the buttons' hover boxes 28 (was 32) — everything centred at 16, one
+   pixel from the lights, and no band of air under the buttons. Measured on the MacBook
+   Air (bench/lab/look.sh). Applies tiled too: the same compact bar without the lights.
+   ⚠ The window's root is an HTML element: with this file's XUL default namespace a
+   plain `#main-window` or `:root` selector never matches it — it has to be *|*:root. */
+*|*:root {
+  --urlbar-height: 30px !important;
+  --urlbar-padding-block: 1px !important;
+}
+*|*:root, *|*#navigator-toolbox, *|*#nav-bar {
+  --toolbarbutton-padding-inner: 6px !important;
+}
+
 /* ===================== TOP BAR COLOUR =====================
    Match the sidebar's rgb(41,45,54) (a cold, blueish dark). The top bar's
    visible background is painted by a NATIVE-appearance element under the

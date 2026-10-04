@@ -1589,6 +1589,9 @@ try {
   // bar's own (waveview hyprbars/golemBar.hpp): discs of 16, 7 apart, the first 7 from the
   // left; centred in the bar's 25 plus the 3 of border under it = 6 from the top. Those are
   // from the window's OUTER corner; Seam's own border is 1, so 6 and 5 from its surface.
+  // ...and 2 lower than that (7 from the surface): Seam's lights share their row with the
+  // toolbar, and 2px is what lets the two line up (userChrome.css brings the bar's centre
+  // up to 16; the lights' is 15) while staying as good as identical to other windows'.
   // Glyphs as there: the disc's colour 16% darker (a x, a dash, a square outline, 60% of
   // the disc); hover lifts the disc 44% toward white and nothing grows. Keep in step with
   // the plugin if its numbers move.
@@ -1628,7 +1631,7 @@ try {
     if(win.__golemTraffic) return win.__golemTraffic;
     var d=win.document, nb=d.getElementById("nav-bar"); if(!nb) return null;
     var box=d.createElementNS(OV_HTML,"div"); box.id="golem-traffic";
-    box.style.cssText="display:none;align-items:center;gap:7px;height:16px;margin:5px 9px 0 6px;flex:0 0 auto;align-self:flex-start;";
+    box.style.cssText="display:none;align-items:center;gap:7px;height:16px;margin:7px 9px 0 6px;flex:0 0 auto;align-self:flex-start;";
     var st=d.createElementNS(OV_HTML,"style");
     st.textContent="#golem-traffic>div{width:16px;height:16px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}"+
       TL_SET.map(function(t){ return "#golem-traffic>div[data-golem-tl="+t[0]+"]{background:"+t[1]+";color:"+t[2]+";}#golem-traffic>div[data-golem-tl="+t[0]+"]:hover{background:"+t[3]+";}"; }).join("")+
