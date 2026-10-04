@@ -1627,25 +1627,54 @@ try {
     }catch(e){ OVLOG("traffic act:"+e); }
     win.setTimeout(function(){ tlSync(win); },600); win.setTimeout(function(){ tlSync(win); },1800);
   }
+  // THE SAME HANDLING AS THE TITLE BAR'S (Max, same day: "on other windows the buttons are
+  // easier to aim, and the pointer switches to index… study the buttons as they are on the
+  // title bars, and make the buttons on SEAM the same"). From waveview golemBar.hpp/.cpp:
+  //  · each button owns a full-height COLUMN of the bar — its disc plus half the gap on
+  //    either side, the first one starting at the window's very edge — so the pointer never
+  //    falls between two discs (golemButtonColumn);
+  //  · the hand is the INDEX finger over a column, and the column's disc lifts (and grows
+  //    3%) wherever in the column the pointer is;
+  //  · the button acts on the PRESS, not the release (doButtonPress);
+  //  · RED shares the window's corner: in the first 20px only the disc itself (one px
+  //    generous) is the button — a near miss in the corner does not close the window
+  //    (there it resizes; here it does nothing). golemBarZone.
+  function tlHit(win,kind,ev,disc){
+    if(kind!=="close") return true;
+    try{ var r=disc.getBoundingClientRect(); if(ev.clientX>=19) return true;   // 20 from the outer corner = 19 from Seam's surface (1px border)
+      var dx=ev.clientX-(r.left+r.width/2), dy=ev.clientY-(r.top+r.height/2), rad=r.width/2+1; return dx*dx+dy*dy<=rad*rad; }catch(e){ return true; }
+  }
   function tlBuild(win){
     if(win.__golemTraffic) return win.__golemTraffic;
     var d=win.document, nb=d.getElementById("nav-bar"); if(!nb) return null;
     var box=d.createElementNS(OV_HTML,"div"); box.id="golem-traffic";
-    box.style.cssText="display:none;align-items:center;gap:7px;height:16px;margin:7px 9px 0 6px;flex:0 0 auto;align-self:flex-start;";
+    box.style.cssText="display:none;align-items:stretch;margin:0 5.5px 0 0;flex:0 0 auto;align-self:stretch;";
     var st=d.createElementNS(OV_HTML,"style");
-    st.textContent="#golem-traffic>div{width:16px;height:16px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}"+
-      TL_SET.map(function(t){ return "#golem-traffic>div[data-golem-tl="+t[0]+"]{background:"+t[1]+";color:"+t[2]+";}#golem-traffic>div[data-golem-tl="+t[0]+"]:hover{background:"+t[3]+";}"; }).join("")+
-      "#golem-traffic>div>span{display:block;box-sizing:border-box;pointer-events:none;}"+
-      "#golem-traffic>div[data-golem-tl=close]>span{font:16px/16px sans-serif;height:16px;margin-top:-1px;}"+
-      "#golem-traffic>div[data-golem-tl=min]>span{width:10px;height:2px;background:currentColor;}"+
-      "#golem-traffic>div[data-golem-tl=tile]>span{width:10px;height:10px;border:1px solid currentColor;border-radius:1.5px;}";
+    st.textContent="#golem-traffic>div{flex:0 0 auto;box-sizing:border-box;width:23px;padding:7px 0 0 3.5px;}"+
+      "#golem-traffic>div:first-of-type{width:25.5px;padding-left:6px;}"+
+      "#golem-traffic>div[data-on]{cursor:pointer;}"+
+      "#golem-traffic>div>i{display:flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;box-sizing:border-box;pointer-events:none;}"+
+      "#golem-traffic>div[data-on]>i{transform:scale(1.03);}"+
+      TL_SET.map(function(t){ return "#golem-traffic>div[data-golem-tl="+t[0]+"]>i{background:"+t[1]+";color:"+t[2]+";}#golem-traffic>div[data-golem-tl="+t[0]+"][data-on]>i{background:"+t[3]+";}"; }).join("")+
+      "#golem-traffic>div>i>span{display:block;box-sizing:border-box;}"+
+      "#golem-traffic>div[data-golem-tl=close]>i>span{font:normal 16px/16px sans-serif;height:16px;margin-top:-1px;}"+
+      "#golem-traffic>div[data-golem-tl=min]>i>span{width:10px;height:2px;background:currentColor;}"+
+      "#golem-traffic>div[data-golem-tl=tile]>i>span{width:10px;height:10px;border:1px solid currentColor;border-radius:1.5px;}";
     box.appendChild(st);
     TL_SET.forEach(function(t){
-      var b=d.createElementNS(OV_HTML,"div"); b.setAttribute("data-golem-tl",t[0]);
-      var g=d.createElementNS(OV_HTML,"span"); if(t[0]==="close") g.textContent=String.fromCharCode(215); b.appendChild(g);
-      b.addEventListener("mousedown",function(ev){ ev.stopPropagation(); });   // never a window drag
-      b.addEventListener("click",function(ev){ ev.stopPropagation(); ev.preventDefault(); tlAct(win,t[0]); });
-      box.appendChild(b);
+      var col=d.createElementNS(OV_HTML,"div"); col.setAttribute("data-golem-tl",t[0]);
+      var disc=d.createElementNS(OV_HTML,"i"), g=d.createElementNS(OV_HTML,"span");
+      if(t[0]==="close") g.textContent=String.fromCharCode(215);
+      disc.appendChild(g); col.appendChild(disc);
+      var on=function(ev){ if(tlHit(win,t[0],ev,disc)) col.setAttribute("data-on","1"); else col.removeAttribute("data-on"); };
+      col.addEventListener("mouseenter",on); col.addEventListener("mousemove",on);
+      col.addEventListener("mouseleave",function(){ col.removeAttribute("data-on"); });
+      col.addEventListener("mousedown",function(ev){
+        ev.stopPropagation(); ev.preventDefault();   // never a window drag, never a focus change in the bar
+        if(ev.button===0 && tlHit(win,t[0],ev,disc)) tlAct(win,t[0]);
+      });
+      col.addEventListener("click",function(ev){ ev.stopPropagation(); ev.preventDefault(); });
+      box.appendChild(col);
     });
     win.__golemTraffic=box;
     return box;
