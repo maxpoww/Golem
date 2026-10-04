@@ -1448,6 +1448,36 @@ try {
   // (normal, private) says Seam. The app menu / about pages still say Firefox — that
   // text lives in the packed locale, out of a config script's reach.
   // =================================================================
+  // =================================================================
+  // NEW TAB: THE SUGGESTIONS ARE ALREADY OPEN (Max, 2026-10-04: "make the suggestion box
+  // be open by default on a new tab"). Firefox opens the address bar's list (your most
+  // visited pages) only when you CLICK the empty field; a new tab focuses the field
+  // without it. Here: a tab that was just opened, is blank and has the empty field
+  // focused gets the same list Firefox shows on that click (its own autoOpen path).
+  // Nothing to show (a new profile) = nothing opens. Kill switch: golem.seam.newTabSuggest.
+  // =================================================================
+  function nsOpen(win,tab){
+    try{
+      if(win.gBrowser.selectedTab!==tab || ovIsOpen(win)) return;
+      var u=win.gURLBar; if(!u || u.value || u.view.isOpen) return;
+      var spec=""; try{ spec=tab.linkedBrowser.currentURI.spec; }catch(e){}
+      if(!win.isBlankPageURL(spec)) return;
+      if(!u.focused) u.focus();
+      u.view.autoOpen({ event:new win.CustomEvent("command"), suppressFocusBorder:false });
+    }catch(e){ OVLOG("newtab suggest:"+e); }
+  }
+  function nsInit(win){
+    if(win.__golemNsInit) return; win.__golemNsInit=true;
+    var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.newTabSuggest",true); }catch(e){}
+    if(!on) return;
+    var tc=win.gBrowser.tabContainer;
+    tc.addEventListener("TabOpen",function(ev){ try{ ev.target.__golemNew=Date.now(); }catch(e){} });
+    tc.addEventListener("TabSelect",function(ev){
+      var tab=ev.target; if(!tab.__golemNew || Date.now()-tab.__golemNew>3000) return; tab.__golemNew=0;
+      win.setTimeout(function(){ nsOpen(win,tab); },180);   // after Firefox has focused the field
+    });
+  }
+
   function ttInit(win){
     try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
       var orig=gb.getWindowTitleForBrowser;
@@ -2471,6 +2501,7 @@ try {
       try{ csInit(w); }catch(e){ OVLOG("cpushare init:"+e); }
       try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
       try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
+      try{ nsInit(w); }catch(e){ OVLOG("newtab suggest init:"+e); }
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
     },1100); }catch(e){}
