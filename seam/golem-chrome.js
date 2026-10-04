@@ -2591,7 +2591,7 @@ try {
       try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
       try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
       try{ nsInit(w); }catch(e){ OVLOG("newtab suggest init:"+e); }
-      try{ nbInit(w); }catch(e){ OVLOG("one new tab init:"+e); }
+      if(!OV_SELFTEST){ try{ nbInit(w); }catch(e){ OVLOG("one new tab init:"+e); } }   // the selftest's own fixtures are empty tabs
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);
       else ovHealthCheck(w);   // once, after the hooks are placed; no polling
     },1100); }catch(e){}
