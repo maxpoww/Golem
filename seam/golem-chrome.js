@@ -1583,7 +1583,17 @@ try {
   // the first test on the MacBook. The 2026-09-17 version polled it every 600ms; cut.)
   // Kill switch: golem.seam.trafficLights.
   // =================================================================
-  var TL_SET=[["close","#FF2E2E"],["min","#FF9500"],["tile","#21D758"]];
+  // THE SAME LIGHTS AS EVERY OTHER WINDOW (Max, same day: "same size as the others… same
+  // position (using the left top corner as relative) so all the traffic lights look the
+  // same across all windows", and no magnification on hover). The numbers are the title
+  // bar's own (waveview hyprbars/golemBar.hpp): discs of 16, 7 apart, the first 7 from the
+  // left; centred in the bar's 25 plus the 3 of border under it = 6 from the top. Those are
+  // from the window's OUTER corner; Seam's own border is 1, so 6 and 5 from its surface.
+  // Glyphs as there: the disc's colour 16% darker (a x, a dash, a square outline, 60% of
+  // the disc); hover lifts the disc 44% toward white and nothing grows. Keep in step with
+  // the plugin if its numbers move.
+  // [kind, disc, glyph ink, hover disc]
+  var TL_SET=[["close","#FF2E2E","#D62727","rgb(255,138,138)"],["min","#FF9500","#D67D00","rgb(255,196,112)"],["tile","#21D758","#1CB54A","rgb(131,233,161)"]];
   async function tlRun(name,args){
     var S=ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs").Subprocess;
     var cands=[]; if(name==="hyprctl"){ try{ var e=Services.env.get("GOLEM_HYPRCTL"); if(e) cands.push(e); }catch(e2){} }
@@ -1612,20 +1622,24 @@ try {
       else if(kind==="min"){ tlRun("hyprctl",["dispatch","hl.plugin.waveview.minimize(\"\")"]); }   // empty = the focused window: the one just clicked
       else if(kind==="tile"){ tlRun("waverunner-ctl",["window-mode","tiled"]).then(function(o){ if(o===null) tlRun("hyprctl",["dispatch","hl.dsp.window.float({ action = \"toggle\" })"]); }); }
     }catch(e){ OVLOG("traffic act:"+e); }
-    win.setTimeout(function(){ tlSync(win); },600);
+    win.setTimeout(function(){ tlSync(win); },600); win.setTimeout(function(){ tlSync(win); },1800);
   }
   function tlBuild(win){
     if(win.__golemTraffic) return win.__golemTraffic;
     var d=win.document, nb=d.getElementById("nav-bar"); if(!nb) return null;
     var box=d.createElementNS(OV_HTML,"div"); box.id="golem-traffic";
-    box.style.cssText="display:none;align-items:center;gap:7px;padding:0 4px 0 10px;flex:0 0 auto;align-self:center;";
+    box.style.cssText="display:none;align-items:center;gap:7px;height:16px;margin:5px 9px 0 6px;flex:0 0 auto;align-self:flex-start;";
     var st=d.createElementNS(OV_HTML,"style");
-    st.textContent="#golem-traffic>div{width:14px;height:14px;border-radius:50%;flex:0 0 auto;transition:transform 90ms ease,filter 90ms ease;}"+
-      "#golem-traffic>div:hover{transform:scale(1.14);filter:brightness(1.15);}"+
-      "#golem-traffic:-moz-window-inactive>div{background:#5b5b5f !important;}";
+    st.textContent="#golem-traffic>div{width:16px;height:16px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;box-sizing:border-box;}"+
+      TL_SET.map(function(t){ return "#golem-traffic>div[data-golem-tl="+t[0]+"]{background:"+t[1]+";color:"+t[2]+";}#golem-traffic>div[data-golem-tl="+t[0]+"]:hover{background:"+t[3]+";}"; }).join("")+
+      "#golem-traffic>div>span{display:block;box-sizing:border-box;pointer-events:none;}"+
+      "#golem-traffic>div[data-golem-tl=close]>span{font:16px/16px sans-serif;height:16px;margin-top:-1px;}"+
+      "#golem-traffic>div[data-golem-tl=min]>span{width:10px;height:2px;background:currentColor;}"+
+      "#golem-traffic>div[data-golem-tl=tile]>span{width:10px;height:10px;border:1px solid currentColor;border-radius:1.5px;}";
     box.appendChild(st);
     TL_SET.forEach(function(t){
-      var b=d.createElementNS(OV_HTML,"div"); b.setAttribute("data-golem-tl",t[0]); b.style.background=t[1];
+      var b=d.createElementNS(OV_HTML,"div"); b.setAttribute("data-golem-tl",t[0]);
+      var g=d.createElementNS(OV_HTML,"span"); if(t[0]==="close") g.textContent=String.fromCharCode(215); b.appendChild(g);
       b.addEventListener("mousedown",function(ev){ ev.stopPropagation(); });   // never a window drag
       b.addEventListener("click",function(ev){ ev.stopPropagation(); ev.preventDefault(); tlAct(win,t[0]); });
       box.appendChild(b);
@@ -1646,7 +1660,7 @@ try {
     if(win.__golemTlInit) return; win.__golemTlInit=true;
     var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.trafficLights",true); }catch(e){}
     if(!on) return;
-    var t=null, soon=function(){ if(t) win.clearTimeout(t); t=win.setTimeout(function(){ t=null; tlSync(win); },250); };
+    var t=null, soon=function(){ if(t) win.clearTimeout(t); t=win.setTimeout(function(){ t=null; tlSync(win); win.setTimeout(function(){ tlSync(win); },1200); },250); };   // twice: the daemon tiles in steps, the first answer can be the old one (seen on the MacBook)
     win.addEventListener("resize",soon); win.addEventListener("activate",soon); win.addEventListener("sizemodechange",soon);
     tlSync(win); win.setTimeout(function(){ tlSync(win); },1500);
   }

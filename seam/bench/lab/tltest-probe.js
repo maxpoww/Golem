@@ -7,7 +7,7 @@ try { (function(){
   function mark(n,o){ var f=file("out-"+n+".json"); var os=Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream); os.init(f,0x02|0x08|0x20,420,0); var s=JSON.stringify(o); os.write(s,s.length); os.close(); }
   function state(w){ var d=w.document, box=d.getElementById("golem-traffic"), bk=d.getElementById("back-button"); var o={lights:!!box};
     if(box){ var r=box.getBoundingClientRect(), b=bk?bk.getBoundingClientRect():null; o.display=box.style.display; o.x=Math.round(r.left); o.w=Math.round(r.width); o.backX=b?Math.round(b.left):null; o.first=(d.getElementById("nav-bar").firstChild===box);
-      o.colors=Array.prototype.map.call(box.querySelectorAll("div"),function(n){ return w.getComputedStyle(n).backgroundColor+" "+Math.round(n.getBoundingClientRect().width); }); }
+      o.discs=Array.prototype.map.call(box.querySelectorAll("div"),function(n){ var q=n.getBoundingClientRect(); return [Math.round(q.left*10)/10,Math.round(q.top*10)/10,Math.round(q.width*10)/10,w.getComputedStyle(n).backgroundColor].join(" "); }); o.backTop=b?Math.round(b.top):null; }
     o.active=(Services.focus.activeWindow===w); return o; }
   function click(w,k){ var n=w.document.querySelector('#golem-traffic [data-golem-tl="'+k+'"]'); if(!n) throw new Error("no light "+k); n.click(); }
   function waitFor(n,fn){ var tries=0; (function p(){ if(file(n).exists()) fn(); else if(++tries<80) later(500,p); else mark("TIMEOUT-"+n,{}); })(); }
