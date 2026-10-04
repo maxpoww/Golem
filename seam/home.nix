@@ -419,6 +419,12 @@ in
     user_pref("browser.newtabpage.activity-stream.default.sites", "");
     user_pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
     user_pref("browser.urlbar.suggest.recentsearches", false);
+    // The list is the TEN most used sites (Max, 2026-10-04: "max of 10… only the 10 more
+    // visited"). Firefox shows min(maxRichResults, 8 per new-tab "row"): one row = 8, so
+    // two rows are asked for and the address bar's own limit of 10 does the cut. Order =
+    // Firefox's ranking of your visits (how often, weighted by how recently).
+    user_pref("browser.newtabpage.activity-stream.topSitesRows", 2);
+    user_pref("browser.urlbar.maxRichResults", 10);
     // A suggestion always OPENS THE SITE in the tab you are on (Max, 2026-10-04: "i dont
     // want switch to tab"): a site that is already open in another tab is offered like
     // any other, not as a jump to that tab.
