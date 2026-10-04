@@ -419,6 +419,10 @@ in
     user_pref("browser.newtabpage.activity-stream.default.sites", "");
     user_pref("browser.newtabpage.activity-stream.improvesearch.topSiteSearchShortcuts", false);
     user_pref("browser.urlbar.suggest.recentsearches", false);
+    // A suggestion always OPENS THE SITE in the tab you are on (Max, 2026-10-04: "i dont
+    // want switch to tab"): a site that is already open in another tab is offered like
+    // any other, not as a jump to that tab.
+    user_pref("browser.urlbar.suggest.openpage", false);
 
     // --- Address bar: history, bookmarks, open tabs, search suggestions. Nothing else. ---
     user_pref("browser.urlbar.quicksuggest.enabled", false);
