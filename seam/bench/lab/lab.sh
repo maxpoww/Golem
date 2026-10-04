@@ -7,9 +7,13 @@
 # CPU, and the load time of each URL; this script adds PSS and CPU from /proc.
 #
 #   on the laptop:  ~/.cache/seam-lab/{lab.sh,probe.js,in/<variant>/...}
-#   lab.sh <variant> [fresh|keep]     env: URLS="…" MS=40000 CLEAN_SESSION=1
+#   lab.sh <variant> [fresh|keep]     env: URLS="…" MS=40000 CLEAN_SESSION=1 EXTRA_ENV=… QUIT_WAIT=…
 #   in/<variant>/: golem-chrome.js (optional), policies.json (optional), user.js,
 #                  userChrome.css, userContent.css
+#
+# PROFILE the browser process's main thread (then: python3 prof.py profile.json):
+#   EXTRA_ENV="export MOZ_PROFILER_STARTUP=1 MOZ_PROFILER_STARTUP_FEATURES=js,cpu MOZ_PROFILER_STARTUP_FILTERS=GeckoMain
+#     MOZ_PROFILER_STARTUP_INTERVAL=2 MOZ_PROFILER_STARTUP_ENTRIES=6000000 SEAM_PROBE_PROFILE=<file>"
 #
 # TRAPS (each cost a round): a variant still showing the Terms-of-Use modal renders its
 # pages BEHIND it and looks ~20% cheaper; uBlock builds its fast-start snapshot only by
@@ -29,7 +33,8 @@ first=$(grep -n -m1 'GOLEM chrome script' "$L/mozilla.cfg" | cut -d: -f1)
 head -n $((first-2)) "$L/mozilla.cfg" > "$F/mozilla.cfg"
 [ -f "$IN/golem-chrome.js" ] && cat "$IN/golem-chrome.js" >> "$F/mozilla.cfg"
 cat "$LAB/probe.js" >> "$F/mozilla.cfg"
-[ -f "$IN/policies.json" ] && cp "$IN/policies.json" "$F/distribution/policies.json"
+# no policies.json in the variant = the INSTALLED policies (for none at all, give it {"policies":{}})
+if [ -f "$IN/policies.json" ]; then cp "$IN/policies.json" "$F/distribution/policies.json"; else cp -L "$L/distribution/policies.json" "$F/distribution/policies.json"; fi
 sed "s|^exec -a .*|exec \"$F/firefox\" \"\$@\"|" "$W" > "$F/launch"; chmod +x "$F/launch"
 if [ "$MODE" = fresh ]; then rm -rf "$P"; mkdir -p "$P/chrome"; fi
 cp "$IN/user.js" "$P/user.js" 2>/dev/null; cp "$IN"/userChrome.css "$IN"/userContent.css "$P/chrome/" 2>/dev/null
@@ -37,6 +42,7 @@ cp "$IN/user.js" "$P/user.js" 2>/dev/null; cp "$IN"/userChrome.css "$IN"/userCon
 rm -f "$O"
 cat > "$F/run.sh" <<EOS
 #!/bin/sh
+$EXTRA_ENV
 export SEAM_PROBE="$O" SEAM_PROBE_MS=$MS SEAM_PROBE_URLS="$URLS" SEAM_PROBE_PREFS="$PREFS" MOZ_LEGACY_PROFILES=1
 exec "$F/launch" --name seamlab --no-remote -profile "$P" > "$LAB/log-$V.txt" 2>&1
 EOS
@@ -54,6 +60,6 @@ c2=0; for p in $(pgrep -f "$F/"); do set -- $(cut -d')' -f2 /proc/$p/stat 2>/dev
 echo "PSS_MB=$((tot/1024)) PROCS=$np CPU_S=$((cpu/100)) IDLE_CPU_PCT=$(( (c2-c1)/10 ))"
 grim "$LAB/shot-$V-$MODE.png" 2>/dev/null
 PP=$(pgrep -o -f "$F/firefox"); for t in /proc/$PP/task/*; do set -- $(cut -d')' -f2 $t/stat 2>/dev/null); echo "$(( ${12:-0}+${13:-0} )) $(cat $t/comm 2>/dev/null)"; done | awk '{n=$1; $1=""; gsub(/[0-9#]+$/,"",$0); a[$0]+=n} END{for(k in a) if(a[k]>20) printf "%6.1fs %s\n", a[k]/100, k}' | sort -rn | head -12 > "$LAB/threads-$V-$MODE.txt"
-pkill -TERM -f "$F/firefox" ; n=0; while pgrep -f "$F/" >/dev/null && [ $n -lt 20 ]; do sleep 1; n=$((n+1)); done; pkill -KILL -f "$F/" 2>/dev/null
+pkill -TERM -f "$F/firefox" ; n=0; while pgrep -f "$F/" >/dev/null && [ $n -lt ${QUIT_WAIT:-20} ]; do sleep 1; n=$((n+1)); done; pkill -KILL -f "$F/" 2>/dev/null
 echo "PROFILE_MB=$(du -sm "$P" | cut -f1)"
 [ -f "$O" ] && jq -c '{t,nreq,kb,esm,startup:(.startup|{main,firstPaint,sessionRestored}),nhosts:(.hosts|length),loads:[.loads[]|{u:(.url|.[8:28]),ms,why}],wins:[.wins[]|{type,tabs:(.tabs|length?),dialog,sidebarBtn}],notes}' "$O"

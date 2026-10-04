@@ -214,8 +214,14 @@ CPU instead of 15–18; ~50 MB less with five sites open; a first launch that ne
 click. What it does NOT buy: page loads. Five real sites cost the same CPU and time in
 current Seam, lean Seam and stock Firefox with a warm cache (85–92 CPU-seconds, ~22 s) —
 the pages themselves are the cost, and the chrome script and the bar-colour extension
-measure as free. The browser process's main thread (17–19 s of that) is the next thing
-to profile.
+measure as free.
+
+**The browser process's main thread, profiled** (same run, Gecko profiler, 17.9 s of CPU):
+no single hog. The content blocker's request interception (WebRequest + extension
+messaging) ~15%; repainting Seam's own UI while pages load ~10%; the bar-colour theme
+updates ~3%; a startup tracking-protection list ~2.5%; telemetry start-up code ~1.6%;
+Seam's chrome script ~1%. The rest is Firefox's native networking and IPC. Nothing left
+there is worth a feature: the blocker's 15% buys back more in pages that never load ads.
 
 ## Webapps (2026-09-30): the dock's webapps run in Seam
 

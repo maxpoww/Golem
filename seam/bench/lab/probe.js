@@ -24,7 +24,9 @@ try { (function(){
         r.wins.push(o); } }catch(e){ r.winErr=""+e; }
     try{ var mr=Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager); r.mem={}; ["residentUnique","heapAllocated","JSMainRuntimeGCHeap","JSMainRuntimeRealmsSystem","JSMainRuntimeRealmsUser","imagesContentUsedUncompressed","storageSQLite"].forEach(function(k){ try{ r.mem[k]=Math.round(mr[k]/1048576); }catch(e){} }); }catch(e){}
     r.prefs={}; (Services.env.get("SEAM_PROBE_PREFS")||"").split(" ").forEach(function(n){ if(n) r.prefs[n]=pv(n); });
-    var done=function(){ write(r); if(Services.env.get("SEAM_PROBE_QUIT")=="1") later(500,function(){ Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit); }); };
+    var done0=function(){ write(r); if(Services.env.get("SEAM_PROBE_QUIT")=="1") later(500,function(){ Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit); }); };
+    var done=function(){ var pf=""; try{ pf=Services.env.get("SEAM_PROBE_PROFILE"); }catch(e){}
+      if(pf && Services.profiler && Services.profiler.IsActive()){ Services.profiler.dumpProfileToFileAsync(pf).then(function(){ r.profile="written"; done0(); },function(e){ r.profile="ERR "+e; done0(); }); } else done0(); };
     var pend=2, fin=function(){ if(--pend==0) done(); };
     var snap=function(pi){ var o={}; [{pid:pi.pid,type:"parent",memory:pi.memory,cpuTime:pi.cpuTime,windows:[]}].concat(pi.children).forEach(function(c){ o[c.pid]={type:c.type,mb:Math.round(c.memory/1048576),cpu:Math.round(c.cpuTime/1e6),origin:c.origin||"",docs:(c.windows||[]).map(function(w){ try{return w.documentURI.spec.slice(0,50);}catch(e){return "?";} })}; }); return o; };
     try{ ChromeUtils.requestProcInfo().then(function(pi){ var a=snap(pi); later(10000,function(){ ChromeUtils.requestProcInfo().then(function(pi2){ var b=snap(pi2); r.procs=Object.keys(b).map(function(k){ var x=b[k]; x.idle10=a[k]?x.cpu-a[k].cpu:-1; return x; }); fin(); },function(e){ r.procErr=""+e; fin(); }); }); },function(e){ r.procErr=""+e; fin(); }); }catch(e){ r.procErr=""+e; fin(); }
