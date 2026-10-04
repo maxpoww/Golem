@@ -1499,7 +1499,10 @@ try {
   function nsRefreshSoon(){
     if(nsTimer) return;
     nsTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
-    nsTimer.initWithCallback({ notify:function(){ nsTimer=null; nsRefresh(); } },1500,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+    // ...and then for an IDLE moment: 1.5 s after a load is exactly when a heavy page is
+    // still running its own scripts (measured on the dev box's real history: ~30 ms of
+    // database work per refresh, more on a slow machine). Never later than 10 s.
+    nsTimer.initWithCallback({ notify:function(){ nsTimer=null; try{ ChromeUtils.idleDispatch(function(){ nsRefresh(); },{timeout:10000}); }catch(e){ nsRefresh(); } } },1500,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
   }
   function nsInit(win){
     if(win.__golemNsInit) return; win.__golemNsInit=true;
@@ -1534,6 +1537,7 @@ try {
       if(!anyAge && Date.now()-(tab.__golemBorn||0)<1500) return false;
       var b=tab.linkedBrowser; if(!b) return false;
       try{ if(b.webProgress && b.webProgress.isLoadingDocument) return false; }catch(e){}
+      try{ if(b.userTypedValue) return false; }catch(e){}   // an address being typed is content: that tab is not empty
       return !!win.isBlankPageURL(b.currentURI.spec);
     }catch(e){ return false; }
   }
@@ -1597,14 +1601,20 @@ try {
   // the plugin if its numbers move.
   // [kind, disc, glyph ink, hover disc]
   var TL_SET=[["close","#FF2E2E","#D62727","rgb(255,138,138)"],["min","#FF9500","#D67D00","rgb(255,196,112)"],["tile","#21D758","#1CB54A","rgb(131,233,161)"]];
+  var tlBin={};   // name -> the path that worked (the PATH is searched once, not per call)
   async function tlRun(name,args){
     var S=ChromeUtils.importESModule("resource://gre/modules/Subprocess.sys.mjs").Subprocess;
-    var cands=[]; if(name==="hyprctl"){ try{ var e=Services.env.get("GOLEM_HYPRCTL"); if(e) cands.push(e); }catch(e2){} }
-    try{ var p=await S.pathSearch(name); if(p) cands.push(p); }catch(e3){}
-    cands.push("/run/current-system/sw/bin/"+name);
-    for(var i=0;i<cands.length;i++){
-      try{ var pr=await S.call({command:cands[i], arguments:args}); var out="", c; while((c=await pr.stdout.readString())) out+=c; await pr.wait(); return out; }catch(e4){}
+    var cands=[];
+    if(tlBin[name]) cands.push(tlBin[name]);
+    else{
+      if(name==="hyprctl"){ try{ var e=Services.env.get("GOLEM_HYPRCTL"); if(e) cands.push(e); }catch(e2){} }
+      try{ var p=await S.pathSearch(name); if(p) cands.push(p); }catch(e3){}
+      cands.push("/run/current-system/sw/bin/"+name);
     }
+    for(var i=0;i<cands.length;i++){
+      try{ var pr=await S.call({command:cands[i], arguments:args}); var out="", c; while((c=await pr.stdout.readString())) out+=c; await pr.wait(); tlBin[name]=cands[i]; return out; }catch(e4){}
+    }
+    delete tlBin[name];
     return null;
   }
   function tlPick(list,pid,title,w,h){
@@ -1683,21 +1693,37 @@ try {
     win.__golemTraffic=box;
     return box;
   }
-  function tlSync(win){
+  // Each check is a process (hyprctl) - spent only where it can matter. then(changed)
+  // tells the caller whether the answer changed what is shown.
+  function tlSync(win,then){
     try{
       var box=tlBuild(win); if(!box) return;
       var nb=win.document.getElementById("nav-bar");
       if(nb && (box.parentNode!==nb || nb.firstChild!==box)) nb.insertBefore(box,nb.firstChild);   // left of the back button
-      var seq=win.__golemTlSeq=(win.__golemTlSeq||0)+1;
-      tlFloating(win).then(function(f){ if(win.__golemTlSeq===seq && !win.closed) box.style.display=f?"flex":"none"; },function(e){ OVLOG("traffic float:"+e); });
+      var seq=win.__golemTlSeq=(win.__golemTlSeq||0)+1; win.__golemTlAt=Date.now();
+      tlFloating(win).then(function(f){
+        if(win.__golemTlSeq!==seq || win.closed) return;
+        var want=f?"flex":"none", changed=box.style.display!==want; box.style.display=want;
+        if(then) then(changed);
+      },function(e){ OVLOG("traffic float:"+e); });
     }catch(e){ OVLOG("traffic sync:"+e); }
   }
   function tlInit(win){
     if(win.__golemTlInit) return; win.__golemTlInit=true;
     var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.trafficLights",true); }catch(e){}
     if(!on) return;
-    var t=null, soon=function(){ if(t) win.clearTimeout(t); t=win.setTimeout(function(){ t=null; tlSync(win); win.setTimeout(function(){ tlSync(win); },1200); },250); };   // twice: the daemon tiles in steps, the first answer can be the old one (seen on the MacBook)
-    win.addEventListener("resize",soon); win.addEventListener("activate",soon); win.addEventListener("sizemodechange",soon);
+    // A RESIZE is what a float flip looks like from in here. Asked once it settles; asked
+    // a second time only if that answer changed nothing: the daemon tiles in steps and the
+    // first answer can still be the old one (seen on the MacBook). A resize that did flip
+    // the lights needs no second look.
+    var t=null, t2=null, resized=function(){
+      if(t) win.clearTimeout(t); if(t2){ win.clearTimeout(t2); t2=null; }
+      t=win.setTimeout(function(){ t=null; tlSync(win,function(changed){ if(!changed) t2=win.setTimeout(function(){ t2=null; tlSync(win); },1200); }); },250);
+    };
+    // FOCUS alone does not change the float state; it is only a cheap chance to catch a flip
+    // that came without a resize. Once, and not if the state was read in the last 3 s.
+    var focused=function(){ if(Date.now()-(win.__golemTlAt||0)>3000) tlSync(win); };
+    win.addEventListener("resize",resized); win.addEventListener("sizemodechange",resized); win.addEventListener("activate",focused);
     tlSync(win); win.setTimeout(function(){ tlSync(win); },1500);
   }
 

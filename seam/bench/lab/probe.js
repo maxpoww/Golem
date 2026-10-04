@@ -23,6 +23,7 @@ try { (function(){
           o.sidebarBtn=!!w.document.getElementById("sidebar-button"); o.navbar=Array.prototype.map.call(w.document.querySelectorAll("#nav-bar-customization-target > *"),function(n){return n.id;}); }
         r.wins.push(o); } }catch(e){ r.winErr=""+e; }
     try{ var mr=Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager); r.mem={}; ["residentUnique","heapAllocated","JSMainRuntimeGCHeap","JSMainRuntimeRealmsSystem","JSMainRuntimeRealmsUser","imagesContentUsedUncompressed","storageSQLite"].forEach(function(k){ try{ r.mem[k]=Math.round(mr[k]/1048576); }catch(e){} }); }catch(e){}
+    try{ r.cfgErrors=Services.console.getMessageArray().map(function(m){ try{ var e=m.QueryInterface(Ci.nsIScriptError); return (e.sourceName||"").indexOf("mozilla.cfg")>=0 ? ((e.flags&1)?"warn: ":"ERROR: ")+e.errorMessage+" @"+e.lineNumber : null; }catch(x){ var t=""+(m.message||m); return t.indexOf("mozilla.cfg")>=0?t.slice(0,200):null; } }).filter(function(x){return x;}).slice(0,40); }catch(e){ r.cfgErrors=["collect: "+e]; }
     r.prefs={}; (Services.env.get("SEAM_PROBE_PREFS")||"").split(" ").forEach(function(n){ if(n) r.prefs[n]=pv(n); });
     var done0=function(){ write(r); if(Services.env.get("SEAM_PROBE_QUIT")=="1") later(500,function(){ Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit); }); };
     var done=function(){ var pf=""; try{ pf=Services.env.get("SEAM_PROBE_PROFILE"); }catch(e){}
