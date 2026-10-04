@@ -182,6 +182,8 @@ try {
   // ---- persistent thumbnail cache ----
   var OV_THUMB_FILE = "golem-thumbs.json";  // in the profile dir
   var OV_THUMB_MAX  = 120;                   // cap entries (evict oldest) to bound file size
+  var OV_THUMB_DIR  = "golem-thumbs";       // one file per page; OV_THUMB_FILE is the old single-file cache (imported once)
+  var ovDirty = {}, ovLegacy = false;        // url -> 1 for entries not yet on disk
   var ovMap = null;                          // {url:{d:dataURL,t:ms}} — process-global (mozilla.cfg runs once)
   var ovSaveTimer = null, ovMapDirty = false, ovQuitObs = false, ovStartupDone = false;
 
@@ -232,10 +234,38 @@ try {
     var fos=Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream); fos.init(f,0x02|0x08|0x20,0o600,0);
     var cos=Components.classes["@mozilla.org/intl/converter-output-stream;1"].createInstance(Components.interfaces.nsIConverterOutputStream); cos.init(fos,"UTF-8"); cos.writeString(text); cos.close(); fos.close();
   }
+  // One small file per page (2026-10-04). The cache used to be ONE JSON holding every
+  // thumbnail (4-8 MB with a full cache), rewritten whole after each capture: the tab you
+  // sit on is re-captured as you use it, so browsing wrote that file over and over (a
+  // slow disk felt it, an SSD wore for it). Now a capture writes its own ~50 KB entry.
+  function ovThumbDir(){ var d=Services.dirsvc.get("ProfD",Components.interfaces.nsIFile); d.append(OV_THUMB_DIR); return d; }
+  function ovKey(url){ var h1=5381,h2=52711; for(var i=0;i<url.length;i++){ var c=url.charCodeAt(i); h1=((h1*33)^c)>>>0; h2=((h2*31)+c)>>>0; } return h1.toString(16)+"-"+h2.toString(16)+"-"+url.length.toString(16); }
+  function ovEntryFile(url){ var f=ovThumbDir(); f.append(ovKey(url)+".json"); return f; }
+  function ovEntryText(url,e){ return JSON.stringify({u:url,d:e.d,t:e.t}); }
+  function ovTakeEntry(m,txt){ try{ var o=JSON.parse(txt); if(o&&typeof o.u==="string"&&typeof o.d==="string") m[o.u]={d:o.d,t:o.t||0}; }catch(e){} }
+  // the old single-file cache: taken over once (its entries are written out as files by
+  // the next save, which then removes it)
+  function ovImportLegacy(m){
+    try{ var lf=ovThumbFile(); if(!lf.exists()) return;
+      var o=JSON.parse(ovReadText(lf)); ovLegacy=true;
+      if(o&&typeof o==="object") Object.keys(o).forEach(function(k){ if(!m[k]&&o[k]&&o[k].d){ m[k]=o[k]; ovDirty[k]=1; ovMapDirty=true; } });
+      if(!ovMapDirty) ovDropLegacy();
+    }catch(e){ ovLegacy=true; ovDropLegacy(); }
+  }
+  function ovDropLegacy(){ if(!ovLegacy) return; ovLegacy=false; try{ var lf=ovThumbFile(); if(lf.exists()) lf.remove(false); }catch(e){} }
+  // over the cap: forget the oldest; returns the urls whose files are to be removed
+  function ovEvict(m){
+    var keys=Object.keys(m), gone=[]; if(keys.length<=OV_THUMB_MAX) return gone;
+    keys.sort(function(a,b){ return (m[b].t||0)-(m[a].t||0); });
+    keys.slice(OV_THUMB_MAX).forEach(function(k){ delete m[k]; delete ovDirty[k]; gone.push(k); });
+    return gone;
+  }
   function ovLoadMap(){
     if(ovMap!==null) return ovMap;
     ovMap={};
-    try{ var f=ovThumbFile(); if(f.exists()){ var o=JSON.parse(ovReadText(f)); if(o&&typeof o==="object") ovMap=o; } }catch(e){ ovMap={}; }
+    try{ var d=ovThumbDir(); if(d.exists()&&d.isDirectory()){ var en=d.directoryEntries;
+      while(en.hasMoreElements()){ var f=en.nextFile; if(f.leafName.slice(-5)!==".json") continue; try{ ovTakeEntry(ovMap,ovReadText(f)); }catch(e){} } } }catch(e){}
+    ovImportLegacy(ovMap);
     try{ OVLOG("loaded "+Object.keys(ovMap).length+" thumbnails from disk"); }catch(e){}
     return ovMap;
   }
@@ -245,21 +275,16 @@ try {
     // never replace a good thumbnail with a much smaller one (a blank / still-
     // loading frame) — that was wiping the active tab's real preview on startup.
     if(ex && ex.d && durl.length < ex.d.length*0.5) return;
-    m[url]={d:durl,t:Date.now()}; ovMapDirty=true;
+    m[url]={d:durl,t:Date.now()}; ovDirty[url]=1; ovMapDirty=true;
   }
   function ovSaveNow(){
     try{
-      var m=ovLoadMap(), keys=Object.keys(m);
-      if(keys.length>OV_THUMB_MAX){ keys.sort(function(a,b){ return (m[b].t||0)-(m[a].t||0); }); var keep={}; keys.slice(0,OV_THUMB_MAX).forEach(function(k){ keep[k]=m[k]; }); ovMap=m=keep; }
-      var json=JSON.stringify(m);
-      // atomic write: temp file then rename over the target, so an interrupted
-      // write (e.g. Seam killed mid-save) can never truncate/wipe the real cache.
-      var dir=Services.dirsvc.get("ProfD",Components.interfaces.nsIFile);
-      var tmp=dir.clone(); tmp.append(OV_THUMB_FILE+".tmp");
-      ovWriteText(tmp, json);
-      try{ if(ovThumbFile().exists()) ovThumbFile().remove(false); }catch(e){}
-      try{ tmp.moveTo(dir, OV_THUMB_FILE); }catch(e){ ovWriteText(ovThumbFile(), json); }
-      ovMapDirty=false;
+      var m=ovLoadMap(), dir=ovThumbDir();
+      if(!dir.exists()) dir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE,0o700);
+      ovEvict(m).forEach(function(u){ try{ var f=ovEntryFile(u); if(f.exists()) f.remove(false); }catch(e){} });
+      // an interrupted write can only spoil the one entry being written (skipped on load)
+      Object.keys(ovDirty).forEach(function(u){ if(m[u]) ovWriteText(ovEntryFile(u), ovEntryText(u,m[u])); });
+      ovDirty={}; ovMapDirty=false; ovDropLegacy();
     }catch(e){ OVLOG("thumbsave:"+e); }
   }
   // Off the UI thread (perf pass 2026-09-26): the sync save cost ~11ms of UI thread per tab
@@ -272,11 +297,16 @@ try {
   function ovSaveAsync(win){
     if(ovSaving){ ovScheduleSave(win); return; }
     try{
-      var m=ovLoadMap(), keys=Object.keys(m);
-      if(keys.length>OV_THUMB_MAX){ keys.sort(function(a,b){ return (m[b].t||0)-(m[a].t||0); }); var keep={}; keys.slice(0,OV_THUMB_MAX).forEach(function(k){ keep[k]=m[k]; }); ovMap=m=keep; }
-      var path=ovThumbFile().path, json=JSON.stringify(m);
-      ovMapDirty=false; ovSaving=true;
-      win.IOUtils.writeUTF8(path,json,{tmpPath:path+".tmp"}).then(function(){ ovSaving=false; },function(e){ ovSaving=false; ovMapDirty=true; OVLOG("thumbsave:"+e); });
+      var m=ovLoadMap(), gone=ovEvict(m), urls=Object.keys(ovDirty), IO=win.IOUtils, dir=ovThumbDir().path;
+      ovDirty={}; ovMapDirty=false; ovSaving=true;
+      var again=function(u){ ovDirty[u]=1; ovMapDirty=true; };
+      IO.makeDirectory(dir,{ignoreExisting:true,permissions:0o700}).then(function(){
+        var jobs=[];
+        urls.forEach(function(u){ if(!m[u]) return; var path=ovEntryFile(u).path;
+          jobs.push(IO.writeUTF8(path,ovEntryText(u,m[u]),{tmpPath:path+".tmp"}).then(function(){},function(){ again(u); })); });
+        gone.forEach(function(u){ jobs.push(IO.remove(ovEntryFile(u).path,{ignoreAbsent:true}).then(function(){},function(){})); });
+        return win.Promise.all(jobs);
+      }).then(function(){ ovSaving=false; if(!ovMapDirty) ovDropLegacy(); },function(e){ ovSaving=false; urls.forEach(again); OVLOG("thumbsave:"+e); });
     }catch(e){ ovSaving=false; OVLOG("thumbsave:"+e); try{ ovSaveNow(); }catch(e2){} }
   }
   function ovScheduleSave(win){
@@ -289,10 +319,14 @@ try {
   function ovLoadMapAsync(win){
     if(ovMap!==null) return;
     try{
-      var f=ovThumbFile(); if(!f.exists()){ ovLoadMap(); return; }
-      win.IOUtils.readUTF8(f.path).then(function(txt){
+      var d=ovThumbDir(); if(!d.exists()){ ovLoadMap(); return; }   // nothing yet, or only the old single file
+      var IO=win.IOUtils;
+      IO.getChildren(d.path).then(function(paths){
+        return win.Promise.all(paths.filter(function(p){ return p.slice(-5)===".json"; }).map(function(p){
+          return IO.readUTF8(p).then(function(t){ return t; },function(){ return null; }); }));
+      }).then(function(txts){
         ovIdle(win,function(){ if(ovMap!==null) return;
-          try{ var o=JSON.parse(txt); ovMap=(o&&typeof o==="object")?o:{}; }catch(e){ ovMap={}; }
+          var m={}; txts.forEach(function(t){ if(t) ovTakeEntry(m,t); }); ovMap=m; ovImportLegacy(m);
           try{ OVLOG("loaded "+Object.keys(ovMap).length+" thumbnails from disk (async)"); }catch(e){} },2000);
       },function(){ ovLoadMap(); });
     }catch(e){ ovLoadMap(); }
@@ -940,15 +974,18 @@ try {
       // overview so its card's cache lookup uses the real URL and its thumbnail
       // appears. This is why the active tab alone showed a favicon at startup.
       try{ gb.addTabsProgressListener({ onLocationChange:function(aBrowser,aWebProgress,aRequest,aLocation,aFlags){
+        win.__ovTouched=true;
         try{ if(ovIsOpen(win) && !win.__ovReRenderT){ win.__ovReRenderT=win.setTimeout(function(){ win.__ovReRenderT=null; if(ovIsOpen(win)) ovRefreshCards(win); },200); } }catch(e){}
       }}); }catch(e){}
       win.setTimeout(function(){ ovCaptureActive(win); },1200);  // seed the first tab
+      win.__ovTouched=true;
+      ["wheel","keydown","mousedown"].forEach(function(t){ try{ win.addEventListener(t,function(){ win.__ovTouched=true; },{capture:true,passive:true}); }catch(e){} });
+      try{ gb.tabContainer.addEventListener("TabSelect",function(){ win.__ovTouched=true; }); }catch(e){}
       // Periodic capture of the ACTIVE tab (only while the overview is CLOSED, so
       // it's genuinely painting → a real frame, no activation trickery). This is
       // what catches the tab you're SITTING ON — including the startup-active tab
       // that never got a TabSelect — so whatever tab is active at quit already has
-      // a recent thumbnail. Skips a tab captured in the last 20s (freshness window,
-      // bounds disk writes).
+      // a recent thumbnail.
       win.setInterval(function(){
         try{
           ovRememberBar(win, win.gBrowser.selectedTab);   // keep the active tab's bar colour current
@@ -957,7 +994,11 @@ try {
           var url=ovTabUrl(tab); if(!/^https?:/i.test(url)) return;
           // skip only if we already have a DECENT-sized thumbnail that's fresh;
           // a tiny one (<15KB) is a blank/partial from a bad capture → re-grab it.
-          var e=ovLoadMap()[url]; if(e && e.d && e.d.length>=15000 && (Date.now()-(e.t||0))<20000) return;
+          // ...and only re-grab a tab that was USED since its last capture (scrolled, typed,
+          // clicked, navigated), at most every 30s: a page being read or a video playing is
+          // not re-rendered and re-encoded every 20s for a picture nobody asked for.
+          var e=ovLoadMap()[url]; if(e && e.d && e.d.length>=15000 && (!win.__ovTouched || (Date.now()-(e.t||0))<30000)) return;
+          win.__ovTouched=false;
           ovCaptureActive(win);
         }catch(e){}
       }, 4000);
@@ -1299,12 +1340,16 @@ try {
   // also drops the 1 GB value an older home.nix left in prefs.js). Both prefs are live.
   // Recorded in golem-media.json (memory).
   // =================================================================
-  var MM_CACHE="browser.cache.memory.capacity", MM_VIEWERS="browser.sessionhistory.max_total_viewers", mmState=null;
+  // Spare page processes (2026-10-04): Firefox keeps THREE empty ones waiting so that a
+  // new site starts in a ready process. Measured on the 4 GB MacBook Air: ~17 MB each,
+  // for a blank tab. A small machine keeps one (a new site still starts warm; the next
+  // spare is made while the page loads); the others keep Firefox's three.
+  var MM_CACHE="browser.cache.memory.capacity", MM_VIEWERS="browser.sessionhistory.max_total_viewers", MM_SPARE="dom.ipc.processPrelaunch.fission.number", mmState=null;
   function mmDecide(totalKB){
     var gb=totalKB/1048576;
-    if(gb>=24) return {tier:"large", cacheKB:1048576, viewers:12};
-    if(gb>=12) return {tier:"medium", cacheKB:262144, viewers:8};
-    return {tier:"small", cacheKB:null, viewers:null};   // null = Firefox's RAM-scaled auto
+    if(gb>=24) return {tier:"large", cacheKB:1048576, viewers:12, spare:null};
+    if(gb>=12) return {tier:"medium", cacheKB:262144, viewers:8, spare:null};
+    return {tier:"small", cacheKB:null, viewers:null, spare:1};   // null = Firefox's own (RAM-scaled) default
   }
   function mmApply(){
     var m=/MemTotal:\s+(\d+)/.exec(csRead("/proc/meminfo")||""); if(!m) return;
@@ -1312,6 +1357,7 @@ try {
     try{
       if(d.cacheKB===null){ Services.prefs.clearUserPref(MM_CACHE); Services.prefs.clearUserPref(MM_VIEWERS); }
       else { Services.prefs.setIntPref(MM_CACHE,d.cacheKB); Services.prefs.setIntPref(MM_VIEWERS,d.viewers); }
+      if(d.spare===null) Services.prefs.clearUserPref(MM_SPARE); else Services.prefs.setIntPref(MM_SPARE,d.spare);
     }catch(e){}
     OVLOG("memory: "+d.memTotalMB+" MB -> "+d.tier);
   }

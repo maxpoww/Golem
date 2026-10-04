@@ -94,6 +94,38 @@
           DontCheckDefaultBrowser = true;
           DisableSetDesktopBackground = true;
           DisableFirefoxScreenshots = true;
+          DisableProfileRefresh = true;
+          # No Mozilla starter bookmarks in Favorites.
+          NoDefaultBookmarks = true;
+          # Profile backup/restore, Mozilla VPN, image search by a third party: not Seam.
+          BrowserDataBackup = { AllowBackup = false; AllowRestore = false; };
+          IPProtectionAvailable = false;
+          VisualSearchEnabled = false;
+
+          # ---- no AI ---------------------------------------------------
+          # Chatbot sidebar, link-preview summaries, smart tab groups, the "smart
+          # window", speech, PDF alt-text: all off and locked, so none of their
+          # models, menus or onboarding ever load. Page TRANSLATION stays: it runs
+          # locally, on demand, and is something people need to read the web.
+          AIControls = {
+            Default = { Value = "blocked"; Locked = true; };
+            Translations = { Value = "available"; };
+          };
+
+          # ---- the new-tab page is blank -------------------------------
+          # (home.nix turns the page off; this keeps its feeds from being offered.)
+          FirefoxHome = {
+            Search = false; TopSites = false; SponsoredTopSites = false;
+            Highlights = false; Pocket = false; Stories = false;
+            SponsoredPocket = false; SponsoredStories = false; Snippets = false;
+            Locked = true;
+          };
+          # The address bar suggests from history, bookmarks, open tabs and the search
+          # engine — not from Mozilla's suggestion service or its sponsors.
+          FirefoxSuggest = {
+            WebSuggestions = false; SponsoredSuggestions = false; ImproveSuggest = false;
+            Locked = true;
+          };
 
           # uBO managed settings. (Managed-storage format: [name, value].)
           "3rdparty" = {
@@ -151,7 +183,17 @@
             UrlbarInterventions = false;
             SkipOnboarding = true;
             MoreFromMozilla = false;
+            FirefoxLabs = false;
+            Locked = true;
           };
+          # A fresh Golem install opened Seam on "Welcome to Firefox — by continuing
+          # you agree to the Firefox Terms of Use" (2026-10-04, MacBook, new profile):
+          # the terms-of-use modal is its own gate, none of the switches above cover
+          # it. Seam sends Mozilla nothing (telemetry is off above), so there is
+          # nothing to consent to.
+          SkipTermsOfUse = true;
+          # No remotely delivered experiments or "rollouts" changing the browser.
+          DisableRemoteImprovements = true;
 
           # Crash reports carry URLs and memory contents.
           DisableFeedbackCommands = true;
@@ -176,6 +218,9 @@
           # Seam — Golem's browser. Its own profile; --name sets the window class.
           p="''${XDG_DATA_HOME:-$HOME/.local/share}/seam"
           mkdir -p "$p"
+          # no crash-report helper process beside the browser: reports are never sent
+          # (a crash still restores the session; that is the session store's job)
+          export MOZ_CRASHREPORTER_DISABLE=1
           exec "${final.golem-seam-wrapped}/bin/firefox" --name seam -profile "$p" "$@"
           EOF
           chmod +x "$out/bin/seam"

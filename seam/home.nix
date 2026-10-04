@@ -342,5 +342,108 @@ in
     // dock then followed it, pulling you along. Tabs are still restored —
     // only the move is off.
     user_pref("browser.sessionstore.restore_windows_to_virtual_desktop", false);
+
+    // ================= LEAN: NOTHING RUNS THAT SEAM DOES NOT SHOW =================
+    // (2026-10-04, Max: "there is a lot of things that we dont use and will not use,
+    // that is there, we just hide it… lightweight, simple and robust only on
+    // navigation".) Measured on the 4 GB MacBook Air with a new profile: the first
+    // start opened on "Welcome to Firefox / Terms of Use", and the second start
+    // burned 25 s of CPU and kept 3 spare page processes for a blank tab.
+    // Untouched on purpose: codecs, DRM, WebRTC, web push, translation, saved
+    // passwords and form autofill, the site-compatibility fixes, certificate
+    // revocation data, Safe Browsing, the captive-portal check — browsing needs them.
+
+    // --- No first-run surfaces (the Terms-of-Use modal itself: SkipTermsOfUse policy) ---
+    user_pref("browser.preonboarding.enabled", false);
+    user_pref("browser.aboutwelcome.enabled", false);
+    user_pref("datareporting.policy.dataSubmissionPolicyBypassNotification", true);
+    user_pref("browser.startup.homepage_override.mstone", "ignore");
+    user_pref("startup.homepage_welcome_url", "");
+    user_pref("startup.homepage_welcome_url.additional", "");
+    user_pref("startup.homepage_override_url", "");
+    user_pref("browser.uitour.enabled", false);
+    // On a NEW profile Firefox "introduces" its sidebar toggle into the toolbar once,
+    // whatever the layout says: the first launch had a button the second did not.
+    user_pref("browser.toolbarbuttons.introduced.sidebar-button", true);
+    // A preloaded new tab raced userContent.css: its colour was a coin toss.
+    user_pref("browser.newtab.preload", false);
+
+    // --- No experiments, no remote messaging, no promotions ---
+    user_pref("app.normandy.enabled", false);
+    user_pref("app.normandy.api_url", "");
+    user_pref("messaging-system.rsexperimentloader.enabled", false);
+    user_pref("messaging-system.askForFeedback", false);
+    user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+    user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
+    user_pref("browser.vpn_promo.enabled", false);
+    user_pref("browser.promo.pin.enabled", false);
+    user_pref("browser.promo.relay.enabled", false);
+    user_pref("extensions.getAddons.showPane", false);
+    user_pref("extensions.getAddons.cache.enabled", false);
+    user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+
+    // --- No AI (the AIControls policy locks the features; these stop their engines) ---
+    user_pref("browser.ml.enable", false);
+    user_pref("browser.ml.chat.enabled", false);
+    user_pref("browser.ml.chat.sidebar", false);
+    user_pref("browser.ml.chat.menu", false);
+    user_pref("browser.ml.chat.page", false);
+    user_pref("browser.ml.chat.shortcuts", false);
+    user_pref("browser.ml.linkPreview.enabled", false);
+    user_pref("browser.tabs.groups.smart.enabled", false);
+    user_pref("browser.tabs.groups.smart.userEnabled", false);
+    user_pref("browser.smartwindow.autoTabGrouping.enabled", false);
+    user_pref("extensions.ml.enabled", false);
+    user_pref("pdfjs.enableAltText", false);
+
+    // --- The new-tab engine: Seam's new tab is a blank page ---
+    // Its feeds off (stories, weather, wallpapers, shortcuts). feeds.system.topsites
+    // stays ON: the address bar's "your most visited" list on an empty focus reads it.
+    user_pref("browser.newtabpage.activity-stream.feeds.topsites", false);
+    user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
+    user_pref("browser.newtabpage.activity-stream.feeds.system.topstories", false);
+    user_pref("browser.newtabpage.activity-stream.feeds.section.highlights", false);
+    user_pref("browser.newtabpage.activity-stream.feeds.snippets", false);
+    user_pref("browser.newtabpage.activity-stream.feeds.weatherfeed", false);
+    user_pref("browser.newtabpage.activity-stream.discoverystream.enabled", false);
+    user_pref("browser.newtabpage.activity-stream.showWeather", false);
+    user_pref("browser.newtabpage.activity-stream.newtabWallpapers.enabled", false);
+    user_pref("browser.startup.homepage.abouthome_cache.enabled", false);
+
+    // --- Address bar: history, bookmarks, open tabs, search suggestions. Nothing else. ---
+    user_pref("browser.urlbar.quicksuggest.enabled", false);
+    user_pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+    user_pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
+    user_pref("browser.urlbar.suggest.trending", false);
+    user_pref("browser.urlbar.trending.featureGate", false);
+    user_pref("browser.urlbar.suggest.weather", false);
+    user_pref("browser.urlbar.suggest.yelp", false);
+    user_pref("browser.urlbar.suggest.yelpRealtime", false);
+    user_pref("browser.urlbar.suggest.addons", false);
+    user_pref("browser.urlbar.suggest.mdn", false);
+    user_pref("browser.urlbar.suggest.amp", false);
+    user_pref("browser.urlbar.suggest.wikipedia", false);
+
+    // --- Background bookkeeping nobody reads ---
+    // Per-page interaction metrics, search-page categorisation (downloads its own
+    // database), the profile picker, profile backups, region re-detection, a reader-
+    // mode parse of EVERY page (Seam has no reader button), the remaining pings.
+    user_pref("browser.places.interactions.enabled", false);
+    user_pref("browser.search.serpEventTelemetryCategorization.enabled", false);
+    user_pref("browser.profiles.enabled", false);
+    user_pref("browser.backup.archive.enabled", false);
+    user_pref("browser.backup.restore.enabled", false);
+    user_pref("browser.region.update.enabled", false);
+    user_pref("reader.parse-on-load.enabled", false);
+    user_pref("browser.shopping.experience2023.enabled", false);
+    user_pref("toolkit.telemetry.newProfilePing.enabled", false);
+    user_pref("toolkit.telemetry.shutdownPingSender.enabled", false);
+    user_pref("toolkit.telemetry.updatePing.enabled", false);
+    user_pref("toolkit.telemetry.bhrPing.enabled", false);
+    user_pref("toolkit.telemetry.firstShutdownPing.enabled", false);
+    user_pref("toolkit.telemetry.coverage.opt-out", true);
+    user_pref("toolkit.coverage.opt-out", true);
+    user_pref("datareporting.usage.uploadEnabled", false);
+    user_pref("browser.tabs.crashReporting.sendReport", false);
   '';
 }

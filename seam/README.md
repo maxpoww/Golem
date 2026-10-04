@@ -189,6 +189,34 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
 - ⚠ Firefox's own prefetch service (`nsIPrefetchService`, what `<link rel=prefetch>` uses) stores entries a top-level navigation NEVER uses (0/3 served from cache, even fresh) — the page `fetch()` route is the one that works (3/3). Its 2nd argument in 156 is an `nsIReferrerInfo`, and it refuses with a bare NS_ERROR_ABORT while `network.prefetch-next` is false (uBO's first run flips it off in a fresh profile before its managed setting lands; a live profile has it on).
 - Bench gotchas: `data:` URLs decode `+` to a space; the two variants share proxy ports; the proxy logs only the first request per connection (a click reusing the prefetch's connection is invisible there — count `http-on-modify-request` / `http-on-examine-cached-response` inside Firefox instead); temporary IPv6 addresses rotate on reboot (`BENCH_CLICK_HOST` must be re-read).
 
+## Lean (2026-10-04): nothing runs that Seam does not show
+
+Measured on the weakest machine in the lab (MacBook Air 6,2: i5-4250U, 4 GB, HD 5000),
+on its real screen, with `bench/lab/lab.sh`.
+
+- **First launch on a new install opened on "Welcome to Firefox / Terms of Use".** That
+  modal is its own gate (`SkipTermsOfUse` policy); none of the onboarding switches cover
+  it. Verified with the built package on a new profile: straight to a blank tab.
+- **Off at the source** (policies in `browser.nix`, prefs in `home.nix`): experiments and
+  remote messaging, every AI feature (translation kept), the new-tab feeds, Mozilla's
+  address-bar suggestions, default bookmarks, profile backup, VPN, per-page bookkeeping
+  (interaction metrics, reader-mode parse of every page, search categorisation), the
+  crash-report helper process. **Kept on purpose:** codecs, DRM, WebRTC, web push,
+  translation, passwords + autofill, site-compatibility fixes, certificate revocation
+  data, Safe Browsing, captive-portal check.
+- **Thumbnails**: one file per page under `golem-thumbs/` instead of one multi-MB JSON
+  rewritten after every capture; the tab you sit on is re-captured only after it was
+  used. The old `golem-thumbs.json` is imported once.
+- **Spare page processes**: 1 instead of 3 on machines under 12 GB.
+
+What it buys (same machine, warm profile, three runs): start to a blank tab 11–14 s of
+CPU instead of 15–18; ~50 MB less with five sites open; a first launch that needs no
+click. What it does NOT buy: page loads. Five real sites cost the same CPU and time in
+current Seam, lean Seam and stock Firefox with a warm cache (85–92 CPU-seconds, ~22 s) —
+the pages themselves are the cost, and the chrome script and the bar-colour extension
+measure as free. The browser process's main thread (17–19 s of that) is the next thing
+to profile.
+
 ## Webapps (2026-09-30): the dock's webapps run in Seam
 
 `seam -golem-app <slug> <url>` opens `<url>` as a **webapp window** of the running Seam:
