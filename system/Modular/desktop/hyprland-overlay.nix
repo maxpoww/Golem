@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus eight patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus eleven patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -31,6 +31,31 @@
 #   gesture-null-deref    upstream SEGV when libinput morphs a swipe into a
 #                         pinch (ITrackpadGesture::distance). Drop once fixed
 #                         upstream.
+#   keep-work-buffers     debug:invalidate_work_buffers (default OFF, baked into the
+#                         patch; on = stock). Stock invalidates its render work
+#                         buffers after every frame, and an invalidated buffer is
+#                         cleared WHOLE at its next use: the frame's buffer and
+#                         the two the blur works in, every frame, whatever the
+#                         damage. On a GPU that cannot sample a fast-cleared
+#                         surface (Intel before gen 9) each is a clear plus a
+#                         full-screen resolve: ~4 ms of GPU per frame on the Acer
+#                         (HD 5500, 1366x768), for the whole desktop and not just
+#                         the shell. Without it the buffers keep what the last
+#                         frames drew, and every reader only reads what this
+#                         frame drew. The real screen was compared with a full
+#                         redraw after runs of partial frames: identical.
+#   layer-commit-damage   a layer surface's commit damages what the client said
+#                         changed, not the layer's whole box. Stock damaged the
+#                         box on EVERY commit: the dock and the OPTIONS bar are
+#                         surfaces far larger than what they draw, so each of
+#                         their frames had Hyprland redraw, and blur again, about
+#                         half the screen. The box is still damaged whole on a
+#                         layer-shell state change, a viewport/opaque-region
+#                         change, a size change, and a buffer that arrives with
+#                         no damage at all (a client that never posts any); a
+#                         commit that draws nothing (an input region, a frame
+#                         request) damages nothing. Pairs with waverunner
+#                         presenting real damage (VK_KHR_incremental_present).
 #   screenshare-exit      upstream SEGV on EVERY logout/shutdown with a live
 #                         capture (the dock samples the screen): the screenshare
 #                         manager dies in a static destructor after cleanup()
@@ -38,6 +63,18 @@
 #                         went through the null pointer (parity P6 stack 1,
 #                         core from the MacBook 2026-09-29). Drop once fixed
 #                         upstream.
+#   screenshare-region-session  upstream bug, any monitor whose scale is not 1: a
+#                         region capture's session keeps its box in pixels and
+#                         is looked up by the client's logical box, so it is
+#                         never found again and EVERY captured frame makes a new
+#                         session that is never freed. Each one redraws the whole
+#                         monitor ("first frame"), announces a screencast start
+#                         and stop on the event socket, and stays in the list
+#                         every texture draw walks. wf-recorder captures by
+#                         region, always: on the Acer one 11 s recording left
+#                         Hyprland 12 % dearer per frame for the rest of its
+#                         life, eight left it 2-3x (round 3, 2026-10-05). Drop
+#                         once fixed upstream.
 #   subsurface-orphan     upstream SEGV when a client dies with its subsurface
 #                         tree mapped (CWLSubsurfaceResource::posRelativeToParent
 #                         walked a dead parent): SIGKILL a Seam webapp window
@@ -67,7 +104,10 @@ final: prev: {
       ./hyprland-patches/hyprland-crash-restart-normal.patch
       ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
+      ./hyprland-patches/hyprland-keep-work-buffers.patch
+      ./hyprland-patches/hyprland-layer-commit-damage.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
+      ./hyprland-patches/hyprland-screenshare-region-session.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-window-square-top.patch

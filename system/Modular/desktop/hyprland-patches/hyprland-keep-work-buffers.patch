@@ -1,0 +1,62 @@
+diff -ru a/src/config/values/ConfigValues.cpp b/src/config/values/ConfigValues.cpp
+--- a/src/config/values/ConfigValues.cpp	2026-10-04 21:50:43.236829115 +0000
++++ b/src/config/values/ConfigValues.cpp	2026-10-04 21:50:43.295643519 +0000
+@@ -617,6 +617,7 @@
+         MS<Bool>("debug:render_solitary_wo_damage", "Render solitary window with empty damage", false),
+         MS<Bool>("debug:vfr", "controls the VFR status of Hyprland. Do not turn off unless debugging", true),
+         MS<Int>("debug:invalidate_fp16", "allow fp16 buffer invalidation.", 1, {.min = 0, .max = 2, .map = OptionMap{{"disable", 0}, {"enable", 1}, {"auto", 2}}}),
++        MS<Bool>("debug:invalidate_work_buffers", "invalidate the render work buffers after every frame (each is then cleared whole at its next use)", false),
+ 
+         /*
+          * layout:
+diff -ru a/src/render/gl/GLFramebuffer.cpp b/src/render/gl/GLFramebuffer.cpp
+--- a/src/render/gl/GLFramebuffer.cpp	2026-10-04 21:50:43.267972634 +0000
++++ b/src/render/gl/GLFramebuffer.cpp	2026-10-04 21:50:52.384769793 +0000
+@@ -4,6 +4,7 @@
+ #include "macros.hpp"
+ #include "../Framebuffer.hpp"
+ #include <hyprgraphics/egl/Egl.hpp>
++#include <algorithm>
+ 
+ using namespace Hyprgraphics::Egl;
+ using namespace Render::GL;
+@@ -176,7 +177,10 @@
+         return;
+ 
+     glInvalidateFramebuffer(GL_FRAMEBUFFER, attachments.size(), attachments.data());
+-    m_cleared = false;
++    // GOLEM (keep-work-buffers): clearAfterInvalidation() clears the COLOUR; a
++    // stencil-only invalidation (after every blurred surface) does not ask for it.
++    if (std::ranges::find(attachments, GL_COLOR_ATTACHMENT0) != attachments.end())
++        m_cleared = false;
+ }
+ 
+ void CGLFramebuffer::clearAfterInvalidation() {
+diff -ru a/src/render/OpenGL.cpp b/src/render/OpenGL.cpp
+--- a/src/render/OpenGL.cpp	2026-10-04 21:50:43.250224333 +0000
++++ b/src/render/OpenGL.cpp	2026-10-04 21:50:43.296286993 +0000
+@@ -778,6 +778,7 @@
+ void CHyprOpenGLImpl::end() {
+     static auto PZOOMDISABLEAA = CConfigValue<Config::INTEGER>("cursor:zoom_disable_aa");
+     static auto PFPINVALIDATE  = CConfigValue<Config::INTEGER>("debug:invalidate_fp16");
++    static auto PINVALIDATE    = CConfigValue<Config::INTEGER>("debug:invalidate_work_buffers");
+     auto&       m_renderData   = g_pHyprRenderer->m_renderData;
+     const auto  PMONITOR       = m_renderData.pMonitor;
+     TRACY_GPU_ZONE("RenderEnd");
+@@ -850,7 +851,15 @@
+     g_pHyprRenderer->popMonitorTransformEnabled();
+ 
+     // invalidate our render FBs to signal to the driver we don't need them anymore
+-    if (!g_pHyprRenderer->m_renderData.pMonitor->useFP16() || *PFPINVALIDATE == 1 || (*PFPINVALIDATE == 2 && !g_pHyprRenderer->isNvidia())) { // FIXME wtf?
++    // GOLEM (keep-work-buffers): an invalidated buffer is cleared WHOLE at its next
++    // use (clearAfterInvalidation): the frame's buffer and the two the blur works
++    // in, every frame, whatever the damage. On a GPU that cannot sample a
++    // fast-cleared surface each of those is a clear plus a full-screen resolve
++    // (Intel before gen 9: ~4 ms of GPU per frame at 1366x768). Without the
++    // invalidation the buffers keep what the last frames drew; every reader only
++    // reads what this frame drew (the damage, grown by the blur's reach).
++    if (*PINVALIDATE &&
++        (!g_pHyprRenderer->m_renderData.pMonitor->useFP16() || *PFPINVALIDATE == 1 || (*PFPINVALIDATE == 2 && !g_pHyprRenderer->isNvidia()))) { // FIXME wtf?
+         g_pHyprRenderer->m_renderData.pMonitor->resources()->forEachUnusedFB(
+             [](const auto& fb) {
+                 fb->bind();

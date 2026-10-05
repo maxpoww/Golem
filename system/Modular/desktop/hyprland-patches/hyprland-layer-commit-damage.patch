@@ -1,0 +1,42 @@
+--- a/src/desktop/view/LayerSurface.cpp	2026-10-04 20:42:37.314505206 +0000
++++ b/src/desktop/view/LayerSurface.cpp	2026-10-04 20:56:01.347167334 +0000
+@@ -312,7 +312,24 @@
+         PMONITOR->m_blurFBDirty = true;
+ 
+     CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
+-    g_pHyprRenderer->damageBox(geomFixed);
++
++    // GOLEM (layer-commit-damage): stock damaged the layer's whole box on every
++    // commit, so a surface much larger than what it draws (a dock, a bar that
++    // drops boxes) had all of it redrawn, and blurred again, on each frame.
++    // A commit damages what the client said changed (damageSurface, below), as
++    // a window's commit does. The whole box is still damaged when layer-shell
++    // state changed, when what is shown where changed (viewport, opaque
++    // region), when the box changes size (further down), and when a buffer
++    // arrives with no damage at all (a client that never posts any).
++    bool damageWhole = true;
++    if (m_layerSurface->m_current.committed == 0 && m_layerSurface->m_surface) {
++        auto&      state     = m_layerSurface->m_surface->m_current;
++        const bool REMAPPED  = state.updated.bits.viewport || state.updated.bits.opaque;
++        const bool HASDAMAGE = !state.accumulateBufferDamage().empty();
++        damageWhole          = REMAPPED || (state.updated.bits.buffer && !HASDAMAGE);
++    }
++    if (damageWhole)
++        g_pHyprRenderer->damageBox(geomFixed);
+ 
+     if (m_layerSurface->m_current.committed != 0) {
+         if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
+@@ -354,6 +371,13 @@
+             // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
+             m_geometry = {m_geometry.pos(), m_layerSurface->m_surface->m_current.size};
+         }
++
++        // GOLEM (layer-commit-damage): the box changed size: the old one and
++        // the new one are redrawn whole.
++        if (!damageWhole && m_geometry.size() != geomFixed.size()) {
++            g_pHyprRenderer->damageBox(geomFixed);
++            g_pHyprRenderer->damageBox(CBox{m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height});
++        }
+     }
+ 
+     if (m_realPosition->goal() != m_geometry.pos()) {

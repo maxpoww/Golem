@@ -1,0 +1,29 @@
+diff -ru a/src/managers/screenshare/ScreenshareManager.cpp b/src/managers/screenshare/ScreenshareManager.cpp
+--- a/src/managers/screenshare/ScreenshareManager.cpp	2026-10-05 06:11:11.402150340 +0000
++++ b/src/managers/screenshare/ScreenshareManager.cpp	2026-10-05 06:11:11.432036903 +0000
+@@ -111,6 +111,16 @@
+     if (type == SHARE_NONE)
+         return {};
+ 
++    // GOLEM (screenshare-region-session): a region session keeps its box in the
++    // monitor's pixels (CScreenshareSession::init scales and rounds it); the
++    // client's is logical. Compared as they were, the two are only equal at
++    // scale 1: on any scaled monitor EVERY frame of a region capture made a new
++    // session, which was never freed. Each one made the compositor redraw the
++    // whole monitor ("first frame"), announced a screencast start and stop,
++    // and stayed in the list every texture draw walks (needsACopyFB) for the
++    // life of the compositor. wf-recorder captures by region, always.
++    const CBox SESSIONBOX = type == SHARE_REGION && monitor ? captureBox.copy().scale(monitor->m_scale).round() : captureBox;
++
+     auto it = std::ranges::find_if(m_managedSessions, [&](const auto& session) {
+         if (session->m_session->m_client != client || session->m_session->m_type != type)
+             return false;
+@@ -118,7 +128,7 @@
+         switch (type) {
+             case SHARE_MONITOR: return session->m_session->m_monitor == monitor;
+             case SHARE_WINDOW: return session->m_session->m_window == window;
+-            case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == captureBox;
++            case SHARE_REGION: return session->m_session->m_monitor == monitor && session->m_session->m_captureBox == SESSIONBOX;
+             case SHARE_NONE:
+             default: return false;
+         }
