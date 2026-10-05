@@ -79,11 +79,20 @@ in
 lib.mkIf (hm != null) {
   systemd.services."home-manager-${owner}".serviceConfig.ExecCondition = "${check}";
 
+  # Only in the OWNER's session. A user unit exists in every user's manager
+  # — root's too, for as long as someone is in over SSH — and there the
+  # repair ran as root against the owner's home (Acer, 2026-10-05: "USER is
+  # root, expected max" from the activation, every minute of an SSH
+  # session). Had the app list been the thing missing, root would have
+  # rebuilt it, and its directory, root-owned: nothing the owner's own
+  # repair or the dock could write into afterwards.
   systemd.user.services.golem-home-heal = {
     description = "Golem: put the home's own files back if they went missing";
+    unitConfig.ConditionUser = owner;
     serviceConfig = { Type = "oneshot"; ExecStart = "${heal}"; };
   };
   systemd.user.timers.golem-home-heal = {
+    unitConfig.ConditionUser = owner;
     wantedBy = [ "timers.target" ];
     timerConfig = { OnStartupSec = "2min"; OnUnitActiveSec = "1min"; };
   };
