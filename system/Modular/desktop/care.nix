@@ -10,7 +10,9 @@
 #   Stop charging at 80%      the battery's charge limit, writable by the owner
 #                             on hardware that has one
 #   Video playback            vainfo, so the page can say what the card decodes
-#   Format a drive            exFAT and NTFS tools beside the ones already here
+#   Format a drive            exFAT and NTFS tools beside the ones already here,
+#                             and the disk service built with the exFAT tools
+#                             that can rename a drive
 { config, lib, pkgs, ... }:
 
 let
@@ -58,6 +60,14 @@ in
   services.udev.extraRules = ''
     ACTION=="add|change", SUBSYSTEM=="power_supply", ATTR{type}=="Battery", TEST=="charge_control_end_threshold", RUN+="${pkgs.coreutils}/bin/chown ${owner} /sys%p/charge_control_end_threshold"
   '';
+
+  # The disk service looks for the exFAT tools in a path baked into its
+  # package, and nixpkgs bakes the old FUSE `exfat` there: it can make an
+  # exFAT drive but has no tool to rename one, so renaming failed with
+  # "executable tune.exfat not found" while the tool sat on the system path
+  # (MacBook, 2026-10-05). Bake the real tools in instead. Only the service
+  # is rebuilt; nothing else depends on this copy.
+  services.udisks2.package = pkgs.udisks.override { exfat = pkgs.exfatprogs; };
 
   environment.systemPackages = [ pkgs.libva-utils pkgs.exfatprogs pkgs.ntfs3g ];
 }
