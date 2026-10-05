@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus eleven patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus twelve patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -85,6 +85,17 @@
 #                         patch): keeps the frame clock alive after damage on
 #                         VRR outputs, the episodic VRR brightness flicker.
 #                         Inert without VRR.
+#   visible-region-damage  hyprland-surface-v1's visible region (the shell tells
+#                         Hyprland where each of its surfaces has anything to
+#                         show, so nothing is drawn or blurred behind the rest:
+#                         waverunner's visible.rs). Upstream never resets its
+#                         "region changed" flag: after a client's first
+#                         set_visible_region EVERY commit of that surface
+#                         damaged its whole box; and a change of region damaged
+#                         the whole box although it can only matter where
+#                         something was, or now is, visible. The flag is reset;
+#                         a change damages the old and the new region. Drop
+#                         the first half once fixed upstream.
 #   window-square-top     a window tagged `square-top` renders its top two
 #                         corners square (surface, border, blur). The waveview
 #                         titlebar sets the tag while a floating window wears
@@ -110,6 +121,7 @@ final: prev: {
       ./hyprland-patches/hyprland-screenshare-region-session.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
+      ./hyprland-patches/hyprland-visible-region-damage.patch
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch
     ];

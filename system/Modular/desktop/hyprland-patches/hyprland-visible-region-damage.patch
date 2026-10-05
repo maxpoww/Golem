@@ -1,0 +1,38 @@
+diff -ru a/src/protocols/HyprlandSurface.cpp b/src/protocols/HyprlandSurface.cpp
+--- a/src/protocols/HyprlandSurface.cpp	2026-10-05 07:44:43.601938766 +0000
++++ b/src/protocols/HyprlandSurface.cpp	2026-10-05 07:44:43.620142471 +0000
+@@ -55,12 +55,32 @@
+         auto surface = Desktop::View::CWLSurface::fromResource(m_surface.lock());
+ 
+         if (surface && (surface->m_overallOpacity != m_opacity || m_visibleRegionChanged)) {
++            // GOLEM (visible-region-damage): m_visibleRegionChanged was never
++            // reset, so after a client's first set_visible_region EVERY commit
++            // of that surface damaged its whole box. And a change of region
++            // damaged the whole box too, although it can only matter where
++            // something was, or now is, visible.
++            const bool    OPACITYCHANGED = surface->m_overallOpacity != m_opacity;
++            const CRegion OLDVISIBLE     = surface->m_visibleRegion;
++
+             surface->m_overallOpacity = m_opacity;
+             surface->m_visibleRegion  = m_visibleRegion;
++            m_visibleRegionChanged    = false;
+             auto box                  = surface->getSurfaceBoxGlobal();
+ 
+-            if (box.has_value())
+-                g_pHyprRenderer->damageBox(*box);
++            if (box.has_value()) {
++                const auto& STATE = m_surface->m_current;
++                // an empty region is "no hint": the whole surface is visible
++                if (OPACITYCHANGED || OLDVISIBLE.empty() || m_visibleRegion.empty() || STATE.bufferSize.x < 1 || STATE.bufferSize.y < 1)
++                    g_pHyprRenderer->damageBox(*box);
++                else {
++                    // both regions are in buffer coordinates
++                    CRegion changed = OLDVISIBLE.copy().add(m_visibleRegion);
++                    changed.intersect(CBox{{}, STATE.bufferSize}).expand(2);
++                    changed.scale(box->size() / STATE.bufferSize).translate(box->pos());
++                    g_pHyprRenderer->damageRegion(changed);
++                }
++            }
+ 
+             if (!m_resource)
+                 PROTO::hyprlandSurface->destroySurface(this);
