@@ -25,10 +25,18 @@ let
     [ "$cur" = "$gen" ] || exit 0
     files=$(${pkgs.coreutils}/bin/readlink -f "$gen/home-files")
     cd "$files" || exit 0
-    while IFS= read -r -d "" f; do
-      f=''${f#./}
-      [ "$(${pkgs.coreutils}/bin/readlink "${home}/$f")" = "$files/$f" ] || exit 0
-    done < <(${pkgs.findutils}/bin/find . -type l -print0)
+    # Every link the generation holds, and where its twin in the home points
+    # — read by ONE readlink. It was one process per file (74 on the Acer),
+    # and since the live repair below that is every minute of every session.
+    mapfile -d "" -t links < <(${pkgs.findutils}/bin/find . -type l -printf '%P\0')
+    if [ "''${#links[@]}" -gt 0 ]; then
+      mapfile -d "" -t points < <(cd "${home}" 2>/dev/null && ${pkgs.coreutils}/bin/readlink -z -- "''${links[@]}" 2>/dev/null)
+      # A file that is gone, or no longer a link, prints nothing.
+      [ "''${#points[@]}" -eq "''${#links[@]}" ] || exit 0
+      for i in "''${!links[@]}"; do
+        [ "''${points[i]}" = "$files/''${links[i]}" ] || exit 0
+      done
+    fi
     echo "home ${owner}: generation already applied, every link intact — skipping activation"
     exit 1
   '';
