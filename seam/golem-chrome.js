@@ -1624,11 +1624,32 @@ try {
     if(mine.length>1){ var d=function(c){ var s=c.size||[0,0]; return Math.abs(s[0]-w)+Math.abs(s[1]-h); }; mine.sort(function(x,y){ return d(x)-d(y); }); }
     return mine[0];
   }
+  // null = not known (no answer, or the compositor does not list this window yet: it is
+  // asked before the window is mapped at launch) - what is shown then stays.
   async function tlFloating(win){
-    var txt=await tlRun("hyprctl",["clients","-j"]); if(!txt) return false;
+    var txt=await tlRun("hyprctl",["clients","-j"]); if(!txt) return null;
     var c=tlPick(JSON.parse(txt),Services.appinfo.processID,win.document.title,win.outerWidth,win.outerHeight);
-    return !!c && !!c.floating && !(c.fullscreen>0) && (c.tags||[]).indexOf("golem-stage")<0;
+    if(!c) return null;
+    return !!c.floating && !(c.fullscreen>0) && (c.tags||[]).indexOf("golem-stage")<0;
   }
+  // AT LAUNCH the lights are there with the bar (Max, 2026-10-05: "the traffic lights take
+  // like 1s to reveal after launch"): they waited for the +1100ms init step and then for
+  // the compositor's answer. Now the last known state is remembered (a pref) and drawn
+  // before the window is first shown; the compositor is asked as soon as the window is
+  // up and corrects it in the rare case it changed (tiled last time, floating now).
+  var TL_LAST="golem.seam.trafficLights.wasFloating";
+  function tlEarly(win){
+    try{
+      if(win.__golemTlEarly) return; win.__golemTlEarly=true;
+      var de=win.document.documentElement;
+      if(de.getAttribute("windowtype")!=="navigator:browser" || de.hasAttribute("taskbartab")) return;
+      if(!Services.prefs.getBoolPref("golem.seam.trafficLights",true) || !Services.prefs.getBoolPref(TL_LAST,false)) return;
+      var box=tlBuild(win); if(!box) return;
+      var nb=win.document.getElementById("nav-bar"); if(nb && nb.firstChild!==box) nb.insertBefore(box,nb.firstChild);
+      box.style.display="flex";
+    }catch(e){ OVLOG("traffic early:"+e); }
+  }
+  try{ Services.obs.addObserver({observe:function(w){ tlEarly(w); }},"browser-window-before-show"); }catch(e){}
   function tlAct(win,kind){
     try{
       if(kind==="close"){ try{ win.BrowserCommands.tryToCloseWindow(); }catch(e){ win.close(); } }
@@ -1703,7 +1724,9 @@ try {
       var seq=win.__golemTlSeq=(win.__golemTlSeq||0)+1; win.__golemTlAt=Date.now();
       tlFloating(win).then(function(f){
         if(win.__golemTlSeq!==seq || win.closed) return;
+        if(f===null){ if(then) then(false); return; }
         var want=f?"flex":"none", changed=box.style.display!==want; box.style.display=want;
+        try{ if(Services.prefs.getBoolPref(TL_LAST,false)!==f) Services.prefs.setBoolPref(TL_LAST,f); }catch(e){}
         if(then) then(changed);
       },function(e){ OVLOG("traffic float:"+e); });
     }catch(e){ OVLOG("traffic sync:"+e); }
@@ -2715,6 +2738,7 @@ try {
     // reflowed the toolbar.
     w.__golemStartAt=Date.now();
     try{ ovButton(w); w.__golemBtnAt=Date.now(); }catch(e){ OVLOG("button-early:"+e); }
+    try{ tlEarly(w); tlInit(w); }catch(e){ OVLOG("traffic-early:"+e); }   // the lights with the bar, not a second later
     try{ gtPlaceholderWatch(w); }catch(e){ OVLOG("placeholder-early:"+e); }   // from the first tick: no placeholder at launch either
     try{ if(!ovStartupDone){ ovStartupDone=true;
       var _st=0, _opened=false;
