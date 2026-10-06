@@ -24,6 +24,17 @@
       };
     };
 
+    # A Bluetooth network link (bnep0: sharing this computer's internet with
+    # a paired device, or using a phone's) keeps the name the kernel gave it.
+    # The radio is a USB device on most laptops, so udev's predictable names
+    # renamed bnep0 to enp0s20f0u10 a moment after BlueZ had put it in
+    # NetworkManager's shared bridge: the port went "disabled" and the other
+    # side never got an address (dev box → MacBook, 2026-10-06).
+    systemd.network.links."10-golem-bnep" = {
+      matchConfig.OriginalName = "bnep*";
+      linkConfig.NamePolicy = "keep kernel";
+    };
+
     # After a HIBERNATE (not a plain suspend) BlueZ comes back with its
     # trusted devices disconnected, and speakers and headphones stay silent
     # until reconnected by hand. The lid does suspend-then-hibernate on a
