@@ -46,7 +46,6 @@ hl.exec_cmd("/home/max/launcher/waverunner-dev")
 hl.exec_cmd("prlimit --core=1 awww-daemon")
 hl.exec_cmd("waypaper --restore")
 hl.exec_cmd("bluetoothctl power on")
-hl.exec_cmd("blueman-applet")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
 end)
 

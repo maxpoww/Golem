@@ -465,11 +465,10 @@ in
 
       # BLUETOOTH autostart only where there IS Bluetooth: the census turns
       # the stack off on a machine without an adapter (desktop/bluetooth.nix),
-      # and the session still exec'd bluetoothctl and blueman-applet — two
+      # and the session still exec'd bluetoothctl — two
       # commands with no program (ASUS X550LC parity, 2026-10-02).
       btNeedle = lib.concatStringsSep "\n" [
         ''hl.exec_cmd("bluetoothctl power on")''
-        ''hl.exec_cmd("blueman-applet")''
         ''hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")''
       ];
       hasBluetooth = osConfig.hardware.bluetooth.enable or true;
