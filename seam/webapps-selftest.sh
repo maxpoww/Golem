@@ -14,7 +14,10 @@ ver=$(grep -oE '"version": *"[^"]+"' "$here/sources.json" | grep -oE '[0-9][0-9.
 BUILD=${SEAM_BUILD:-}
 if [ -z "$BUILD" ]; then
   for d in $(ls -dt /nix/store/*-seam-"$ver" 2>/dev/null); do
-    [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { BUILD=$d; break; }
+    # the WRAPPED build (it has bin/firefox, whose wrapper names the libraries): the final
+    # Seam package is a join that carries only bin/seam, and picking it left this test
+    # unable to run after every update since the rename (2026-09-27 .. 2026-10-06)
+    [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && [ -x "$d/bin/firefox" ] && { BUILD=$d; break; }
   done
 fi
 [ -n "$BUILD" ] || { echo "no Seam $ver build in /nix/store (rebuild first, or set SEAM_BUILD)"; exit 2; }

@@ -13,8 +13,8 @@ ver=$(grep -oE '"version": *"[^"]+"' "$seam/sources.json" | grep -oE '[0-9][0-9.
 # default: the Seam this machine actually runs (its policies/prefs are what we measure); else the newest in the store
 # (/etc/profiles on the host; from a toolbox the host's /etc is under /run/host/etc)
 INSTALLED=""; for pf in /etc/profiles/per-user/$USER/bin/seam /run/host/etc/static/profiles/per-user/$USER/bin/seam; do
-  d=$(readlink -f "$pf" 2>/dev/null || true); d=${d%/bin/seam}; [ -n "$d" ] && [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { INSTALLED=$d; break; }; done
-SEAMBUILD=${SEAM_BUILD:-${INSTALLED:-$(for d in $(ls -dt /nix/store/*-seam-"$ver" /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { echo "$d"; break; }; done)}}
+  d=$(readlink -f "$pf" 2>/dev/null || true); d=${d%/bin/seam}; [ -n "$d" ] && [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && [ -x "$d/bin/firefox" ] && { INSTALLED=$d; break; }; done
+SEAMBUILD=${SEAM_BUILD:-${INSTALLED:-$(for d in $(ls -dt /nix/store/*-seam-"$ver" /nix/store/*-firefox-"$ver" 2>/dev/null); do [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && [ -x "$d/bin/firefox" ] && { echo "$d"; break; }; done)}}
 STOCK=${STOCK_BUILD:-$(ls -d /nix/store/*-firefox-bin-unwrapped-"$ver" 2>/dev/null | head -1)}
 [ -n "$SEAMBUILD" ] && [ -n "$STOCK" ] || { echo "need Seam + stock $ver builds in the store"; exit 2; }
 LDP=$(strings "$SEAMBUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')

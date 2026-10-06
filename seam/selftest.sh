@@ -21,7 +21,10 @@ BUILD=${SEAM_BUILD:-}
 if [ -z "$BUILD" ]; then
   # (a Beam-era *-firefox-<ver> build has the identical library dir; only mozilla.cfg differs and the farm replaces it)
   for d in $(ls -dt /nix/store/*-seam-"$ver" /nix/store/*-firefox-"$ver" 2>/dev/null); do
-    [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && { BUILD=$d; break; }
+    # the WRAPPED build (it has bin/firefox, whose wrapper names the libraries): the final
+    # Seam package is a join that carries only bin/seam, and picking it left this test
+    # unable to run after every update since the rename (2026-09-27 .. 2026-10-06)
+    [ -f "$d/lib/firefox-bin-$ver/mozilla.cfg" ] && [ -x "$d/bin/firefox" ] && { BUILD=$d; break; }
   done
 fi
 [ -n "$BUILD" ] || { echo "no Seam $ver build in /nix/store (rebuild first, or set SEAM_BUILD)"; exit 2; }
