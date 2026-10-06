@@ -2485,22 +2485,34 @@ try {
       var bc=win.gBrowser.selectedBrowser.closest(".browserContainer");
       r.loadingBg={var:cs("--tabpanel-background-color"), browserContainer:bc&&win.getComputedStyle(bc).backgroundColor};
       step("loading-content-golem", r.loadingBg.browserContainer==="rgb(29, 32, 38)");
+      // Each step WAITS for its expected state (up to 1.5 s) instead of assuming 150 ms: on a
+      // saturated weak machine (MacBook Air, 2026-10-06 — the throwaway profile's uBlock
+      // compiling on both cores) the fixed delay failed one step or another at random. The
+      // state the test is waiting for is reached by the sync itself or by the end of a loading
+      // hold left over from the watchdog test's heal (STATE_STOP + 800 ms).
+      var until=function(test,cb){ var t0=Date.now(); (function poll(){ if(test() || Date.now()-t0>1500) return cb(); win.setTimeout(poll,100); })(); };
+      var isGolem=function(){ return cs("--lwt-accent-color")===golem["--lwt-accent-color"] && cs("--toolbar-field-background-color")===golem["--toolbar-field-background-color"]; };
+      r.ph={before:{hold:!!win.__gtHold, engine:gtOn(), attr:root.getAttribute("golem-tint")}};
       root.style.setProperty("--lwt-accent-color","rgb(43, 42, 51)");      // ATBC fallback (loading)
-      win.setTimeout(function(){
-        r.ph={fallback:{accent:cs("--lwt-accent-color"), field:cs("--toolbar-field-background-color"), bar:nb&&win.getComputedStyle(nb).backgroundColor}};
+      until(isGolem,function(){
+        r.ph.fallback={accent:cs("--lwt-accent-color"), field:cs("--toolbar-field-background-color"), bar:nb&&win.getComputedStyle(nb).backgroundColor};
         step("placeholder-fallback→golem", r.ph.fallback.accent===golem["--lwt-accent-color"] && r.ph.fallback.field===golem["--toolbar-field-background-color"]);
         root.style.setProperty("--lwt-accent-color","rgb(28, 27, 34)");    // ATBC new tab / about:blank
-        win.setTimeout(function(){
+        until(isGolem,function(){
           r.ph.newtab=cs("--lwt-accent-color");
           step("placeholder-newtab→golem", r.ph.newtab===golem["--lwt-accent-color"]);
-          root.style.setProperty("--lwt-accent-color","rgb(192, 43, 59)");  // a real page colour
-          win.setTimeout(function(){
+          // A real page colour — NOT the tint tests' red: a loading hold keeps the Golem colour
+          // while ATBC still reports the previous tab's colour, so the same red would read as
+          // "still the old tab's" while the hold lasts.
+          root.style.setProperty("--lwt-accent-color","rgb(77, 120, 200)");
+          var isReal=function(){ return root.getAttribute("golem-tint")===null && cs("--lwt-accent-color")==="rgb(77, 120, 200)"; };
+          until(isReal,function(){
             r.ph.real=cs("--lwt-accent-color"); r.ph.attr=root.getAttribute("golem-tint");
-            step("placeholder-real-page-untouched", r.ph.attr===null && r.ph.real==="rgb(192, 43, 59)");
+            step("placeholder-real-page-untouched", r.ph.attr===null && r.ph.real==="rgb(77, 120, 200)");
             root.style.removeProperty("--lwt-accent-color"); done();
-          },150);
-        },150);
-      },150);
+          });
+        });
+      });
     }catch(e){ step("placeholder-threw:"+e,false); done(); }
   }
 
