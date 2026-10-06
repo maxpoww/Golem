@@ -211,11 +211,20 @@ of that gone"):**
   (`EP_FS`). The gate's page says "Not available — This page is not part of Seam."
 
 **Speed:**
-- uBlock compiles its filter lists at EVERY start until it has written its start-up snapshot
-  ("selfie"), which it only does 53 s into a session; a quit-means-quit browser on a slow
-  machine often never gets there. Managed `advancedSettings selfieDelayInSeconds=5`: the second
-  start is already the cheap one (dev box: extension 4.4 s → 1.0 s of CPU, whole blank start
-  13.1 s → 7.7 s; on the Acer that compile is ~5 s of CPU per start).
+- uBlock's list refresh was the biggest recurring cost of the browser on the Acer, and it was
+  misread at first as "compiles at every start without a snapshot". Three consecutive launches
+  of the same profile, every thread profiled (`bench/lab/profall.py`): the extension process spent
+  4.3 s, then 1.9 s of a 20 s window in `assetCacheWrite` → `compileFilters` → the s14e serializer,
+  with a `diff-updater.js` worker and the parent's IndexedDB threads copying 1–10 MB blobs. Every
+  default list (uBO 1.75) carries `Diff-Expires: 317 minutes`: a start more than ~5 h after the
+  last one patches all nine lists, re-compiles each (~0.5 s on the Acer), writes raw + compiled,
+  and each applied list invalidates the 10 MB start-up snapshot, rebuilt `selfieDelayInSeconds`
+  later (1.5 s + the write; with 5 s and uBO's 5 s fetch spacing, once per list). Managed
+  `advancedSettings`: `differentialUpdate=false` (lists refresh by their own `Expires` — EasyList/
+  EasyPrivacy 6 days, uBO's 5 days, the anti-adblock quick-fixes list and URLhaus 12 hours — the
+  way uBO worked before 2023) and `selfieDelayInSeconds=20` (one snapshot per batch, still inside
+  a short first session). The first start after an install still compiles the bundled lists and
+  then downloads fresh ones (bundled lists are weeks old); that is once.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
@@ -230,6 +239,13 @@ of that gone"):**
 **Measured and NOT changed (so nobody re-chases them):**
 - The bar-colour extension costs ~3% of a core while scrolling (its theme updates, 4/s): not
   worth a fork. The extension-process spikes seen in short-lived profiles were uBlock compiling.
+- VA-API zero-copy (`media.ffmpeg.vaapi.force-surface-zero-copy`): "auto" already means ON for
+  the Acer's Intel driver. Local 720p30 H.264 clip in a muted autoplay `<video>` loop, served from
+  `~/.cache/seam-www/video` by `bench/lab/serve.py` (hardware decode confirmed by
+  `mozRequestDebugInfo`; `bench/lab/yt.sh` with `YT_URL`), RDD process per 20 s: 1.13 s on auto,
+  1.02 s forced on, 2.23 s forced off. The whole browser plays that clip
+  for ~10 s of CPU per 20 s on the Acer: parent 3.9 (Renderer 0.55, Compositor 0.45), content 3.3
+  (its media threads), RDD 1.1, audio utility 0.8, uBlock 0.4 once its lists have settled.
 - Tab layer cache 16/4/0 and Firefox's low-memory site-isolation mode: five sites measured the
   same 1.08–1.12 GB on 4 GB. Nothing to tier; no isolation given up.
 - The 2.4 s of start-up main thread under "TelemetryEnvironment" is gfxPlatform initialisation

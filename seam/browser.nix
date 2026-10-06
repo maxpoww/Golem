@@ -149,15 +149,29 @@
                 # request, no cookies) may open before the click; uBO still
                 # blocks every actual request.
                 userSettings = [ [ "prefetchingDisabled" "false" ] ];
-                # uBO compiles its filter lists at EVERY start until it has written its
-                # start-up snapshot ("selfie"), which it only does 53 s into a session.
-                # Golem quits mean quit, and a session shorter than that leaves the next
-                # start compiling again: measured 4.2 s of CPU in the extension process
-                # on the dev box, ~5 s on the Acer E5-573, per start. With the snapshot
-                # 5 s after the lists are ready, the second start is already the cheap
-                # one (dev box: extension 4.4 s -> 1.0 s, whole start 13.1 s -> 7.7 s of
-                # CPU, 2026-10-06). The snapshot is a few MB written once per list update.
-                advancedSettings = [ [ "selfieDelayInSeconds" "5" ] ];
+                # uBO's list refresh is the biggest recurring CPU cost of the browser
+                # on weak hardware (profiled on the Acer E5-573, 2026-10-06, uBO 1.75):
+                # every default list carries "Diff-Expires: 317 minutes", so any start
+                # more than ~5 h after the last one patches ALL nine lists, and each
+                # patched list is re-compiled (~0.5 s each) and written twice (raw +
+                # compiled, LZ4 via the s14e serializer), then the 10 MB start-up
+                # snapshot ("selfie") is serialized again (1.5 s + the write, on an HDD).
+                # That is 5-10 s of extension-process CPU in the first minute of the
+                # day's first start, when the user is loading their first pages. (An
+                # earlier note here blamed a missing snapshot for "compiling at every
+                # start"; the recompiles were this update batch.)
+                #   differentialUpdate=false -> lists refresh by their own Expires
+                #   (EasyList/EasyPrivacy 6 days, uBO lists 5 days, uBO quick fixes —
+                #   the anti-adblock one — and URLhaus 12 hours), i.e. how uBO worked
+                #   before 2023's differential updates; a bigger download every few
+                #   days instead of nine patches + nine compiles + a snapshot per start.
+                #   selfieDelayInSeconds=20 -> one snapshot per update batch (uBO spaces
+                #   list fetches 5 s apart, so a 5 s delay rebuilt the snapshot after
+                #   EVERY list), still written within a short first session.
+                advancedSettings = [
+                  [ "selfieDelayInSeconds" "20" ]
+                  [ "differentialUpdate" "false" ]
+                ];
               };
             };
           };
