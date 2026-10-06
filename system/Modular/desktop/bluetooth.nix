@@ -35,6 +35,14 @@
       linkConfig.NamePolicy = "keep kernel";
     };
 
+    # ...and the devices on that link may ask this computer for an address
+    # and for names: NetworkManager runs the little server (dnsmasq) on the
+    # shared bridge, and the firewall dropped what was sent to it.
+    networking.firewall.interfaces."golem-bt" = {
+      allowedUDPPorts = [ 53 67 ];
+      allowedTCPPorts = [ 53 ];
+    };
+
     # After a HIBERNATE (not a plain suspend) BlueZ comes back with its
     # trusted devices disconnected, and speakers and headphones stay silent
     # until reconnected by hand. The lid does suspend-then-hibernate on a
