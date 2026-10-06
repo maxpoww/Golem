@@ -24,7 +24,7 @@
 LAB=$HOME/.cache/seam-lab; V=$1; MODE=${2:-fresh}; MS=${MS:-40000}
 export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1
 export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t /run/user/1000/hypr | head -1)   # newest: a restarted compositor leaves its old directory behind
-I=$(readlink -f "$(command -v seam)"); W=$(grep -o '/nix/store/[^"]*bin/firefox' "$I" | head -1); L=$(dirname "$W")/../lib/firefox-bin-157.0
+I=$(readlink -f "$(command -v seam)"); W=$(grep -o '/nix/store/[^"]*bin/firefox' "$I" | head -1); L=$(ls -d "$(dirname "$W")"/../lib/firefox-bin-* | head -1)
 F=$LAB/farm-$V; IN=$LAB/in/$V; P=$LAB/prof-$V; O=$LAB/out-$V-$MODE.json
 chmod -R u+w "$F" 2>/dev/null; rm -rf "$F"; mkdir -p "$F"; cp -rs "$L/." "$F/"; chmod -R u+w "$F"
 rm -f "$F/firefox" "$F/firefox-bin" "$F/mozilla.cfg" "$F/distribution/policies.json"

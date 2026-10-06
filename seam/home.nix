@@ -123,6 +123,12 @@ in
     // above pins to the panel's 165. Fixed it instantly (2026-09-12).
     // Trade-off to remember: the timer renders at full rate even when
     // the compositor would throttle — fine here, revisit on battery.
+    // MEASURED ON A 60 Hz WEAK PANEL TOO (Acer E5-573, HD 5500, 2026-10-06, a real
+    // wheel through the input stack, the compositor's frame markers): timer pacing
+    // = 60.1 composites/s, p99 gap 17.7 ms, 4 gaps over 25 ms in 22 s; Firefox's
+    // compositor pacing (true) = p99 44-50 ms, 30+ gaps over 25 ms, and more CPU.
+    // Partial present on/off made no difference to cadence or CPU there. So this
+    // pair stays as it is on every tier; nothing to size per machine.
     user_pref("widget.wayland.vsync.enabled", false);
 
     // Scroll gain: percent of each touchpad/wheel delta. 100 = stock;

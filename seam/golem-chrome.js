@@ -199,6 +199,8 @@ try {
   // were on) shows through until it does — the "previous tab flash". Web content is an
   // opaque Wayland subsurface above all chrome, so that gap can't be masked; the only
   // real cure is to make the picked tab paint with no gap, i.e. keep its layers warm.
+  // (Sizing this per machine was tried 2026-10-06 and dropped: on the Acer E5-573 (4 GB)
+  // five sites measured the same memory at 16, 4 and 0.)
   try{ pref("browser.tabs.remote.tabCacheSize", 16); }catch(e){}
   try{ pref("browser.tabs.remote.warmup.enabled", true); }catch(e){}
   try{ pref("browser.tabs.remote.warmup.maxTabs", 16); }catch(e){}
@@ -1750,6 +1752,118 @@ try {
     tlSync(win); win.setTimeout(function(){ tlSync(win); },1500);
   }
 
+  // =================================================================
+  // FIREFOX'S OWN PAGES ARE NOT SEAM'S (Max, 2026-10-06: "i still can go into firefox settings
+  // from a couple different ways... we need all of that gone"). Settings, add-ons manager,
+  // about:config, troubleshooting, profiling, telemetry, studies, the whole about: catalogue
+  // of a browser Seam is not. One gate for every way in — the address bar, a link, a menu, a
+  // keyboard shortcut, a "Manage settings" button in a panel: a content policy in the parent,
+  // the same mechanism Firefox's own enterprise WebsiteFilter uses, refuses the DOCUMENT load.
+  // What the tab shows then is Firefox's blocked-page error page, which userContent.css turns
+  // into Seam's plain one. Kept: about:blank, downloads (Seam's own button opens it), logins
+  // (saved passwords), the error pages, private browsing, reader, pdf, session restore,
+  // restart-required, tab-crashed. Kill switch: golem.seam.ownPagesOnly.
+  // =================================================================
+  var AB_BLOCK={};
+  ("about addons aichatcontent aitab asrouter buildconfig cache cache-entry certificate checkerboard compat config crashes credits debugging devtools-toolbox "+
+   "deleteprofile editprofile newprofile profilemanager profiles fingerprintingprotection firefoxview glean keyboard license logging logo loginsimportreport memory "+
+   "messagepreview mozilla networking opentabs performance policies preferences settings processes profiling protections referrals rights robots serviceworkers "+
+   "smartformfillreview smartwindowtasks studies support sync-log telemetry unloads url-classifier webauthn webrtc welcome welcomeback").split(" ").forEach(function(w){ AB_BLOCK[w]=1; });
+  function abWhat(uri){ try{ if(!uri.schemeIs("about")) return null; return uri.filePath.split(/[?#]/)[0].toLowerCase(); }catch(e){ return null; } }
+  var abPolicy={
+    shouldLoad:function(uri,loadInfo){
+      try{
+        var Ci=Components.interfaces, t=loadInfo.externalContentPolicyType;
+        if(t===Ci.nsIContentPolicy.TYPE_DOCUMENT || t===Ci.nsIContentPolicy.TYPE_SUBDOCUMENT){ var w=abWhat(uri); if(w && AB_BLOCK[w]) return Ci.nsIContentPolicy.REJECT_POLICY; }
+      }catch(e){}
+      return Components.interfaces.nsIContentPolicy.ACCEPT;
+    },
+    shouldProcess:function(){ return Components.interfaces.nsIContentPolicy.ACCEPT; },
+    classDescription:"Seam own-pages content policy", contractID:"@golem/seam-own-pages-policy;1", classID:Components.ID("{6f1d2b3e-5c7a-4a9e-9b1c-2e0f7d8a1b45}"),
+    QueryInterface:ChromeUtils.generateQI(["nsIContentPolicy"]),
+    createInstance:function(iid){ return this.QueryInterface(iid); }
+  };
+  function abInit(){
+    var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.ownPagesOnly",true); }catch(e){}
+    if(!on) return;
+    var reg=Components.manager.QueryInterface(Components.interfaces.nsIComponentRegistrar);
+    if(reg.isContractIDRegistered(abPolicy.contractID)) return;
+    reg.registerFactory(abPolicy.classID, abPolicy.classDescription, abPolicy.contractID, abPolicy);
+    Services.catMan.addCategoryEntry("content-policy", abPolicy.contractID, abPolicy.contractID, false, true);
+  }
+  try{ abInit(); }catch(e){ OVLOG("own pages:"+e); }
+
+  // =================================================================
+  // SEAM'S OWN ERROR PAGES (Max, 2026-10-06: "when no internet or dns not found, seam shows
+  // firefox's 'server not found' page... all replaced with simple, clean pages, white text on
+  // the dark background"). Firefox 157 draws its error pages (about:neterror, certerror,
+  // httpsonlyerror, blocked, tabcrashed, restartrequired) inside a <net-error-card> shadow
+  // tree: a user stylesheet cannot reach in there, a frame script can. In the content
+  // process, when such a page has loaded: the page goes dark with white text, the drawing,
+  // the "what can you do" list, the Learn-more link and the brand go; the buttons stay only
+  // where they are the way through (a certificate or HTTPS-only warning, a captive portal, a
+  // crashed tab); the Try-again of a plain network error goes (the toolbar reloads). The
+  // blocked page the own-pages gate lands on says it is not part of Seam.
+  // =================================================================
+  var EP_FS="data:application/javascript,"+encodeURIComponent(
+    "(function(){"+
+    "var BG='rgb(29,32,38)', FG='#fff', DIM='rgba(255,255,255,.62)';"+
+    "function isErr(d){ var u=d.documentURI||''; return /^about:(neterror|certerror|httpsonlyerror|blocked|tabcrashed|restartrequired|framecrashed)/.test(u); }"+
+    "function errCode(d){ var m=/[?&]e=([^&]*)/.exec(d.documentURI||''); return m?decodeURIComponent(m[1]):''; }"+
+    "function keepButtons(d){ var u=d.documentURI||'', e=errCode(d); return /^about:(certerror|httpsonlyerror|blocked|tabcrashed|restartrequired)/.test(u) || /cert|ssl|captive|clockSkew|nss|mitm|hsts|pkp|sts/i.test(e); }"+
+    "function sheet(doc,root,css){ var sh=new content.CSSStyleSheet(); sh.replaceSync(css); root.adoptedStyleSheets=root.adoptedStyleSheets.concat([sh]); if(root===doc.head||root===doc) doc.__seamSheet=true; }"+   /* a constructed sheet: the page's CSP (default-src chrome:) refuses an inline <style>, not the CSSOM */
+    "function brand(n){ try{ var w=n.ownerDocument.createTreeWalker(n,4); var t; while((t=w.nextNode())){ if(/Firefox|Mozilla/.test(t.data)) t.data=t.data.replace(/Mozilla Firefox|Firefox|Mozilla/g,'Seam'); } }catch(e){} }"+
+    "function style(d){"+
+    "  if(d.__seamErr) return; var card=d.querySelector('net-error-card'); var sr=card&&(card.openOrClosedShadowRoot||card.shadowRoot);"+
+    "  if(!d.head) return; if(!d.__seamSheet) sheet(d,d,"+
+    "    'html,body{background:'+BG+' !important;color:'+FG+' !important;margin:0}body{font:16px/1.5 system-ui,sans-serif !important;min-height:100vh;display:flex;align-items:center;justify-content:center}'+"+
+    "    'img,svg,picture,.illustration,#sslKeyLoggingWarning{display:none !important}net-error-card{color:'+FG+' !important;max-width:560px;width:100%;padding:24px}'+"+
+    "    'a{color:'+DIM+'}h1,h2{font-weight:600;font-size:22px;margin:0 0 10px}p{margin:0 0 8px;color:'+DIM+'}'+"+
+    "    (keepButtons(d)?'':'button,moz-button,moz-button-group,.button-container{display:none !important}'));"+
+    "  if(!sr) return;"+
+    "  var hide=['.img-container','img','#error-learn-more-link','h3','ul','.what-can-you-do-list','#error-intro + div','moz-message-bar','#advancedPanelReturnButton']; "+
+    "  var e=errCode(d);"+
+    "  sheet(d,sr,'.felt-privacy-container,.container{background:transparent !important;box-shadow:none !important;border:0 !important;max-width:560px;padding:0 !important;margin:0 auto !important;color:'+FG+' !important;display:block !important}'+"+
+    "    hide.map(function(h){ return h+'{display:none !important}'; }).join('')+"+
+    "    (hide.indexOf('h3')>=0?'p:has(> #error-learn-more-link){display:none !important}':'')+"+
+    "    'h1,#error-title{color:'+FG+' !important;font:600 22px/1.3 system-ui,sans-serif !important;margin:0 0 10px !important}p,#error-intro{color:'+DIM+' !important;font:16px/1.5 system-ui,sans-serif !important}'+"+
+    "    (keepButtons(d)?'moz-button-group{margin-top:18px}':'moz-button-group,moz-button,button{display:none !important}'));"+
+    "  var t=sr.querySelector('#error-title'), p=sr.querySelector('#error-intro');"+
+    "  if(e==='blockedByPolicy'){ if(t) t.textContent='Not available'; if(p){ p.textContent='This page is not part of Seam.'; } }"+
+    "  else { brand(sr); }"+
+    "  d.__seamErr=true;"+
+    "}"+
+    "function arm(d){ if(!d||!isErr(d)) return; var tries=0; (function tick(){ try{ style(d); }catch(e){} if(!d.__seamErr && ++tries<12) content.setTimeout(tick, tries<4?60:250); })(); }"+
+    "addEventListener('DOMContentLoaded',function(ev){ arm(ev.target); },true);"+
+    "addEventListener('pageshow',function(ev){ arm(ev.target); },true);"+
+    "try{ arm(content.document); }catch(e){}"+
+    "})();");
+  function epInit(win){
+    if(win.__golemEpInit) return; win.__golemEpInit=true;
+    var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.ownErrorPages",true); }catch(e){}
+    if(!on) return;
+    try{ win.messageManager.loadFrameScript(EP_FS,true); }catch(e){ OVLOG("error pages framescript:"+e); }
+  }
+
+  // =================================================================
+  // THE TOOLBAR'S RIGHT-CLICK MENU KEEPS ONLY THE TAB VERBS (2026-10-06, the same debloat):
+  // new tab, reload, bookmark, select all, reopen closed. Firefox's "Customize Toolbar",
+  // "Pin to overflow", "Remove from toolbar", the sidebar/vertical-tabs toggles, the
+  // extension entries and the "Bookmarks Toolbar" switch are a browser configuring itself;
+  // Seam's layout is Golem's. Hidden on every open (the menu rebuilds its items).
+  // =================================================================
+  var TC_KEEP={"toolbar-context-openANewTab":1,"toolbarNavigatorItemsMenuSeparator":1,"toolbar-context-reloadSelectedTab":1,"toolbar-context-reloadSelectedTabs":1,
+    "toolbar-context-bookmarkSelectedTab":1,"toolbar-context-bookmarkSelectedTabs":1,"toolbar-context-selectAllTabs":1,"toolbar-context-undoCloseTab":1,
+    "toolbar-context-full-screen-autohide":1,"toolbar-context-full-screen-exit":1};
+  function tcInit(win){
+    if(win.__golemTcInit) return; win.__golemTcInit=true;
+    var m=win.document.getElementById("toolbar-context-menu"); if(!m) return;
+    m.addEventListener("popupshowing",function(ev){
+      if(ev.target!==m) return;
+      try{ for(var c=m.firstElementChild;c;c=c.nextElementSibling){ if(!TC_KEEP[c.id]) c.hidden=true; } }catch(e){}
+    });
+  }
+
   function ttInit(win){
     try{ var gb=win.gBrowser; if(!gb || gb.__golemTitle || typeof gb.getWindowTitleForBrowser!=="function") return; gb.__golemTitle=true;
       var orig=gb.getWindowTitleForBrowser;
@@ -2312,8 +2426,20 @@ try {
       var st={via:via, active:b.docShellIsActive, layers:(typeof b.hasLayers==="boolean"?b.hasLayers:"?"), render:(typeof b.renderLayers==="boolean"?b.renderLayers:"?"),
               panel:(tp?tp.style.visibility:"?"), ovAttr:root.hasAttribute("golem-ov"), pin:root.hasAttribute("golem-ov-pin"),
               url:(function(){ try{ return b.currentURI.scheme; }catch(e){ return "?"; } })(), busy:win.gBrowser.selectedTab.hasAttribute("busy")};
-      var bad = st.active===false || st.panel==="hidden" || st.panel==="collapse" || st.ovAttr || st.layers===false;
-      if(!bad) return;
+      // States only WE put a tab in are healed at once. "No layers yet" on its own is not one of
+      // them: 700ms after a switch a weak machine has often simply not painted yet (the Acer
+      // E5-573 failed the no-false-positives selftest on exactly this, 2026-10-06), and the
+      // heal — docShell off and on again — would restart the very paint it is waiting for. So
+      // that state is looked at again, twice, 1.5 s apart, and healed only if it is still there
+      // on a tab that is not loading.
+      var ours = st.active===false || st.panel==="hidden" || st.panel==="collapse" || st.ovAttr;
+      if(!ours){
+        if(st.layers!==false) { b.__golemSlowChecks=0; return; }
+        var n=b.__golemSlowChecks||0;
+        if(n<2 || st.busy){ b.__golemSlowChecks=st.busy?0:n+1; win.setTimeout(function(){ if(win.gBrowser.selectedBrowser===b) ovBlankCheck(win,via+"+slow"); },1500); return; }
+        b.__golemSlowChecks=0;
+      }
+      win.__golemBlankLast=st;
       if(st.panel) try{ tp.style.visibility=""; }catch(e){}
       try{ root.removeAttribute("golem-ov"); }catch(e){}
       try{ if(!b.docShellIsActive) b.docShellIsActive=true; else if(st.layers===false){ b.docShellIsActive=false; b.docShellIsActive=true; } }catch(e){}
@@ -2331,7 +2457,7 @@ try {
     try{
       var gb=win.gBrowser;
       r.healsBeforeInject=win.__golemBlankHeals||0;
-      step("watchdog-no-false-positives", r.healsBeforeInject===0); r.nudges=win.__golemNudges||0; step("paint-nudge-runs", r.nudges>0);
+      step("watchdog-no-false-positives", r.healsBeforeInject===0); r.healState=win.__golemBlankLast||null; r.nudges=win.__golemNudges||0; step("paint-nudge-runs", r.nudges>0);
       var t=gb.addTrustedTab("about:blank");
       win.setTimeout(function(){
         try{ gb.selectedTab=t; }catch(e){} if(gb.selectedTab!==t){ var i=Array.prototype.indexOf.call(gb.tabs,t); if(i>=0) gb.tabContainer.selectedIndex=i; }
@@ -2775,6 +2901,8 @@ try {
       try{ pfInit(w); }catch(e){ OVLOG("prefetch init:"+e); }
       try{ ttInit(w); }catch(e){ OVLOG("title init:"+e); }
       try{ nsInit(w); }catch(e){ OVLOG("newtab suggest init:"+e); }
+      try{ epInit(w); }catch(e){ OVLOG("error pages init:"+e); }
+      try{ tcInit(w); }catch(e){ OVLOG("toolbar menu init:"+e); }
       try{ tlInit(w); }catch(e){ OVLOG("traffic init:"+e); }
       if(!OV_SELFTEST){ try{ nbInit(w); }catch(e){ OVLOG("one new tab init:"+e); } }   // the selftest's own fixtures are empty tabs
       if(OV_SELFTEST) w.setTimeout(function(){ ovSelfTest(w); }, 400);

@@ -189,6 +189,55 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
 - ⚠ Firefox's own prefetch service (`nsIPrefetchService`, what `<link rel=prefetch>` uses) stores entries a top-level navigation NEVER uses (0/3 served from cache, even fresh) — the page `fetch()` route is the one that works (3/3). Its 2nd argument in 156 is an `nsIReferrerInfo`, and it refuses with a bare NS_ERROR_ABORT while `network.prefetch-next` is false (uBO's first run flips it off in a fresh profile before its managed setting lands; a live profile has it on).
 - Bench gotchas: `data:` URLs decode `+` to a space; the two variants share proxy ports; the proxy logs only the first request per connection (a click reusing the prefetch's connection is invisible there — count `http-on-modify-request` / `http-on-examine-cached-response` inside Firefox instead); temporary IPv6 addresses rotate on reboot (`BENCH_CLICK_HOST` must be re-read).
 
+## Lean pass 2 (2026-10-06): the Acer as the weak machine, measured end to end
+
+Machine: Acer Aspire E5-573 (i5-5200U, 2 cores, 4 GB, HD 5500, a spinning HDD, 1366×768 at
+scale 0.67, 60 Hz). Every number below is from its real screen through `bench/lab/`.
+
+**Debloat (Max: "i still can go into firefox settings from a couple different ways… we need all
+of that gone"):**
+- Every way into Firefox's own pages is closed by ONE gate: a content policy in the parent (the
+  mechanism of Firefox's enterprise WebsiteFilter) refuses the document load of about:preferences,
+  config, addons, support, profiling, telemetry, studies, policies… (the list is `AB_BLOCK` in
+  golem-chrome.js). Kept: blank, downloads, logins, the error pages, private browsing, reader, pdf,
+  session restore, restart-required, tab-crashed. What the tab shows is the blocked-page error page,
+  which is now Seam's own (below). Also: `DisplayMenuBar = never` (Alt+F still opened the hidden
+  menu bar), and the toolbar's right-click menu keeps only the tab verbs.
+- Error pages are Seam's: dark, white title and one line, no drawing, no list of tips, no
+  Learn-more, brand name replaced; the buttons stay only where they are the way through (a
+  certificate or HTTPS-only warning, captive portal, a crashed tab). Firefox 157 draws these
+  inside a `<net-error-card>` shadow tree with a CSP that refuses inline styles, so this is a
+  content frame script adopting a constructed stylesheet into the document and the shadow root
+  (`EP_FS`). The gate's page says "Not available — This page is not part of Seam."
+
+**Speed:**
+- uBlock compiles its filter lists at EVERY start until it has written its start-up snapshot
+  ("selfie"), which it only does 53 s into a session; a quit-means-quit browser on a slow
+  machine often never gets there. Managed `advancedSettings selfieDelayInSeconds=5`: the second
+  start is already the cheap one (dev box: extension 4.4 s → 1.0 s of CPU, whole blank start
+  13.1 s → 7.7 s; on the Acer that compile is ~5 s of CPU per start).
+- The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
+  weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
+  MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
+  twice, 1.5 s apart, before healing.
+- Presentation pacing was MEASURED on the 60 Hz panel with a real wheel through the input stack and
+  the compositor's own frame markers: Seam's timer pacing = 60.1 composites/s, p99 gap 17.7 ms;
+  Firefox's compositor pacing = p99 44–50 ms with 30+ gaps over 25 ms. Partial present made no
+  difference. The shipped pair stays on every tier.
+- Codec steering (built 09-26) verified on Broadwell: YouTube 720p with it = RDD 0.5 s per 20 s
+  (hardware H.264); without = RDD 3.8 s (software VP9).
+
+**Measured and NOT changed (so nobody re-chases them):**
+- The bar-colour extension costs ~3% of a core while scrolling (its theme updates, 4/s): not
+  worth a fork. The extension-process spikes seen in short-lived profiles were uBlock compiling.
+- Tab layer cache 16/4/0 and Firefox's low-memory site-isolation mode: five sites measured the
+  same 1.08–1.12 GB on 4 GB. Nothing to tier; no isolation given up.
+- The 2.4 s of start-up main thread under "TelemetryEnvironment" is gfxPlatform initialisation
+  (610 ms on the first `ContentBackend` read), work the first window needs anyway, only earlier.
+- A cold start from the spinning disk: first paint 15.8 s, 21 s of CPU (warm: 1.1 s / 5.3 s).
+  Max's call (2026-09-26): launch speed is not the goal. A post-login readahead of libxul/omni
+  would make it ~1 s; not built.
+
 ## Lean (2026-10-04): nothing runs that Seam does not show
 
 Measured on the weakest machine in the lab (MacBook Air 6,2: i5-4250U, 4 GB, HD 5000),

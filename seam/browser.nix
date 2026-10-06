@@ -95,6 +95,8 @@
           DisableSetDesktopBackground = true;
           DisableFirefoxScreenshots = true;
           DisableProfileRefresh = true;
+          # No menu bar, not even on Alt (userChrome.css hid it; Alt+F still opened it, 2026-10-06).
+          DisplayMenuBar = "never";
           # No Mozilla starter bookmarks in Favorites.
           NoDefaultBookmarks = true;
           # Profile backup/restore, Mozilla VPN, image search by a third party: not Seam.
@@ -147,6 +149,15 @@
                 # request, no cookies) may open before the click; uBO still
                 # blocks every actual request.
                 userSettings = [ [ "prefetchingDisabled" "false" ] ];
+                # uBO compiles its filter lists at EVERY start until it has written its
+                # start-up snapshot ("selfie"), which it only does 53 s into a session.
+                # Golem quits mean quit, and a session shorter than that leaves the next
+                # start compiling again: measured 4.2 s of CPU in the extension process
+                # on the dev box, ~5 s on the Acer E5-573, per start. With the snapshot
+                # 5 s after the lists are ready, the second start is already the cheap
+                # one (dev box: extension 4.4 s -> 1.0 s, whole start 13.1 s -> 7.7 s of
+                # CPU, 2026-10-06). The snapshot is a few MB written once per list update.
+                advancedSettings = [ [ "selfieDelayInSeconds" "5" ] ];
               };
             };
           };

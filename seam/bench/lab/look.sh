@@ -2,7 +2,7 @@
 # look.sh — a COPY of the installed Seam with the files in /tmp/seam-look swapped in; reports the top bar's geometry and takes a screenshot.
 D=/tmp/seam-look; export XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1
 export HYPRLAND_INSTANCE_SIGNATURE=$(ls -t /run/user/1000/hypr | head -1)
-I=$(readlink -f "$(command -v seam)"); W=$(grep -o '/nix/store/[^"]*bin/firefox' "$I" | head -1); L=$(dirname "$W")/../lib/firefox-bin-157.0
+I=$(readlink -f "$(command -v seam)"); W=$(grep -o '/nix/store/[^"]*bin/firefox' "$I" | head -1); L=$(ls -d "$(dirname "$W")"/../lib/firefox-bin-* | head -1)
 chmod -R u+w $D/farm 2>/dev/null; rm -rf $D/farm $D/prof $D/out.json; mkdir -p $D/farm $D/prof/chrome; F=$D/farm
 cp -rs "$L/." "$F/"; chmod -R u+w "$F"; rm -f "$F/firefox" "$F/firefox-bin" "$F/mozilla.cfg"; cp -L "$L/firefox" "$L/firefox-bin" "$F/"
 first=$(grep -n -m1 'GOLEM chrome script' "$L/mozilla.cfg" | cut -d: -f1); head -n $((first-2)) "$L/mozilla.cfg" > "$F/mozilla.cfg"
