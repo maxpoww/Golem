@@ -70,4 +70,13 @@ in
   services.udisks2.package = pkgs.udisks.override { exfat = pkgs.exfatprogs; };
 
   environment.systemPackages = [ pkgs.libva-utils pkgs.exfatprogs pkgs.ntfs3g ];
+
+  # Wi-Fi hotspot: the devices that join ask this computer for an address and
+  # for names (NetworkManager runs dnsmasq on the shared interface). The
+  # firewall let neither in. Nothing listens on these ports unless a hotspot
+  # is on. ("wl+" = any wireless interface, whatever its name.)
+  networking.firewall.interfaces."wl+" = {
+    allowedUDPPorts = [ 53 67 ];
+    allowedTCPPorts = [ 53 ];
+  };
 }

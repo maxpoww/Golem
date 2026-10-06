@@ -9,6 +9,20 @@
   config = lib.mkIf config.golem.hardware.hasBluetooth {
     services.blueman.enable = true;
 
+    # Blueman stays installed (its manager window is there for whoever wants
+    # it) but its applet no longer starts with the session. The applet
+    # registers BlueZ's pairing agent and its file-transfer agent the moment
+    # it starts, and there is one of each: the gear box's Bluetooth page then
+    # could not receive files at all, and a pairing begun on a phone reached
+    # the owner as a bare notification with nothing to press (found testing
+    # the gear box, 2026-10-06). The dock answers both now.
+    environment.etc."xdg/autostart/blueman.desktop".text = ''
+      [Desktop Entry]
+      Type=Application
+      Name=Blueman Applet
+      Hidden=true
+    '';
+
     hardware.bluetooth = {
       enable = true;
       powerOnBoot = true;
