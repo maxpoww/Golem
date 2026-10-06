@@ -129,7 +129,14 @@ fi
 wpid=$(pgrep -u "$(id -u)" -f 'bin/(\.)?waverunner(-wrapped)?$' | head -1)
 if [[ -n "$wpid" ]]; then
   wrun=$(readlink -f "/proc/$wpid/exe" 2>/dev/null); wrun=${wrun%%/bin/*}
-  wwant=$(systemctl --user show waverunner -p ExecStart --value 2>/dev/null | grep -oE '/nix/store/[^ ;/]+' | head -1)
+  # The unit starts a wrapper (golem-vulkan-drivers) that execs the daemon:
+  # the daemon's own store path is in ExecStart, or inside that wrapper.
+  wexec=$(systemctl --user show waverunner -p ExecStart --value 2>/dev/null)
+  wwant=$(grep -oE '/nix/store/[^ ;/]+-waverunner-daemon[^ ;/]*' <<<"$wexec" | head -1)
+  if [[ -z "$wwant" ]]; then
+    wwrap=$(grep -oE '/nix/store/[^ ;]+' <<<"$wexec" | head -1)
+    [[ -f "$wwrap" ]] && wwant=$(grep -aoE '/nix/store/[^ ;/"]+-waverunner-daemon[^ ;/"]*' "$wwrap" | head -1)
+  fi
   if [[ -n "$wwant" && -n "$wrun" && "$wrun" != "$wwant" ]]; then
     echo "STALE waverunner running=$wrun installed=$wwant"
   else echo "ok waverunner"; fi
