@@ -1,6 +1,6 @@
 --- a/src/desktop/view/LayerSurface.cpp	2026-10-04 20:42:37.314505206 +0000
 +++ b/src/desktop/view/LayerSurface.cpp	2026-10-04 20:56:01.347167334 +0000
-@@ -312,7 +312,24 @@
+@@ -312,7 +312,28 @@
          PMONITOR->m_blurFBDirty = true;
  
      CBox geomFixed = {m_geometry.x, m_geometry.y, m_geometry.width, m_geometry.height};
@@ -12,21 +12,25 @@
 +    // A commit damages what the client said changed (damageSurface, below), as
 +    // a window's commit does. The whole box is still damaged when layer-shell
 +    // state changed, when what is shown where changed (viewport, opaque
-+    // region), when the box changes size (further down), and when a buffer
-+    // arrives with no damage at all (a client that never posts any).
++    // region), when the box changes size (further down), when a buffer
++    // arrives with no damage at all (a client that never posts any), and when
++    // a commit without damage carries a frame request: a layer is answered
++    // only when it is drawn, and stock drew it on every commit. Without this
++    // a bare commit asking for a callback was never answered, and a client
++    // waiting on it stalled (the OPTIONS bar, dev box 2026-10-06).
 +    bool damageWhole = true;
 +    if (m_layerSurface->m_current.committed == 0 && m_layerSurface->m_surface) {
 +        auto&      state     = m_layerSurface->m_surface->m_current;
 +        const bool REMAPPED  = state.updated.bits.viewport || state.updated.bits.opaque;
 +        const bool HASDAMAGE = !state.accumulateBufferDamage().empty();
-+        damageWhole          = REMAPPED || (state.updated.bits.buffer && !HASDAMAGE);
++        damageWhole          = REMAPPED || (!HASDAMAGE && (state.updated.bits.buffer || !state.callbacks.empty()));
 +    }
 +    if (damageWhole)
 +        g_pHyprRenderer->damageBox(geomFixed);
  
      if (m_layerSurface->m_current.committed != 0) {
          if (m_layerSurface->m_current.committed & CLayerShellResource::eCommittedState::STATE_LAYER && m_layerSurface->m_current.layer != m_layer) {
-@@ -354,6 +371,13 @@
+@@ -354,6 +375,13 @@
              // this is because some apps like e.g. rofi-lbonn can't fucking use the protocol correctly.
              m_geometry = {m_geometry.pos(), m_layerSurface->m_surface->m_current.size};
          }
