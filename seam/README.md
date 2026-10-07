@@ -189,6 +189,27 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
 - ⚠ Firefox's own prefetch service (`nsIPrefetchService`, what `<link rel=prefetch>` uses) stores entries a top-level navigation NEVER uses (0/3 served from cache, even fresh) — the page `fetch()` route is the one that works (3/3). Its 2nd argument in 156 is an `nsIReferrerInfo`, and it refuses with a bare NS_ERROR_ABORT while `network.prefetch-next` is false (uBO's first run flips it off in a fresh profile before its managed setting lands; a live profile has it on).
 - Bench gotchas: `data:` URLs decode `+` to a space; the two variants share proxy ports; the proxy logs only the first request per connection (a click reusing the prefetch's connection is invisible there — count `http-on-modify-request` / `http-on-examine-cached-response` inside Firefox instead); temporary IPv6 addresses rotate on reboot (`BENCH_CLICK_HOST` must be re-read).
 
+## Seam at the 2026-10 cut — what is pinned, and how to move it
+
+- **Firefox 157.0.1** (`sources.json`), Mozilla's own Linux build; the lane (`lane.nix`,
+  `update.sh`, `seam-update.timer`) bumps the pin on each Mozilla release, rebuilds, runs
+  `seam-selftest`, and restores the old pin if that fails.
+- **uBlock Origin 1.75.0 and Adaptive Tab Bar Colour 4.3.0** (`extensions.json`) ship INSIDE the
+  package and are installed from it at first start (`ExtensionSettings.install_url = file://…`):
+  a fresh Golem gets its blocker and its bar colour with no network and no dependence on what AMO
+  serves that day; Firefox updates them from AMO afterwards like any add-on. Bump by hand: resolve
+  AMO's `latest.xpi` redirect, record version/url/sha256/file, rebuild, selftest. The selftest step
+  `extensions-from-package-active` fails if either is missing or inactive on a fresh profile.
+- **Managed uBlock settings** (`browser.nix`): `prefetchingDisabled=false`; `advancedSettings`
+  `selfieDelayInSeconds=20`, `differentialUpdate=false`; `toOverwrite.filters` = the six YouTube
+  `trusted-edit-inbound-object` exceptions + `||www.youtube.com/sw.js$script,domain=youtube.com`.
+  Changing that list makes every profile re-save My filters and rebuild uBlock's snapshot once.
+- **Chrome script** (`golem-chrome.js`): the about: gate, Seam's error pages, codec steering with
+  the learned 60 fps cap, the one-time YouTube service-worker removal, the watchdog, titles,
+  lights, new-tab suggestions, webapps. `seam-selftest` (headless) and `webapps-selftest.sh` are
+  the gates; both ALL PASS at this cut.
+- The measurements behind every choice: the two "Lean" sections below and `bench/lab/`.
+
 ## Lean pass 2 (2026-10-06): the Acer as the weak machine, measured end to end
 
 Machine: Acer Aspire E5-573 (i5-5200U, 2 cores, 4 GB, HD 5500, a spinning HDD, 1366×768 at

@@ -29,7 +29,14 @@
       # firefox, which lags Mozilla's security releases by days.
       # (Until 2026-09-27 this overrode `firefox` itself, so "install Firefox" gave Beam.
       # Seam is its own package now; `pkgs.firefox` is plain Firefox again, side by side.)
-      golem-seam-wrapped = final.golem-seam-base.override {
+      # The extensions come WITH the package (./extensions.json: version, url, sha256) and are
+      # installed from it at first start — a fresh Golem gets its blocker and bar colour with
+      # no network and no "whatever AMO serves today" (2026-10-07, the ISO cut). Firefox keeps
+      # updating them from AMO afterwards, as it does for any installed add-on.
+      golem-seam-wrapped = let
+        ext = builtins.fromJSON (builtins.readFile ./extensions.json);
+        xpi = id: final.fetchurl { inherit (ext.${id}) url sha256; name = ext.${id}.file; };
+      in final.golem-seam-base.override {
         # The Golem chrome script — privileged UI foundation. extraPrefs
         # is appended verbatim into mozilla.cfg (the autoconfig file);
         # the sandbox pref below is what elevates it from pref-setting to
@@ -55,8 +62,7 @@
           # cause breakage that is miserable to diagnose.
           ExtensionSettings = {
             "uBlock0@raymondhill.net" = {
-              install_url =
-                "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
+              install_url = "file://${xpi "uBlock0@raymondhill.net"}";   # pinned, in the package (./extensions.json)
               installation_mode = "force_installed";
               private_browsing = true;
               # On the toolbar itself — the extensions puzzle-menu is
@@ -72,8 +78,7 @@
             # sampling again. Earlier note: its content script coincided with a
             # measured scroll regression on this machine.
             "ATBC@EasonWong" = {
-              install_url =
-                "https://addons.mozilla.org/firefox/downloads/latest/adaptive-tab-bar-colour/latest.xpi";
+              install_url = "file://${xpi "ATBC@EasonWong"}";   # pinned, in the package (./extensions.json)
               installation_mode = "force_installed";
               private_browsing = true;
             };

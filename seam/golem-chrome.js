@@ -2784,7 +2784,14 @@ try {
           win.setTimeout(function(){ var tf=String(b.contentTitle||""); r.codecs.fpsPage=tf; Services.prefs.setBoolPref(FC_PREF,fpsWas);
           step("fps-page-60-not-smooth", tf.indexOf("false,true,true,false")===0);   // 60 fps: not smooth, still supported; 30 fps supported; an MSE type naming 60 fps refused
           Services.prefs.setBoolPref(CB_ON,false);
-          see(function(t2){ r.codecs.pageOff=t2; step("codecs-kill-switch-restores", t2==="true,true,true"); Services.prefs.clearUserPref(CB_ON); done(); });
+          see(function(t2){ r.codecs.pageOff=t2; step("codecs-kill-switch-restores", t2==="true,true,true"); Services.prefs.clearUserPref(CB_ON);
+            // the two extensions ship inside the package (seam/extensions.json) and must be installed and active on a fresh profile
+            try{ var AM=ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager;
+              Promise.all([AM.getAddonByID("uBlock0@raymondhill.net"), AM.getAddonByID("ATBC@EasonWong")]).then(function(a){
+                r.extensions=a.map(function(x){ return x?{id:x.id,version:x.version,active:x.isActive,src:(x.installTelemetryInfo&&x.installTelemetryInfo.source)||null}:null; });
+                step("extensions-from-package-active", !!(a[0]&&a[0].isActive&&a[1]&&a[1].isActive)); done();
+              },function(e){ step("extensions-from-package-active:"+e,false); done(); });
+            }catch(e){ step("extensions-from-package-threw:"+e,false); done(); } });
           },1200);
         });
       });

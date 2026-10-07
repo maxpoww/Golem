@@ -1,0 +1,17 @@
+{
+  "_": "Seam's two extensions, PINNED and shipped inside the package (installed from the package at first start — no network needed, no 'latest' from AMO at install time; Firefox updates them from AMO afterwards like any add-on). To bump: resolve https://addons.mozilla.org/firefox/downloads/latest/<slug>/latest.xpi (follow the redirect to the versioned file), take its sha256, update version/url/sha256/file here, rebuild, run seam-selftest. Pinned 2026-10-07.",
+  "uBlock0@raymondhill.net": {
+    "name": "uBlock Origin",
+    "version": "1.75.0",
+    "file": "ublock_origin-1.75.0.xpi",
+    "url": "https://addons.mozilla.org/firefox/downloads/file/5034826/ublock_origin-1.75.0.xpi",
+    "sha256": "5b74415860456370644bd80f16125e865b0e6c356bb5dfcfb84069967eaa5287"
+  },
+  "ATBC@EasonWong": {
+    "name": "Adaptive Tab Bar Colour",
+    "version": "4.3.0",
+    "file": "adaptive_tab_bar_colour-4.3.0.xpi",
+    "url": "https://addons.mozilla.org/firefox/downloads/file/5072867/adaptive_tab_bar_colour-4.3.0.xpi",
+    "sha256": "5c259df117f67be9ce6fa5e7fe3452f7344441df332b367cfc1d511b2d67c842"
+  }
+}

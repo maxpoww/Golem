@@ -314,3 +314,23 @@ In order. Nothing below starts until everything above it is true.
       hardcoded `max` on their own is a tester who stops.
 - [ ] Install on a machine that isn't Max's, watched, silently
       (`roadmap.md:44`).
+
+---
+
+## Cut record — 2026-10-07 (main `e6965d1`)
+
+Built from the clean checkout at `e6965d1` with `nix build …#iso` (the union closure of every
+lab hardware class; everything but the image steps was already in the dev box's store, 6 min):
+
+- `golem.iso`, 3.0 GB, ISO 9660 'GOLEM_ISO', bootable (BIOS + EFI);
+  sha256 `aa4c1b203f43771b558c8a62c193f9d2f8b583f0636e637d6b5ae767aa3123de`;
+  rooted on the dev box at `~/golem-iso/result` (store `fvhi15rqym2km1rs8hxlyh6h5437w44w-golem.iso`).
+- Live system toplevel `j82d9ykbvrjsb60f7xp8npymwm7q4m21` (2364 store paths): the Seam of this
+  cut (`g0gpnz6a…-seam-157.0.1`: uBlock refresh policy, the six YouTube hooks excepted, learned
+  60 fps cap, YouTube's service worker out), waverunner/waveview, no Chrome; the source on the
+  medium at `/etc/golem/src` is this revision.
+- Write it: `cp golem.iso /dev/sdX && sync` (or `dd bs=4M status=progress conv=fsync`) onto a
+  stick of 4 GB or more; the laptops in the lab are the test fleet (Acer E5-573, MacBook Air
+  6,2, ASUS, ThinkPad E15, Comodore GM45, HP dm4, Lenovo Slim Pro 9 — the classes in the union).
+- Seam in this cut: see `seam/README.md` "Seam at the 2026-10 cut" (Firefox 157.0.1 pinned; uBlock 1.75.0 and ATBC 4.3.0 pinned and installed from the package, offline first start).
+- Boot test in QEMU/KVM (4 GB, virtio-vga-gl): the ISO boots to greetd → uwsm → Hyprland start within 30 s; the graphical session itself was not confirmed in QEMU (virtio-gpu without 3D from the toolbox) — confirm on a laptop.
