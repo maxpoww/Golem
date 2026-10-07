@@ -267,7 +267,13 @@ of that gone"):**
   CONFOUNDED — the copy under the new policy had never run under it, and uBlock's first start
   after a hidden-settings change rewrote its whole cache too (24 blobs, 6 s of extension CPU in
   both). The clean observation is the Acer after the deploy: launch 1 extension 8.6 s/20 s (the
-  one-time re-apply), launches 2–3 1.2 s. The returning-user check (>5 h later) is scheduled.
+  one-time re-apply), launches 2–3 1.2 s. Returning-user checks: the morning one on the Acer (9 h)
+  was confounded by a filter change the night before (uBO re-saves My filters and rebuilds its
+  snapshot whenever they differ — every policy change costs each profile one rebuild on its next
+  start: 6.1 s new policy / 9.6 s old on the Acer). The clean one, dev box, a profile that had
+  started once under the final filters and aged 18.7 h: extension 3.0 s of CPU over a ~100 s
+  session with cache blobs rewritten — the two 12-hour lists (quick fixes, URLhaus) coming due,
+  as the policy intends; the nine-list batch of the old policy does not appear.
   Repeat visits inside one session, measured with navigation phases (probe.js now reports them):
   Wikipedia 2nd/3rd visit Seam 619/671 ms vs Chrome 1169/919 (Acer), 1946/2348 vs 1745/2304
   (MacBook); GitHub mixed on both — parity or better; the connection is reused by both (DNS/
