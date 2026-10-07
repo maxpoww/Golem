@@ -42,7 +42,9 @@ if kind == "seam":
     ff = w.get("firstFrame"); st = w.get("started")
     print(f"first frame: {ff - st if ff and st else None} ms after the watcher started; flips={w.get('pauses')}")
     print("press latencies:", latencies(pr, w.get("pauses") or []))
+    ks=w.get("keys") or []; print("key seen by the page after:", [ (min([k["t"] for k in ks if k["t"]>=t], default=None) and min([k["t"] for k in ks if k["t"]>=t])-t) for t in pr ], "ms")
 else:
     print(f"{o.get('browser')} first frame {o.get('first_frame_ms')} ms after navigate; size {o.get('size')}; frames {o.get('frames')}")
     print(f"flips={o.get('flips')}")
     print("press latencies:", latencies(pr, o.get("flips") or []))
+    ks=o.get("keys") or []; print("key seen by the page after:", [ (min([k["t"] for k in ks if k["t"]>=t], default=None) and min([k["t"] for k in ks if k["t"]>=t])-t) for t in pr ], "ms")

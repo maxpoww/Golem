@@ -41,7 +41,8 @@ def main():
         v = ev(ws, POLL)
         if v and v.get("t", 0) > 0 and not v.get("paused") and first is None:
             first = round((time.time() - t_nav) * 1000); out["first_frame_ms"] = first; out["size"] = [v.get("w"), v.get("h")]
-            out["pinned"] = ev(ws, "(function(){var p=document.getElementById('movie_player'); if(p&&p.setPlaybackQualityRange){p.setPlaybackQualityRange('hd720','hd720'); return 'hd720';} return null;})()")
+            PIN = os.environ.get("PIN", "hd720")
+            out["pinned"] = ev(ws, "(function(){var p=document.getElementById('movie_player'); if(p&&p.setPlaybackQualityRange){p.setPlaybackQualityRange('%s','%s'); return '%s';} return null;})()" % (PIN, PIN, PIN)) if PIN != "0" else "auto"
         time.sleep(0.25)
     if first is None: out["first_frame_ms"] = None
     # keyboard to the player (a CDP-opened tab leaves the omnibox focused; the real 'k' must reach the page)
@@ -53,6 +54,8 @@ def main():
     # window start: marker on the laptop's clock
     if MARKER_SSH:
         subprocess.run(MARKER_SSH.split() + [f"date +%s%3N > {MARKER}"], check=False)
+    ev(ws, "(function(){if(window.__golemEv)return 1;var E=window.__golemEv={keys:[],flips:[]};window.addEventListener('keydown',function(e){E.keys.push({t:Date.now(),key:e.key});},true);"
+           "var v=document.querySelector('video');if(v){var f=function(e){E.flips.push({t:Date.now(),paused:v.paused,ev:e.type});};v.addEventListener('pause',f);v.addEventListener('play',f);}return 2;})()")
     t0 = time.time(); q0 = (ev(ws, POLL) or {}).get("q", {})
     flips = []; last = None
     while time.time() - t0 < WINDOW:
@@ -63,7 +66,10 @@ def main():
                 last = v["paused"]; flips.append({"t": v["now"], "paused": v["paused"]})
         time.sleep(0.05)
     q1 = (ev(ws, POLL) or {}).get("q", {})
-    out["flips"] = flips
+    evs = ev(ws, "window.__golemEv") or {}
+    out["flips"] = evs.get("flips") or flips      # event-driven when available (no poll delay in the latency)
+    out["keys"] = evs.get("keys") or []
+    out["flips_polled"] = flips
     out["frames"] = {"total": (q1.get("totalVideoFrames", 0) - q0.get("totalVideoFrames", 0)), "dropped": (q1.get("droppedVideoFrames", 0) - q0.get("droppedVideoFrames", 0))}
     out["final"] = ev(ws, POLL)
     print(json.dumps(out), flush=True)

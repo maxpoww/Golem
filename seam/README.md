@@ -245,6 +245,15 @@ of that gone"):**
   must not be capped. `…fps60.force` = a machine's explicit yes/no; the codec kill switch covers it.
   Not a lever: `media.mediacapabilities.from-database=true` changed nothing. WebRender in Seam's
   parent ≈ Chrome's GPU process (≈7 s / 20 s each) on the HD 5000 — the hardware.
+  **On the Acer with tonight's build (one browser at a time, Chrome without an ad blocker):**
+  YouTube 720p60 — Seam 14 CPU-s per 20 s, 1–3 % dropped, keypress seen by the page in 2–5 ms,
+  pause landed in 30–194 ms; Chrome 28–30 CPU-s, 1–4 % dropped, 2–6 ms, 25–68 ms. Six pages
+  (msn, wikipedia, bbc, cuantarazon, github, youtube home), cold then warm, wall ms to load:
+  Seam 3167/3162/3477/11895/2444/7532 then 1491/1774/1929/2280/1808/4106 (31.7 s cold, 13.4 s
+  warm); Chrome 10808/2238/6016/11324/3364/8143 then 7785/1393/4142/3387/2325/4427 (41.9 s,
+  23.5 s). Seam ahead on 10 of 12; Wikipedia (no ads, so no blocking to win) is Chrome's by
+  0.4–0.9 s. Rig: `lab.sh cur keep` on a settled profile + `chrome-loads-run.sh` with the same
+  list twice.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
