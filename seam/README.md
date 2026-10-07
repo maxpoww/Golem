@@ -276,8 +276,10 @@ of that gone"):**
   The pause action on YouTube, split with wrappers on HTMLMediaElement.pause/play (Acer, 1 ms
   sampling): key → YouTube calls pause() 22–36 ms (Chrome 13–19); pause() → the `pause` event
   82–187 ms (Chrome 39–44) with the tab's main thread IDLE throughout — the wait is inside Gecko's
-  media pipeline (decoder/state-machine round trip), not in Seam, uBlock or the page. play() →
-  `play` event 27 ms vs 9. That ~100 ms, and ~0.4 s of warm start, are what Chrome still holds.
+  media pipeline (decoder/state-machine round trip), not in Seam, uBlock or the page; muting the
+  video changes nothing (101–175 ms muted vs 108–156 with audio), so it is not the audio sink
+  either. play() → `play` event 27 ms vs 9. That ~100 ms, and ~0.4 s of warm start, are what
+  Chrome still holds.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
