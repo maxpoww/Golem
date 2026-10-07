@@ -195,6 +195,16 @@
                     "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"instream\"].playbackContext[?.contentPlaybackContext]+={\"adPlaybackContext\":{\"adType\":\"AD_TYPE_INSTREAM\"}})"
                     "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/channel|lactmilli|instream/].playbackContext.contentPlaybackContext.lactMilliseconds=\"\${now}\")"
                     "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/adunit|channel|lactmilli|instream|inline|yahi|eafg/].playbackContext.contentPlaybackContext.referer=repl({\"regex\":\"(?:#reloadxhr)?$\"\\,\"replacement\":\"#reloadxhr\"}))"
+                    # YOUTUBE'S SERVICE WORKER (2026-10-07, dev box): youtube.com's front page is
+                    # served through YouTube's service worker, and in Firefox that fetch path costs
+                    # 150–520 ms on a fresh profile and 570–830 ms on an aged one before the request
+                    # even starts (navigation timing: fetchStart == responseStart, no protocol);
+                    # without the worker the request starts at ~100 ms over HTTP/3 and the page
+                    # loads 0.5–1 s sooner. uBlock off changes nothing — it is Firefox's SW path.
+                    # YouTube works without its worker (offline/app-shell helper only), so Seam
+                    # keeps it from installing; golem-chrome.js removes an already-installed one
+                    # once (golem.seam.youtubeSw). Other sites' workers are untouched.
+                    "||www.youtube.com/sw.js$script,domain=youtube.com"
                   ];
                 };
               };

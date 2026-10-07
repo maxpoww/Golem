@@ -1430,6 +1430,32 @@ try {
       return true;
     }catch(e){ return false; }
   }
+  // YOUTUBE'S SERVICE WORKER (2026-10-07). youtube.com's front page is served through YouTube's
+  // service worker, and Firefox's SW fetch path costs 150–520 ms on a fresh profile and
+  // 570–830 ms on an aged one before the navigation request even starts (uBlock off: the
+  // same); without the worker the request goes out at ~100 ms over HTTP/3. The managed uBlock
+  // filter (browser.nix) keeps a new one from installing; a profile that already has one keeps
+  // using it, so remove that registration ONCE (golem.seam.youtubeSw.removed). Kill switch:
+  // golem.seam.youtubeSw=false (the filter stays until browser.nix changes).
+  var YSW_PREF="golem.seam.youtubeSw", YSW_DONE="golem.seam.youtubeSw.removed";
+  function ySwApply(){
+    var r={ok:false};
+    try{
+      if(!Services.prefs.getBoolPref(YSW_PREF,true)){ r.off=true; return r; }
+      if(Services.prefs.getBoolPref(YSW_DONE,false)){ r.ok=true; r.already=true; return r; }
+      var Ci=Components.interfaces, swm=Components.classes["@mozilla.org/serviceworkers/manager;1"].getService(Ci.nsIServiceWorkerManager);
+      var all=swm.getAllRegistrations(), n=0;   // the DevTools way: enumerate, unregister by principal + scope
+      var cb={ unregisterSucceeded:function(){}, unregisterFailed:function(){ OVLOG("youtube service worker: unregister failed"); }, QueryInterface:ChromeUtils.generateQI(["nsIServiceWorkerUnregisterCallback"]) };
+      for(var i=0;i<all.length;i++){
+        var reg=all.queryElementAt(i, Ci.nsIServiceWorkerRegistrationInfo), host="";
+        try{ host=reg.principal.host; }catch(e){}
+        if(host==="www.youtube.com" || host==="youtube.com" || host==="m.youtube.com"){ swm.propagateUnregister(reg.principal, cb, reg.scope); n++; }
+      }
+      Services.prefs.setBoolPref(YSW_DONE,true); r.ok=true; r.removed=n;
+      OVLOG("youtube service worker: "+n+" registration(s) unregistered, once");
+    }catch(e){ r.error=String(e); OVLOG("youtube service worker:"+e); }
+    return r;
+  }
   function fcApply(){
     var info=fcInfo(), forced=null;
     try{ forced=Services.prefs.getBoolPref(FC_PREF+".force"); }catch(e){}
@@ -1480,6 +1506,7 @@ try {
     try{ win.messageManager.loadFrameScript(CB_FS,true); }catch(e){ OVLOG("codec framescript:"+e); }
     try{ win.messageManager.addMessageListener("golem:fps60drops",function(m){ fcLearn(win,m.data); }); }catch(e){}
     try{ win.__golemFps=fcApply(); }catch(e){ OVLOG("fps cap:"+e); }
+    try{ win.__golemYSw=ySwApply(); }catch(e){ OVLOG("youtube sw:"+e); }
     win.__golemCbProbe=cbProbe(win).then(function(probe){ var st=cbApply("startup"); st.probe=probe; return st; },
                                          function(e){ var st=cbApply("startup"); st.probeError=String(e); return st; });
     win.setTimeout(function(){ cbApply("60s"); },60000);                                   // the report is usually complete by now
@@ -2732,6 +2759,7 @@ try {
       step("codecs-broadwell-blocks-vp9-av1", cbDecide({h264:K(true),vp9:K(false),av1:K(false)}).join(",")==="vp9,av1");
       step("codecs-8thgen-blocks-av1-only", cbDecide({h264:K(true),vp9:K(true),av1:K(false)}).join(",")==="av1");
       step("codecs-unknown-untouched", cbDecide({}).length===0 && cbDecide({h264:K(true)}).length===0);
+      step("youtube-sw-removal-runs-once", (function(){ try{ Services.prefs.clearUserPref(YSW_DONE); var r1=ySwApply(), r2=ySwApply(); r.ysw={first:r1,second:r2}; return r1.ok===true && !r1.already && r2.already===true && Services.prefs.getBoolPref(YSW_DONE,false); }catch(e){ r.ysw={threw:String(e)}; return false; } })());
       step("fps-learns-from-drops", (function(){ var was=Services.prefs.getBoolPref(FC_PREF,false), ok=true;
         Services.prefs.setBoolPref(FC_PREF,false); ok=ok && fcLearn(win,{fps:60,ratio:0.2,frames:180}) && Services.prefs.getBoolPref(FC_PREF,false);     // 60 fps dropping 20%: learned
         Services.prefs.setBoolPref(FC_PREF,false); ok=ok && !fcLearn(win,{fps:30,ratio:0.3,frames:180}) && !Services.prefs.getBoolPref(FC_PREF,false);   // 30 fps dropping: not this cap's business

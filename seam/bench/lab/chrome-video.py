@@ -54,6 +54,8 @@ def main():
     # window start: marker on the laptop's clock
     if MARKER_SSH:
         subprocess.run(MARKER_SSH.split() + [f"date +%s%3N > {MARKER}"], check=False)
+    else:
+        open(MARKER, "w").write(str(int(time.time() * 1000)))
     ev(ws, "(function(){if(window.__golemEv)return 1;var E=window.__golemEv={keys:[],flips:[]};window.addEventListener('keydown',function(e){E.keys.push({t:Date.now(),key:e.key});},true);"
            "var v=document.querySelector('video');if(v){var f=function(e){E.flips.push({t:Date.now(),paused:v.paused,ev:e.type});};v.addEventListener('pause',f);v.addEventListener('play',f);}"
            "E.calls=[];var P=HTMLMediaElement.prototype,op=P.pause,og=P.play;P.pause=function(){E.calls.push({t:Date.now(),what:'pause'});return op.apply(this,arguments);};P.play=function(){E.calls.push({t:Date.now(),what:'play'});return og.apply(this,arguments);};return 2;})()")

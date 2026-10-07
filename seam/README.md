@@ -280,6 +280,24 @@ of that gone"):**
   video changes nothing (101–175 ms muted vs 108–156 with audio), so it is not the audio sink
   either. play() → `play` event 27 ms vs 9. That ~100 ms, and ~0.4 s of warm start, are what
   Chrome still holds.
+  **YouTube's front page and its service worker (dev box, 2026-10-07).** Six pages on the dev
+  box: Seam ahead on 10 of 12 (msn 1.4 s vs Chrome 9.7 cold, 0.7 vs 3.1 warm; bbc 2.8 vs 15.8;
+  github 1.5 vs 2.6), but youtube.com's home was Chrome's by 2× (3.3/2.0 s vs 1.6/1.0). The
+  navigation phases explained it: the page is served through YouTube's service worker, and in
+  Firefox that path spends 150–520 ms on a fresh profile and 570–830 ms on an aged one before the
+  request starts (fetchStart == responseStart, no protocol); with service workers off the request
+  goes out at 87–90 ms, uBlock off changes nothing. Shipped: a managed uBlock filter keeps
+  YouTube's worker from installing (`||www.youtube.com/sw.js$script`), and golem-chrome.js
+  removes an already-installed one once (`golem.seam.youtubeSw`); measured on fresh profiles,
+  visits 2–4: request at 95–109 ms over HTTP/3, load 1033–1192 ms vs 1581/1048/965 with the
+  worker. Only YouTube's worker — a real profile here carries 42 registrations (x, twitch,
+  snapchat, whatsapp, spotify…) that stay.
+  **Dev box vs Chrome (16 threads, 165 Hz, same video, both windows maximized, YouTube chose
+  1080p60 for both):** Seam 15.9 CPU-s per 20 s, 3 dropped of 3184, pause 46–84 ms, play 19–36;
+  Chrome 154: 18.8 CPU-s, 9 dropped, pause 33–50, play 20–21; the key reaches the page equally
+  fast (~10 ms including the compositor dispatch). Warm start (window mapped): Seam 635 ms,
+  Chrome 500–594. The no-root rig for this machine lives in `bench/lab/*-dev.sh` (compositor
+  keys via `hl.dsp.send_shortcut`, Chrome from the store with `--mute-audio`, CDP on localhost).
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
