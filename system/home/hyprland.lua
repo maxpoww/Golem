@@ -31,6 +31,12 @@ hl.layer_rule({ match = { namespace = "waverunner" }, ignore_alpha = 0.5 })
 -- nothing is blurred until a box actually opens.
 hl.layer_rule({ match = { namespace = "waverunner-options" }, blur = true })
 hl.layer_rule({ match = { namespace = "waverunner-options" }, ignore_alpha = 0.5 })
+-- The desktop (icons behind the windows): its right-click menu and the
+-- name field wear the boxes' frosted glass the same way; icons, names, the
+-- selection wash and the rubber band all sit under 0.5 or are opaque, so
+-- nothing else is blurred.
+hl.layer_rule({ match = { namespace = "waverunner-desktop" }, blur = true })
+hl.layer_rule({ match = { namespace = "waverunner-desktop" }, ignore_alpha = 0.5 })
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
