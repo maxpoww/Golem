@@ -31,7 +31,7 @@ rm -f "$F/firefox" "$F/firefox-bin" "$F/mozilla.cfg" "$F/distribution/policies.j
 cp -L "$L/firefox" "$L/firefox-bin" "$F/"
 first=$(grep -n -m1 'GOLEM chrome script' "$L/mozilla.cfg" | cut -d: -f1)
 head -n $((first-2)) "$L/mozilla.cfg" > "$F/mozilla.cfg"
-[ -f "$IN/golem-chrome.js" ] && cat "$IN/golem-chrome.js" >> "$F/mozilla.cfg"
+if [ -f "$IN/golem-chrome.js" ]; then cat "$IN/golem-chrome.js" >> "$F/mozilla.cfg"; else tail -n +$((first-1)) "$L/mozilla.cfg" >> "$F/mozilla.cfg"; fi   # no variant script = the INSTALLED Seam script (a run without any script measures Firefox+policies, not Seam)
 cat "$LAB/probe.js" >> "$F/mozilla.cfg"
 # no policies.json in the variant = the INSTALLED policies (for none at all, give it {"policies":{}})
 if [ -f "$IN/policies.json" ]; then cp "$IN/policies.json" "$F/distribution/policies.json"; else cp -L "$L/distribution/policies.json" "$F/distribution/policies.json"; fi

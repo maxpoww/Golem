@@ -298,6 +298,15 @@ of that gone"):**
   fast (~10 ms including the compositor dispatch). Warm start (window mapped): Seam 635 ms,
   Chrome 500–594. The no-root rig for this machine lives in `bench/lab/*-dev.sh` (compositor
   keys via `hl.dsp.send_shortcut`, Chrome from the store with `--mute-audio`, CDP on localhost).
+  Rig correction (04:45): `lab.sh` appended Seam's chrome script only when the variant dir
+  supplied one, so the lab PAGE-LOAD runs above (Acer, MacBook, dev box) ran Seam's prefs and
+  policies without its own script; the video runs (`yt.sh`) were never affected. Fixed (the
+  installed script is the default) and re-measured on the dev box with the script, HTTP cache
+  cleared: cold msn 4139, wikipedia 1202, bbc 2246, cuantarazon 9405, github 1335, youtube 1623
+  ms; warm 636/544/629/1919/671/1132 — the same picture, the script costs nothing visible, and
+  youtube.com's home with its worker gone is now 1132 ms warm against Chrome's 1007. The one-time
+  unregister verified end to end: a profile that had the worker lost it on the first launch
+  (`golem.seam.youtubeSw.removed` set), the next visit went over HTTP/2 at 109 ms.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab
