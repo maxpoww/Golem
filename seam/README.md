@@ -225,6 +225,26 @@ of that gone"):**
   way uBO worked before 2023) and `selfieDelayInSeconds=20` (one snapshot per batch, still inside
   a short first session). The first start after an install still compiles the bundled lists and
   then downloads fresh ones (bundled lists are weeks old); that is once.
+- **YouTube vs Chrome on the MacBook (Max, 2026-10-06: "Chrome is 5× faster, pause takes time").**
+  Measured one browser at a time, same video, 20 s windows, a real `k` through the input stack
+  (`bench/lab/pauses.sh`), the same `/proc` sampler for both (`cpusample.sh`; Chrome driven over
+  remote debugging by `chrome.sh` + `chrome-video.py`, its window tiled to Seam's geometry):
+  Seam auto 720p60 — 27–29 CPU-s, 12–21 % frames dropped, pause 470–720 ms; Chrome auto — YouTube
+  gives it 240p/480p30 on this machine — 25–32 CPU-s, 2–4 % dropped, ~120 ms; Chrome pinned to the
+  same 720p60 — 47 CPU-s, 44–49 % dropped, buffering, ~200 ms. Two causes, two fixes:
+  (1) uBO's quick-fixes list has six `trusted-edit-inbound-object` hooks on `JSON.stringify` for
+  www.youtube.com, each deep-cloning the argument on every call: 28 % of the YouTube tab's main
+  thread; without them pause latency 310 ms. Golem excepts those six (`toOverwrite.filters` in
+  `browser.nix`); a monetized music video played without them with no ad, no overlay, no nag.
+  (2) 60 fps: the tab decodes and composites twice the frames the machine can show. Seam now
+  LEARNS it: a video above 45 fps dropping >10 % of its frames for ~9 s sets
+  `golem.seam.codecBlock.fps60`, and from the next page `mediaCapabilities.decodingInfo()` answers
+  smooth:false above 31 fps (and `MediaSource.isTypeSupported` refuses a type naming such a
+  framerate) — YouTube then serves the 30 fps rendition (MacBook: 480p30, 5 dropped frames
+  instead of 350–650). Learned, not assumed: the 2-core Acer plays 720p60 with 0.3 % dropped and
+  must not be capped. `…fps60.force` = a machine's explicit yes/no; the codec kill switch covers it.
+  Not a lever: `media.mediacapabilities.from-database=true` changed nothing. WebRender in Seam's
+  parent ≈ Chrome's GPU process (≈7 s / 20 s each) on the HD 5000 — the hardware.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab

@@ -1,6 +1,6 @@
 #!/bin/sh
 # yt.sh <variant> — run AS ROOT on the laptop: a copy of the installed Seam plays a video (YT_URL) and profiles a 20 s window; which codec, how much CPU.
-# env: YT_URL, YT_THREADS, YT_INTERVAL, YT_WARM (ms from page load to the window, default 20000), YT_LINGER (s alive after the window); files: $V.user.js, $V.policies.json, $V.chrome.js
+# env: YT_URL, YT_THREADS, YT_INTERVAL, YT_WARM (ms from page load to the window, default 20000), YT_PIN (YouTube quality pinned once playing: hd720 default, 0 = YouTube's own choice), YT_LINGER (s alive after the window); files: $V.user.js, $V.policies.json, $V.chrome.js
 D=/tmp/seam-sb; V=$1; O=$D/yt-$V; mkdir -p $D; URL=${YT_URL:-https://www.youtube.com/watch?v=aqz-KE-bpKQ}
 PATH=/etc/profiles/per-user/max/bin:/run/current-system/sw/bin:$PATH
 E="env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 HYPRLAND_INSTANCE_SIGNATURE=$(ls -t /run/user/1000/hypr | head -1)"
@@ -16,7 +16,7 @@ sed "s|^exec -a .*|exec \"$F/firefox\" \"\$@\"|" "$W" > "$F/launch"; chmod +x "$
 rm -rf $P/sessionstore* $P/sessionCheckpoints.json   # a restored session would open Seam on its tab overview (content hidden): one blank tab, every run
 cat /home/max/.local/share/seam/user.js > $P/user.js; printf 'user_pref("media.autoplay.default", 0);\nuser_pref("media.autoplay.blocking_policy", 0);\n' >> $P/user.js; [ -f $D/$V.user.js ] && cat $D/$V.user.js >> $P/user.js
 cp -L /home/max/.local/share/seam/chrome/*.css $P/chrome/ 2>/dev/null; chown -R max:users $D
-printf '#!/bin/sh\nexport YT_THREADS=%s YT_INTERVAL=%s YT_DIR=%s YT_URL=%s YT_WARM=%s MOZ_LEGACY_PROFILES=1 MOZ_CRASHREPORTER_DISABLE=1\nexec %s --name seam --no-remote -profile %s about:blank > %s 2>&1\n' "'${YT_THREADS:-}'" "'${YT_INTERVAL:-2}'" $O "$URL" "${YT_WARM:-20000}" "$F/launch" $P $O/log.txt > $D/run.sh; chmod +x $D/run.sh
+printf '#!/bin/sh\nexport YT_THREADS=%s YT_INTERVAL=%s YT_DIR=%s YT_URL=%s YT_WARM=%s YT_PIN=%s MOZ_LEGACY_PROFILES=1 MOZ_CRASHREPORTER_DISABLE=1\nexec %s --name seam --no-remote -profile %s about:blank > %s 2>&1\n' "'${YT_THREADS:-}'" "'${YT_INTERVAL:-2}'" $O "$URL" "${YT_WARM:-20000}" "${YT_PIN:-hd720}" "$F/launch" $P $O/log.txt > $D/run.sh; chmod +x $D/run.sh
 hc dispatch "hl.exec_cmd(\"$D/run.sh\")" >/dev/null 2>&1
 n=0; while [ ! -f $O/result.json ] && [ $n -lt 120 ]; do sleep 1; n=$((n+1)); done
 [ -f $O/result.json ] && cat $O/result.json || { echo "NO RESULT"; tail -3 $O/log.txt; }; echo

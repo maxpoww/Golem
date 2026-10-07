@@ -1405,6 +1405,39 @@ try {
   function cbDecide(caps){   // block a codec for streaming only on positive evidence it is not hardware
     var b=[]; CB_CODECS.forEach(function(c){ var x=caps && caps[c]; if(x && x.known && !x.hw) b.push(c); }); return b;
   }
+  // 60 fps ON A WEAK MACHINE (2026-10-06). YouTube offers 720p60 to anything that answers
+  // "supported"; a weak laptop then decodes and composites twice the frames it can show
+  // (MacBook Air 6,2 at 720p60: 12–21% of frames dropped, pause latency 0.5–1 s; Chrome on the
+  // same machine was quietly fed 240p/480p30 and so felt "fast"). Streaming sites ask
+  // navigator.mediaCapabilities.decodingInfo() per candidate format: with the cap on, Seam
+  // answers smooth:false above 31 fps (and refuses an MSE type naming such a framerate), and
+  // YouTube picks a 30 fps rendition (measured on the MacBook: 480p30, 5 dropped frames).
+  // LEARNED, not assumed: a 2-core Acer (i5-5200U, HD 5500) plays 720p60 with 0.3% dropped
+  // frames while the 2-core MacBook (i5-4250U, HD 5000) drops a fifth — so the cap comes from
+  // the machine's own dropped frames: a video above 45 fps dropping more than 10% of its frames
+  // for ~9 s flips golem.seam.codecBlock.fps60 on, persisted, effective from the next page.
+  // golem.seam.codecBlock.fps60.force (true/false) is a machine's explicit answer; the codec
+  // kill switch (golem.seam.preferHwCodecs=false) turns the whole thing off.
+  var FC_PREF=CB_PREF+"fps60";
+  function fcInfo(){ var o={}; try{ var si=Services.sysinfo; o.cores=si.getProperty("cpucores"); o.threads=si.getProperty("cpucount"); try{ o.mhz=si.getProperty("cpuspeed"); }catch(e){} }catch(e){ o.error=String(e); } return o; }
+  function fcJudge(d){ return !!(d && d.fps>45 && d.frames>=100 && d.ratio>0.10); }   // one ~3 s observation that counts as a strike
+  function fcLearn(win,d){   // the content side reports three strikes in a row
+    try{
+      if(!fcJudge(d)) return false;
+      if(Services.prefs.getBoolPref(FC_PREF,false)) return true;
+      Services.prefs.setBoolPref(FC_PREF,true);
+      OVLOG("fps cap LEARNED: "+JSON.stringify(d)+" -> 30 fps to streaming sites from the next page");
+      return true;
+    }catch(e){ return false; }
+  }
+  function fcApply(){
+    var info=fcInfo(), forced=null;
+    try{ forced=Services.prefs.getBoolPref(FC_PREF+".force"); }catch(e){}
+    if(forced!==null){ info.forced=forced; try{ Services.prefs.setBoolPref(FC_PREF, forced); }catch(e){} }
+    var cap=Services.prefs.getBoolPref(FC_PREF,false);
+    OVLOG("fps cap: "+JSON.stringify(info)+" -> "+(cap?"30 fps to streaming sites":"untouched (learns from dropped frames)"));
+    return {info:info, cap:cap};
+  }
   async function cbProbe(win){   // makes Firefox instantiate its decoders (fills the report); its own verdict is NOT trusted
     var mc=win.navigator.mediaCapabilities, caps={};
     var list=[["h264",'video/mp4; codecs="avc1.640028"'],["vp9",'video/webm; codecs="vp09.00.10.08"'],["av1",'video/mp4; codecs="av01.0.08M.08"']];
@@ -1429,15 +1462,24 @@ try {
     "(function(){var dbg=function(w,e){try{sendAsyncMessage('golem:cbdbg',{where:w,err:String(e)});}catch(x){}};try{"+
     "var P=Services.prefs,done=new WeakSet();"+
     "function patch(d){try{if(!d||done.has(d))return;done.add(d);var w=d.defaultView;if(!w)return;var on=true;try{on=P.getBoolPref('golem.seam.preferHwCodecs');}catch(e){}if(!on)return;"+
-    "var parts=[];try{if(P.getBoolPref('golem.seam.codecBlock.vp9'))parts.push('vp0?9');}catch(e){}try{if(P.getBoolPref('golem.seam.codecBlock.av1'))parts.push('av01');}catch(e){}if(!parts.length)return;"+
-    "var re=new RegExp('(^|[^a-z0-9])('+parts.join('|')+')','i');var u=w.wrappedJSObject,MS=u.MediaSource;if(!MS)return;var orig=MS.isTypeSupported;"+
-    "Components.utils.exportFunction(function(t){if(re.test(String(t)))return false;return orig.call(MS,t);},MS,{defineAs:'isTypeSupported'});dbg('patched',parts.join(','));}catch(e){dbg('patch',e);}}"+
+    "var parts=[];try{if(P.getBoolPref('golem.seam.codecBlock.vp9'))parts.push('vp0?9');}catch(e){}try{if(P.getBoolPref('golem.seam.codecBlock.av1'))parts.push('av01');}catch(e){}"+
+    "var cap=false;try{cap=P.getBoolPref('golem.seam.codecBlock.fps60');}catch(e){}if(!parts.length&&!cap)return;"+
+    "var re=parts.length?new RegExp('(^|[^a-z0-9])('+parts.join('|')+')','i'):null;var u=w.wrappedJSObject,MS=u.MediaSource;var fps=function(s){var m=/framerate=([0-9.]+)/i.exec(String(s));return m?parseFloat(m[1]):0;};"+
+    "if(MS){var orig=MS.isTypeSupported;Components.utils.exportFunction(function(t){if(re&&re.test(String(t)))return false;if(cap&&fps(t)>31)return false;return orig.call(MS,t);},MS,{defineAs:'isTypeSupported'});}"+
+    "if(cap){var mc=u.navigator&&u.navigator.mediaCapabilities;if(mc&&mc.decodingInfo){var di=mc.decodingInfo;var rate=function(c){try{var f=c&&c.video&&c.video.framerate;if(typeof f==='string'&&f.indexOf('/')!==-1){var q=f.split('/');return parseFloat(q[0])/parseFloat(q[1]);}return parseFloat(f);}catch(e){return 0;}};"+
+    "Components.utils.exportFunction(function(cfg){var pr=di.call(mc,cfg);if(!(rate(cfg)>31))return pr;return new u.Promise(Components.utils.exportFunction(function(res,rej){pr.then(function(r){res(Components.utils.cloneInto({supported:!!r.supported,smooth:false,powerEfficient:!!r.powerEfficient},u));},function(e){rej(e);});},u));},mc,{defineAs:'decodingInfo'});}}"+
+    "dbg('patched',parts.join(',')+(cap?' fps60':''));}catch(e){dbg('patch',e);}}"+
     "addEventListener('DOMWindowCreated',function(e){try{patch(e.target);}catch(x){dbg('event',x);}},true);try{patch(content.document);}catch(e){dbg('initial',e);}"+
+    "var seen=new WeakMap(),strikes=0,reported=false;setInterval(function(){try{if(reported)return;var d=content&&content.document;if(!d)return;var vs=d.querySelectorAll('video');for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||!v.getVideoPlaybackQuality)continue;var q=v.getVideoPlaybackQuality(),now=Date.now(),p=seen.get(v);seen.set(v,{f:q.totalVideoFrames,d:q.droppedVideoFrames,t:now});if(!p)continue;"+
+    "var df=q.totalVideoFrames-p.f,dd=q.droppedVideoFrames-p.d,dt=(now-p.t)/1000;if(dt<=0||df<100)continue;var fps=df/dt,ratio=dd/df;if(fps>45&&ratio>0.10){strikes++;}else{strikes=0;}"+
+    "if(strikes>=3){reported=true;sendAsyncMessage('golem:fps60drops',{fps:Math.round(fps),ratio:Math.round(ratio*100)/100,frames:df});}}}catch(e){dbg('drops',e);}},3000);"+
     "}catch(e){dbg('load',e);}})();");
   function cbInit(win){
     if(win.__golemCbInit) return; win.__golemCbInit=true;
     try{ win.messageManager.addMessageListener("golem:cbdbg",function(m){ (win.__golemCbDbg=win.__golemCbDbg||[]).push(m.data.where+": "+m.data.err); if(win.__golemCbDbg.length>20) win.__golemCbDbg.shift(); }); }catch(e){}
     try{ win.messageManager.loadFrameScript(CB_FS,true); }catch(e){ OVLOG("codec framescript:"+e); }
+    try{ win.messageManager.addMessageListener("golem:fps60drops",function(m){ fcLearn(win,m.data); }); }catch(e){}
+    try{ win.__golemFps=fcApply(); }catch(e){ OVLOG("fps cap:"+e); }
     win.__golemCbProbe=cbProbe(win).then(function(probe){ var st=cbApply("startup"); st.probe=probe; return st; },
                                          function(e){ var st=cbApply("startup"); st.probeError=String(e); return st; });
     win.setTimeout(function(){ cbApply("60s"); },60000);                                   // the report is usually complete by now
@@ -2690,7 +2732,14 @@ try {
       step("codecs-broadwell-blocks-vp9-av1", cbDecide({h264:K(true),vp9:K(false),av1:K(false)}).join(",")==="vp9,av1");
       step("codecs-8thgen-blocks-av1-only", cbDecide({h264:K(true),vp9:K(true),av1:K(false)}).join(",")==="av1");
       step("codecs-unknown-untouched", cbDecide({}).length===0 && cbDecide({h264:K(true)}).length===0);
+      step("fps-learns-from-drops", (function(){ var was=Services.prefs.getBoolPref(FC_PREF,false), ok=true;
+        Services.prefs.setBoolPref(FC_PREF,false); ok=ok && fcLearn(win,{fps:60,ratio:0.2,frames:180}) && Services.prefs.getBoolPref(FC_PREF,false);     // 60 fps dropping 20%: learned
+        Services.prefs.setBoolPref(FC_PREF,false); ok=ok && !fcLearn(win,{fps:30,ratio:0.3,frames:180}) && !Services.prefs.getBoolPref(FC_PREF,false);   // 30 fps dropping: not this cap's business
+        ok=ok && !fcLearn(win,{fps:60,ratio:0.05,frames:180}) && !Services.prefs.getBoolPref(FC_PREF,false);                                              // 60 fps dropping 5%: fine
+        ok=ok && !fcLearn(win,{fps:60,ratio:0.5,frames:40}) && !Services.prefs.getBoolPref(FC_PREF,false);                                                // too few frames to judge
+        Services.prefs.setBoolPref(FC_PREF,was); return ok; })());
       var gb=win.gBrowser, b=gb.selectedBrowser;
+      var FPSPAGE="data:text/html,<script>(async()=>{var mc=navigator.mediaCapabilities,c=f=>({type:'media-source',video:{contentType:'video/mp4; codecs=%22avc1.640028%22',width:1280,height:720,bitrate:3000000,framerate:f}});var a=await mc.decodingInfo(c(60)),b=await mc.decodingInfo(c(30));document.title=[a.smooth,a.supported,b.supported,MediaSource.isTypeSupported('video/mp4; codecs=%22avc1.640028%22; framerate=60')].join();})();</script>";
       var PAGE="data:text/html,<script>document.title=[MediaSource.isTypeSupported('video/webm; codecs=%22vp09.00.10.08%22'),MediaSource.isTypeSupported('video/mp4; codecs=%22avc1.640028%22'),MediaSource.isTypeSupported('video/mp4; codecs=%22av01.0.08M.08%22')].join()</script>";
       var see=function(cb){ b.loadURI(Services.io.newURI(PAGE),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()}); win.setTimeout(function(){ cb(String(b.contentTitle||"")); },1200); };
       var pr=win.__golemCbProbe || Promise.resolve(null);
@@ -2702,8 +2751,13 @@ try {
         step("codecs-decision-matches-report", !!caps.vp9 && caps.vp9.known && (st.block.indexOf("vp9")!==-1)===(!caps.vp9.hw));   // headless: no hardware → blocked; real hardware → untouched
         see(function(t1){ r.codecs.page=t1; r.codecs.expect=expect; r.codecs.dbg=win.__golemCbDbg||null;
           step("codecs-page-follows-policy", t1===expect);
+          var fpsWas=Services.prefs.getBoolPref(FC_PREF,false); Services.prefs.setBoolPref(FC_PREF,true);
+          b.loadURI(Services.io.newURI(FPSPAGE),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});
+          win.setTimeout(function(){ var tf=String(b.contentTitle||""); r.codecs.fpsPage=tf; Services.prefs.setBoolPref(FC_PREF,fpsWas);
+          step("fps-page-60-not-smooth", tf.indexOf("false,true,true,false")===0);   // 60 fps: not smooth, still supported; 30 fps supported; an MSE type naming 60 fps refused
           Services.prefs.setBoolPref(CB_ON,false);
           see(function(t2){ r.codecs.pageOff=t2; step("codecs-kill-switch-restores", t2==="true,true,true"); Services.prefs.clearUserPref(CB_ON); done(); });
+          },1200);
         });
       });
     }catch(e){ step("codecs-threw:"+e,false); done(); }

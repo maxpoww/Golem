@@ -172,6 +172,31 @@
                   [ "selfieDelayInSeconds" "20" ]
                   [ "differentialUpdate" "false" ]
                 ];
+                # YOUTUBE INPUT LAG (2026-10-06, MacBook Air 6,2 and Acer E5-573): uBO's quick-fixes
+                # list carries six `trusted-edit-inbound-object, JSON.stringify, …` filters for
+                # www.youtube.com. Each wraps JSON.stringify and deep-clones the argument
+                # (JSON.parse(JSON.stringify(obj))) on EVERY call before testing whether it
+                # applies; YouTube calls JSON.stringify constantly. Profiled: 28% of the YouTube
+                # tab's main thread; a real 'k' press took 470–720 ms to pause with them, ~310 ms
+                # without (Chrome: ~120–200 ms). They are anti-bot-check tweaks of the player
+                # request, not the ad blocking itself: a monetized music video played without
+                # them showed no ad, no overlay, no "ad blockers violate" nag (json-prune and the
+                # fetch/XHR response filters still do that work). So Golem excepts exactly these
+                # six (uBO's "My filters", written at every start — a user's own My filters are
+                # replaced; the whole rest of uBO is untouched). Exact text from the live list;
+                # when uBO changes them the exceptions stop matching and the cost returns — the
+                # real fix is upstream (a cheap pre-check before the clone). Kill: remove toOverwrite.
+                toOverwrite = {
+                  filters = [
+                    "! Golem (2026-10-06): the quick-fixes JSON.stringify hooks cost a quarter of YouTube's main thread on weak hardware"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"channel\"].context.client[?.clientName==\"WEB\"]+={\"clientScreen\":\"CHANNEL\"})"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"lactmilli\"]+={\"params\":\"8AUB\"})"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"yahi\"]+={\"params\":\"YAHI\"})"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"instream\"].playbackContext[?.contentPlaybackContext]+={\"adPlaybackContext\":{\"adType\":\"AD_TYPE_INSTREAM\"}})"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/channel|lactmilli|instream/].playbackContext.contentPlaybackContext.lactMilliseconds=\"\${now}\")"
+                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/adunit|channel|lactmilli|instream|inline|yahi|eafg/].playbackContext.contentPlaybackContext.referer=repl({\"regex\":\"(?:#reloadxhr)?$\"\\,\"replacement\":\"#reloadxhr\"}))"
+                  ];
+                };
               };
             };
           };
