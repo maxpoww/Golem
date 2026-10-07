@@ -55,7 +55,8 @@ def main():
     if MARKER_SSH:
         subprocess.run(MARKER_SSH.split() + [f"date +%s%3N > {MARKER}"], check=False)
     ev(ws, "(function(){if(window.__golemEv)return 1;var E=window.__golemEv={keys:[],flips:[]};window.addEventListener('keydown',function(e){E.keys.push({t:Date.now(),key:e.key});},true);"
-           "var v=document.querySelector('video');if(v){var f=function(e){E.flips.push({t:Date.now(),paused:v.paused,ev:e.type});};v.addEventListener('pause',f);v.addEventListener('play',f);}return 2;})()")
+           "var v=document.querySelector('video');if(v){var f=function(e){E.flips.push({t:Date.now(),paused:v.paused,ev:e.type});};v.addEventListener('pause',f);v.addEventListener('play',f);}"
+           "E.calls=[];var P=HTMLMediaElement.prototype,op=P.pause,og=P.play;P.pause=function(){E.calls.push({t:Date.now(),what:'pause'});return op.apply(this,arguments);};P.play=function(){E.calls.push({t:Date.now(),what:'play'});return og.apply(this,arguments);};return 2;})()")
     t0 = time.time(); q0 = (ev(ws, POLL) or {}).get("q", {})
     flips = []; last = None
     while time.time() - t0 < WINDOW:
@@ -69,6 +70,7 @@ def main():
     evs = ev(ws, "window.__golemEv") or {}
     out["flips"] = evs.get("flips") or flips      # event-driven when available (no poll delay in the latency)
     out["keys"] = evs.get("keys") or []
+    out["calls"] = evs.get("calls") or []
     out["flips_polled"] = flips
     out["frames"] = {"total": (q1.get("totalVideoFrames", 0) - q0.get("totalVideoFrames", 0)), "dropped": (q1.get("droppedVideoFrames", 0) - q0.get("droppedVideoFrames", 0))}
     out["final"] = ev(ws, POLL)

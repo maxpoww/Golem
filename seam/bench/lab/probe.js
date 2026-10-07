@@ -33,10 +33,17 @@ try { (function(){
     try{ ChromeUtils.requestProcInfo().then(function(pi){ var a=snap(pi); later(10000,function(){ ChromeUtils.requestProcInfo().then(function(pi2){ var b=snap(pi2); r.procs=Object.keys(b).map(function(k){ var x=b[k]; x.idle10=a[k]?x.cpu-a[k].cpu:-1; return x; }); fin(); },function(e){ r.procErr=""+e; fin(); }); }); },function(e){ r.procErr=""+e; fin(); }); }catch(e){ r.procErr=""+e; fin(); }
     try{ var AM=ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager; AM.getAllAddons().then(function(a){ r.addons=a.filter(function(x){return x.type=="extension";}).map(function(x){ return x.id+(x.isActive?"":" (off)")+(x.isBuiltin?" [builtin]":""); }); fin(); },function(e){ fin(); }); }catch(e){ r.addonErr=""+e; fin(); }
   }
+  // per-load navigation phases from the page (PerformanceNavigationTiming): DNS / connect / TLS / first byte / DCL / load / FCP
+  var PH_FS='data:,'+encodeURIComponent('(function(){ addMessageListener("probe:phases",function(m){ try{ var T=content.performance.timing, N=content.performance.getEntriesByType("navigation")[0], P=content.performance.getEntriesByType("paint").filter(function(e){ return e.name==="first-contentful-paint"; })[0]; var r={id:m.data.id, rs:T.responseStart-T.navigationStart, dcl:T.domContentLoadedEventEnd-T.navigationStart, load:T.loadEventEnd>0?T.loadEventEnd-T.navigationStart:0, fcp:P?Math.round(P.startTime):0}; if(N){ r.dns=Math.round(N.domainLookupEnd-N.domainLookupStart); r.connect=Math.round(N.connectEnd-N.connectStart); r.tls=N.secureConnectionStart?Math.round(N.connectEnd-N.secureConnectionStart):0; r.ttfb=Math.round(N.responseStart-N.requestStart); r.proto=N.nextHopProtocol; r.transfer=N.transferSize; } sendAsyncMessage("probe:phases:answer",r); }catch(e){ sendAsyncMessage("probe:phases:answer",{id:m.data.id,err:""+e}); } }); })();');
+  var phasesOn=false, phaseWait={};
+  function phasesInit(){ if(phasesOn) return; phasesOn=true; try{ Services.mm.loadFrameScript(PH_FS,true); Services.mm.addMessageListener("probe:phases:answer",function(m){ var d=m.data||{}; var e=phaseWait[d.id]; if(!e) return; delete phaseWait[d.id]; delete d.id; e.phases=d; }); }catch(e){ notes.push("phases ERR "+e); } }
   function loadNext(i){
     var w=topWin(); if(!w||i>=urls.length){ later(wait,collect); return; }
+    phasesInit();
     var t1=Date.now(), fired=false, tab=null;
-    var doneOne=function(why){ if(fired) return; fired=true; loads.push({url:urls[i],ms:Date.now()-t1,why:why}); later(1500,function(){ loadNext(i+1); }); };
+    var doneOne=function(why){ if(fired) return; fired=true; var entry={url:urls[i],ms:Date.now()-t1,why:why}; loads.push(entry);
+      later(400,function(){ try{ var id=i+":"+t1; phaseWait[id]=entry; tab.linkedBrowser.messageManager.sendAsyncMessage("probe:phases",{id:id}); }catch(e){ entry.phases={err:""+e}; } });
+      later(1500,function(){ loadNext(i+1); }); };
     try{ tab=w.gBrowser.addTab(urls[i],{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()}); w.gBrowser.selectedTab=tab;
       var lis={ QueryInterface:ChromeUtils.generateQI(["nsIWebProgressListener","nsISupportsWeakReference"]),
         onStateChange:function(wp,req,fl){ if(wp.isTopLevel && (fl&Ci.nsIWebProgressListener.STATE_STOP) && (fl&Ci.nsIWebProgressListener.STATE_IS_NETWORK)){ var u=""; try{u=tab.linkedBrowser.currentURI.spec;}catch(e){} if(u.indexOf("about:")!=0) doneOne("stop"); } },
