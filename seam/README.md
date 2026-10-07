@@ -254,6 +254,20 @@ of that gone"):**
   23.5 s). Seam ahead on 10 of 12; Wikipedia (no ads, so no blocking to win) is Chrome's by
   0.4–0.9 s. Rig: `lab.sh cur keep` on a settled profile + `chrome-loads-run.sh` with the same
   list twice.
+  Start-up on the Acer's HDD (window mapped, `bench/lab/coldstart.sh`, same yardstick): cold —
+  page cache dropped — Seam 24.5 s, Chrome 26.5 s; warm Seam 1.5–1.7 s, Chrome 1.1–1.3 s.
+  Wikipedia's request phases (settled Seam vs Chrome's first visit): DNS 30/88, connect 204/253,
+  TLS 129/168, first byte 106/113 ms; load 1537/1526 — parity. Chrome's remaining edge is the
+  repeat visit inside one session (connection reuse: 0.5–0.8 s vs Seam ~1.8 s warm in the six-page
+  run) and the pause action itself on YouTube (25–68 vs 30–194 ms). A page opened 3 s after launch
+  pays ~0.5 s of start-up hold (uBlock's share ~0.3 s), gone by 20 s; starting uBlock's background
+  early (`extensions.webextensions.background-delayed-startup=false`) did not measure above the
+  Acer's run-to-run noise (1.3/2.6 s vs 1.4/7.5 s) — not shipped.
+  uBlock list-refresh A/B, headless on the dev box with two equally aged copies of one profile:
+  CONFOUNDED — the copy under the new policy had never run under it, and uBlock's first start
+  after a hidden-settings change rewrote its whole cache too (24 blobs, 6 s of extension CPU in
+  both). The clean observation is the Acer after the deploy: launch 1 extension 8.6 s/20 s (the
+  one-time re-apply), launches 2–3 1.2 s. The returning-user check (>5 h later) is scheduled.
 - The blank-tab watchdog healed tabs that had merely not painted 700 ms after a switch, which a
   weak machine does legitimately (the no-false-positives selftest failed on the Acer and the
   MacBook, and the "heal" restarts the paint it was waiting for). It now re-checks a slow tab

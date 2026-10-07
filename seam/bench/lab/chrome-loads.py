@@ -96,7 +96,7 @@ def main():
                 ".filter(function(e){return e.name==='first-contentful-paint'})[0];"
                 "return {rs:t.responseStart-t.navigationStart,dcl:t.domContentLoadedEventEnd-t.navigationStart,"
                 "load:t.loadEventEnd>0?t.loadEventEnd-t.navigationStart:0,fcp:p?Math.round(p.startTime):0,"
-                "state:document.readyState,href:location.href};})()"))
+                "state:document.readyState,href:location.href,phases:(function(){var N=performance.getEntriesByType('navigation')[0];if(!N)return null;return {redirect:Math.round(N.redirectEnd-N.redirectStart),fetchStart:Math.round(N.fetchStart),dns:Math.round(N.domainLookupEnd-N.domainLookupStart),connect:Math.round(N.connectEnd-N.connectStart),tls:N.secureConnectionStart?Math.round(N.connectEnd-N.secureConnectionStart):0,ttfb:Math.round(N.responseStart-N.requestStart),response:Math.round(N.responseEnd-N.responseStart),proto:N.nextHopProtocol};})()};})()"))
             v = r.get("result", {}).get("value") or {}
             if v.get("load") and v.get("href", "about:blank") != "about:blank":
                 row.update(v); break

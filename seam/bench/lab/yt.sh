@@ -16,7 +16,7 @@ sed "s|^exec -a .*|exec \"$F/firefox\" \"\$@\"|" "$W" > "$F/launch"; chmod +x "$
 rm -rf $P/sessionstore* $P/sessionCheckpoints.json   # a restored session would open Seam on its tab overview (content hidden): one blank tab, every run
 cat /home/max/.local/share/seam/user.js > $P/user.js; printf 'user_pref("media.autoplay.default", 0);\nuser_pref("media.autoplay.blocking_policy", 0);\n' >> $P/user.js; [ -f $D/$V.user.js ] && cat $D/$V.user.js >> $P/user.js
 cp -L /home/max/.local/share/seam/chrome/*.css $P/chrome/ 2>/dev/null; chown -R max:users $D
-printf '#!/bin/sh\nexport YT_THREADS=%s YT_INTERVAL=%s YT_DIR=%s YT_URL=%s YT_WARM=%s YT_PIN=%s MOZ_LEGACY_PROFILES=1 MOZ_CRASHREPORTER_DISABLE=1\nexec %s --name seam --no-remote -profile %s about:blank > %s 2>&1\n' "'${YT_THREADS:-}'" "'${YT_INTERVAL:-2}'" $O "$URL" "${YT_WARM:-20000}" "${YT_PIN:-hd720}" "$F/launch" $P $O/log.txt > $D/run.sh; chmod +x $D/run.sh
+printf '#!/bin/sh\nexport YT_THREADS=%s YT_INTERVAL=%s YT_DIR=%s YT_URL=%s YT_WARM=%s YT_PIN=%s YT_NAVDELAY=%s MOZ_LEGACY_PROFILES=1 MOZ_CRASHREPORTER_DISABLE=1\nexec %s --name seam --no-remote -profile %s about:blank > %s 2>&1\n' "'${YT_THREADS:-}'" "'${YT_INTERVAL:-2}'" $O "$URL" "${YT_WARM:-20000}" "${YT_PIN:-hd720}" "${YT_NAVDELAY:-3000}" "$F/launch" $P $O/log.txt > $D/run.sh; chmod +x $D/run.sh
 hc dispatch "hl.exec_cmd(\"$D/run.sh\")" >/dev/null 2>&1
 n=0; while [ ! -f $O/result.json ] && [ $n -lt 120 ]; do sleep 1; n=$((n+1)); done
 [ -f $O/result.json ] && cat $O/result.json || { echo "NO RESULT"; tail -3 $O/log.txt; }; echo
