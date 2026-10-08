@@ -69,7 +69,6 @@
       character = {
         success_symbol = "[❯](green)";
         error_symbol = "[❯](red)";
-        vimcmd_symbol = "[❮](blue)";
       };
     };
   };
@@ -163,14 +162,6 @@ programs.fzf = {
       stream = "mpv av://v4l2:/dev/video4 --fullscreen --demuxer-lavf-o=input_format=mjpeg,framerate=30 --profile=low-latency --untimed";
     };
 
-    # Nix-native plugins (zsh-vi-mode fixed using store path string interpolation)
-    plugins = [
-      {
-        name = "zsh-vi-mode";
-        src = "${pkgs.zsh-vi-mode}/share/zsh-vi-mode";
-      }
-    ];
-
     # Updated to initContent (Home Manager 26.05+)
     initContent = ''
       # ── OPTIONS app-bridge (Golem's Brain) ──────────────────────────────
@@ -232,23 +223,21 @@ programs.fzf = {
       }
       zle -N _fzf_file_no_hidden
 
-      # zsh-vi-mode Configuration
-      ZVM_INSERT_MODE_CURSOR=$ZVM_CURSOR_BEAM
-      ZVM_NORMAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
-      ZVM_VISUAL_MODE_CURSOR=$ZVM_CURSOR_BLOCK
-
-      ZVM_VI_HIGHLIGHT_BACKGROUND=none
-      ZVM_VI_HIGHLIGHT_FOREGROUND=none
-      ZVM_VI_HIGHLIGHT_EXTRASTYLE=none
-
-      zvm_after_init() {
-        bindkey '^[[1;5C' forward-word
-        bindkey '^[[1;5D' backward-word
-        bindkey '^F' _fzf_file_no_hidden
-        bindkey '^\' autosuggest-toggle
-        bindkey '^[[A' history-substring-search-up
-        bindkey '^[[B' history-substring-search-down
-      }
+      # The line is edited the ordinary way: no vi mode (Max, 2026-10-08:
+      # "i want to get rid of the vim-mode, i dont like it" — it was the
+      # zsh-vi-mode plugin). Said outright with `bindkey -e`, because zsh
+      # picks its vi keymap by itself when EDITOR names vi/nvim, which ours
+      # does.
+      bindkey -e
+      bindkey '^[[1;5C' forward-word
+      bindkey '^[[1;5D' backward-word
+      bindkey '^[[H' beginning-of-line
+      bindkey '^[[F' end-of-line
+      bindkey '^[[3~' delete-char
+      bindkey '^F' _fzf_file_no_hidden
+      bindkey '^\' autosuggest-toggle
+      bindkey '^[[A' history-substring-search-up
+      bindkey '^[[B' history-substring-search-down
     '';
   };
 }
