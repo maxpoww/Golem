@@ -1,18 +1,19 @@
 diff -ruN foot.orig/input.c foot/input.c
 --- foot.orig/input.c
 +++ foot/input.c
-@@ -2569,6 +2569,10 @@
+@@ -2569,6 +2569,11 @@
      seat->mouse.x = seat->mouse.y = 0;
      seat->mouse.col = seat->mouse.row = 0;
      mouse_button_state_reset(seat);
 +
 +    /* Golem: a press on the selection that left without becoming a drag */
 +    seat->drag.pending = false;
++    seat->drag.of_app = false;
 +    seat->drag.term = NULL;
      for (size_t i = 0; i < ALEN(seat->mouse.aggregated); i++)
          seat->mouse.aggregated[i] = 0.0;
      seat->mouse.have_discrete = false;
-@@ -2754,6 +2758,25 @@
+@@ -2754,6 +2759,33 @@
          xassert(seat->mouse.col >= 0 && seat->mouse.col < term->cols);
          xassert(seat->mouse.row >= 0 && seat->mouse.row < term->rows);
  
@@ -26,8 +27,16 @@ diff -ruN foot.orig/input.c foot/input.c
 +            const int dy = seat->mouse.y - seat->drag.y;
 +
 +            if (dx * dx + dy * dy >= slack * slack) {
++                const bool of_app = seat->drag.of_app;
 +                seat->drag.pending = false;
-+                if (!selection_drag_begin(seat, term, seat->drag.serial)) {
++                seat->drag.of_app = false;
++
++                char *text = of_app && term->app_copy.text != NULL
++                    ? xstrdup(term->app_copy.text) : NULL;
++
++                if (!selection_drag_begin(seat, term, seat->drag.serial, text)
++                    && !of_app)
++                {
 +                    /* No drag to be had: it is a click after all */
 +                    selection_cancel(term);
 +                }
@@ -38,7 +47,7 @@ diff -ruN foot.orig/input.c foot/input.c
          /* Cursor has moved to a different cell since last time */
          bool cursor_is_on_new_cell
              = old_col != seat->mouse.col || old_row != seat->mouse.row;
-@@ -3253,6 +3276,27 @@
+@@ -3253,6 +3285,45 @@
          case WL_POINTER_BUTTON_STATE_PRESSED: {
              bool consumed = false;
  
@@ -48,14 +57,32 @@ diff -ruN foot.orig/input.c foot/input.c
 +             * that text (see the motion handler). Let go without
 +             * travelling, it is the ordinary click: the selection goes.
 +             */
++            /*
++             * …whether or not a program has the mouse: a selection made
++             * with Shift held in such a program is the terminal's own, and
++             * is dragged the same way (Shift or no Shift on this press).
++             *
++             * And where the program made the selection ITSELF, and copied
++             * it: a press on the cells that gesture spanned may drag that
++             * text (terminal.h, app_copy). Let go without travelling, the
++             * click goes to the program after all.
++             */
++            const bool on_selection =
++                selection_is_at(term, seat->mouse.col, seat->mouse.row);
++            const bool on_app_copy =
++                !on_selection &&
++                !term_mouse_grabbed(term, seat) &&
++                !seat->kbd.shift &&
++                selection_app_copy_at(term, seat->mouse.col, seat->mouse.row);
++
 +            if (button == BTN_LEFT &&
 +                cursor_is_on_grid &&
-+                term_mouse_grabbed(term, seat) &&
 +                seat->mouse.count == 1 &&
-+                !seat->kbd.shift && !seat->kbd.ctrl && !seat->kbd.alt &&
-+                selection_is_at(term, seat->mouse.col, seat->mouse.row))
++                !seat->kbd.ctrl && !seat->kbd.alt &&
++                (on_selection || on_app_copy))
 +            {
 +                seat->drag.pending = true;
++                seat->drag.of_app = on_app_copy;
 +                seat->drag.x = seat->mouse.x;
 +                seat->drag.y = seat->mouse.y;
 +                seat->drag.serial = serial;
@@ -66,21 +93,95 @@ diff -ruN foot.orig/input.c foot/input.c
              if (cursor_is_on_grid && term_mouse_grabbed(term, seat)) {
                  const struct key_binding *match =
                      match_mouse_binding(seat, term, button);
-@@ -3280,6 +3324,14 @@
+@@ -3270,6 +3341,16 @@
+                 !term_mouse_grabbed(term, seat) &&
+                 cursor_is_on_grid)
+             {
++                /* Golem: a gesture the program may answer with a copy
++                 * begins; what it selected before is no longer it */
++                if (button == BTN_LEFT) {
++                    term->app_copy.valid = false;
++                    term->app_copy.swept = false;
++                    term->app_copy.pressed = true;
++                    term->app_copy.prow = seat->mouse.row;
++                    term->app_copy.pcol = seat->mouse.col;
++                }
++
+                 term_mouse_down(
+                     term, button, seat->mouse.row, seat->mouse.col,
+                     seat->mouse.y - term->margins.top,
+@@ -3280,6 +3361,57 @@
          }
  
          case WL_POINTER_BUTTON_STATE_RELEASED:
 +            /* Golem: a press on the selection that never travelled */
 +            if (button == BTN_LEFT && seat->drag.pending) {
++                const bool of_app = seat->drag.of_app;
 +                seat->drag.pending = false;
++                seat->drag.of_app = false;
 +                seat->drag.term = NULL;
-+                selection_cancel(term);
++
++                if (of_app) {
++                    /* It was a click on the program after all: it gets
++                     * it, late but whole */
++                    term->app_copy.valid = false;
++                    if (cursor_is_on_grid) {
++                        term_mouse_down(
++                            term, button, seat->mouse.row, seat->mouse.col,
++                            seat->mouse.y - term->margins.top,
++                            seat->mouse.x - term->margins.left,
++                            seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
++                        term_mouse_up(
++                            term, button, seat->mouse.row, seat->mouse.col,
++                            seat->mouse.y - term->margins.top,
++                            seat->mouse.x - term->margins.left,
++                            seat->kbd.shift, seat->kbd.alt, seat->kbd.ctrl);
++                    }
++                } else
++                    selection_cancel(term);
 +                break;
++            }
++
++            /* Golem: the end of a gesture sent to the program: where it
++             * went, in reading order, in case a copy answers it */
++            if (button == BTN_LEFT && term->app_copy.pressed) {
++                term->app_copy.pressed = false;
++                if (cursor_is_on_grid) {
++                    int r0 = term->app_copy.prow, c0 = term->app_copy.pcol;
++                    int r1 = seat->mouse.row, c1 = seat->mouse.col;
++
++                    if (r1 < r0 || (r1 == r0 && c1 < c0)) {
++                        const int r = r0, c = c0;
++                        r0 = r1; c0 = c1;
++                        r1 = r; c1 = c;
++                    }
++
++                    term->app_copy.row0 = r0;
++                    term->app_copy.col0 = c0;
++                    term->app_copy.row1 = r1;
++                    term->app_copy.col1 = c1;
++                    term->app_copy.swept = r0 != r1 || c0 != c1;
++                    clock_gettime(CLOCK_MONOTONIC, &term->app_copy.released);
++                }
 +            }
 +
              selection_finalize(seat, term, serial);
  
              if (send_to_client && !term_mouse_grabbed(term, seat)) {
+diff -ruN foot.orig/osc.c foot/osc.c
+--- foot.orig/osc.c
++++ foot/osc.c
+@@ -92,6 +92,10 @@
+     LOG_DBG("decoded: %s", decoded);
+ 
+     if (to_clipboard) {
++        /* Golem: what the program just selected with the mouse can be
++         * dragged out (see terminal.h, app_copy) */
++        selection_app_copy_set(term, decoded);
++
+         char *copy = xstrdup(decoded);
+         if (!text_to_clipboard(seat, term, copy, seat->kbd.serial))
+             free(copy);
 diff -ruN foot.orig/render.c foot/render.c
 --- foot.orig/render.c
 +++ foot/render.c
@@ -216,7 +317,7 @@ diff -ruN foot.orig/render.h foot/render.h
 diff -ruN foot.orig/selection.c foot/selection.c
 --- foot.orig/selection.c
 +++ foot/selection.c
-@@ -1945,6 +1945,197 @@
+@@ -1945,6 +1945,291 @@
      .cancelled = &primary_cancelled,
  };
  
@@ -247,6 +348,7 @@ diff -ruN foot.orig/selection.c foot/selection.c
 +selection_drag_reset(struct seat *seat)
 +{
 +    seat->drag.pending = false;
++    seat->drag.of_app = false;
 +    seat->drag.term = NULL;
 +
 +    if (seat->drag.icon.viewport != NULL) {
@@ -318,13 +420,106 @@ diff -ruN foot.orig/selection.c foot/selection.c
 +    .action = &drag_action,
 +};
 +
-+bool
-+selection_drag_begin(struct seat *seat, struct terminal *term, uint32_t serial)
++/* The clipboard being read for a program's own selection (see `selection`) */
++struct app_copy_read {
++    struct wayland *wayl;
++    struct terminal *term;
++    char *text;
++    size_t len;
++};
++
++static void
++app_copy_read_cb(char *data, size_t size, void *user)
 +{
-+    if (seat->data_device == NULL || term->wl->data_device_manager == NULL)
++    struct app_copy_read *ctx = user;
++
++    /* A selection worth dragging is not megabytes */
++    if (ctx->len + size > 1024 * 1024)
++        return;
++
++    ctx->text = xrealloc(ctx->text, ctx->len + size + 1);
++    memcpy(&ctx->text[ctx->len], data, size);
++    ctx->len += size;
++    ctx->text[ctx->len] = '\0';
++}
++
++static void
++app_copy_read_done(void *user)
++{
++    struct app_copy_read *ctx = user;
++
++    /* The terminal may have closed while the clipboard was being read */
++    tll_foreach(ctx->wayl->terms, it) {
++        if (it->item == ctx->term) {
++            if (ctx->text != NULL)
++                selection_app_copy_set(ctx->term, ctx->text);
++            break;
++        }
++    }
++
++    free(ctx->text);
++    free(ctx);
++}
++
++/* Whether (col, row) is in the cells a program's own selection spanned */
++bool
++selection_app_copy_at(const struct terminal *term, int col, int row)
++{
++    if (!term->app_copy.valid || term->app_copy.text == NULL)
 +        return false;
 +
-+    char *text = selection_to_text(term);
++    const int r0 = term->app_copy.row0, c0 = term->app_copy.col0;
++    const int r1 = term->app_copy.row1, c1 = term->app_copy.col1;
++
++    if (row < r0 || row > r1)
++        return false;
++    if (row == r0 && col < c0)
++        return false;
++    if (row == r1 && col > c1)
++        return false;
++    return true;
++}
++
++/*
++ * A program copied `text` (OSC 52). If that follows a mouse gesture across
++ * its cells, the gesture was its selection: remember both.
++ */
++void
++selection_app_copy_set(struct terminal *term, const char *text)
++{
++    term->app_copy.valid = false;
++
++    if (!term->app_copy.swept || text == NULL || text[0] == '\0')
++        return;
++
++    struct timespec now;
++    clock_gettime(CLOCK_MONOTONIC, &now);
++    const long since_ms =
++        (now.tv_sec - term->app_copy.released.tv_sec) * 1000 +
++        (now.tv_nsec - term->app_copy.released.tv_nsec) / 1000000;
++
++    /* A copy long after the gesture is some other copy (a key, a menu) */
++    if (since_ms < 0 || since_ms > 3000)
++        return;
++
++    free(term->app_copy.text);
++    term->app_copy.text = xstrdup(text);
++    term->app_copy.valid = true;
++    term->app_copy.swept = false;
++}
++
++/* Starts a drag of `text`, which it takes (or of the selection, if NULL) */
++bool
++selection_drag_begin(struct seat *seat, struct terminal *term, uint32_t serial,
++                     char *text)
++{
++    if (seat->data_device == NULL || term->wl->data_device_manager == NULL) {
++        free(text);
++        return false;
++    }
++
++    if (text == NULL)
++        text = selection_to_text(term);
 +    if (text == NULL || text[0] == '\0') {
 +        free(text);
 +        return false;
@@ -414,7 +609,7 @@ diff -ruN foot.orig/selection.c foot/selection.c
  bool
  text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
  {
-@@ -2719,6 +2910,11 @@
+@@ -2719,6 +3004,11 @@
      if (seat->clipboard.mime_type == DATA_OFFER_MIME_UNSET)
          goto reject_offer;
  
@@ -426,21 +621,90 @@ diff -ruN foot.orig/selection.c foot/selection.c
      /* Remember _which_ terminal the current DnD offer is targeting */
      xassert(seat->clipboard.window == NULL);
      tll_foreach(wayl->terms, it) {
+@@ -2848,8 +3138,24 @@
+     struct seat *seat = data;
+     if (offer == NULL)
+         data_offer_reset(&seat->clipboard);
+-    else
++    else {
+         xassert(offer == seat->clipboard.data_offer);
++
++        /*
++         * Golem: the clipboard changed right after a mouse gesture went to
++         * the program in this terminal: the program copied what it had
++         * selected, by a way of its own (not OSC 52 — a clipboard tool).
++         * Read it: it is what a press on those cells may drag out.
++         */
++        struct terminal *term = seat->kbd_focus;
++        if (term != NULL && term->app_copy.swept) {
++            struct app_copy_read *ctx = xcalloc(1, sizeof(*ctx));
++            ctx->wayl = seat->wayl;
++            ctx->term = term;
++            text_from_clipboard(
++                seat, term, true, &app_copy_read_cb, &app_copy_read_done, ctx);
++        }
++    }
+ }
+ 
+ const struct wl_data_device_listener data_device_listener = {
 diff -ruN foot.orig/selection.h foot/selection.h
 --- foot.orig/selection.h
 +++ foot/selection.h
-@@ -34,6 +34,11 @@
+@@ -34,6 +34,14 @@
  bool selection_primary_has_data(const struct seat *seat);
  
  char *selection_to_text(const struct terminal *term);
 +
 +/* Golem: drag the selection out (see wayland.h, seat.drag) */
 +bool selection_is_at(const struct terminal *term, int col, int row);
-+bool selection_drag_begin(struct seat *seat, struct terminal *term, uint32_t serial);
++bool selection_drag_begin(
++    struct seat *seat, struct terminal *term, uint32_t serial, char *text);
++bool selection_app_copy_at(const struct terminal *term, int col, int row);
++void selection_app_copy_set(struct terminal *term, const char *text);
 +void selection_drag_reset(struct seat *seat);
  void selection_to_clipboard(
      struct seat *seat, struct terminal *term, uint32_t serial);
  void selection_from_clipboard(
+diff -ruN foot.orig/terminal.c foot/terminal.c
+--- foot.orig/terminal.c
++++ foot/terminal.c
+@@ -1872,6 +1872,7 @@
+ 
+     composed_free(term->composed);
+ 
++    free(term->app_copy.text);
+     free(term->app_id);
+     free(term->window_title);
+     tll_free_and_free(term->window_title_stack, free);
+diff -ruN foot.orig/terminal.h foot/terminal.h
+--- foot.orig/terminal.h
++++ foot/terminal.h
+@@ -636,6 +636,25 @@
+     bool kbd_focus;
+     enum term_surface active_surface;
+ 
++    /*
++     * Golem: text a PROGRAM selected. A program that takes the mouse
++     * (an editor, a chat in the terminal) draws its own selection; the
++     * terminal has none to drag. But it sees the gesture go by — a press,
++     * travel, a release, sent on to the program — and, when the program
++     * then copies (OSC 52), the text. That text, and the cells the
++     * gesture spanned, are what a later press there may drag out.
++     */
++    struct {
++        char *text;
++        bool valid;
++        int row0, col0;     /* the gesture's start and end, in reading order */
++        int row1, col1;
++        bool pressed;       /* a gesture is under way */
++        int prow, pcol;
++        bool swept;         /* the last gesture travelled across cells… */
++        struct timespec released;   /* …and ended then */
++    } app_copy;
++
+     struct {
+         struct {
+             struct buffer_chain *grid;
 diff -ruN foot.orig/wayland.c foot/wayland.c
 --- foot.orig/wayland.c
 +++ foot/wayland.c
@@ -462,7 +726,7 @@ diff -ruN foot.orig/wayland.c foot/wayland.c
 diff -ruN foot.orig/wayland.h foot/wayland.h
 --- foot.orig/wayland.h
 +++ foot/wayland.h
-@@ -223,6 +223,23 @@
+@@ -223,6 +223,24 @@
      struct wl_clipboard clipboard;
      struct wl_primary primary;
  
@@ -473,6 +737,7 @@ diff -ruN foot.orig/wayland.h foot/wayland.h
 +     */
 +    struct {
 +        bool pending;
++        bool of_app;    /* the text is the program's (term->app_copy) */
 +        int x;
 +        int y;
 +        uint32_t serial;

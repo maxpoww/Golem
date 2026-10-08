@@ -152,8 +152,19 @@ final: prev: {
   #                   text, as a copy — into an editor, a browser field, the
   #                   card. Let go without travelling it is the ordinary
   #                   click (the selection goes, on release now, not on
-  #                   press). Not while a program has the mouse (vim, tmux),
-  #                   nor with Shift/Ctrl/Alt held. What is carried is SEEN:
+  #                   press). Not with Ctrl/Alt held.
+  #                   A PROGRAM that takes the mouse (an editor, a chat in
+  #                   the terminal) draws its own selection, and the terminal
+  #                   has none ("i cant drag from your content. i select and
+  #                   it gets copied, but no drag"). Two answers: a selection
+  #                   made with Shift held there is the terminal's and drags
+  #                   like any other; and where the program selected by
+  #                   itself and then COPIED — by OSC 52, or a clipboard tool:
+  #                   the clipboard changing within 3 s of the gesture — the
+  #                   terminal keeps that text and the cells the gesture
+  #                   spanned, and a press on them drags it (let go without
+  #                   travelling, the click is passed on to the program).
+  #                   What is carried is SEEN:
   #                   the text's first line, in the terminal's font, on a
   #                   plate of its colours turned over, beside the pointer
   #                   ("i want to see the text being dragged as i see on any
