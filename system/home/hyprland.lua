@@ -37,6 +37,11 @@ hl.layer_rule({ match = { namespace = "waverunner-options" }, ignore_alpha = 0.5
 -- nothing else is blurred.
 hl.layer_rule({ match = { namespace = "waverunner-desktop" }, blur = true })
 hl.layer_rule({ match = { namespace = "waverunner-desktop" }, ignore_alpha = 0.5 })
+-- Its menus are drawn on a surface of their own ABOVE the windows (so a
+-- folder peeking from behind a window still gets its menu in sight): the
+-- same glass there.
+hl.layer_rule({ match = { namespace = "waverunner-desktop-menu" }, blur = true })
+hl.layer_rule({ match = { namespace = "waverunner-desktop-menu" }, ignore_alpha = 0.5 })
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
