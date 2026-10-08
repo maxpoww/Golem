@@ -1,0 +1,293 @@
+diff -ruN foot.orig/input.c foot/input.c
+--- foot.orig/input.c
++++ foot/input.c
+@@ -2569,6 +2569,10 @@
+     seat->mouse.x = seat->mouse.y = 0;
+     seat->mouse.col = seat->mouse.row = 0;
+     mouse_button_state_reset(seat);
++
++    /* Golem: a press on the selection that left without becoming a drag */
++    seat->drag.pending = false;
++    seat->drag.term = NULL;
+     for (size_t i = 0; i < ALEN(seat->mouse.aggregated); i++)
+         seat->mouse.aggregated[i] = 0.0;
+     seat->mouse.have_discrete = false;
+@@ -2754,6 +2758,25 @@
+         xassert(seat->mouse.col >= 0 && seat->mouse.col < term->cols);
+         xassert(seat->mouse.row >= 0 && seat->mouse.row < term->rows);
+ 
++        /*
++         * Golem: a press on selected text that has now travelled is a
++         * drag of that text. (A few pixels of slack: a click wobbles.)
++         */
++        if (seat->drag.pending && seat->drag.term == term) {
++            const int slack = 6 * (term->scale > 1 ? term->scale : 1);
++            const int dx = seat->mouse.x - seat->drag.x;
++            const int dy = seat->mouse.y - seat->drag.y;
++
++            if (dx * dx + dy * dy >= slack * slack) {
++                seat->drag.pending = false;
++                if (!selection_drag_begin(seat, term, seat->drag.serial)) {
++                    /* No drag to be had: it is a click after all */
++                    selection_cancel(term);
++                }
++            }
++            return;
++        }
++
+         /* Cursor has moved to a different cell since last time */
+         bool cursor_is_on_new_cell
+             = old_col != seat->mouse.col || old_row != seat->mouse.row;
+@@ -3253,6 +3276,27 @@
+         case WL_POINTER_BUTTON_STATE_PRESSED: {
+             bool consumed = false;
+ 
++            /*
++             * Golem: a plain left press on selected text does not start
++             * a new selection at once — it may be the start of a drag of
++             * that text (see the motion handler). Let go without
++             * travelling, it is the ordinary click: the selection goes.
++             */
++            if (button == BTN_LEFT &&
++                cursor_is_on_grid &&
++                term_mouse_grabbed(term, seat) &&
++                seat->mouse.count == 1 &&
++                !seat->kbd.shift && !seat->kbd.ctrl && !seat->kbd.alt &&
++                selection_is_at(term, seat->mouse.col, seat->mouse.row))
++            {
++                seat->drag.pending = true;
++                seat->drag.x = seat->mouse.x;
++                seat->drag.y = seat->mouse.y;
++                seat->drag.serial = serial;
++                seat->drag.term = term;
++                break;
++            }
++
+             if (cursor_is_on_grid && term_mouse_grabbed(term, seat)) {
+                 const struct key_binding *match =
+                     match_mouse_binding(seat, term, button);
+@@ -3280,6 +3324,14 @@
+         }
+ 
+         case WL_POINTER_BUTTON_STATE_RELEASED:
++            /* Golem: a press on the selection that never travelled */
++            if (button == BTN_LEFT && seat->drag.pending) {
++                seat->drag.pending = false;
++                seat->drag.term = NULL;
++                selection_cancel(term);
++                break;
++            }
++
+             selection_finalize(seat, term, serial);
+ 
+             if (send_to_client && !term_mouse_grabbed(term, seat)) {
+diff -ruN foot.orig/selection.c foot/selection.c
+--- foot.orig/selection.c
++++ foot/selection.c
+@@ -1945,6 +1945,140 @@
+     .cancelled = &primary_cancelled,
+ };
+ 
++/*
++ * Golem: the selection as a drag source.
++ *
++ * Upstream foot only takes drops. Here a press on selected text that then
++ * travels starts a drag of that text — into an editor, a browser field, the
++ * card — always as a COPY: the terminal's text stays where it is.
++ */
++
++bool
++selection_is_at(const struct terminal *term, int col, int row)
++{
++    if (term->selection.ongoing ||
++        term->selection.coords.end.row < 0 ||
++        col < 0 || col >= term->cols ||
++        row < 0 || row >= term->rows)
++    {
++        return false;
++    }
++
++    const struct row *r = grid_row_in_view(term->grid, row);
++    return r != NULL && r->cells[col].attrs.selected;
++}
++
++void
++selection_drag_reset(struct seat *seat)
++{
++    seat->drag.pending = false;
++    seat->drag.term = NULL;
++
++    if (seat->drag.source != NULL) {
++        wl_data_source_destroy(seat->drag.source);
++        seat->drag.source = NULL;
++    }
++
++    free(seat->drag.text);
++    seat->drag.text = NULL;
++}
++
++static void
++drag_target(void *data, struct wl_data_source *wl_data_source,
++            const char *mime_type)
++{
++}
++
++static void
++drag_send(void *data, struct wl_data_source *wl_data_source,
++          const char *mime_type, int32_t fd)
++{
++    struct seat *seat = data;
++    send_clipboard_or_primary(seat, fd, seat->drag.text, "drag");
++}
++
++static void
++drag_cancelled(void *data, struct wl_data_source *wl_data_source)
++{
++    struct seat *seat = data;
++    if (seat->drag.source == wl_data_source)
++        selection_drag_reset(seat);
++    else
++        wl_data_source_destroy(wl_data_source);
++}
++
++static void
++drag_drop_performed(void *data, struct wl_data_source *wl_data_source)
++{
++}
++
++static void
++drag_finished(void *data, struct wl_data_source *wl_data_source)
++{
++    /* The target has read what it wanted: nothing more to serve */
++    drag_cancelled(data, wl_data_source);
++}
++
++static void
++drag_action(void *data, struct wl_data_source *wl_data_source,
++            uint32_t dnd_action)
++{
++}
++
++static const struct wl_data_source_listener drag_source_listener = {
++    .target = &drag_target,
++    .send = &drag_send,
++    .cancelled = &drag_cancelled,
++    .dnd_drop_performed = &drag_drop_performed,
++    .dnd_finished = &drag_finished,
++    .action = &drag_action,
++};
++
++bool
++selection_drag_begin(struct seat *seat, struct terminal *term, uint32_t serial)
++{
++    if (seat->data_device == NULL || term->wl->data_device_manager == NULL)
++        return false;
++
++    char *text = selection_to_text(term);
++    if (text == NULL || text[0] == '\0') {
++        free(text);
++        return false;
++    }
++
++    selection_drag_reset(seat);
++
++    struct wl_data_source *source =
++        wl_data_device_manager_create_data_source(term->wl->data_device_manager);
++
++    if (source == NULL) {
++        LOG_ERR("failed to create a data source for the drag");
++        free(text);
++        return false;
++    }
++
++    wl_data_source_offer(source, mime_type_map[DATA_OFFER_MIME_TEXT_UTF8]);
++    wl_data_source_offer(source, mime_type_map[DATA_OFFER_MIME_TEXT_PLAIN]);
++    wl_data_source_offer(source, mime_type_map[DATA_OFFER_MIME_TEXT_TEXT]);
++    wl_data_source_offer(source, mime_type_map[DATA_OFFER_MIME_TEXT_STRING]);
++    wl_data_source_offer(source, mime_type_map[DATA_OFFER_MIME_TEXT_UTF8_STRING]);
++    wl_data_source_add_listener(source, &drag_source_listener, seat);
++
++    if (wl_data_source_get_version(source) >= 3) {
++        wl_data_source_set_actions(
++            source, WL_DATA_DEVICE_MANAGER_DND_ACTION_COPY);
++    }
++
++    seat->drag.source = source;
++    seat->drag.text = text;
++
++    /* The compositor takes the pointer from here on (we get a
++     * pointer-leave, which also forgets the held button) */
++    wl_data_device_start_drag(
++        seat->data_device, source, term->window->surface.surf, NULL, serial);
++    return true;
++}
++
+ bool
+ text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
+ {
+@@ -2719,6 +2853,11 @@
+     if (seat->clipboard.mime_type == DATA_OFFER_MIME_UNSET)
+         goto reject_offer;
+ 
++    /* Golem: our own drag is not dropped back on ourselves (a press on
++     * the selection that wobbled would paste it at the prompt) */
++    if (seat->drag.source != NULL)
++        goto reject_offer;
++
+     /* Remember _which_ terminal the current DnD offer is targeting */
+     xassert(seat->clipboard.window == NULL);
+     tll_foreach(wayl->terms, it) {
+diff -ruN foot.orig/selection.h foot/selection.h
+--- foot.orig/selection.h
++++ foot/selection.h
+@@ -34,6 +34,11 @@
+ bool selection_primary_has_data(const struct seat *seat);
+ 
+ char *selection_to_text(const struct terminal *term);
++
++/* Golem: drag the selection out (see wayland.h, seat.drag) */
++bool selection_is_at(const struct terminal *term, int col, int row);
++bool selection_drag_begin(struct seat *seat, struct terminal *term, uint32_t serial);
++void selection_drag_reset(struct seat *seat);
+ void selection_to_clipboard(
+     struct seat *seat, struct terminal *term, uint32_t serial);
+ void selection_from_clipboard(
+diff -ruN foot.orig/wayland.c foot/wayland.c
+--- foot.orig/wayland.c
++++ foot/wayland.c
+@@ -199,6 +199,10 @@
+     if (seat->pointer.xcursor_callback != NULL)
+         wl_callback_destroy(seat->pointer.xcursor_callback);
+ 
++    /* Golem: a drag of the selection still in flight */
++    if (seat->drag.source != NULL)
++        wl_data_source_destroy(seat->drag.source);
++    free(seat->drag.text);
+     if (seat->clipboard.data_source != NULL)
+         wl_data_source_destroy(seat->clipboard.data_source);
+     if (seat->clipboard.data_offer != NULL)
+diff -ruN foot.orig/wayland.h foot/wayland.h
+--- foot.orig/wayland.h
++++ foot/wayland.h
+@@ -223,6 +223,21 @@
+     struct wl_clipboard clipboard;
+     struct wl_primary primary;
+ 
++    /*
++     * Golem: the selection as a drag SOURCE. A press on selected text is
++     * "pending" until it either travels (a drag of that text begins) or
++     * is let go (an ordinary click, which clears the selection).
++     */
++    struct {
++        bool pending;
++        int x;
++        int y;
++        uint32_t serial;
++        struct terminal *term;
++        struct wl_data_source *source;
++        char *text;
++    } drag;
++
+ #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED
+     /* Input Method Editor */
+     struct zwp_text_input_v3 *wl_text_input;

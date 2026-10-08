@@ -139,4 +139,24 @@ final: prev: {
       done
     '';
   });
+
+  # Golem's terminal: stock foot plus one patch. It rides this overlay
+  # because the overlay is already applied wherever Golem's packages are
+  # made (the system, the dev box's /etc/nixos, the flake) — one place to
+  # add it, none to forget.
+  #
+  #   drag-selection  foot only TAKES drops; nothing could be dragged out of
+  #                   it (Max, 2026-10-08: "i want to be able to drag and drop
+  #                   from and to the terminal"). A plain left press on
+  #                   selected text that then travels starts a drag of that
+  #                   text, as a copy — into an editor, a browser field, the
+  #                   card. Let go without travelling it is the ordinary
+  #                   click (the selection goes, on release now, not on
+  #                   press). Not while a program has the mouse (vim, tmux),
+  #                   nor with Shift/Ctrl/Alt held. Golem's own; keep.
+  foot = prev.foot.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [
+      ./foot-patches/foot-drag-selection.patch
+    ];
+  });
 }
