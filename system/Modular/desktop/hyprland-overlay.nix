@@ -117,6 +117,7 @@ final: prev: {
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-keep-work-buffers.patch
       ./hyprland-patches/hyprland-layer-commit-damage.patch
+      ./hyprland-patches/hyprland-pseudo-real-box.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-screenshare-region-session.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch

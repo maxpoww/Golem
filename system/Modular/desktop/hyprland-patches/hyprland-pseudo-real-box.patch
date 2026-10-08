@@ -1,0 +1,44 @@
+Golem: a pseudo-tiled window is hit where it is drawn, not across its tile.
+
+`vectorToWindowUnified` tests a tiled window against its layout box
+(`m_position`/`m_size`): right for a window that fills its tile, wrong for a
+PSEUDO-tiled one, which sits smaller inside it. Everything around the window
+— wallpaper, and on Golem the desktop's icons — then belonged to the window:
+a click there focused it and never reached the layer underneath, so the
+desktop could not be used on any workspace holding a pseudo window (Max,
+2026-10-08: "the desktop always can be used, if I have the room to click
+on it").
+
+A pseudo target is now tested against its real box (the goal of
+`m_realPosition`/`m_realSize`), grown by the border grab area when input
+extents are asked for, so its own edges still resize. The work-area-edge
+stretch that follows is for windows that fill their tile and is skipped.
+Non-pseudo tiled windows are untouched.
+
+--- a/src/Compositor.cpp	2026-10-08 14:14:07.104296682 +0000
++++ b/src/Compositor.cpp	2026-10-08 14:14:07.120582471 +0000
+@@ -1052,7 +1052,23 @@
+             if (!w->m_isFloating && w->m_isMapped && w->workspaceID() == WSPID && w->acceptsInput() && !w->m_X11ShouldntFocus && !w->m_ruleApplicator->noFocus().valueOrDefault() &&
+                 w != pIgnoreWindow && !isShadowedByModal(w)) {
+                 CBox box = (properties & Desktop::View::USE_PROP_TILED) ? w->getWindowBoxUnified(properties) : CBox{w->m_position, w->m_size};
+-                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect()) {
++                // Golem: a PSEUDO-tiled window is hit where it is drawn, not across
++                // its whole tile. The tile is the room the layout gave it; the
++                // window sits smaller inside, and what shows around it is the
++                // desktop — which must answer the pointer there (its icons, a
++                // click on the wallpaper), as it does in any gap. The border
++                // grab area still surrounds the window itself, so its edges
++                // resize as before.
++                bool pseudoBox = false;
++                if (!(properties & Desktop::View::USE_PROP_TILED)) {
++                    if (const auto T = w->layoutTarget(); T && T->isPseudo()) {
++                        box       = CBox{w->m_realPosition->goal(), w->m_realSize->goal()};
++                        pseudoBox = true;
++                        if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect())
++                            box = box.copy().expand(BORDER_GRAB_AREA);
++                    }
++                }
++                if ((properties & Desktop::View::INPUT_EXTENTS) && BORDER_GRAB_AREA > 0 && !w->isX11OverrideRedirect() && !pseudoBox) {
+                     const auto WORKAREA                    = PWORKSPACE->m_space->workArea();
+                     auto       isWindowCloseToWorkAreaEdge = [&](const Math::eDirection dir) -> bool {
+                         constexpr double STICK_THRESHOLD = 2.0; // This constant is taken from isAdjacent in CCompositor::getWindowInDirection
