@@ -81,10 +81,142 @@ diff -ruN foot.orig/input.c foot/input.c
              selection_finalize(seat, term, serial);
  
              if (send_to_client && !term_mouse_grabbed(term, seat)) {
+diff -ruN foot.orig/render.c foot/render.c
+--- foot.orig/render.c
++++ foot/render.c
+@@ -2508,6 +2508,112 @@
+     quirk_weston_subsurface_desync_off(sub_surf->sub);
+ }
+ 
++/*
++ * Golem: what a drag of the selection looks like under the pointer: the
++ * text itself, in the terminal's font, on a plate in the terminal's own
++ * colours turned over (ink for paper), the way a selection reads.
++ */
++bool
++render_drag_icon(struct terminal *term, const struct wayl_surface *surf,
++                 const char32_t *text)
++{
++    struct fcft_font *font = term->fonts[0];
++    if (font == NULL || surf->surf == NULL)
++        return false;
++
++    const size_t len = c32len(text);
++    if (len == 0)
++        return false;
++
++    struct fcft_text_run *text_run = NULL;
++    const struct fcft_glyph **glyphs = NULL;
++    const struct fcft_glyph *_glyphs[len];
++    size_t glyph_count = 0;
++
++    if (fcft_capabilities() & FCFT_CAPABILITY_TEXT_RUN_SHAPING) {
++        text_run = fcft_rasterize_text_run_utf32(
++            font, len, text, term->font_subpixel);
++
++        if (text_run != NULL) {
++            glyphs = text_run->glyphs;
++            glyph_count = text_run->count;
++        }
++    }
++
++    if (glyphs == NULL) {
++        for (size_t i = 0; i < len; i++) {
++            const struct fcft_glyph *glyph = fcft_rasterize_char_utf32(
++                font, text[i], term->font_subpixel);
++
++            if (glyph != NULL)
++                _glyphs[glyph_count++] = glyph;
++        }
++        glyphs = _glyphs;
++    }
++
++    int text_width = 0;
++    for (size_t i = 0; i < glyph_count; i++)
++        text_width += glyphs[i]->advance.x;
++
++    /* A size the surface's scale can show exactly: whole logical pixels,
++     * taken back to the buffer's */
++    const float scale = term->scale;
++    const int pad = (int)roundf(6 * scale);
++    const int font_height = max(font->height, font->ascent + font->descent);
++    const int logical_width = (int)ceilf((text_width + 2 * pad) / scale);
++    const int logical_height = (int)ceilf((font_height + 2 * pad) / scale);
++    const int width = (int)roundf(logical_width * scale);
++    const int height = (int)roundf(logical_height * scale);
++
++    struct buffer *buf = shm_get_buffer(term->render.chains.url, width, height);
++    if (buf == NULL) {
++        fcft_text_run_destroy(text_run);
++        return false;
++    }
++
++    const bool gamma_correct = wayl_do_linear_blending(term->wl, term->conf);
++    pixman_color_t bg = color_hex_to_pixman_with_alpha(
++        term->colors.fg, 0xeeee, gamma_correct);
++    pixman_color_t fg = color_hex_to_pixman(term->colors.bg, gamma_correct);
++
++    pixman_image_fill_rectangles(
++        PIXMAN_OP_SRC, buf->pix[0], &bg, 1,
++        &(pixman_rectangle16_t){0, 0, width, height});
++
++    pixman_image_t *src = pixman_image_create_solid_fill(&fg);
++    const int baseline =
++        (int)roundf((height - font_height) / 2.f) + font->ascent;
++    int x = pad;
++
++    for (size_t i = 0; i < glyph_count; i++) {
++        const struct fcft_glyph *glyph = glyphs[i];
++
++        if (unlikely(glyph->is_color_glyph)) {
++            pixman_image_composite32(
++                PIXMAN_OP_OVER, glyph->pix, NULL, buf->pix[0], 0, 0, 0, 0,
++                x + glyph->x, baseline - glyph->y,
++                glyph->width, glyph->height);
++        } else {
++            pixman_image_composite32(
++                PIXMAN_OP_OVER, src, glyph->pix, buf->pix[0], 0, 0, 0, 0,
++                x + glyph->x, baseline - glyph->y,
++                glyph->width, glyph->height);
++        }
++
++        x += glyph->advance.x;
++    }
++
++    fcft_text_run_destroy(text_run);
++    pixman_image_unref(src);
++
++    wayl_surface_scale(term->window, surf, buf, scale);
++    wl_surface_attach(surf->surf, buf->wl_buf, 0, 0);
++    wl_surface_damage_buffer(surf->surf, 0, 0, width, height);
++    wl_surface_set_opaque_region(surf->surf, NULL);
++    wl_surface_commit(surf->surf);
++    return true;
++}
++
+ static void
+ render_csd_title(struct terminal *term, const struct csd_data *info,
+                  struct buffer *buf)
+diff -ruN foot.orig/render.h foot/render.h
+--- foot.orig/render.h
++++ foot/render.h
+@@ -33,6 +33,12 @@
+ 
+ void render_overlay(struct terminal *term);
+ 
++/* Golem: the picture carried under the pointer while the selection is
++ * dragged out — `text` (one line) as the terminal draws selected text */
++bool render_drag_icon(
++    struct terminal *term, const struct wayl_surface *surf,
++    const char32_t *text);
++
+ struct render_worker_context {
+     int my_id;
+     struct terminal *term;
 diff -ruN foot.orig/selection.c foot/selection.c
 --- foot.orig/selection.c
 +++ foot/selection.c
-@@ -1945,6 +1945,140 @@
+@@ -1945,6 +1945,197 @@
      .cancelled = &primary_cancelled,
  };
  
@@ -116,6 +248,15 @@ diff -ruN foot.orig/selection.c foot/selection.c
 +{
 +    seat->drag.pending = false;
 +    seat->drag.term = NULL;
++
++    if (seat->drag.icon.viewport != NULL) {
++        wp_viewport_destroy(seat->drag.icon.viewport);
++        seat->drag.icon.viewport = NULL;
++    }
++    if (seat->drag.icon.surf != NULL) {
++        wl_surface_destroy(seat->drag.icon.surf);
++        seat->drag.icon.surf = NULL;
++    }
 +
 +    if (seat->drag.source != NULL) {
 +        wl_data_source_destroy(seat->drag.source);
@@ -215,17 +356,65 @@ diff -ruN foot.orig/selection.c foot/selection.c
 +    seat->drag.source = source;
 +    seat->drag.text = text;
 +
++    /* What is seen under the pointer: the text itself (its first line,
++     * and not a whole screenful of it). A surface of its own that the
++     * compositor carries; it gets its picture once it has that role. */
++    seat->drag.icon.surf = wl_compositor_create_surface(term->wl->compositor);
++    if (seat->drag.icon.surf != NULL && term->wl->viewporter != NULL) {
++        seat->drag.icon.viewport = wp_viewporter_get_viewport(
++            term->wl->viewporter, seat->drag.icon.surf);
++    }
++
 +    /* The compositor takes the pointer from here on (we get a
 +     * pointer-leave, which also forgets the held button) */
 +    wl_data_device_start_drag(
-+        seat->data_device, source, term->window->surface.surf, NULL, serial);
++        seat->data_device, source, term->window->surface.surf,
++        seat->drag.icon.surf, serial);
++
++    if (seat->drag.icon.surf != NULL) {
++        enum { DRAG_ICON_CHARS = 48 };
++        char32_t *wide = ambstoc32(text);
++
++        if (wide != NULL) {
++            char32_t shown[DRAG_ICON_CHARS + 2];
++            size_t n = 0;
++            const char32_t *c = wide;
++
++            while (*c == U' ' || *c == U'\t' || *c == U'\n' || *c == U'\r')
++                c++;
++            while (*c != U'\0' && *c != U'\n' && *c != U'\r' &&
++                   n < DRAG_ICON_CHARS)
++            {
++                shown[n++] = *c == U'\t' ? U' ' : *c;
++                c++;
++            }
++
++            /* More than is shown: say so */
++            while (*c == U'\n' || *c == U'\r' || *c == U' ')
++                c++;
++            if (*c != U'\0')
++                shown[n++] = U'…';
++            shown[n] = U'\0';
++
++            /* Beside the pointer, not under it: it must not hide where
++             * the text is about to land */
++            if (wl_surface_get_version(seat->drag.icon.surf) >= 5)
++                wl_surface_offset(seat->drag.icon.surf, 14, 14);
++
++            if (n == 0 || !render_drag_icon(term, &seat->drag.icon, shown)) {
++                /* No picture: the drag itself is as good without one */
++                LOG_DBG("no drag icon");
++            }
++            free(wide);
++        }
++    }
 +    return true;
 +}
 +
  bool
  text_to_clipboard(struct seat *seat, struct terminal *term, char *text, uint32_t serial)
  {
-@@ -2719,6 +2853,11 @@
+@@ -2719,6 +2910,11 @@
      if (seat->clipboard.mime_type == DATA_OFFER_MIME_UNSET)
          goto reject_offer;
  
@@ -255,11 +444,15 @@ diff -ruN foot.orig/selection.h foot/selection.h
 diff -ruN foot.orig/wayland.c foot/wayland.c
 --- foot.orig/wayland.c
 +++ foot/wayland.c
-@@ -199,6 +199,10 @@
+@@ -199,6 +199,14 @@
      if (seat->pointer.xcursor_callback != NULL)
          wl_callback_destroy(seat->pointer.xcursor_callback);
  
 +    /* Golem: a drag of the selection still in flight */
++    if (seat->drag.icon.viewport != NULL)
++        wp_viewport_destroy(seat->drag.icon.viewport);
++    if (seat->drag.icon.surf != NULL)
++        wl_surface_destroy(seat->drag.icon.surf);
 +    if (seat->drag.source != NULL)
 +        wl_data_source_destroy(seat->drag.source);
 +    free(seat->drag.text);
@@ -269,7 +462,7 @@ diff -ruN foot.orig/wayland.c foot/wayland.c
 diff -ruN foot.orig/wayland.h foot/wayland.h
 --- foot.orig/wayland.h
 +++ foot/wayland.h
-@@ -223,6 +223,21 @@
+@@ -223,6 +223,23 @@
      struct wl_clipboard clipboard;
      struct wl_primary primary;
  
@@ -286,6 +479,8 @@ diff -ruN foot.orig/wayland.h foot/wayland.h
 +        struct terminal *term;
 +        struct wl_data_source *source;
 +        char *text;
++        /* What is seen under the pointer while it is carried */
++        struct wayl_surface icon;
 +    } drag;
 +
  #if defined(FOOT_IME_ENABLED) && FOOT_IME_ENABLED

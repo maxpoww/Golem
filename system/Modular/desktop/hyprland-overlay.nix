@@ -153,7 +153,11 @@ final: prev: {
   #                   card. Let go without travelling it is the ordinary
   #                   click (the selection goes, on release now, not on
   #                   press). Not while a program has the mouse (vim, tmux),
-  #                   nor with Shift/Ctrl/Alt held. Golem's own; keep.
+  #                   nor with Shift/Ctrl/Alt held. What is carried is SEEN:
+  #                   the text's first line, in the terminal's font, on a
+  #                   plate of its colours turned over, beside the pointer
+  #                   ("i want to see the text being dragged as i see on any
+  #                   other place i drag from"). Golem's own; keep.
   foot = prev.foot.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       ./foot-patches/foot-drag-selection.patch
