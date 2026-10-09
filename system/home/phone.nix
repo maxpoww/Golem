@@ -41,8 +41,8 @@ let
     name = "golem-camera-relay";
     runtimeInputs = [ gst.gstreamer pkgs.coreutils ];
     text = ''
-      export GST_PLUGIN_SYSTEM_PATH_1_0=${lib.makeSearchPath "lib/gstreamer-1.0" [
-        gst.gstreamer
+      export GST_PLUGIN_SYSTEM_PATH_1_0=${lib.makeSearchPathOutput "out" "lib/gstreamer-1.0" [
+        gst.gstreamer          # queue, identity — in its "out", not the default "bin"
         gst.gst-plugins-base   # videoconvert
         gst.gst-plugins-good   # v4l2src
         pkgs.pipewire          # pipewiresink
