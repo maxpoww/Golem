@@ -304,6 +304,15 @@ in
     // peerconnection outright, which would break video calls.
     user_pref("media.peerconnection.ice.default_address_only", true);
 
+    // Cameras come from the session's media service (PipeWire, through the
+    // camera portal), not from the devices themselves. A camera read
+    // straight off its device belongs to ONE app; through the service
+    // several share it — and a phone used as a camera ("Use as camera" on
+    // the desktop) is offered there under its own name, its device being
+    // held by the relay that feeds the service (Max, 2026-10-09: Seam listed
+    // the cameras and the Android one "does not work": the device was busy).
+    user_pref("media.webrtc.camera.allow-pipewire", true);
+
     // --- Nothing phones home ---
     user_pref("toolkit.telemetry.enabled", false);
     user_pref("toolkit.telemetry.unified", false);
