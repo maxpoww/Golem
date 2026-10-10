@@ -63,15 +63,19 @@ ${pick}
   # and nothing runs.
   #
   #   - light → level on a log curve, in the same perceptual scale as the keys
-  #     (brightnessctl -e4): 50 % in the dark, +12.5 points per decade of lux,
-  #     100 % at 10 000 lx;
-  #   - the brightness KEYS still work and TEACH it: a change it did not make is
-  #     the owner's, kept as an offset to the curve (state file below), so "a bit
-  #     brighter than you think" survives the next cloud and the next boot. The
-  #     first run takes the level it finds as right: turning it on moves nothing;
-  #   - it moves only for a change worth 3 points, once two readings in a row
-  #     agree, in one ramp of a second at most: no flicker under a lamp, nothing
-  #     for a hand passing over the sensor;
+  #     (brightnessctl -e4): 40 % in the dark, +7.3 points each time the light
+  #     doubles, 100 % from 300 lx. These sensors sit behind the bezel and read
+  #     low: a lit room by day is 100–400 lx here. (The first version ran 50 % →
+  #     100 % over 10 000 lx: a dark room and daylight were 20 points apart and
+  #     nobody could see it work — Max, 2026-10-10.)
+  #   - turning it ON moves the screen to the room at once; turning it OFF puts
+  #     back the level it had before. The switch must be seen to do something;
+  #   - the brightness KEYS still work: the level they set STAYS until the light
+  #     itself changes (doubles or halves). What they teach is small: an offset
+  #     to the curve of 20 points at most, so one press to 100 % in a dark room
+  #     cannot pin the screen at 100 % everywhere (it did);
+  #   - brighter follows in ~4 s, dimmer waits ~10 s and fades slower; a change
+  #     under 5 points or a single odd reading (a hand, a shadow) moves nothing;
   #   - lid closed, or the backlight at 0 (the hibernate hook holds it there
   #     through the sleep): it waits and learns nothing.
   #
@@ -85,24 +89,106 @@ ${pick}
     text = ''
       off_file="$HOME/.config/golem/autobrightness-off"
       state="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/autobrightness"
+      # The level the owner had when it was switched on, for `off` to put back.
+      manual="$state-manual"
 
       ${pick}
+      # Both overridable for the test rig (a fake /sys in a temp dir).
+      sensor="''${GOLEM_AUTOBRIGHTNESS_SENSOR:-}"
+      bl="''${GOLEM_AUTOBRIGHTNESS_BACKLIGHT:-}"
+      max="" actual="" written="" p10=0 rawv=0
+
+      # The backlight and its range; fails where there is none.
+      find_backlight() {
+        if [ -z "$bl" ]; then
+          local dev
+          dev=$(pick) || return 1
+          bl=/sys/class/backlight/$dev
+        fi
+        read -r max < "$bl/max_brightness" || true
+        case "$max" in ""|0|*[!0-9]*) return 1 ;; esac
+        return 0
+      }
+
+      # Tenths of a percent ↔ the backlight's own number, on the keys' curve
+      # (brightnessctl -e4: value = max * fraction^4), never under 2 (-n2).
+      to_raw() {
+        local p=$1
+        rawv=$(( (max * p * p * p * p + 500000000000) / 1000000000000 ))
+        if (( rawv < 2 )); then rawv=2; fi
+        if (( rawv > max )); then rawv=max; fi
+      }
+      to_p10() {
+        local want=$1 lo=0 hi=1000 mid
+        while (( lo < hi )); do
+          mid=$(( (lo + hi + 1) / 2 ))
+          if (( (max * mid * mid * mid * mid + 500000000000) / 1000000000000 <= want )); then lo=$mid; else hi=$(( mid - 1 )); fi
+        done
+        p10=$lo
+      }
+
+      read_actual() {
+        actual=""
+        read -r actual < "$bl/brightness" 2>/dev/null || true
+        case "$actual" in ""|*[!0-9]*) return 1 ;; esac
+        return 0
+      }
+
+      # A timed wait with no child process: read on a pipe nobody writes to.
+      exec {idle}<> <(:)
+      nap() { read -rt "$1" -u "$idle" _ || true; }
+
+      # Fade from tenths $1 to tenths $2, $3 seconds a step; leaves the last
+      # number written in $written.
+      fade() {
+        local from=$1 to=$2 d steps i=1
+        d=$(( to - from ))
+        steps=$(( (d < 0 ? -d : d) / 4 ))
+        if (( steps > 60 )); then steps=60; fi
+        if (( steps < 1 )); then steps=1; fi
+        while (( i <= steps )); do
+          to_raw $(( from + d * i / steps ))
+          if [ "$rawv" != "$written" ]; then
+            echo "$rawv" > "$bl/brightness" 2>/dev/null || true
+            written=$rawv
+          fi
+          i=$(( i + 1 ))
+          nap "$3"
+        done
+      }
+
       case "''${1:-status}" in
         run) ;;
         on)
+          # Remember the owner's level, unless it is already ours on screen.
+          if ! systemctl --user is-active --quiet golem-autobrightness.service \
+             && find_backlight && read_actual && (( actual > 0 )); then
+            mkdir -p "$(dirname "$manual")"
+            printf '%s\n' "$actual" > "$manual"
+          fi
           rm -f "$off_file"
-          systemctl --user start golem-autobrightness.service
-          echo "auto brightness ON: the screen follows the room's light; the brightness keys still work and it remembers your correction. Undo: golem-autobrightness off"
+          systemctl --user restart golem-autobrightness.service
+          echo "auto brightness ON: the screen follows the room's light; the brightness keys still work. Undo: golem-autobrightness off"
           exit 0 ;;
         off)
           mkdir -p "$(dirname "$off_file")" && touch "$off_file"
           systemctl --user stop golem-autobrightness.service
+          # Back to the level it had before it was switched on.
+          back=""
+          [ -r "$manual" ] && { read -r back < "$manual" || true; }
+          case "$back" in ""|0|*[!0-9]*) back="" ;; esac
+          if [ -n "$back" ] && find_backlight && read_actual && (( actual > 0 )); then
+            to_p10 "$actual"; from=$p10
+            to_p10 "$back"
+            written=$actual
+            fade "$from" "$p10" 0.016
+          fi
           echo "auto brightness OFF: the screen stays where the keys put it"
           exit 0 ;;
         reset)
           rm -f "$state"
           systemctl --user try-restart golem-autobrightness.service
-          echo "auto brightness: your correction is forgotten; the level on screen now is the new reference"
+          echo "auto brightness: your correction is forgotten"
           exit 0 ;;
         status)
           if systemctl --user is-active --quiet golem-autobrightness.service; then echo on; else echo off; fi
@@ -111,10 +197,7 @@ ${pick}
       esac
 
       # --- the daemon -------------------------------------------------------
-      # Both overridable for the test rig (a fake /sys in a temp dir).
-      sensor="''${GOLEM_AUTOBRIGHTNESS_SENSOR:-}"
-      bl="''${GOLEM_AUTOBRIGHTNESS_BACKLIGHT:-}"
-      scale_u=1000000 lux_offset=0
+      scale_u=1000000 lux_offset=0 mlux=0 lg=0 tgt=0
 
       find_sensor() {
         if [ -z "''${GOLEM_AUTOBRIGHTNESS_SENSOR:-}" ]; then
@@ -165,41 +248,16 @@ ${pick}
         if (( lg < 0 )); then lg=0; fi
       }
 
-      # The curve: tenths of a percent for a smoothed light, plus the owner's
-      # offset, kept inside 15–100 %. 376/1000 per lg = 12.5 points per decade.
+      # The curve, in tenths of a percent, for a light $1: 40 % in the dark,
+      # 7.3 points per doubling (100 % at 300 lx), plus the owner's offset,
+      # kept inside 15–100 %.
+      curve() { tgt=$(( 400 + 73 * $1 / 100 )); }
       target_for() {
-        tgt=$(( 500 + 376 * $1 / 1000 + offset ))
+        curve "$1"
+        tgt=$(( tgt + offset ))
         if (( tgt > 1000 )); then tgt=1000; fi
         if (( tgt < 150 )); then tgt=150; fi
       }
-
-      # Tenths of a percent ↔ the backlight's own number, on the keys' curve
-      # (brightnessctl -e4: value = max * fraction^4), never under 2 (-n2).
-      to_raw() {
-        local p=$1
-        rawv=$(( (max * p * p * p * p + 500000000000) / 1000000000000 ))
-        if (( rawv < 2 )); then rawv=2; fi
-        if (( rawv > max )); then rawv=max; fi
-      }
-      to_p10() {
-        local want=$1 lo=0 hi=1000 mid
-        while (( lo < hi )); do
-          mid=$(( (lo + hi + 1) / 2 ))
-          if (( (max * mid * mid * mid * mid + 500000000000) / 1000000000000 <= want )); then lo=$mid; else hi=$(( mid - 1 )); fi
-        done
-        p10=$lo
-      }
-
-      read_actual() {
-        actual=""
-        read -r actual < "$bl/brightness" 2>/dev/null || true
-        case "$actual" in ""|*[!0-9]*) return 1 ;; esac
-        return 0
-      }
-
-      # A timed wait with no child process: read on a pipe nobody writes to.
-      exec {idle}<> <(:)
-      nap() { read -rt "$1" -u "$idle" _ || true; }
 
       # The sensor hub can come up after the session (ISH firmware load).
       tries=0
@@ -208,31 +266,33 @@ ${pick}
         if (( tries > 5 )); then echo "golem-autobrightness: no ambient light sensor on this machine"; exit 0; fi
         nap 3
       done
-      if [ -z "$bl" ]; then
-        dev=$(pick) || { echo "golem-autobrightness: no backlight on this machine"; exit 0; }
-        bl=/sys/class/backlight/$dev
-      fi
-      max=""
-      read -r max < "$bl/max_brightness" || true
-      case "$max" in ""|0|*[!0-9]*) echo "golem-autobrightness: $bl has no usable range"; exit 0 ;; esac
+      find_backlight || { echo "golem-autobrightness: no backlight on this machine"; exit 0; }
       [ -w "$bl/brightness" ] || { echo "golem-autobrightness: $bl/brightness is not writable (owner not in video?)" >&2; exit 1; }
 
+      # The owner's offset, 20 points at most either way.
       offset=""
       [ -r "$state" ] && { read -r offset < "$state" || true; }
-      case "$offset" in ""|-|*[!0-9-]*) offset="" ;; esac
+      case "$offset" in ""|-|*[!0-9-]*) offset=0 ;; esac
+      clamp_offset() {
+        if (( offset > 200 )); then offset=200; fi
+        if (( offset < -200 )); then offset=-200; fi
+      }
+      clamp_offset
       save_offset() {
         mkdir -p "$(dirname "$state")"
         printf '%s\n' "$offset" > "$state.tmp" && mv -f "$state.tmp" "$state"
       }
 
-      echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max)"
-      smooth="" prev="" written="" hold=0 last=$EPOCHSECONDS
+      echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max), offset $(( offset / 10 ))"
+      # first: the start, where the screen goes to the room without waiting.
+      # held: the light (lg) at which the owner set a level with the keys.
+      first=1 held="" prev="" lo=0 hi=0 down=0 last=$EPOCHSECONDS
       while :; do
         now=$EPOCHSECONDS
         # A gap in the ticks = the machine slept: whatever the backlight holds
         # now came from the sleep hooks, not the owner.
         slept=0
-        if (( now - last > 15 )); then slept=1; smooth="" prev=""; fi
+        if (( now - last > 15 )); then slept=1; prev="" down=0; fi
         last=$now
 
         lid=""
@@ -247,53 +307,63 @@ ${pick}
           nap 2; continue
         fi
         log_light
-        # The light counts once two readings in a row agree (within a third):
-        # a hand over the sensor or a passing shadow moves nothing, and a real
-        # change gets ONE ramp 2–4 s later instead of a staircase.
-        settled=0
-        if [ -z "$smooth" ]; then smooth=$lg; fi
-        if [ -n "$prev" ] && (( lg - prev <= 40 && prev - lg <= 40 )); then
-          settled=1; smooth=$(( (lg + prev) / 2 ))
-        fi
+        # The last two readings: the darker one decides a move up, the
+        # brighter one a move down, so one odd reading (a hand, a lamp swept
+        # past) moves nothing either way.
+        if [ -z "$prev" ]; then prev=$lg; fi
+        if (( lg < prev )); then lo=$lg hi=$prev; else lo=$prev hi=$lg; fi
+        light=$(( (lo + hi) / 2 ))
         prev=$lg
 
         to_p10 "$actual"
-        if [ -z "$offset" ]; then
-          # First run: the level found is the reference.
-          offset=$(( p10 - 500 - 376 * smooth / 1000 ))
+        if [ -n "$written" ] && (( actual != written )) && (( slept == 0 )); then
+          # Not our write: the keys. It stays until the light itself changes;
+          # the curve keeps a bounded part of it.
+          curve "$light"
+          offset=$(( p10 - tgt ))
+          clamp_offset
           save_offset
-          written=$actual
-        elif [ -n "$written" ] && (( actual != written )) && (( slept == 0 )); then
-          # Not our write: the keys. Learn it, and leave it alone a moment.
-          offset=$(( p10 - 500 - 376 * smooth / 1000 ))
-          if (( offset > 700 )); then offset=700; fi
-          if (( offset < -700 )); then offset=-700; fi
-          save_offset
-          written=$actual hold=2
+          written=$actual held=$light down=0
           echo "golem-autobrightness: owner set $(( p10 / 10 ))% at $(( mlux / 1000 )) lx (offset $(( offset / 10 )))"
           nap 2; continue
         fi
         written=$actual
-        if (( hold > 0 )); then hold=$(( hold - 1 )); nap 2; continue; fi
+        if [ -n "$held" ]; then
+          # Both readings a doubling away from where the keys were used:
+          # the light changed, the curve takes over again.
+          if (( lo - held >= 100 || held - hi >= 100 )); then held=""
+          else nap 2; continue
+          fi
+        fi
 
-        target_for "$smooth"
+        target_for "$light"
         d=$(( tgt - p10 ))
-        # 3 points of dead band, except for the last step up to full in the sun.
-        if (( settled == 1 )) && (( d >= 30 || d <= -30 || (tgt == 1000 && d > 0) )); then
-          if (( d < 4 )) && (( d > 0 )); then d=4; fi
-          steps=$(( (d < 0 ? -d : d) / 4 ))
-          if (( steps > 60 )); then steps=60; fi
-          i=1
-          while (( i <= steps )); do
-            to_raw $(( p10 + d * i / steps ))
-            if (( rawv != written )); then
-              echo "$rawv" > "$bl/brightness" 2>/dev/null || true
-              written=$rawv
-            fi
-            i=$(( i + 1 ))
-            nap 0.016
-          done
-          echo "golem-autobrightness: $(( mlux / 1000 )) lx → $(( tgt / 10 ))%"
+        if (( first == 1 )); then
+          first=0
+          if (( d >= 10 || d <= -10 )); then
+            fade "$p10" "$tgt" 0.016
+            echo "golem-autobrightness: $(( mlux / 1000 )) lx → $(( tgt / 10 ))% (start)"
+          fi
+          nap 2; continue
+        fi
+        # 5 points of dead band (the last step up to full in the sun aside).
+        # Brighter once two readings agree (~4 s), dimmer after four (~10 s),
+        # and with a slower fade.
+        target_for "$lo"; du=$(( tgt - p10 )); tu=$tgt
+        target_for "$hi"; dd=$(( tgt - p10 )); td=$tgt
+        if (( du >= 50 )) || (( tu == 1000 && du > 0 )); then
+          fade "$p10" "$tu" 0.016
+          down=0
+          echo "golem-autobrightness: $(( mlux / 1000 )) lx → $(( tu / 10 ))%"
+        elif (( dd <= -50 )); then
+          down=$(( down + 1 ))
+          if (( down >= 3 )); then
+            fade "$p10" "$td" 0.033
+            down=0
+            echo "golem-autobrightness: $(( mlux / 1000 )) lx → $(( td / 10 ))%"
+          fi
+        else
+          down=0
         fi
         nap 2
       done
