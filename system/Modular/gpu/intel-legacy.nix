@@ -18,6 +18,7 @@ let
   # 2013 MacBook Air with a Pixel 8 Pro, 1080p at 16M (2026-10-10):
   #   scrcpy        60 asked → 23 pictures a second, 107 % of a core
   #   this          60 asked → 60 pictures a second,  13 % of a core
+  # (It is held to 30 all the same — see below — and at 30 scrcpy gave 18.)
   # It ends as the writer ends (the last step is an exec, so the dock's
   # signal reaches the writer itself, and the decoder goes with its pipe); the server on the phone ends when
   # its connection closes. Anything missing → it exits at once and the dock
@@ -44,7 +45,7 @@ let
             rate="''${a#*=}"; rate="''${rate/M/000000}"; rate="''${rate/K/000}"
             asks+=("video_bit_rate=$rate") ;;
           --max-size=*) width="''${a#*=}"; asks+=("max_size=$width") ;;
-          --camera-fps=*) fps="''${a#*=}"; asks+=("camera_fps=$fps") ;;
+          --camera-fps=*) fps="''${a#*=}" ;;
           --video-source=*|--camera-*=*)
             key="''${a%%=*}"; key="''${key#--}"
             asks+=("''${key//-/_}=''${a#*=}") ;;
@@ -52,6 +53,14 @@ let
       done
       [ -n "$device" ]
       height=$(( width * 9 / 16 )) # the dock asks for 16:9
+      # 30 pictures a second at most. Decoding 60 is no work for the chip, but
+      # SHOWING 1080p at 60 is more than these two cores have: the camera app
+      # takes 66 % of one at 30, and at 60 the app stopped taking pictures
+      # altogether and the relay behind it stood still — a frozen picture
+      # (MacBook Air 2013, 2026-10-10). At 30 it ran and switched cameras
+      # back and forth without a hitch.
+      if [ "$fps" -gt 30 ]; then fps=30; fi
+      asks+=("camera_fps=$fps")
       adb=(adb)
       if [ -n "$serial" ]; then adb+=(-s "$serial"); fi
 
@@ -79,8 +88,7 @@ let
       # (ffmpeg's v4l2 writer, plain write()). GStreamer's own v4l2sink was
       # tried first: it shares buffers with the device, and the relay
       # reading it stopped for good after some seconds — the Pixel's picture
-      # froze in every app (2026-10-10). This way: all 60 a second for as
-      # long as it was watched.
+      # froze in every app (2026-10-10).
       exec ffmpeg -hide_banner -loglevel error \
         -f rawvideo -pix_fmt yuv420p -video_size "''${width}x$height" -framerate "$fps" \
         -i <(gst-launch-1.0 -q \
