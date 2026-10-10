@@ -18,25 +18,24 @@ let
   # 2013 MacBook Air with a Pixel 8 Pro, 1080p at 16M (2026-10-10):
   #   scrcpy        60 asked → 23 pictures a second, 107 % of a core
   #   this          60 asked → 60 pictures a second,  13 % of a core
-  # It ends as the pipeline ends (the last step is an exec, so the dock's
-  # signal reaches the pipeline itself); the server on the phone ends when
+  # It ends as the writer ends (the last step is an exec, so the dock's
+  # signal reaches the writer itself, and the decoder goes with its pipe); the server on the phone ends when
   # its connection closes. Anything missing → it exits at once and the dock
   # falls back to scrcpy.
   cameraFeed = pkgs.writeShellApplication {
     name = "golem-camera-feed";
-    runtimeInputs = [ gst.gstreamer pkgs.android-tools pkgs.coreutils pkgs.gnugrep ];
+    runtimeInputs = [ gst.gstreamer pkgs.ffmpeg pkgs.android-tools pkgs.coreutils pkgs.gnugrep ];
     text = ''
       export GST_PLUGIN_SYSTEM_PATH_1_0=${lib.makeSearchPathOutput "out" "lib/gstreamer-1.0" [
         gst.gstreamer
         gst.gst-plugins-base
-        gst.gst-plugins-good   # v4l2sink
         gst.gst-plugins-bad    # h264parse, vah264dec, vapostproc
       ]}
       export GST_REGISTRY="''${XDG_CACHE_HOME:-$HOME/.cache}/golem-camera-feed.registry"
       gst-inspect-1.0 --exists vah264dec
       gst-inspect-1.0 --exists vapostproc
 
-      serial="" device="" asks=()
+      serial="" device="" asks=() width=1920 fps=30
       for a in "$@"; do
         case "$a" in
           --serial=*) serial="''${a#*=}" ;;
@@ -44,12 +43,15 @@ let
           --video-bit-rate=*)
             rate="''${a#*=}"; rate="''${rate/M/000000}"; rate="''${rate/K/000}"
             asks+=("video_bit_rate=$rate") ;;
-          --video-source=*|--camera-*=*|--max-size=*)
+          --max-size=*) width="''${a#*=}"; asks+=("max_size=$width") ;;
+          --camera-fps=*) fps="''${a#*=}"; asks+=("camera_fps=$fps") ;;
+          --video-source=*|--camera-*=*)
             key="''${a%%=*}"; key="''${key#--}"
             asks+=("''${key//-/_}=''${a#*=}") ;;
         esac
       done
       [ -n "$device" ]
+      height=$(( width * 9 / 16 )) # the dock asks for 16:9
       adb=(adb)
       if [ -n "$serial" ]; then adb+=(-s "$serial"); fi
 
@@ -73,10 +75,19 @@ let
         if "''${adb[@]}" shell cat /proc/net/unix 2> /dev/null | grep -q "scrcpy_$scid"; then break; fi
         sleep 0.1
       done
-      exec gst-launch-1.0 -q \
-        tcpclientsrc host=127.0.0.1 port="$port" do-timestamp=true ! h264parse ! \
-        vah264dec ! vapostproc ! video/x-raw,format=I420 ! \
-        v4l2sink device="$device" sync=false
+      # The pictures go into the device the way scrcpy puts them there
+      # (ffmpeg's v4l2 writer, plain write()). GStreamer's own v4l2sink was
+      # tried first: it shares buffers with the device, and the relay
+      # reading it stopped for good after some seconds — the Pixel's picture
+      # froze in every app (2026-10-10). This way: all 60 a second for as
+      # long as it was watched.
+      exec ffmpeg -hide_banner -loglevel error \
+        -f rawvideo -pix_fmt yuv420p -video_size "''${width}x$height" -framerate "$fps" \
+        -i <(gst-launch-1.0 -q \
+          tcpclientsrc host=127.0.0.1 port="$port" do-timestamp=true ! h264parse ! \
+          vah264dec ! vapostproc ! "video/x-raw,format=I420,width=$width,height=$height" ! \
+          fdsink fd=1 sync=false) \
+        -c:v copy -f v4l2 "$device"
     '';
   };
 in
