@@ -26,6 +26,14 @@
   # machine is drawn this way — Files, Text Editor, the viewers.
   environment.sessionVariables.GSK_RENDERER = "ngl";
 
+  # A phone as the camera ("Use as camera"): its video is decoded on the
+  # processor, and these machines' processors cannot always keep up with
+  # 1080p at 60 (MacBook Air 2013 + a Pixel: 23 pictures a second, slow
+  # motion). Here — and only here — the dock may step the bit rate and the
+  # frame rate down until the picture arrives whole (launcher desktop.rs).
+  # On every other machine the camera is always asked for at its best.
+  environment.sessionVariables.GOLEM_CAMERA_ADAPTIVE = "1";
+
   # These iGPUs can't afford the compositor's blur: on the 2013 MacBook Air
   # the 3D engine sat at 98% during YouTube and the video stuttered; blur off
   # freed 13-17 points (options.nix, golem.desktop.effects).
