@@ -36,6 +36,7 @@
     ./care.nix              # what the gear box's machine pages ask of the system: trim, clean-up,
                             #   update check, charge limit, the format tools
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
+    ./phone.nix             # the loopback camera device a plugged-in phone's camera is fed into
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
