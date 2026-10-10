@@ -46,6 +46,7 @@ let
             asks+=("video_bit_rate=$rate") ;;
           --max-size=*) width="''${a#*=}"; asks+=("max_size=$width") ;;
           --camera-fps=*) fps="''${a#*=}" ;;
+          --camera-torch) asks+=("camera_torch=true") ;; # the flash
           --video-source=*|--camera-*=*)
             key="''${a%%=*}"; key="''${key#--}"
             asks+=("''${key//-/_}=''${a#*=}") ;;
