@@ -53,9 +53,16 @@ let
       adb=(adb)
       if [ -n "$serial" ]; then adb+=(-s "$serial"); fi
 
+      # The port the last one was given is given back (it ends by a signal
+      # to the pipeline, with no chance to do it then).
+      note="''${XDG_RUNTIME_DIR:-/tmp}/golem-camera-feed.port"
+      if [ -r "$note" ]; then
+        "''${adb[@]}" forward --remove "tcp:$(cat "$note")" > /dev/null 2>&1 || true
+      fi
       scid=$(printf '%08x' $(( (RANDOM << 16 | RANDOM) & 0x7fffffff )))
       "''${adb[@]}" push ${pkgs.scrcpy}/share/scrcpy/scrcpy-server /data/local/tmp/golem-camera-feed.jar > /dev/null
       port=$("''${adb[@]}" forward tcp:0 "localabstract:scrcpy_$scid")
+      echo "$port" > "$note"
       "''${adb[@]}" shell CLASSPATH=/data/local/tmp/golem-camera-feed.jar app_process / \
         com.genymobile.scrcpy.Server ${pkgs.scrcpy.version} "scid=$scid" log_level=warn \
         tunnel_forward=true audio=false control=false cleanup=false raw_stream=true \
