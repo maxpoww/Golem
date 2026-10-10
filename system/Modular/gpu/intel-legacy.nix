@@ -53,13 +53,13 @@ let
       done
       [ -n "$device" ]
       height=$(( width * 9 / 16 )) # the dock asks for 16:9
-      # At 720p and up, 30 pictures a second at most. Decoding 60 is no work
-      # for the chip, but SHOWING them is more than these two cores have: the
-      # camera app takes 66 % of one for 1080p at 30, and at 60 (720p too) it
-      # stopped taking pictures altogether and the relay behind it stood
-      # still — a frozen picture (MacBook Air 2013, 2026-10-10). 540p at 60
-      # ran, with the app at 13 %; the dock's menu offers exactly that.
-      if [ "$fps" -gt 30 ] && [ "$width" -ge 1280 ]; then fps=30; fi
+      # 30 pictures a second at most. Decoding 60 is no work for the chip,
+      # but at 60 the camera app stopped taking pictures and the relay behind
+      # it stood still — a frozen picture: every time at 1080p, one start in
+      # two or three at 720p and 540p, with half the processor idle (MacBook
+      # Air 2013, 2026-10-10; the stop is in the hand-over to the app and not
+      # found yet). At 30 it ran and switched cameras back and forth.
+      if [ "$fps" -gt 30 ]; then fps=30; fi
       asks+=("camera_fps=$fps")
       adb=(adb)
       if [ -n "$serial" ]; then adb+=(-s "$serial"); fi
