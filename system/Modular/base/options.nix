@@ -137,6 +137,9 @@
       default = "none";
     };
     fingerprint = lib.mkOption { type = lib.types.bool; default = false; };
+    # An ambient light sensor: auto brightness (golem-brightness.nix) is
+    # installed only where the probe saw one.
+    lightSensor = lib.mkOption { type = lib.types.bool; default = false; };
     panelDpi = lib.mkOption { type = lib.types.int; default = 0; };
   };
 }

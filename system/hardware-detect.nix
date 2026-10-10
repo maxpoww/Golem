@@ -402,6 +402,23 @@
           case "$(cat "$d/class")" in 0x0280*) broadcom_wifi=true; break ;; esac
         done
 
+        # ── Ambient light sensor → auto brightness ──────────────────────
+        # golem-autobrightness reads an iio `in_illuminance_*`. Three legs,
+        # any one convicts (the bluetooth lesson: one path can be late): the
+        # iio attribute itself, the sensor hub's ambient-light function
+        # (HID usage 0x200041 — present as soon as the hub enumerates, before
+        # the iio driver binds), or an ACPI ambient light device (ACPI0008).
+        # A false positive costs a daemon that looks for 15 s at login and
+        # leaves; a miss costs the feature — so the legs are generous.
+        # (Apple's applesmc light sensor is not iio and is not covered.)
+        light_sensor=false
+        for f in /sys/bus/iio/devices/iio:device*/in_illuminance_raw \
+                 /sys/bus/iio/devices/iio:device*/in_illuminance_input \
+                 /sys/bus/platform/devices/HID-SENSOR-200041* \
+                 /sys/bus/acpi/devices/ACPI0008*; do
+          [[ -e "$f" ]] && { light_sensor=true; break; }
+        done
+
         # ── FaceTime HD camera: the webcam a stranger cannot guess ──────
         # The Broadcom 720p FaceTime HD camera (PCI 0x14e4:0x1570, class
         # 0x0480 multimedia) in 2013+ Intel Macs needs the out-of-tree
@@ -454,6 +471,7 @@
           [[ "$has_fp" == true ]] && echo "    fingerprint = true;"
           [[ "$broadcom_wifi" == true ]] && echo "    broadcomWifi = true;"
           [[ "$facetimehd" == true ]] && echo "    hasFacetimeHD = true;"
+          [[ "$light_sensor" == true ]] && echo "    lightSensor = true;"
           (( panel_dpi > 0 )) && echo "    panelDpi = $panel_dpi;"
           cat <<EOF
             hasBluetooth = $has_bt;

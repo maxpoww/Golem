@@ -15,7 +15,7 @@
 # on any machine. The brightness keys call `golem-brightness` instead of
 # `brightnessctl -d <guess>`. Permissions come from the owner being in `video` +
 # brightnessctl's own udev rule (already set) — no setuid, no root.
-{ pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   pick = ''
@@ -80,8 +80,20 @@ ${pick}
   #     with the first version's single offset);
   #   - brighter follows in ~4 s, dimmer waits ~10 s and fades slower; a change
   #     under 5 points or a single odd reading (a hand, a shadow) moves nothing;
+  #   - the KEYBOARD's light, where there is one (`*::kbd_backlight`): on in a
+  #     dark room, off once the keys can be seen (on under ~15 lx, off over
+  #     ~40 lx on these low-reading sensors). On and off only: most keyboards
+  #     have two or three steps. Its level when on is the last one the owner
+  #     chose (half by default); its own keys still work, and what they do
+  #     stays until the room goes from dark to lit or back;
   #   - lid closed, or the backlight at 0 (the hibernate hook holds it there
   #     through the sleep): it waits and learns nothing.
+  #
+  # ONLY WHERE THERE IS A SENSOR: the command and its service exist when the
+  # census says so (golem.hardware.lightSensor, set by golem-hw-detect at
+  # install). A machine without one carries neither — nothing starts, looks
+  # and leaves at every login (Max, 2026-10-10: "Golem [has] to find out and
+  # set up so [it] is not running on machines with no sensor").
   #
   # `golem-autobrightness off|on|status|reset`: off is a file
   # (~/.config/golem/autobrightness-off, as caffeine), so it survives a reboot.
@@ -101,6 +113,26 @@ ${pick}
       sensor="''${GOLEM_AUTOBRIGHTNESS_SENSOR:-}"
       bl="''${GOLEM_AUTOBRIGHTNESS_BACKLIGHT:-}"
       max="" actual="" written="" p10=0 rawv=0
+      # The keyboard's light, if any: its directory, range, level now.
+      kbd="''${GOLEM_AUTOBRIGHTNESS_KBD:-}" kmax="" kcur=""
+      find_kbd() {
+        local d
+        if [ -z "$kbd" ]; then
+          for d in /sys/class/leds/*kbd_backlight; do
+            [ -w "$d/brightness" ] && { kbd=$d; break; }
+          done
+        fi
+        [ -n "$kbd" ] || return 1
+        read -r kmax < "$kbd/max_brightness" || true
+        case "$kmax" in ""|0|*[!0-9]*) kbd=""; return 1 ;; esac
+        return 0
+      }
+      read_kbd() {
+        kcur=""
+        read -r kcur < "$kbd/brightness" 2>/dev/null || true
+        case "$kcur" in ""|*[!0-9]*) return 1 ;; esac
+        return 0
+      }
 
       # The backlight and its range; fails where there is none.
       find_backlight() {
@@ -169,6 +201,7 @@ ${pick}
              && find_backlight && read_actual && (( actual > 0 )); then
             mkdir -p "$(dirname "$manual")"
             printf '%s\n' "$actual" > "$manual"
+            if find_kbd && read_kbd; then printf '%s\n' "$kcur" > "$manual-kbd"; fi
           fi
           rm -f "$off_file"
           systemctl --user restart golem-autobrightness.service
@@ -187,10 +220,13 @@ ${pick}
             written=$actual
             fade "$from" "$p10" 0.016
           fi
+          back=""
+          [ -r "$manual-kbd" ] && { read -r back < "$manual-kbd" || true; }
+          case "$back" in ""|*[!0-9]*) ;; *) find_kbd && echo "$back" > "$kbd/brightness" 2>/dev/null || true ;; esac
           echo "auto brightness OFF: the screen stays where the keys put it"
           exit 0 ;;
         reset)
-          rm -f "$state"
+          rm -f "$state" "$state-kbd"
           systemctl --user try-restart golem-autobrightness.service
           echo "auto brightness: the levels you set are forgotten"
           exit 0 ;;
@@ -323,6 +359,49 @@ ${pick}
         fi
       }
 
+      # The keyboard: on in the dark, off in the light. kwant = what the room
+      # asks for (1 dark, 0 lit; between the two thresholds it keeps its last
+      # answer), klevel = the level "on" means, kheld = the room's answer at
+      # the moment the owner used the keyboard's own keys.
+      klevel="" kwant="" kheld="" kwritten=""
+      if find_kbd; then
+        [ -r "$state-kbd" ] && { read -r klevel < "$state-kbd" || true; }
+        case "$klevel" in ""|0|*[!0-9]*) klevel=$(( (kmax + 1) / 2 )) ;; esac
+        if (( klevel > kmax )); then klevel=$kmax; fi
+      fi
+      kbd_tick() {
+        [ -n "$kbd" ] || return 0
+        read_kbd || return 0
+        if (( hi < 400 )); then kwant=1
+        elif (( lo > 520 )); then kwant=0
+        elif [ -z "$kwant" ]; then kwant=$(( kcur > 0 ? 1 : 0 ))
+        fi
+        if [ -n "$kwritten" ] && (( kcur != kwritten )) && (( slept == 0 )); then
+          # The keyboard's own keys: kept until the room changes its answer.
+          if (( kcur > 0 )); then
+            klevel=$kcur
+            mkdir -p "$(dirname "$state")"
+            printf '%s\n' "$klevel" > "$state-kbd"
+          fi
+          kheld=$kwant kwritten=$kcur
+          echo "golem-autobrightness: owner set the keyboard light to $kcur/$kmax"
+          return 0
+        fi
+        kwritten=$kcur
+        if [ -n "$kheld" ]; then
+          if (( kheld == kwant )); then return 0; fi
+          kheld=""
+        fi
+        local to=0
+        if (( kwant == 1 )); then to=$klevel; fi
+        # On or off only: a level the owner picked while it is on is theirs.
+        if (( (kcur > 0) != (to > 0) )); then
+          echo "$to" > "$kbd/brightness" 2>/dev/null || true
+          kwritten=$to
+          echo "golem-autobrightness: $(( mlux / 1000 )) lx → keyboard light $to/$kmax"
+        fi
+      }
+
       echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max), ''${#plg[@]} remembered"
       # first: the start, where the screen goes to the room without waiting.
       # held: the light (lg) at which the owner set a level with the keys.
@@ -340,7 +419,7 @@ ${pick}
           [ -r "$f" ] && { read -r lid < "$f" || true; }
         done
         if [[ "$lid" == *closed* ]] || ! read_actual || (( actual == 0 )); then
-          written=""; nap 2; continue
+          written="" kwritten=""; nap 2; continue
         fi
         if ! read_mlux; then
           find_sensor || true
@@ -354,6 +433,7 @@ ${pick}
         if (( lg < prev )); then lo=$lg hi=$prev; else lo=$prev hi=$lg; fi
         light=$(( (lo + hi) / 2 ))
         prev=$lg
+        kbd_tick
 
         to_p10 "$actual"
         if [ -n "$written" ] && (( actual != written )) && (( slept == 0 )); then
@@ -407,13 +487,16 @@ ${pick}
       done
     '';
   };
+  # `or false`: the fat profile imports this file without the census schema.
+  lightSensor = config.golem.hardware.lightSensor or false;
 in
 {
-  environment.systemPackages = [ golem-brightness golem-autobrightness pkgs.brightnessctl ];
+  environment.systemPackages = [ golem-brightness pkgs.brightnessctl ]
+    ++ lib.optional lightSensor golem-autobrightness;
 
-  # On by default wherever a sensor exists (the daemon leaves at once without
-  # one). Never for the greeter's own session; off = the file, see above.
-  systemd.user.services.golem-autobrightness = {
+  # On by default where the census found a sensor, absent everywhere else.
+  # Never for the greeter's own session; off = the file, see above.
+  systemd.user.services.golem-autobrightness = lib.mkIf lightSensor {
     description = "Golem auto brightness: the panel follows the ambient light sensor";
     wantedBy = [ "graphical-session.target" ];
     partOf = [ "graphical-session.target" ];
