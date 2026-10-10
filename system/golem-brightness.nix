@@ -70,10 +70,14 @@ ${pick}
   #     nobody could see it work — Max, 2026-10-10.)
   #   - turning it ON moves the screen to the room at once; turning it OFF puts
   #     back the level it had before. The switch must be seen to do something;
-  #   - the brightness KEYS still work: the level they set STAYS until the light
-  #     itself changes (doubles or halves). What they teach is small: an offset
-  #     to the curve of 20 points at most, so one press to 100 % in a dark room
-  #     cannot pin the screen at 100 % everywhere (it did);
+  #   - the brightness KEYS still work and are REMEMBERED PER LIGHT: the level
+  #     they set stays until the light itself changes (doubles or halves), and
+  #     comes back exactly whenever the room is that bright again ("it should
+  #     be dimmer now, like how I set it manually" — Max, in the dark, after a
+  #     lamp test had come back brighter than his own setting). Each choice
+  #     bends the curve around its own light and fades out four doublings
+  #     away, so 100 % set in a dark room is not 100 % everywhere (it was,
+  #     with the first version's single offset);
   #   - brighter follows in ~4 s, dimmer waits ~10 s and fades slower; a change
   #     under 5 points or a single odd reading (a hand, a shadow) moves nothing;
   #   - lid closed, or the backlight at 0 (the hibernate hook holds it there
@@ -188,7 +192,7 @@ ${pick}
         reset)
           rm -f "$state"
           systemctl --user try-restart golem-autobrightness.service
-          echo "auto brightness: your correction is forgotten"
+          echo "auto brightness: the levels you set are forgotten"
           exit 0 ;;
         status)
           if systemctl --user is-active --quiet golem-autobrightness.service; then echo on; else echo off; fi
@@ -197,7 +201,7 @@ ${pick}
       esac
 
       # --- the daemon -------------------------------------------------------
-      scale_u=1000000 lux_offset=0 mlux=0 lg=0 tgt=0
+      scale_u=1000000 lux_offset=0 mlux=0 lg=0 tgt=0 off=0
 
       find_sensor() {
         if [ -z "''${GOLEM_AUTOBRIGHTNESS_SENSOR:-}" ]; then
@@ -249,12 +253,13 @@ ${pick}
       }
 
       # The curve, in tenths of a percent, for a light $1: 40 % in the dark,
-      # 7.3 points per doubling (100 % at 300 lx), plus the owner's offset,
-      # kept inside 15–100 %.
+      # 7.3 points per doubling (100 % at 300 lx), plus what the owner chose
+      # around that light, kept inside 15–100 %.
       curve() { tgt=$(( 400 + 73 * $1 / 100 )); }
       target_for() {
         curve "$1"
-        tgt=$(( tgt + offset ))
+        offset_at "$1"
+        tgt=$(( tgt + off ))
         if (( tgt > 1000 )); then tgt=1000; fi
         if (( tgt < 150 )); then tgt=150; fi
       }
@@ -269,21 +274,56 @@ ${pick}
       find_backlight || { echo "golem-autobrightness: no backlight on this machine"; exit 0; }
       [ -w "$bl/brightness" ] || { echo "golem-autobrightness: $bl/brightness is not writable (owner not in video?)" >&2; exit 1; }
 
-      # The owner's offset, 20 points at most either way.
-      offset=""
-      [ -r "$state" ] && { read -r offset < "$state" || true; }
-      case "$offset" in ""|-|*[!0-9-]*) offset=0 ;; esac
-      clamp_offset() {
-        if (( offset > 200 )); then offset=200; fi
-        if (( offset < -200 )); then offset=-200; fi
-      }
-      clamp_offset
-      save_offset() {
+      # The owner's choices: "light offset" lines, the light (lg) at which the
+      # keys were used and how far from the curve, sorted by light, one per
+      # doubling at most. (A lone number = the first versions' single offset:
+      # read as a choice made in the dark.)
+      plg=() poff=()
+      if [ -r "$state" ]; then
+        while read -r a b _; do
+          case "$a" in ""|-|*[!0-9-]*) continue ;; esac
+          case "$b" in "") b=$a a=0 ;; -|*[!0-9-]*) continue ;; esac
+          plg+=("$a") poff+=("$b")
+        done < "$state"
+      fi
+      save_points() {
+        local i
         mkdir -p "$(dirname "$state")"
-        printf '%s\n' "$offset" > "$state.tmp" && mv -f "$state.tmp" "$state"
+        for i in "''${!plg[@]}"; do printf '%s %s\n' "''${plg[$i]}" "''${poff[$i]}"; done > "$state.tmp"
+        mv -f "$state.tmp" "$state"
+      }
+      # A new choice at light $1, offset $2: it replaces any within a doubling.
+      learn() {
+        local i nl=() no=() put=0
+        for i in "''${!plg[@]}"; do
+          if (( plg[i] - $1 < 100 && $1 - plg[i] < 100 )); then continue; fi
+          if (( put == 0 && plg[i] > $1 )); then nl+=("$1"); no+=("$2"); put=1; fi
+          nl+=("''${plg[$i]}"); no+=("''${poff[$i]}")
+        done
+        if (( put == 0 )); then nl+=("$1"); no+=("$2"); fi
+        plg=("''${nl[@]}") poff=("''${no[@]}")
+        save_points
+      }
+      # The offset for a light $1 → $off: between two choices, a straight line;
+      # beyond the last one, it fades to nothing over four doublings.
+      offset_at() {
+        local i l=-1 r=-1 dist
+        off=0
+        for i in "''${!plg[@]}"; do
+          if (( plg[i] <= $1 )); then l=$i; elif (( r < 0 )); then r=$i; fi
+        done
+        if (( l >= 0 && r >= 0 )); then
+          off=$(( poff[l] + (poff[r] - poff[l]) * ($1 - plg[l]) / (plg[r] - plg[l]) ))
+        elif (( l >= 0 )); then
+          dist=$(( $1 - plg[l] ))
+          if (( dist < 400 )); then off=$(( poff[l] * (400 - dist) / 400 )); fi
+        elif (( r >= 0 )); then
+          dist=$(( plg[r] - $1 ))
+          if (( dist < 400 )); then off=$(( poff[r] * (400 - dist) / 400 )); fi
+        fi
       }
 
-      echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max), offset $(( offset / 10 ))"
+      echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max), ''${#plg[@]} remembered"
       # first: the start, where the screen goes to the room without waiting.
       # held: the light (lg) at which the owner set a level with the keys.
       first=1 held="" prev="" lo=0 hi=0 down=0 last=$EPOCHSECONDS
@@ -320,11 +360,9 @@ ${pick}
           # Not our write: the keys. It stays until the light itself changes;
           # the curve keeps a bounded part of it.
           curve "$light"
-          offset=$(( p10 - tgt ))
-          clamp_offset
-          save_offset
+          learn "$light" $(( p10 - tgt ))
           written=$actual held=$light down=0
-          echo "golem-autobrightness: owner set $(( p10 / 10 ))% at $(( mlux / 1000 )) lx (offset $(( offset / 10 )))"
+          echo "golem-autobrightness: owner set $(( p10 / 10 ))% at $(( mlux / 1000 )) lx"
           nap 2; continue
         fi
         written=$actual
