@@ -89,11 +89,16 @@ let
       # tried first: it shares buffers with the device, and the relay
       # reading it stopped for good after some seconds — the Pixel's picture
       # froze in every app (2026-10-10).
+      # videoconvert, not the chip, makes the I420: what the chip hands back
+      # has padding in it (3112960 bytes a picture where 1920x1080 is
+      # 3110400), and down a pipe every picture then starts 2560 bytes
+      # later than the last — the picture rolled and its colours mixed.
       exec ffmpeg -hide_banner -loglevel error \
         -f rawvideo -pix_fmt yuv420p -video_size "''${width}x$height" -framerate "$fps" \
         -i <(gst-launch-1.0 -q \
           tcpclientsrc host=127.0.0.1 port="$port" do-timestamp=true ! h264parse ! \
-          vah264dec ! vapostproc ! "video/x-raw,format=I420,width=$width,height=$height" ! \
+          vah264dec ! vapostproc ! "video/x-raw,format=NV12,width=$width,height=$height" ! \
+          videoconvert ! video/x-raw,format=I420 ! \
           fdsink fd=1 sync=false) \
         -c:v copy -f v4l2 "$device"
     '';
