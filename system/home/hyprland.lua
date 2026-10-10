@@ -292,6 +292,12 @@ hl.config({
         -- Any key or pointer motion wakes a display that is off, whatever
         -- turned it off: the safety net under hypridle's own screen-on (which
         -- once toggled the screen OFF on a wake-up, 2026-09-30).
+        -- A drag does not focus (so does not raise) the windows it passes
+        -- over: a file is carried across one window to drop on another that
+        -- lies under it (Max, 2026-10-10, macOS's way). HOLDING it still over
+        -- a window brings that one forward (hyprland-dnd-hold-raise.patch),
+        -- and over an app's tile in the dock, that app (launcher).
+        always_follow_on_dnd     = false,
         key_press_enables_dpms   = true,
         mouse_move_enables_dpms  = true,
         -- A locked session whose lock screen died accepts a new one (Super+L,

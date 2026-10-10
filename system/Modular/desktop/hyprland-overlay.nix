@@ -101,6 +101,9 @@
 #                         titlebar sets the tag while a floating window wears
 #                         its bar, so content meets the strip on a straight
 #                         seam. Untagged windows are stock.
+#   dnd-hold-raise        a drag held still over a window (650 ms) focuses and
+#                         raises it; focus does not follow a drag otherwise
+#                         (hyprland.lua: misc.always_follow_on_dnd = false).
 #   workspace-swipe-one-empty  gestures:workspace_swipe_one_empty (opt-in):
 #                         swipe steps onto ONE empty workspace, then jumps to
 #                         the next occupied one.
@@ -113,6 +116,7 @@ final: prev: {
   hyprland = prev.hyprland.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       ./hyprland-patches/hyprland-crash-restart-normal.patch
+      ./hyprland-patches/hyprland-dnd-hold-raise.patch
       ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-keep-work-buffers.patch

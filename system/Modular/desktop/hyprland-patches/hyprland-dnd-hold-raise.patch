@@ -1,0 +1,72 @@
+Golem: a drag held still over a window brings that window forward.
+
+On Golem focus does not follow a drag (`misc:always_follow_on_dnd = false` in
+hyprland.lua): a file can be carried across one window to drop on another
+that lies under it, and the one on the way stays where it is — as on macOS
+(Max, 2026-10-10: "you can drag a file from one window to the other without
+raising any of them"). What macOS has for the other case is spring-loading:
+HOLDING the dragged thing still says "this one". So: while a drag is on, a
+pointer that stays within 14 px over the same window for 650 ms focuses that
+window and brings it to the top.
+
+One timer, made on first use, re-armed whenever the drag comes onto another
+window or moves on within the one it is over, disarmed when the drag leaves
+windows or ends. Nothing is added to any struct (the plugin's ABI is as it
+was).
+
+--- a/src/managers/input/InputManager.cpp
++++ b/src/managers/input/InputManager.cpp
+@@ -23,6 +23,7 @@
+ #include "../../protocols/LayerShell.hpp"
+ #include "../../protocols/core/Seat.hpp"
+ #include "../../protocols/core/DataDevice.hpp"
++#include "../eventLoop/EventLoopManager.hpp"
+ #include "../../protocols/core/Compositor.hpp"
+ #include "../../protocols/XDGShell.hpp"
+ 
+@@ -595,6 +596,45 @@
+ 
+     m_emptyFocusCursorSet = false;
+ 
++    // Golem: a drag HELD STILL over a window brings that window forward.
++    // (Focus does not follow a drag on Golem — misc:always_follow_on_dnd is
++    // off — so a window under another can be dropped on without the one on
++    // the way coming up; holding is how the owner says "this one".)
++    {
++        static PHLWINDOWREF        s_heldOver;
++        static Vector2D            s_heldAt;
++        static SP<CEventLoopTimer> s_holdTimer;
++        constexpr auto             HOLD    = std::chrono::milliseconds(650);
++        constexpr double           HOLD_PX = 14.0;
++
++        if (!s_holdTimer) {
++            s_holdTimer = makeShared<CEventLoopTimer>(
++                std::nullopt,
++                [](SP<CEventLoopTimer> self, void* data) {
++                    const auto W = s_heldOver.lock();
++                    s_heldOver.reset();
++                    if (!W || !PROTO::data->dndActive() || !Desktop::View::validMapped(W))
++                        return;
++                    Desktop::focusState()->fullWindowFocus(W, Desktop::FOCUS_REASON_OTHER);
++                    g_pCompositor->changeWindowZOrder(W, true);
++                },
++                nullptr);
++            g_pEventLoopManager->addTimer(s_holdTimer);
++        }
++
++        if (PROTO::data->dndActive() && pFoundWindow) {
++            // Onto another window, or moved on within this one: count again.
++            if (s_heldOver.lock() != pFoundWindow || mouseCoords.distance(s_heldAt) > HOLD_PX) {
++                s_heldOver = pFoundWindow;
++                s_heldAt   = mouseCoords;
++                s_holdTimer->updateTimeout(HOLD);
++            }
++        } else if (s_heldOver.lock()) {
++            s_heldOver.reset();
++            s_holdTimer->updateTimeout(std::nullopt);
++        }
++    }
++
+     Vector2D surfaceLocal = surfacePos == Vector2D(-1337, -1337) ? surfaceCoords : mouseCoords - surfacePos;
+ 
+     if (pFoundWindow && pFoundWindow->m_isX11) // for x11 force scale zero
