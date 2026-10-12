@@ -368,7 +368,7 @@ hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 -- A TAP of Super alone opens the dock box (Max, 2026-10-12: "can we open
 -- the dock box by pressing only Super? like a short hit opens it?"; it "feels
--- good", so Super+Space, the key it had until then, is gone). A release
+-- good", so Super+Space, the key it had until then, is voice to text now). A release
 -- bind of the key under its own modifier is already dropped by Hyprland when
 -- another key, a click or a scroll came while Super was down; what it lacks is
 -- a time limit, so Super held and let go (a change of mind, a hover with
@@ -389,6 +389,26 @@ for _, key in ipairs({ "Super_L", "Super_R" }) do
         end
     end, { release = true, description = "Dock box (tap)" })
 end
+-- VOICE TO TEXT on Super+Space (Max, 2026-10-12: a tap "opens the card on
+-- voice to text"; held, it is dictation "without the card": the seconds on
+-- the task pill, then the words pasted into the window). Which of the two it
+-- was is told by the dock (launcher card/dictate.rs), from how long it took:
+-- here only "down" and "up". The "up" is Space coming up WHATEVER the
+-- modifiers then, since Super is often let go first and a release bind under
+-- SUPER would never fire; it cannot be shadowed (transparent: with Super let
+-- go first Hyprland shadows every bind on a key still down), it eats nothing
+-- (a plain Space is typed as ever) and does nothing unless a "down" went out.
+local talkDown = false
+hl.bind(mainMod .. " + SPACE", function()
+    talkDown = true
+    hl.dispatch(hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card dictate down"))
+end, { description = "Voice to text (tap: the card; hold: dictate)" })
+hl.bind("SPACE", function()
+    if talkDown then
+        talkDown = false
+        hl.dispatch(hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card dictate up"))
+    end
+end, { release = true, ignore_mods = true, non_consuming = true, transparent = true })
 -- FAST LAUNCH: one bubble mid-screen, an apps-only search; a few letters
 -- and Enter open a new instance (Super+J; it took the dwindle movetoroot key).
 hl.bind(mainMod .. " + J", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl fast-launch"))
