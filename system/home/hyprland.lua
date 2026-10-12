@@ -86,6 +86,7 @@ hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
 
 ---- XWAYLAND SCALING ----
+local windowCorner = 14 -- the windows' corner radius (see decoration.rounding)
 hl.config({
     xwayland = {
         force_zero_scaling = false,
@@ -169,12 +170,16 @@ hl.config({
     },
 
     decoration = {
-        -- (rounding_power 2, a circle's quarter like the bar's pills, was
-        -- tried 2026-10-12 to give everything one corner and taken back the
-        -- same hour: Max, "looks worse, the windows are too square. I like
-        -- the rounded windows". The windows keep THIS corner.)
-        rounding       = 12,
-        rounding_power = 12,
+        -- THE WINDOWS' CORNER, chosen by eye on the live screen (Max,
+        -- 2026-10-12): 14 at power 3. It was 12 at power 12 — long straight
+        -- shoulders and a tight bend, "como si no fueran del todo redondas";
+        -- a circle (power 2) at 12 read as "too square"; power 4 showed "una
+        -- ligera punta" on the diagonal. The card's frame is drawn with the
+        -- SAME curve (launcher content::WINDOW_CORNER + rounded_rect.wgsl's
+        -- WINDOW_POWER): change the three together. `windowCorner` is also
+        -- what the rules below hand back to the windows they frame.
+        rounding       = windowCorner,
+        rounding_power = 3,
         -- Opaque focused windows: 0.95 forced the compositor to alpha-blend
         -- every window each frame (and blocks fullscreen direct-scanout of
         -- video). 1.0 removes that per-frame blend — the biggest free win for
@@ -574,7 +579,7 @@ hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = tr
 hl.window_rule({
     name  = "floating-rounding",
     match = { float = true },
-    rounding = 12,
+    rounding = windowCorner,
 })
 
 ---- Golem browser: a subtle border, only on Firefox ----
@@ -643,7 +648,7 @@ hl.window_rule({
     name  = "golem-pseudo-frame",
     match = { tag = "golem-pseudo" },
     border_size = 3,
-    rounding    = 12,
+    rounding    = windowCorner,
     no_shadow   = false,
 })
 
@@ -669,7 +674,7 @@ hl.window_rule({
     name  = "golem-stage-frame",
     match = { tag = "golem-stage" },
     border_size = 0,
-    rounding    = 12,
+    rounding    = windowCorner,
     no_shadow   = false,
     dim_around  = true,
 })
