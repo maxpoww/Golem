@@ -78,6 +78,9 @@ def appsjson():
     try: return json.load(open(f"{RUN}/seam/apps.json"))
     except Exception as e: return f"(none: {e.__class__.__name__})"
 R = {}
+def navfile():
+    try: return dict((l.split()[0], l.split()[1:]) for l in open(f"{RUN}/seam/nav").read().splitlines() if l.strip())
+    except Exception as e: return f"(none: {e.__class__.__name__})"
 def check(name, ok, detail): R[name] = ("PASS" if ok else "FAIL", detail); print(f"{'PASS' if ok else 'FAIL'}  {name}: {json.dumps(detail)[:300]}", flush=True)
 
 MF = ["--marionette", "-remote-allow-system-access"]
@@ -104,12 +107,19 @@ top0 = m.js(APPWIN + 'let w = appw("spikeapp"); done(w.gBrowser.selectedBrowser.
 check("webapp: the page starts at the window's very top (no 1px separator under the title bar)", top0 == 0, top0)
 check("webapp: page title, no toolbox, no tab strip, minimal-ui", a.get("title") == "Spike App" and a.get("toolboxShown") is False and a.get("tabstripShown") is False and a.get("mode") == "minimal-ui", a)
 time.sleep(1); check("apps.json reports the webapp url", isinstance(appsjson(), dict) and appsjson().get("spikeapp", {}).get("url") == U("app"), appsjson())
+check("nav: a freshly opened webapp can go nowhere", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "0"], navfile())
 
 # 2) relaunch, and a link into the webapp
 remote(m, "-golem-app", "spikeapp", U("app")); time.sleep(2)
 w2 = wins(m); check("relaunch at its start URL: one window, its page kept", [w["url"] for w in w2 if w["app"] == "spikeapp"] == [U("app")], w2)
 remote(m, "-golem-app", "spikeapp", U("other")); time.sleep(2)
 w2b = wins(m); check("a link opened in the webapp loads in its window", [w["url"] for w in w2b if w["app"] == "spikeapp"] == [U("other")], w2b)
+# the title bar's arrows: nothing to go to at first, back after a page, forward after going back
+check("nav: a second page can go back, not forward", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0"] and appsjson().get("spikeapp", {}).get("back") is True, navfile())
+m.js(APPWIN + 'appw("spikeapp").gBrowser.goBack(); done(1);'); time.sleep(2)
+check("nav: after going back it can go forward, not back", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "1"], navfile())
+m.js(APPWIN + 'appw("spikeapp").gBrowser.goForward(); done(1);'); time.sleep(2)
+check("nav: forward again restores back only", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0"], navfile())
 # the dock's "new instance" (a box launch, a right-click): another window of the webapp
 # (the dock appends the flag AFTER the url: a Seam predating it read the first
 # argument after the slug as the page, and loaded "-golem-new" into the window)

@@ -3062,7 +3062,9 @@ try {
 //     (system/home/notification-fix, 2026-09-01), now a frame script.
 //     Hosts: golem.seam.apps.visibilityHosts.
 // The current URL of every webapp window goes to XDG_RUNTIME_DIR/seam/apps.json
-// for the dock's copy-link (Chrome's was read over its debugging port). Kill
+// for the dock's copy-link (Chrome's was read over its debugging port), and
+// whether it can go back / forward to XDG_RUNTIME_DIR/seam/nav for the title
+// bar's two arrows (2026-10-12, Max: "the arrows show up only when needed"). Kill
 // switch: golem.seam.apps (false = the flag is consumed and the URL opens as a
 // plain tab).
 // ===================================================================
@@ -3101,9 +3103,14 @@ try {
       var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
       dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
       while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
-        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||"")}; }catch(e2){} }
+        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||""), back:!!w.gBrowser.canGoBack, fwd:!!w.gBrowser.canGoForward}; }catch(e2){} }
       var io=(w0||{}).IOUtils; if(!io) return;   // no window left: nothing is open to copy from
-      io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
+      // The title bar's back and forward arrows show only while there is somewhere to go
+      // (waveview, golemBar.cpp `navMask`): the same facts as lines it can read without a
+      // JSON parser, "<slug> <back 0|1> <forward 0|1>".
+      var nav=Object.keys(out).map(function(k){ return k+" "+(out[k].back?1:0)+" "+(out[k].fwd?1:0)+"\n"; }).join("");
+      io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); })
+        .then(function(){ return io.writeUTF8(dir+"/nav",nav,{tmpPath:dir+"/nav.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
     }catch(e4){ WALOG("report:"+e4); }
   }
 
