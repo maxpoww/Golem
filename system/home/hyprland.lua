@@ -367,6 +367,28 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
+-- A TAP of Super alone opens the dock box too (Max, 2026-10-12: "can we open
+-- the dock box by pressing only Super? like a short hit opens it?"). A release
+-- bind of the key under its own modifier is already dropped by Hyprland when
+-- another key, a click or a scroll came while Super was down; what it lacks is
+-- a time limit, so Super held and let go (a change of mind, a hover with
+-- Super+drag in sight) opened the box. The press starts a 300 ms window; only
+-- a release inside it counts. Rig: ~/.cache/golem-nested/tap-test.sh.
+local tapFresh, tapGen = false, 0
+for _, key in ipairs({ "Super_L", "Super_R" }) do
+    hl.bind(key, function()
+        tapGen = tapGen + 1
+        local mine = tapGen
+        tapFresh = true
+        hl.timer(function() if tapGen == mine then tapFresh = false end end, { timeout = 300, type = "oneshot" })
+    end, { non_consuming = true })
+    hl.bind(mainMod .. " + " .. key, function()
+        if tapFresh then
+            tapFresh = false
+            hl.dispatch(hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
+        end
+    end, { release = true, description = "Dock box (tap)" })
+end
 -- FAST LAUNCH: one bubble mid-screen, an apps-only search; a few letters
 -- and Enter open a new instance (Super+J; it took the dwindle movetoroot key).
 hl.bind(mainMod .. " + J", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl fast-launch"))
