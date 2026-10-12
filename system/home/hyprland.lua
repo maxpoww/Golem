@@ -366,9 +366,9 @@ hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd(Suspend))
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl toggle"))
--- A TAP of Super alone opens the dock box too (Max, 2026-10-12: "can we open
--- the dock box by pressing only Super? like a short hit opens it?"). A release
+-- A TAP of Super alone opens the dock box (Max, 2026-10-12: "can we open
+-- the dock box by pressing only Super? like a short hit opens it?"; it "feels
+-- good", so Super+Space, the key it had until then, is gone). A release
 -- bind of the key under its own modifier is already dropped by Hyprland when
 -- another key, a click or a scroll came while Super was down; what it lacks is
 -- a time limit, so Super held and let go (a change of mind, a hover with
