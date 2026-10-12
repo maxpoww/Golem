@@ -169,8 +169,15 @@ hl.config({
     },
 
     decoration = {
+        -- ONE CORNER for everything (Max, 2026-10-12: "la misma curva: si yo
+        -- superpongo una ventana en una píldora, la curva tiene que ser
+        -- exactamente la misma, y lo mismo con la tarjeta"). The bar's pills
+        -- end in a half circle of 11.5 (bar 28, pill 23); its boxes and the
+        -- card's frame are 11.5 (launcher clipboard::BOX_RADIUS). A window is
+        -- the nearest whole number, and a CIRCLE's quarter as they are:
+        -- rounding_power 2. It was 12, a squarer corner than any pill's.
         rounding       = 12,
-        rounding_power = 12,
+        rounding_power = 2,
         -- Opaque focused windows: 0.95 forced the compositor to alpha-blend
         -- every window each frame (and blocks fullscreen direct-scanout of
         -- video). 1.0 removes that per-frame blend — the biggest free win for
