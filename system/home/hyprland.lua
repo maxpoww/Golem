@@ -370,6 +370,12 @@ hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("/home/max/launcher/target/debug/
 -- FAST LAUNCH: one bubble mid-screen, an apps-only search; a few letters
 -- and Enter open a new instance (Super+J; it took the dwindle movetoroot key).
 hl.bind(mainMod .. " + J", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl fast-launch"))
+-- THE CARD, straight to a page of it, on the focused window (Max,
+-- 2026-10-12): Super+. its clipboard, Super+, its emoji, Super+/ its
+-- memory. The same key again puts the card away.
+hl.bind(mainMod .. " + period", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card at clipboard"))
+hl.bind(mainMod .. " + comma", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card at emoji"))
+hl.bind(mainMod .. " + slash", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card at memory"))
 -- The control panel (the dock's gear): Super+Ctrl, tapped. Fires on the
 -- RELEASE of whichever of the two keys lets go first while the other is still
 -- held — at that instant Hyprland 0.55 still counts the released key in the
