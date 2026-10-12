@@ -362,7 +362,17 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))
 -- the lock screen ever dies (the session stays locked, frozen on its last
 -- frame), Super+L brings a live one back (allow_session_lock_restore below).
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'"), { locked = true })
-hl.bind(mainMod .. " + ESCAPE", hl.dsp.exec_cmd(Suspend))
+-- (While something dictated is being written out, Escape cancels it — the
+-- dock binds the bare key for that long and raises `golem_dictating`. A hand
+-- that has not let go of Super yet presses THIS key instead: it cancels too,
+-- it does not put the computer to sleep. launcher card/dictate.rs.)
+hl.bind(mainMod .. " + ESCAPE", function()
+    if golem_dictating then
+        hl.dispatch(hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl card dictate cancel"))
+    else
+        hl.dispatch(hl.dsp.exec_cmd(Suspend))
+    end
+end)
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
