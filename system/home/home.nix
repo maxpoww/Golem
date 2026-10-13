@@ -657,7 +657,13 @@ in
   # move it aside, it is being replaced by this.
   xdg.mimeApps =
     let
-      files = [ "org.gnome.Nautilus.desktop" ];
+      # Folders open in Golem Files — the shell's own file manager, whose
+      # launcher the dock writes at its first start (launcher `filer.rs`);
+      # Nautilus stays installed and is next in line.
+      files = [
+        "golem-files.desktop"
+        "org.gnome.Nautilus.desktop"
+      ];
       editor = [ "org.gnome.TextEditor.desktop" ];
       images = [ "org.gnome.Loupe.desktop" ];
       # mpv plays both (zsh.nix ships it with MPRIS); Showtime and Decibels
