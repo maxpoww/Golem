@@ -33,6 +33,8 @@
     ./home-boot.nix         # home-manager activates only when something changed
     ./update-notice.nix     # "Golem has an update ready" after 2 days waiting for a restart
     ./crash-recovery.nix    # a crash loop → back to the previous version; never Hyprland's safe mode
+    ./app-setup.nix         # an installed app arrives with the system it needs (Steam's 32-bit
+                            #   graphics, Docker's daemon and group, LocalSend's port…)
     ./care.nix              # what the gear box's machine pages ask of the system: trim, clean-up,
                             #   update check, charge limit, the format tools
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)

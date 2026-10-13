@@ -113,6 +113,50 @@ let
     then "test-chrome cut ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
     else throw "desktop-matrix test-chrome failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
+  # APP SETUP (desktop/app-setup.nix, 2026-10-13): a clean machine carries
+  # none of it, and a machine with the programs installed has the system each
+  # needs — in the one evaluation that installs them.
+  appSetup =
+    let
+      facts = (builtins.head rows).facts;
+      clean = (mkMinimal facts [ fakeDisk desktop ]).config;
+      c = (mkMinimal facts [
+        fakeDisk
+        desktop
+        ({ config, pkgs, ... }: {
+          # As hosts/target/apps.nix does for what the dock installed.
+          home-manager.users.${config.golem.owner}.home.packages =
+            map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing ];
+        })
+      ]).config;
+      groups = cfg: cfg.users.users.${cfg.golem.owner}.extraGroups;
+      checks = [
+        (ex "app-setup: a clean machine has no Steam, Docker, libvirtd or Ollama"
+          (!clean.programs.steam.enable && !clean.virtualisation.docker.enable
+           && !clean.virtualisation.libvirtd.enable && !clean.services.ollama.enable))
+        (ex "app-setup: a clean machine opens no sharing port and gives no extra group"
+          (!(lib.elem 53317 clean.networking.firewall.allowedTCPPorts)
+           && !(lib.elem "docker" (groups clean)) && !(lib.elem "libvirtd" (groups clean))))
+        (ex "app-setup: Steam installed → the Steam system side, 32-bit graphics, GameMode"
+          (c.programs.steam.enable && c.hardware.graphics.enable32Bit && c.programs.gamemode.enable
+           && c.hardware.steam-hardware.enable))
+        (ex "app-setup: Docker installed → its daemon and the owner in its group"
+          (c.virtualisation.docker.enable && lib.elem "docker" (groups c)))
+        (ex "app-setup: virt-manager installed → libvirtd, and the owner may use it"
+          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable && lib.elem "libvirtd" (groups c)))
+        (ex "app-setup: LocalSend and Syncthing installed → their ports are open"
+          (lib.elem 53317 c.networking.firewall.allowedTCPPorts && lib.elem 22000 c.networking.firewall.allowedTCPPorts
+           && lib.elem 21027 c.networking.firewall.allowedUDPPorts))
+        (ex "app-setup: Ollama installed → its service" c.services.ollama.enable)
+        (ex "app-setup: the base groups are still there (merged, not replaced)"
+          (lib.elem "wheel" (groups c) && lib.elem "uinput" (groups c)))
+      ];
+      failed = builtins.filter (e: !e.ok) checks;
+    in
+    if failed == [ ]
+    then "app-setup ${toString (builtins.length checks)} checks"
+    else throw "desktop-matrix app-setup failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
+
   # THE REAL OPTIONS DESKTOP: compose the home layer (waverunner's bar/dock +
   # OPTIONS surfaces, hyprland.lua, Beam) onto a fixture — the same wiring the
   # golem-desktop attr uses — and force the full eval. Catches a home-layer /
@@ -395,7 +439,7 @@ let
     then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
     else throw "desktop-matrix real-desktop failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
-  report = (map runRow rows) ++ [ testChrome realDesktop ];
+  report = (map runRow rows) ++ [ testChrome appSetup realDesktop ];
 in
 pkgs.runCommand "golem-desktop-matrix"
   { passAsFile = [ "report" ]; report = lib.concatStringsSep "\n" report; }
