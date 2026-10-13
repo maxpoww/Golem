@@ -96,11 +96,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1791679192,
-        "narHash": "sha256-YKEDRXltzudZtd4/WGpT6Yo/cNSDymcKHZ8n5L6YQAM=",
+        "lastModified": 1791858972,
+        "narHash": "sha256-xzMO5nSTaKR6I8oYxxxkJorgISkaNrRxK57gELGNrBY=",
         "owner": "maxpoww",
         "repo": "launcher",
-        "rev": "99a08638a612566d33dbc60bcdcbb7a06eeddc88",
+        "rev": "61abd6ee30921253f763327aa7e0090b3ecd9af2",
         "type": "github"
       },
       "original": {
@@ -112,11 +112,11 @@
     "waveview-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1791492639,
-        "narHash": "sha256-dwoXKCiiu4hmfyF42vA5nqu/LT/DYeWnIpW9EoIRNb8=",
+        "lastModified": 1791860268,
+        "narHash": "sha256-KAJ21vSY5/Upbpq+UibTfTGiZmQwUBlFvFz15H/HykE=",
         "owner": "maxpoww",
         "repo": "waveview",
-        "rev": "c04f9ca8438c761a7c0ff7fe7f457df909e5152d",
+        "rev": "a543526aa97329da623dcc7a2bd8d7b6cd8b03dc",
         "type": "github"
       },
       "original": {
