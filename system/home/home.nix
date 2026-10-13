@@ -102,6 +102,8 @@ in
     awww
     mpvpaper          # a video as the wallpaper (the control panel's Wallpaper lists
                       # videos only where this is installed)
+    ffmpeg-headless   # reads the frames of a GIF or video for its moving preview in
+                      # the wallpapers' box (without it the preview stays still)
     waypaper
 
     grim
