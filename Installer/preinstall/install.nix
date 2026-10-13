@@ -1025,6 +1025,33 @@ pkgs.writeShellApplication {
       check_ok "owner: SSH key authorized for $owner on the generic system (reachable at first boot)"
     fi
 
+    # ── 5b'. SEED the owner's LIVE SETTINGS (2026-10-13). The baked desktop is
+    # one image for every language: it boots in English, in UTC, on a US
+    # keyboard, and the answers given here only arrived with the first rebuild
+    # and a restart (todo11: "a non-English install still shows an English
+    # shell and English home folders"). The desktop has a second, rebuild-free
+    # way to hold exactly these three: ~/.config/golem/settings.json, the file
+    # the control panel's Language, Time zone and Keyboard layout write. The
+    # dock reads it as it starts (shell strings, the apps it launches, the
+    # compositor's keyboard) and base/user-dirs.nix names the home folders
+    # from it. So the first session is already in the owner's language. The
+    # rebuild still makes the same answers the SYSTEM's (machine.nix above);
+    # this file keeps agreeing with them until the owner picks otherwise.
+    live="/mnt/home/$owner/.config/golem"
+    if run install -d -m 755 "/mnt/home/$owner/.config" "$live"; then
+      jq_str() { printf '%s' "$1" | ${pkgs.gnused}/bin/sed 's/[\\"]/\\&/g'; }
+      {
+        printf '{\n'
+        printf '  "keyboard": { "layout": "%s", "variant": "%s", "options": "%s" },\n' \
+          "$(jq_str "$kb_layout")" "$(jq_str "$kb_variant")" "$(jq_str "$kb_options")"
+        printf '  "language": "%s",\n' "$(jq_str "$locale")"
+        printf '  "time_zone": "%s"\n' "$(jq_str "$timezone")"
+        printf '}\n'
+      } > "$live/settings.json" 2>/dev/null \
+        && check_ok "owner: language '$locale', time zone '$timezone' and keyboard '$kb_layout' seeded as live settings (in effect at first boot, no rebuild)" \
+        || check_warn "owner: could not seed the live settings — the first session is in English until the first rebuild"
+    fi
+
     # The seed is the installed machine's own flake (golem.flakeDir), so it
     # must belong to the owner, not to root — rebuild-golem runs as them.
     uid=$(chroot /mnt id -u "$owner" 2>/dev/null || echo "")

@@ -37,6 +37,18 @@ in {
           set -a
           # shellcheck disable=SC1091
           [ -r /etc/locale.conf ] && . /etc/locale.conf
+          # The owner's own language, when they have one (the control panel's
+          # Language, or the installer's seed of it): the folders are named in
+          # the language the session speaks, which on a fresh install is not
+          # yet the system's (the baked desktop boots in English until its
+          # first rebuild).
+          chosen=$(${pkgs.gnused}/bin/sed -n 's/.*"language"[[:space:]]*:[[:space:]]*"\([A-Za-z_.@0-9-]*\)".*/\1/p' \
+            "''${XDG_CONFIG_HOME:-$HOME/.config}/golem/settings.json" 2>/dev/null | ${pkgs.coreutils}/bin/head -n1)
+          if [ -n "$chosen" ]; then
+            LANG=$chosen
+            LC_MESSAGES=$chosen
+            unset LC_ALL LANGUAGE
+          fi
           set +a
           exec ${pkgs.xdg-user-dirs}/bin/xdg-user-dirs-update
         ''}";
