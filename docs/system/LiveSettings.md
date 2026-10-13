@@ -115,8 +115,61 @@ waverunner-ctl display reset                # Golem's defaults again (reloads th
 waverunner-ctl display show scale|resolution
 ```
 
+## The other settings (2026-10-13)
+
+Every pill of the control panel but one (Accent colour) now has content, in
+the same idiom: a subtitle, then groups of choice pills, the one in use lit.
+The dock's `controls.rs` reads the machine and carries out a pick on a thread
+of its own. Where each choice lives:
+
+| Setting | Changed with | Kept in |
+|---|---|---|
+| Keyboard layout, Natural scrolling, Touchpad speed | `hl.config` (live) | `settings.json` → `settings.lua`, the three steps above |
+| Language, Time zone | the session's `LANG` / `TZ`: the shell at once, every app the dock starts from then on | `settings.json`; `~/.config/uwsm/env` for the next login |
+| Dark mode | `gsettings` (`color-scheme`, `gtk-theme`) | `settings.json`, put back at each dock start (the home layer writes its own default at a rebuild) |
+| Night light | the dock's screen memory (`hyprsunset`) | the dock's `screen.json` |
+| Wallpaper | `awww img` | `settings.json`, put back a few seconds after the session's own |
+| Sound output, Volume, Microphone | `wpctl` | PipeWire / WirePlumber |
+| Wi-Fi, Bluetooth | `nmcli radio`, `bluetoothctl power` | their services |
+| Power mode | `powerprofilesctl` | its daemon |
+| Brightness | `golem-brightness` | the backlight |
+| Default apps | `xdg-mime default` | the owner's `~/.config/mimeapps.list` (Golem's table sits below it, in `~/.local/share/applications`) |
+| Notifications | the dock's do-not-disturb | the dock |
+| Updates, About Golem, Battery, Privacy | read-only, with "More…" into the gear box | — |
+
+```json
+{
+  "keyboard": { "layout": "latam", "variant": "" },
+  "natural_scroll": true,
+  "pointer_speed": 0.3,
+  "dark": true,
+  "language": "es_BO.UTF-8",
+  "time_zone": "America/La_Paz",
+  "wallpaper": "/home/ana/Pictures/Wallpapers/dunes.jpg"
+}
+```
+
+**Language and time zone are the SESSION's, not the system's.** The system's
+own (`i18n.defaultLocale`, `time.timeZone`, in the machine's `machine.nix`)
+need a rebuild and are what the login screen, the console and the logs use.
+The installer writes the same answers to both, so they agree from the first
+boot; a later pick in the panel moves the session only. That is on purpose:
+it is instant, it cannot fail, and it is the owner's, not the machine's.
+
+**The installer seeds the file** (language, time zone, keyboard): the baked
+desktop is one image for every language, and this is what makes a first
+session come up in the owner's — the dock applies a `settings.json` it did
+not write as it starts, and `base/user-dirs` names the home folders from its
+`language`.
+
+```
+waverunner-ctl display show keyboardlayout|timezone|language|volume|…
+waverunner-ctl display pick <group> <n>     # a click on a choice, counted from 0
+```
+
 ## Next
 
-Gaps, rounding, transparency, dark mode: same three steps (apply live with
-`hl.config`, save to `settings.json`, add to the generated `settings.lua`).
-Code: the dock's `crates/daemon/src/display.rs` and `panel.rs`.
+Accent colour (the home layer's GTK CSS pins the accent; changing it is a
+decision about the look), gaps, rounding, transparency: same three steps.
+A multi-monitor picker (a setting targets the focused screen).
+Code: the dock's `crates/daemon/src/{display,controls,panel}.rs`.
