@@ -45,7 +45,6 @@ in
       "footclient"
       "foot-server"
       "btop"
-      "waypaper"
       "xterm"
       "nixos-manual"
       "uuctl"

@@ -18,7 +18,7 @@
 #                      golem-autoupdate will not pull or build a held revision
 #                      (base/autoupdate.nix) — only a newer upstream one.
 #   nothing to go back to
-#                      Golem's last-resort screen: black, the Golem pointer,
+#                      Golem's last-resort screen: grey, the Golem pointer,
 #                      one Restart button. Never Hyprland's safe mode.
 { config, lib, pkgs, ... }:
 
@@ -121,7 +121,7 @@ in
             force_default_wallpaper = 0,
             disable_hyprland_logo   = true,
             disable_splash_rendering = true,
-            background_color = 0xff000000,
+            background_color = 0xff3a3a3c,
         },
         input = {
             kb_layout  = "${kb.layout}",

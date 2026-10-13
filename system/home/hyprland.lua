@@ -54,8 +54,13 @@ hl.exec_cmd("/home/max/launcher/waverunner-dev")
 -- dump and an error in the journal. Core limit 1 is the kernel's "do not dump"
 -- value for a piped handler: no core, no coredumpctl entry, no error line
 -- (limit 0 still records the crash; measured).
-hl.exec_cmd("prlimit --core=1 awww-daemon")
-hl.exec_cmd("waypaper --restore")
+-- It starts EMPTY (`--no-cache`: not with the last picture it showed, which
+-- came up at every start before the owner's own — Max, 2026-10-13: "cuando
+-- recargás aparece el fondo viejo"). Until the dock puts the chosen
+-- wallpaper up (controls.rs `reassert`), and whenever none can be shown,
+-- the screen is the compositor's bare grey (misc.background_color below).
+-- waypaper is gone: the wallpaper is chosen in the dock's own box.
+hl.exec_cmd("prlimit --core=1 awww-daemon --no-cache")
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
 end)
@@ -298,6 +303,10 @@ hl.config({
         force_default_wallpaper = 0,
         disable_hyprland_logo   = true,
         disable_splash_rendering = true,
+        -- What is seen where no wallpaper is (none chosen, or it could not
+        -- be shown): a quiet grey, the last-resort screen's too
+        -- (desktop/crash-recovery.nix).
+        background_color = 0xff3a3a3c,
         -- Any key or pointer motion wakes a display that is off, whatever
         -- turned it off: the safety net under hypridle's own screen-on (which
         -- once toggled the screen OFF on a wake-up, 2026-09-30).

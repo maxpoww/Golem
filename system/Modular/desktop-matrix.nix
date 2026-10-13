@@ -272,7 +272,9 @@ let
         (ex "P9: the session plumbing (gvfs, dconf, udisks2) is on"
           (c.services.gvfs.enable && c.programs.dconf.enable && c.services.udisks2.enable))
         (ex "the placeholder wallpaper daemon cannot leave a crash dump when a session ends"
-          (lib.hasInfix ''hl.exec_cmd("prlimit --core=1 awww-daemon")'' (luaOf c)))
+          (lib.hasInfix ''hl.exec_cmd("prlimit --core=1 awww-daemon --no-cache")'' (luaOf c)))
+        (ex "no second wallpaper chooser: waypaper is gone, the session starts on the bare grey"
+          (!(lib.hasInfix ''hl.exec_cmd("waypaper'' (luaOf c)) && lib.hasInfix "background_color = 0xff3a3a3c" (luaOf c)))
         (ex "P9: TERMINAL and EDITOR reach every app (hyprland.lua env)"
           (lib.all (k: lib.hasInfix ''hl.env("${k}"'' (luaOf c)) [ "TERMINAL" "EDITOR" ]))
         (ex "P10: the seed has an upstream and golem-seed-adopt is on the PATH"

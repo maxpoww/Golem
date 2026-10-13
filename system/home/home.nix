@@ -104,7 +104,6 @@ in
                       # videos only where this is installed)
     ffmpeg-headless   # reads the frames of a GIF or video for its moving preview in
                       # the wallpapers' box (without it the preview stays still)
-    waypaper
 
     grim
     slurp
@@ -187,26 +186,6 @@ in
     document-font-name = "DejaVu Sans 11";
     monospace-font-name = "JetBrainsMono Nerd Font 11";
   };
-
-  xdg.configFile."waypaper/config.ini".text = ''
-    [Settings]
-    language = en
-    folder = ~/Pictures/Wallpapers
-    backend = swww
-    monitors = All
-    fill = Fill
-    sort = name
-    color = #ffffff
-    subfolders = False
-    show_hidden = False
-    show_gifs_only = False
-    post_command =
-    number_of_columns = 3
-    swww_transition_type = outer
-    swww_transition_step = 90
-    swww_transition_angle = 0
-    swww_transition_duration = 2
-  '';
 
   # No Chrome: Seam is Golem's only browser (the debloat, 2026-09-29). The
   # webapps (Chrome --app windows) come back when they move onto Seam.
