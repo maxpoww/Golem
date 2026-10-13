@@ -431,6 +431,10 @@ end, { release = true, ignore_mods = true, non_consuming = true, transparent = t
 -- FAST LAUNCH: one bubble mid-screen, an apps-only search; a few letters
 -- and Enter open a new instance (Super+J; it took the dwindle movetoroot key).
 hl.bind(mainMod .. " + J", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl fast-launch"))
+-- QUICK CONTROLS: the same bubble over the control panel's settings (Max,
+-- 2026-10-13) — a few letters and Enter open that setting in a box
+-- mid-screen (Super+H).
+hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl fast-controls"))
 -- THE CARD, straight to a page of it, on the focused window (Max,
 -- 2026-10-12): Super+. its clipboard, Super+, its emoji, Super+/ its
 -- memory. The same key again puts the card away.
