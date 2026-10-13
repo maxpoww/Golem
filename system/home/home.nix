@@ -100,6 +100,8 @@ in
     ripgrep
 
     awww
+    mpvpaper          # a video as the wallpaper (the control panel's Wallpaper lists
+                      # videos only where this is installed)
     waypaper
 
     grim
