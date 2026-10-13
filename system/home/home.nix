@@ -736,4 +736,14 @@ in
         "x-scheme-handler/geo" = [ "org.gnome.Maps.desktop" ];
       };
     };
+
+  # Golem's defaults sit BELOW the owner's choice (2026-10-13, the control
+  # panel's "Default apps"). home-manager writes the table twice: as
+  # ~/.config/mimeapps.list, and as ~/.local/share/applications/mimeapps.list.
+  # The first is the file `xdg-mime default` and every "always open with" box
+  # write to — as a read-only link of ours nobody could ever change a default
+  # (the panel's pick failed in silence, so did Nautilus'). So only the
+  # second is ours: the lookup reads the owner's file first and falls through
+  # to it, type by type.
+  xdg.configFile."mimeapps.list".enable = lib.mkForce false;
 }

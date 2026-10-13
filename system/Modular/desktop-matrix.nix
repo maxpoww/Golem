@@ -255,6 +255,10 @@ let
         # Found by the P1 diff (2026-09-30): only the dev box had these.
         (ex "the sunset option's hyprsunset ships in the home layer"
           (lib.any (p: (p.pname or "") == "hyprsunset") c.home-manager.users.${owner}.home.packages))
+        # The control panel's Default apps (2026-10-13): the owner's file is theirs.
+        (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
+          (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)
+           && c.home-manager.users.${owner}.xdg.dataFile ? "applications/mimeapps.list"))
         (ex "an Intel iGPU can report its load (perf_event_paranoid 0 on intel leaves)"
           ((cLight.boot.kernel.sysctl."kernel.perf_event_paranoid" or null) == 0))
         (ex "trusted Bluetooth devices reconnect after hibernate"
