@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus twelve patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus fifteen patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -104,6 +104,13 @@
 #   dnd-hold-raise        a drag held still over a window (650 ms) focuses and
 #                         raises it; focus does not follow a drag otherwise
 #                         (hyprland.lua: misc.always_follow_on_dnd = false).
+#   snap-reserved-edge    general:snap (hyprland.lua turns it on): a side that
+#                         reserves space has ONE magnet, the reserved edge.
+#                         Stock fell back to the raw monitor edge once a
+#                         window was pushed past it, so a window thrown at
+#                         the top stuck under the bar (Max, 2026-10-14: "the
+#                         magnets at the top have to be the bottom edge of
+#                         the banner, not the top edge of the screen").
 #   workspace-swipe-one-empty  gestures:workspace_swipe_one_empty (opt-in):
 #                         swipe steps onto ONE empty workspace, then jumps to
 #                         the next occupied one.
@@ -124,6 +131,7 @@ final: prev: {
       ./hyprland-patches/hyprland-pseudo-real-box.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-screenshare-region-session.patch
+      ./hyprland-patches/hyprland-snap-reserved-edge.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-visible-region-damage.patch

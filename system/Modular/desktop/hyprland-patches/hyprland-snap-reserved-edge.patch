@@ -1,0 +1,45 @@
+--- a/src/layout/LayoutManager.cpp
++++ b/src/layout/LayoutManager.cpp
+@@ -288,24 +288,34 @@
+         const bool   HAS_BOTTOM = MON->m_reservedArea.bottom() > 0;
+         const bool   HAS_RIGHT  = MON->m_reservedArea.right() > 0;
+ 
++        // A side that reserves space (the bar) has ONE magnet: the reserved
++        // edge. Stock falls back to the raw monitor edge once the window is
++        // pushed past it, so a window thrown at the top stuck under the bar.
++        // Now anything in the strip, or within reach of either edge, lands on
++        // the reserved edge; a side with nothing reserved is stock.
++        const double RAW_LEFT   = monX.start - MON->m_reservedArea.left() - EXTENTDIFF->topLeft.x;
++        const double RAW_RIGHT  = monX.end + MON->m_reservedArea.right() + EXTENTDIFF->bottomRight.x;
++        const double RAW_TOP    = monY.start - MON->m_reservedArea.top() - EXTENTDIFF->topLeft.y;
++        const double RAW_BOTTOM = monY.end + MON->m_reservedArea.bottom() + EXTENTDIFF->bottomRight.y;
++
+         if (CORNER & (CORNER_TOPLEFT | CORNER_BOTTOMLEFT) &&
+-            ((HAS_LEFT && canSnap(sourceX.start, monX.start, GAPSIZE)) || canSnap(sourceX.start, (monX.start -= MON->m_reservedArea.left() + EXTENTDIFF->topLeft.x), GAPSIZE))) {
+-            SNAP(sourceX.start, sourceX.end, monX.start);
++            (HAS_LEFT ? sourceX.start > RAW_LEFT - GAPSIZE && sourceX.start < monX.start + GAPSIZE : canSnap(sourceX.start, RAW_LEFT, GAPSIZE))) {
++            SNAP(sourceX.start, sourceX.end, HAS_LEFT ? monX.start : RAW_LEFT);
+             snaps |= SNAP_LEFT;
+         }
+         if (CORNER & (CORNER_TOPRIGHT | CORNER_BOTTOMRIGHT) &&
+-            ((HAS_RIGHT && canSnap(sourceX.end, monX.end, GAPSIZE)) || canSnap(sourceX.end, (monX.end += MON->m_reservedArea.right() + EXTENTDIFF->bottomRight.x), GAPSIZE))) {
+-            SNAP(sourceX.end, sourceX.start, monX.end);
++            (HAS_RIGHT ? sourceX.end < RAW_RIGHT + GAPSIZE && sourceX.end > monX.end - GAPSIZE : canSnap(sourceX.end, RAW_RIGHT, GAPSIZE))) {
++            SNAP(sourceX.end, sourceX.start, HAS_RIGHT ? monX.end : RAW_RIGHT);
+             snaps |= SNAP_RIGHT;
+         }
+         if (CORNER & (CORNER_TOPLEFT | CORNER_TOPRIGHT) &&
+-            ((HAS_TOP && canSnap(sourceY.start, monY.start, GAPSIZE)) || canSnap(sourceY.start, (monY.start -= MON->m_reservedArea.top() + EXTENTDIFF->topLeft.y), GAPSIZE))) {
+-            SNAP(sourceY.start, sourceY.end, monY.start);
++            (HAS_TOP ? sourceY.start > RAW_TOP - GAPSIZE && sourceY.start < monY.start + GAPSIZE : canSnap(sourceY.start, RAW_TOP, GAPSIZE))) {
++            SNAP(sourceY.start, sourceY.end, HAS_TOP ? monY.start : RAW_TOP);
+             snaps |= SNAP_UP;
+         }
+         if (CORNER & (CORNER_BOTTOMLEFT | CORNER_BOTTOMRIGHT) &&
+-            ((HAS_BOTTOM && canSnap(sourceY.end, monY.end, GAPSIZE)) || canSnap(sourceY.end, (monY.end += MON->m_reservedArea.bottom() + EXTENTDIFF->bottomRight.y), GAPSIZE))) {
+-            SNAP(sourceY.end, sourceY.start, monY.end);
++            (HAS_BOTTOM ? sourceY.end < RAW_BOTTOM + GAPSIZE && sourceY.end > monY.end - GAPSIZE : canSnap(sourceY.end, RAW_BOTTOM, GAPSIZE))) {
++            SNAP(sourceY.end, sourceY.start, HAS_BOTTOM ? monY.end : RAW_BOTTOM);
+             snaps |= SNAP_DOWN;
+         }
+     }

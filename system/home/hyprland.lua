@@ -170,6 +170,16 @@ hl.config({
         resize_on_border      = true,
         extend_border_grab_area = 10,
         hover_icon_on_border  = true,
+        -- Magnets: a dragged floating window's edges pull to the other
+        -- windows' edges and to the screen's. 68 px is far stronger than
+        -- stock's 10 (Max, 2026-10-14: "more sticky", then "stronger" twice).
+        -- Flush, no gaps: floats are placed by hand. At the top the magnet
+        -- is the bar's bottom edge (hyprland-snap-reserved-edge.patch).
+        snap = {
+            enabled     = true,
+            window_gap  = 68,
+            monitor_gap = 68,
+        },
         allow_tearing = false,
         layout = "dwindle",
     },
