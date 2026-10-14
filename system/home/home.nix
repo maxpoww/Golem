@@ -121,6 +121,17 @@ in
 
   # Which terminal a Terminal=true entry (nvim.desktop, …) opens in.
   xdg.configFile."xdg-terminals.list".text = "foot.desktop\n";
+
+  # KDE Connect (the phone's link) runs as an XDG autostart app, and nothing
+  # brought it back when it died — it goes with the session bus — so the
+  # phone features were silently gone until the next login (the Acer,
+  # 2026-10-14). Restarted when it fails, like any service the desktop leans
+  # on.
+  xdg.configFile."systemd/user/app-org.kde.kdeconnect.daemon@autostart.service.d/golem-restart.conf".text = ''
+    [Service]
+    Restart=on-failure
+    RestartSec=3
+  '';
   # Max's dev toolchain (gcc, android-tools, scrcpy, jdk21, claude-code,
   # github-cli, easyeffects, lsp-plugins + JAVA_HOME/ANDROID_HOME) left the
   # distro 2026-09-29 (the debloat): it is one machine's setup, and it lives

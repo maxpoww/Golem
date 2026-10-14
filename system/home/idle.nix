@@ -118,7 +118,15 @@ in
       PartOf = [ "graphical-session.target" ];
       After = [ "graphical-session.target" ];
     };
-    Service.ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
+    Service = {
+      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
+      # The inhibitor IS the setting: if it dies (killed, or the session bus
+      # going away under it), "stay awake" was silently off and closing the
+      # lid suspended against the owner's choice — it stayed dead (the
+      # Acer, 2026-10-14). While caffeine is on, it is always there.
+      Restart = "always";
+      RestartSec = 1;
+    };
     Install.WantedBy = [ "graphical-session.target" ];
   };
 

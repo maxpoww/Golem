@@ -101,6 +101,7 @@ let
         fi
         pause=$(( 1 << quick )); [ $pause -gt 30 ] && pause=30
         log warning "the desktop did not stay up (rc $rc after $((now - started)) s); trying again in $pause s ($quick/6)"
+        ${pkgs.coreutils}/bin/date +%s > "$run/session-returned"
         ${pkgs.coreutils}/bin/sleep $pause
         continue
       fi
@@ -119,6 +120,13 @@ let
   returnNotice = pkgs.writeShellScript "golem-return-notice" ''
     run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
     [ -f "$run/session-returned" ] || exit 0
+    # Said only once someone is there to show it: the dock's notification
+    # server comes up after the session does (the Acer, 2026-10-14: the
+    # notice went out 13 s before it, to nobody). Up to a minute.
+    for _ in $(${pkgs.coreutils}/bin/seq 1 60); do
+      ${config.systemd.package}/bin/busctl --user status org.freedesktop.Notifications >/dev/null 2>&1 && break
+      ${pkgs.coreutils}/bin/sleep 1
+    done
     ${pkgs.libnotify}/bin/notify-send -a Golem "El escritorio volvió solo" \
       "Algo cerró la sesión sin que lo pidieras. Golem la volvió a abrir y guardó el motivo en el registro."
     ${pkgs.coreutils}/bin/rm -f "$run/session-returned"
