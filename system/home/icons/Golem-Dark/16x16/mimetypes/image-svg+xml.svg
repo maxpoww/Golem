@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#737882"/><stop offset="1" stop-color="#4f535c"/></linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#888d97"/><stop offset="1" stop-color="#5d616a"/></linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="bevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".22"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".6"/>
+    </filter>
+    <mask id="sym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.0595) translate(-12.000 -12.292)">
+      <path data-line="1" d="M5 17.4C6.4 10.4 9.6 7 12 7s5.6 3.4 7 10.4" fill="none" stroke="#fff" stroke-width="3.209" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M5.6 7h12.8" fill="none" stroke="#fff" stroke-width="2.076" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="3" y="15.6" width="4" height="4" rx="1" fill="#fff" stroke="#fff" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="17" y="15.6" width="4" height="4" rx="1" fill="#fff" stroke="#fff" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="10" y="5" width="4" height="4" rx="1" fill="#fff" stroke="#fff" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(9 7)">
+    <path fill="url(#front)" filter="url(#bevel)" d="M4.5,0H35L46,11V45.5A4.5,4.5 0 0 1 41.5,50H4.5A4.5,4.5 0 0 1 0,45.5V4.5A4.5,4.5 0 0 1 4.5,0Z"/>
+    <path fill="url(#gloss)" d="M4.5,0H35L46,11V45.5A4.5,4.5 0 0 1 41.5,50H4.5A4.5,4.5 0 0 1 0,45.5V4.5A4.5,4.5 0 0 1 4.5,0Z"/>
+    <path fill="url(#fold)" d="M35,0V8A3,3 0 0 0 38,11H46Z"/>
+    <path fill="#000" opacity=".12" d="M38,11H46L44.6,12.4H38.8Z"/>
+    <rect fill="#fff" opacity=".22" x="4.5" y="0" width="29.6" height=".7" rx=".35"/>
+  </g>
+  <g transform="translate(12.56 14.56) scale(1.62)">
+    <rect x="-3" y="-3" width="30" height="30" fill="#fff" opacity="0" mask="url(#sym)" transform="translate(0 .75)"/>
+    <rect x="-3" y="-3" width="30" height="30" fill="#2f3239" mask="url(#sym)"/>
+  </g>
+</svg>

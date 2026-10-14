@@ -33,10 +33,13 @@ let
     exec "$@"
   '';
   # Golem's own icons (tools/icons writes them): folders, files, devices in
-  # the dock's cast grey; every other name falls through to Papirus-Dark.
+  # the dock's cast metal, in two tones — Golem (silver, the light look) and
+  # Golem-Dark (graphite, the dark one); the dock's Dark mode switches the
+  # apps and itself between them. Every other name falls through to Papirus.
   golemIcons = pkgs.runCommand "golem-icon-theme" { } ''
     mkdir -p $out/share/icons
     cp -r --no-preserve=mode ${./icons/Golem} $out/share/icons/Golem
+    cp -r --no-preserve=mode ${./icons/Golem-Dark} $out/share/icons/Golem-Dark
   '';
 in
 {
@@ -153,9 +156,10 @@ in
   #   accent  → #ffbe98, the active window border in hyprland.lua
   #   dark    → the whole desktop is (inactive border #3c3836, foot gruvbox)
   #   fonts   → the ones configuration.nix already ships and defaults to
-  #   icons   → Golem (system/home/icons, built by tools/icons): Golem's own
-  #             folders, files and devices, inheriting Papirus-Dark for the rest
-  #             — the same theme waverunner's config.toml uses
+  #   icons   → Golem-Dark (system/home/icons, built by tools/icons): Golem's
+  #             own folders, files and devices, inheriting Papirus-Dark for the
+  #             rest; Golem in the light look. waverunner's config.toml names
+  #             "Golem" and the dock picks the tone itself
   #   corners → nothing to do: libadwaita's radius isn't configurable, and
   #             Hyprland rounds every window to 12 anyway, which is what
   #             Adwaita draws — they already agree.
@@ -167,7 +171,8 @@ in
       size = 11;
     };
     iconTheme = {
-      name = "Golem";
+      # Golem ships dark; the dock writes the light one when that is chosen.
+      name = "Golem-Dark";
       package = golemIcons;
     };
     # GTK3 apps (file-roller, simple-scan) only go dark if told to.

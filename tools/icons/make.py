@@ -25,9 +25,29 @@ VARIANT = {
     "16": dict(sym="#7b8089", edge="0", line=3.4, detail=2.2, gloss=False, front=10.5),
 }[SIZE]
 
+# THE TONE (Max, 2026-10-14: "make them darker when dark mode is on"): the
+# same cast metal in GRAPHITE for a dark desktop — a darker front and back, the
+# symbol engraved darker still, the gloss and the light edges quieter.
+# GOLEM_ICON_TONE = light | dark.
+TONE = os.environ.get("GOLEM_ICON_TONE", "light")
+DARK = {
+    "#eef0f3": "#737882", "#c2c6cd": "#4f535c",   # front
+    "#b3b8c0": "#50545d", "#8f949e": "#3b3e46",   # folder's back
+    "#d9dce1": "#888d97", "#a7acb5": "#5d616a",   # a sheet's fold
+    'stop-opacity=".35"': 'stop-opacity=".16"',    # gloss
+    'flood-color="#fff" flood-opacity=".5"': 'flood-color="#fff" flood-opacity=".22"',
+    'flood-color="#000" flood-opacity=".45"': 'flood-color="#000" flood-opacity=".6"',
+    'fill="#fff" opacity=".55"': 'fill="#fff" opacity=".22"',  # the top's hairline
+}
+DARK_SYM = {"scalable": ("#3c4048", ".18"), "24": ("#353840", "0"), "16": ("#2f3239", "0")}
+
 def variant(svg):
-    """This size's version of a finished icon."""
-    v = VARIANT
+    """This size's and tone's version of a finished icon."""
+    v = dict(VARIANT)
+    if TONE == "dark":
+        for a, b in DARK.items():
+            svg = svg.replace(a, b)
+        v["sym"], v["edge"] = DARK_SYM[SIZE]
     svg = svg.replace('fill="#a1a6af" mask', f'fill="{v["sym"]}" mask').replace('opacity=".6" mask', f'opacity="{v["edge"]}" mask')
     if not v["gloss"]:
         svg = re.sub(r'\n\s*<rect fill="#fff" opacity=".55"[^>]*/>', "", svg)

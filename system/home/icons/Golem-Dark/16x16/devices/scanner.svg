@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#737882"/><stop offset="1" stop-color="#4f535c"/></linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#888d97"/><stop offset="1" stop-color="#5d616a"/></linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="bevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".22"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".6"/>
+    </filter>
+    <mask id="sym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.0226) translate(-12.000 -12.500)">
+      <rect x="3" y="5.4" width="18" height="3.2" rx="1.4" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="3" y="10.6" width="18" height="9" rx="2.4" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M6.4 14.4h11.2" fill="none" stroke="#000" stroke-width="2.151" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="17.4" cy="17.4" r=".7" fill="#000" stroke="#000" stroke-width="0.4" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(9 7)">
+    <rect fill="url(#front)" filter="url(#bevel)" x="0" y="0" width="46" height="50" rx="6"/>
+    <rect fill="url(#gloss)" x="0" y="0" width="46" height="50" rx="6"/>
+    <rect fill="#fff" opacity=".22" x="6" y="0" width="34" height=".7" rx=".35"/>
+    <circle fill="#7fd18b" cx="39" cy="43.5" r="1.5"/>
+  </g>
+  <g transform="translate(12.56 14.06) scale(1.62)">
+    <rect x="-3" y="-3" width="30" height="30" fill="#fff" opacity="0" mask="url(#sym)" transform="translate(0 .75)"/>
+    <rect x="-3" y="-3" width="30" height="30" fill="#2f3239" mask="url(#sym)"/>
+  </g>
+</svg>
