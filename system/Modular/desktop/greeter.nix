@@ -44,13 +44,24 @@ let
   # then start.
   # A wrapper, not `wait; uwsm …`: greetd runs the command as `sh -c "exec
   # <command>"`, so the wait must exec the real command itself.
+  #
+  # A question that gets NO answer is not "it is gone": after the session bus
+  # dies the user manager does not answer for up to 90 s (it waits on its own
+  # bus connection), and reading that silence as "inactive" started the new
+  # session into the old one's teardown — "Transaction order is cyclic", a
+  # failed start, two of the keeper's three tries spent on one incident (the
+  # Acer, 2026-10-14). Only an answer of inactive/failed lets it go; up to
+  # 150 s in all.
   waitForOldSession = pkgs.writeShellScript "golem-session-wait" ''
-    for _ in {1..60}; do
-      ${config.systemd.package}/bin/systemctl --user --quiet is-active \
-        graphical-session.target graphical-session-pre.target || break
+    deadline=$(( $(${pkgs.coreutils}/bin/date +%s) + 150 ))
+    while [ "$(${pkgs.coreutils}/bin/date +%s)" -lt "$deadline" ]; do
+      s=$(${pkgs.coreutils}/bin/timeout 20 ${config.systemd.package}/bin/systemctl --user is-active \
+        graphical-session.target graphical-session-pre.target 2>/dev/null)
+      # Gone = an answer, and every line of it inactive or failed.
+      if [ -n "$s" ] && ! printf '%s\n' "$s" | ${pkgs.gnugrep}/bin/grep -qvxE 'inactive|failed'; then break; fi
       ${pkgs.coreutils}/bin/sleep 0.5
     done
-    exec "$@" # after 30 s, start anyway and let uwsm say what is wrong
+    exec "$@" # after 150 s, start anyway and let uwsm say what is wrong
   '';
   # uwsm narrates its start on stdout/stderr ("Entry "hyprland-uwsm.desktop"
   # uses uwsm, reparsing args...", "Starting ... and waiting while it is
@@ -67,21 +78,40 @@ let
   keeper = pkgs.writeShellScript "golem-session-keeper" ''
     run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
     ${pkgs.coreutils}/bin/mkdir -p "$run"
-    ends=0; since=$(${pkgs.coreutils}/bin/date +%s)
+    # The brake counts INCIDENTS, not attempts: a desktop that ran (60 s or
+    # more) and then ended is one; a start that fails at once is a retry of
+    # the same incident, with a growing pause (2, 4, 8… 30 s), and only six
+    # of those in a row give up. More than three incidents in ten minutes
+    # give up too: a desktop that cannot stay up.
+    ends=0; since=$(${pkgs.coreutils}/bin/date +%s); quick=0
+    log() { echo "golem-session-keeper: $2" | ${config.systemd.package}/bin/systemd-cat -t golem-session-keeper -p "$1"; }
     while :; do
+      started=$(${pkgs.coreutils}/bin/date +%s)
       "$@"; rc=$?
       state=$(${config.systemd.package}/bin/systemctl is-system-running 2>/dev/null)
       if [ "$state" = stopping ] || [ -e /run/systemd/shutdown/scheduled ]; then
         exit $rc
       fi
       now=$(${pkgs.coreutils}/bin/date +%s)
+      if [ $((now - started)) -lt 60 ]; then
+        quick=$((quick + 1))
+        if [ $quick -gt 6 ]; then
+          log err "the desktop failed to start $quick times in a row (last rc $rc); giving up"
+          exit $rc
+        fi
+        pause=$(( 1 << quick )); [ $pause -gt 30 ] && pause=30
+        log warning "the desktop did not stay up (rc $rc after $((now - started)) s); trying again in $pause s ($quick/6)"
+        ${pkgs.coreutils}/bin/sleep $pause
+        continue
+      fi
+      quick=0
       if [ $((now - since)) -gt 600 ]; then ends=0; since=$now; fi
       ends=$((ends + 1))
       if [ $ends -gt 3 ]; then
-        echo "golem-session-keeper: the desktop ended $ends times in ten minutes (last rc $rc); giving up" | ${config.systemd.package}/bin/systemd-cat -t golem-session-keeper -p err
+        log err "the desktop ended $ends times in ten minutes (last rc $rc); giving up"
         exit $rc
       fi
-      echo "golem-session-keeper: the desktop ended (rc $rc) without being asked; starting it again ($ends/3)" | ${config.systemd.package}/bin/systemd-cat -t golem-session-keeper -p warning
+      log warning "the desktop ended (rc $rc) without being asked; starting it again ($ends/3)"
       ${pkgs.coreutils}/bin/date +%s > "$run/session-returned"
     done
   '';

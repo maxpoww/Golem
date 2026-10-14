@@ -51,6 +51,14 @@ let
     hard=$(awk '/Max open files/ {print $5}' /proc/$broker/limits)
     [ "$soft" -gt 0 ] 2>/dev/null || exit 0
     pct=$(( fds * 100 / soft ))
+    # Room FIRST: with the bus near full, the questions below and the notice
+    # are themselves refused (the Acer, 2026-10-14: raised, but "top:" empty
+    # and no notice — the culprit unnamed exactly when it mattered).
+    if [ "$pct" -ge 80 ] && [ "$soft" -lt "$hard" ]; then
+      prlimit --pid "$broker" --nofile="$hard:$hard" 2>/dev/null && raised=1 || raised=0
+    else
+      raised=0
+    fi
     # The process with the most connections: every unique name on the bus,
     # resolved to its process through the bus itself.
     top=$(for n in $(busctl --user list --no-pager --no-legend --unique 2>/dev/null | awk '{print $1}'); do
@@ -58,8 +66,8 @@ let
             [ -n "$pid" ] && echo "$pid $(cat /proc/$pid/comm 2>/dev/null || echo '?')"
           done | sort | uniq -c | sort -rn | head -3 | awk '{printf "%s %s(%s) ", $1, $3, $2}')
     echo "$(date '+%F %T') broker=$broker fds=$fds/$soft ($pct%) top: $top" >> "$log"
-    if [ "$pct" -ge 80 ] && [ "$soft" -lt "$hard" ]; then
-      prlimit --pid "$broker" --nofile="$hard:$hard" 2>/dev/null && echo "$(date '+%F %T') raised the broker's limit to $hard" >> "$log"
+    if [ "$raised" = 1 ]; then
+      echo "$(date '+%F %T') raised the broker's limit to $hard" >> "$log"
       notify-send -u critical "El bus de sesión está al $pct %" "Le subí el tope para que no se caiga. Algo fuga conexiones: $top"
     elif [ "$pct" -ge 50 ]; then
       notify-send -u normal "El bus de sesión está al $pct %" "Algo deja conexiones abiertas: $top"

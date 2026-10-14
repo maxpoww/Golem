@@ -1,0 +1,40 @@
+--- a/uwsm-libexec/signal-handler.sh
++++ b/uwsm-libexec/signal-handler.sh
+@@ -41,9 +41,37 @@
+ 	finish
+ }
+ 
++# Golem: a wait that broke is not the end of the session. When the session
++# bus dies, this systemctl loses its connection and returns 1 while the
++# compositor runs on; ending the session then tore a working desktop down.
++# Ask the user manager (it can take up to 90 s to answer while the bus comes
++# back) and, while the unit is still up, wait on it again.
++unit_state() {
++	for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
++		s=$(systemctl --user is-active "${UNIT}" 2>/dev/null)
++		case "$s" in active | reloading | activating | deactivating | inactive | failed) echo "$s"; return ;; esac
++		sleep 3
++	done
++	echo unknown
++}
++
+ finish() {
+ 	wait "${STARTPID}"
+ 	RC=$?
++	while [ "$RC" != 0 ]; do
++		case "$(unit_state)" in
++		active | reloading | activating) ;;
++		*) break ;;
++		esac
++		printf_err '%s\n' "The wait on ${UNIT} broke (RC ${RC}) while it still runs; waiting again."
++		{
++			trap '' TERM HUP INT
++			exec systemctl --user start --wait "${UNIT}"
++		} &
++		STARTPID=$!
++		wait "${STARTPID}"
++		RC=$?
++	done
+ 	case "${TERM_SESSION_TYPE:-}" in
+ 	kms)
+ 		printf_out '%s\n' "Requesting kmscon foreground."

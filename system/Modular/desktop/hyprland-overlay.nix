@@ -186,4 +186,19 @@ final: prev: {
       ./foot-patches/foot-drag-selection.patch
     ];
   });
+
+  #   uwsm-rewait     A WAIT THAT BREAKS IS NOT THE END OF THE SESSION.
+  #                   uwsm holds the session open on `systemctl --user start
+  #                   --wait <the compositor's unit>` and ended it the moment
+  #                   that returned. When the session bus dies the systemctl
+  #                   loses its connection ("D-Bus connection terminated
+  #                   while waiting for unit") and returns 1: uwsm tore down
+  #                   a desktop whose compositor was running perfectly (the
+  #                   Acer, 2026-10-14, the bus killed on purpose). Now, while
+  #                   the unit is still active, the wait starts over — asked
+  #                   until the user manager answers, which it does not for
+  #                   up to 90 s while it brings the bus back.
+  uwsm = prev.uwsm.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./uwsm-patches/uwsm-rewait.patch ];
+  });
 }
