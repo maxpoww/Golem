@@ -127,13 +127,6 @@
     '';
     overrideStrategy = "asDropin";
   };
-  # The compositor is the LAST thing to go: losing it is the freeze this
-  # prevents (the dock is spared the same way, home/home.nix).
-  systemd.user.units."wayland-wm@.service" = {
-    text = ''
-      [Service]
-      ManagedOOMPreference=avoid
-    '';
-    overrideStrategy = "asDropin";
-  };
+  # The compositor is spared too (desktop/hyprland.nix, in its unit's own
+  # drop-in: a second definition here broke the build).
 }
