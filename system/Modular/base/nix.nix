@@ -79,5 +79,61 @@
     enable = true;
     enableUserSlices = true;
     enableSystemSlice = true;
+    # Act sooner than the stock 30 s: by then a thrashing machine has been
+    # frozen to its owner for the whole of it.
+    settings.OOM = {
+      DefaultMemoryPressureDurationSec = "15s";
+      # 60 % of ALL swap: on a machine with zram plus a disk swap for
+      # hibernation (the Acer: 5.6 GB zram + 6 GB on a spinning disk) that is
+      # about where zram runs out and the disk thrash starts. Measured with a
+      # runaway app: at the stock 90 % it was put down after ~290 s of a
+      # crawling desktop, at 60 % after 75-92 s.
+      SwapUsedLimit = "60%";
+    };
+  };
+  # What the stock limits missed (the Acer, 2026-10-14: a runaway app froze
+  # the desktop for NINE minutes until the kernel's own OOM killer, swap 99 %
+  # full, oomd silent):
+  # - oomd's pressure limit counts the time when EVERY task is stalled
+  #   ("full"); in a swap thrash the desktop is unusable long before that
+  #   reaches 80 %. 50 % on the user side, where the apps are.
+  # - oomd kills on SWAP (over 90 % used) only in slices that ask for it, and
+  #   none did. The user and system slices now ask.
+  systemd.slices."user".sliceConfig = {
+    ManagedOOMMemoryPressureLimit = "50%";
+    ManagedOOMSwap = "kill";
+  };
+  systemd.slices."system".sliceConfig.ManagedOOMSwap = "kill";
+  systemd.user.units."slice" = lib.mkForce {
+    text = ''
+      [Slice]
+      ManagedOOMMemoryPressure=kill
+      ManagedOOMMemoryPressureLimit=50%
+      ManagedOOMSwap=kill
+    '';
+    overrideStrategy = "asDropin";
+  };
+  # The desktop keeps its memory: without a reservation the compositor's own
+  # pages were swapped out for the runaway app, and it froze for 12 s while
+  # oomd was still deciding. With memory_recursiveprot (systemd's default
+  # mount) the protection reaches the session from these two; the session's
+  # own share is below. Measured: worst compositor stall 12 s -> 4.5 s.
+  systemd.slices."user".sliceConfig.MemoryLow = "450M";
+  systemd.services."user@".serviceConfig.MemoryLow = "450M";
+  systemd.user.units."session.slice" = {
+    text = ''
+      [Slice]
+      MemoryLow=400M
+    '';
+    overrideStrategy = "asDropin";
+  };
+  # The compositor is the LAST thing to go: losing it is the freeze this
+  # prevents (the dock is spared the same way, home/home.nix).
+  systemd.user.units."wayland-wm@.service" = {
+    text = ''
+      [Service]
+      ManagedOOMPreference=avoid
+    '';
+    overrideStrategy = "asDropin";
   };
 }
