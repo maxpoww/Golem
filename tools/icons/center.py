@@ -54,6 +54,7 @@ ALL = {"file:" + k: v for k, v in files.SYM.items()}
 ALL.update({"dir:" + k: v for k, v in make.SYMBOLS.items()})
 ALL["dir:folder"] = make.FOLDER_GLYPH  # (the plain folder's own symbolic)
 ALL["dir:user-trash"] = make.TRASH_GLYPH
+ALL["dir:go-up"] = make.UP_GLYPH
 data = {}
 for _ in range(3):
     json.dump(data, open(make.CENTERS, "w"), indent=1)

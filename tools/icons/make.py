@@ -294,6 +294,9 @@ TRASH_GLYPH = [
 ]
 write_symbolic("folder", "dir:folder", FOLDER_GLYPH)
 write_symbolic("user-trash", "dir:user-trash", TRASH_GLYPH)
+# Up: the folder this one is in (Files' `..` once its places are symbols).
+UP_GLYPH = [line(W, "M12 19.4V5.6", 2.4), line(W, "M6.6 11 12 5.6l5.4 5.4", 2.4)]
+write_symbolic("go-up", "dir:go-up", UP_GLYPH)
 for name, shapes in SYMBOLS.items():
     write_symbolic(name, "dir:" + name, shapes)
 
