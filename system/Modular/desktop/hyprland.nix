@@ -51,23 +51,17 @@
       # Hyprland rebuild restarted it mid-session and killed any screen share
       # in flight (both laptops, 2026-09-30). Same rule: the new one at login.
       "xdg-desktop-portal-hyprland.service" = guard;
-      # THE SESSION BUS cannot run out of file descriptors. dbus-broker-launch
-      # keeps the user manager's soft limit of 1024, one descriptor per
-      # connection plus a pidfd per peer, and when a new connection cannot be
-      # accepted the broker EXITS — uwsm then takes the whole session down
-      # (the dev box, 2026-10-14 06:22, three days up: "sockopt_get_peerpidfd:
-      # Too many open files", greetd closed the session, the compositor went
-      # with it, Max had to reboot). Raised to what the hard limit allows; the
-      # same guard as above, since restarting the bus live is that same death.
-      "dbus-broker.service" = {
-        overrideStrategy = "asDropin";
-        text = ''
-          [Service]
-          LimitNOFILE=65536:524288
-          X-RestartIfChanged=false
-        '';
-      };
     };
+
+  # THE SESSION BUS cannot run out of file descriptors. dbus-broker-launch
+  # keeps the user manager's soft limit of 1024, one descriptor per
+  # connection plus a pidfd per peer, and when a new connection cannot be
+  # accepted the broker EXITS — uwsm then takes the whole session down
+  # (the dev box, 2026-10-14 06:22, three days up: "sockopt_get_peerpidfd:
+  # Too many open files", greetd closed the session, the compositor went
+  # with it, Max had to reboot). Raised to what the hard limit allows. (The unit
+  # is reloaded, not restarted, on a live switch: NixOS's X-ReloadIfChanged.)
+  systemd.user.services.dbus-broker.serviceConfig.LimitNOFILE = "65536:524288";
 
   # THREE keyboard sinks, not interchangeable (fat config's lesson): the TTY
   # reads console.keyMap (base/console.nix), XWayland clients read
