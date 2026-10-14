@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#343a46"/><stop offset="1" stop-color="#262b34"/></linearGradient>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1.2" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <rect fill="url(#win)" filter="url(#lift)" x="5" y="7" width="54" height="50" rx="8"/>
+  <path fill="#3d4451" d="M13,7H51A8,8 0 0 1 59,15V18H5V15A8,8 0 0 1 13,7Z"/>
+  <path fill="#fff" opacity=".12" d="M13,7H51A8,8 0 0 1 59,15V15.8A8,8 0 0 0 51,7.8H13A8,8 0 0 0 5,15.8V15A8,8 0 0 1 13,7Z"/>
+  <circle cx="11.6" cy="12.5" r="2.2" fill="#ff453a"/><circle cx="18" cy="12.5" r="2.2" fill="#ff9f0a"/><circle cx="24.4" cy="12.5" r="2.2" fill="#30d158"/>
+  <rect fill="#fff" opacity=".1" x="8.5" y="20.5" width="23" height="17" rx="3.5"/>
+  <svg x="9" y="19.5" width="21" height="21" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="folderdownloadfront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
+    <linearGradient id="folderdownloadback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8c0"/><stop offset="1" stop-color="#8f949e"/></linearGradient>
+    <linearGradient id="folderdownloadgloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="folderdownloadbevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <mask id="folderdownloadsym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.1565) translate(-12.000 -12.708)">
+      <path data-line="1" d="M12 5.8v10.4" fill="none" stroke="#fff" stroke-width="2.205" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M7.4 11.8 12 16.4l4.6-4.6" fill="none" stroke="#fff" stroke-width="2.205" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M5.6 19.6h12.8" fill="none" stroke="#fff" stroke-width="2.205" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(6 9.5)">
+    <path fill="url(#folderdownloadback)" filter="url(#folderdownloadbevel)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
+    <rect fill="url(#folderdownloadfront)" filter="url(#folderdownloadbevel)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="url(#folderdownloadgloss)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/>
+  </g>
+  <g transform="translate(17.12 21.12) scale(1.24)">
+    <rect x="-3" y="-3" width="30" height="30" fill="#fff" opacity=".6" mask="url(#folderdownloadsym)" transform="translate(0 .75)"/>
+    <rect x="-3" y="-3" width="30" height="30" fill="#a1a6af" mask="url(#folderdownloadsym)"/>
+  </g>
+</svg><svg x="32" y="19.5" width="21" height="21" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="folderpicturesfront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
+    <linearGradient id="folderpicturesback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8c0"/><stop offset="1" stop-color="#8f949e"/></linearGradient>
+    <linearGradient id="folderpicturesgloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="folderpicturesbevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <mask id="folderpicturessym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.1094) translate(-12.000 -12.000)">
+      <rect x="3.8" y="5" width="16.4" height="14" rx="2.6" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <rect x="6.2" y="7.4" width="11.6" height="9.2" rx="1.2" fill="#000" stroke="#000" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+      <path d="M6.6 16.2 10 12.2l2.8 3 1.6-1.6 3 2.6z" fill="#fff" stroke="#fff" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="15" cy="10" r="1.2" fill="#fff" stroke="#fff" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(6 9.5)">
+    <path fill="url(#folderpicturesback)" filter="url(#folderpicturesbevel)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
+    <rect fill="url(#folderpicturesfront)" filter="url(#folderpicturesbevel)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="url(#folderpicturesgloss)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/>
+  </g>
+  <g transform="translate(17.12 21.12) scale(1.24)">
+    <rect x="-3" y="-3" width="30" height="30" fill="#fff" opacity=".6" mask="url(#folderpicturessym)" transform="translate(0 .75)"/>
+    <rect x="-3" y="-3" width="30" height="30" fill="#a1a6af" mask="url(#folderpicturessym)"/>
+  </g>
+</svg><svg x="9" y="37" width="21" height="21" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="foldermusicfront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
+    <linearGradient id="foldermusicback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8c0"/><stop offset="1" stop-color="#8f949e"/></linearGradient>
+    <linearGradient id="foldermusicgloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="foldermusicbevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+    <mask id="foldermusicsym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.0941) translate(-12.458 -11.917)">
+      <circle cx="7.6" cy="17.4" r="2.4" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="16.8" cy="15.4" r="2.4" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M9.9 17.2V6.6" fill="none" stroke="#fff" stroke-width="2.331" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M19.1 15.2V4.6" fill="none" stroke="#fff" stroke-width="2.331" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M9.9 6.6l9.2-2" fill="none" stroke="#fff" stroke-width="2.331" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(6 9.5)">
+    <path fill="url(#foldermusicback)" filter="url(#foldermusicbevel)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
+    <rect fill="url(#foldermusicfront)" filter="url(#foldermusicbevel)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="url(#foldermusicgloss)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/>
+  </g>
+  <g transform="translate(17.12 21.12) scale(1.24)">
+    <rect x="-3" y="-3" width="30" height="30" fill="#fff" opacity=".6" mask="url(#foldermusicsym)" transform="translate(0 .75)"/>
+    <rect x="-3" y="-3" width="30" height="30" fill="#a1a6af" mask="url(#foldermusicsym)"/>
+  </g>
+</svg><svg x="32" y="37" width="21" height="21" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="folderfront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
+    <linearGradient id="folderback" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8c0"/><stop offset="1" stop-color="#8f949e"/></linearGradient>
+    <linearGradient id="foldergloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <filter id="folderbevel" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/>
+      <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".45"/>
+    </filter>
+  </defs>
+  <g transform="translate(6 9.5)">
+    <path fill="url(#folderback)" filter="url(#folderbevel)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
+    <rect fill="url(#folderfront)" filter="url(#folderbevel)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="url(#foldergloss)" x="0" y="8" width="52" height="37" rx="4.5"/>
+    <rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/>
+  </g>
+</svg>
+</svg>

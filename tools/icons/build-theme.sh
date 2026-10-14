@@ -18,6 +18,8 @@ for tone in light dark; do
     GOLEM_ICON_TONE=$tone GOLEM_ICON_SIZE=$size GOLEM_ICON_OUT="$DEST/$dir" python3 "$HERE/make.py" >/dev/null
     GOLEM_ICON_TONE=$tone GOLEM_ICON_SIZE=$size GOLEM_ICON_OUT="$DEST/$dir" python3 "$HERE/files.py" >/dev/null
   done
+  # Golem Files' own icon, the same in both tones (it stands on the dock's plate).
+  GOLEM_ICON_OUT="$DEST/scalable" python3 "$HERE/app.py"
   sed -e "s/^Name=Golem$/Name=$name/" -e "s/^Inherits=.*/Inherits=$inherits/" "$HERE/index.theme" > "$DEST/index.theme"
   echo "$name: $(find "$DEST" -name '*.svg' | wc -l) names"
 done
