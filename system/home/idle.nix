@@ -154,19 +154,29 @@ in
   programs.hyprlock = {
     enable = true;
     settings = {
+      # THE PALETTE (Controls → Colours): Golem's own colours first, then the
+      # dock's file redefines them (hyprlock reads it at every lock). The
+      # file is seeded empty (home.nix), so a lock before the dock's first
+      # write still has every colour.
+      "$golem_bg" = "rgb(20, 20, 24)";
+      "$golem_surface" = "rgb(30, 30, 36)";
+      "$golem_ink" = "rgb(235, 235, 235)";
+      "$golem_accent" = "rgb(255, 190, 152)";
+      "$golem_danger" = "rgb(220, 80, 80)";
+      source = [ "${config.home.homeDirectory}/.local/state/golem/theme/hyprlock.conf" ];
       general = {
         hide_cursor = true;
         ignore_empty_input = true;
       };
       background = [{
         monitor = "";
-        color = "rgba(20, 20, 24, 1.0)";
+        color = "$golem_bg";
       }];
       label = [{
         monitor = "";
         text = "$TIME";
         font_size = 64;
-        color = "rgb(235, 235, 235)";
+        color = "$golem_ink";
         position = "0, 120";
         halign = "center";
         valign = "center";
@@ -179,11 +189,11 @@ in
         dots_size = 0.25;
         fade_on_empty = true;
         placeholder_text = "<i>password</i>";
-        outer_color = "rgb(255, 190, 152)"; # the desktop's accent, hyprland.lua's active border
-        inner_color = "rgb(30, 30, 36)";
-        font_color = "rgb(235, 235, 235)";
-        check_color = "rgb(255, 190, 152)";
-        fail_color = "rgb(220, 80, 80)";
+        outer_color = "$golem_accent";
+        inner_color = "$golem_surface";
+        font_color = "$golem_ink";
+        check_color = "$golem_accent";
+        fail_color = "$golem_danger";
         halign = "center";
         valign = "center";
       }];

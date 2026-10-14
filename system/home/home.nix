@@ -153,8 +153,10 @@ in
   # ── Theming pass (roadmap S5) ─────────────────────────────────────────
   # libadwaita apps cannot be re-skinned the old GTK3 way, so "look at home"
   # means the levers they DO honour, set to what the desktop already is:
-  #   accent  → #ffbe98, the active window border in hyprland.lua
-  #   dark    → the whole desktop is (inactive border #3c3836, foot gruvbox)
+  #   colours → THE PALETTE (Controls → Colours, waverunner palette.rs): the
+  #             dock writes it for GTK 3/4, foot, hyprlock and Qt into
+  #             ~/.local/state/golem/theme, and these configs import it
+  #   dark    → the palette's dark variant; the dock flips the look live
   #   fonts   → the ones configuration.nix already ships and defaults to
   #   icons   → Golem-Dark (system/home/icons, built by tools/icons): Golem's
   #             own folders, files and devices, inheriting Papirus-Dark for the
@@ -186,14 +188,16 @@ in
     gtk3.extraConfig.gtk-decoration-layout = ":";
     gtk4.extraConfig.gtk-decoration-layout = ":";
 
-    # libadwaita reads ~/.config/gtk-4.0/gtk.css and lets these named
-    # colours be overridden — the only way to get the desktop's exact amber
-    # into GNOME apps. Foreground is foot's background (#1d2021): amber is a
-    # light accent, so text on top of it must be dark to stay readable.
+    # THE PALETTE (Controls → Colours): libadwaita reads
+    # ~/.config/gtk-4.0/gtk.css, which only imports what the dock writes —
+    # every libadwaita colour variable, both looks (a dark/light switch is
+    # live in running apps; a palette or accent change at their next start).
+    # GTK 3 gets the named colours Adwaita lets a user override.
     gtk4.extraCss = ''
-      @define-color accent_color #ffbe98;
-      @define-color accent_bg_color #ffbe98;
-      @define-color accent_fg_color #1d2021;
+      @import url("file://${config.home.homeDirectory}/.local/state/golem/theme/gtk4.css");
+    '';
+    gtk3.extraCss = ''
+      @import url("file://${config.home.homeDirectory}/.local/state/golem/theme/gtk3.css");
     '';
   };
 
@@ -218,6 +222,11 @@ in
     enable = true;
     settings = {
       main = {
+        # The colours are the PALETTE's (Controls → Colours): the dock writes
+        # both variants there and switches running terminals between them
+        # with a signal (waverunner palette.rs). Seeded empty below, so a
+        # terminal opened before the dock's first write still starts.
+        include = "~/.local/state/golem/theme/foot.ini";
         font = "JetBrainsMono Nerd Font:size=16";
         pad = "12x12";
         box-drawings-uses-font-glyphs = "yes";
@@ -230,27 +239,6 @@ in
       };
       key-bindings = {
         clipboard-paste = "Control+v";
-      };
-      "colors-dark" = {
-        background = "1d2021";
-        foreground = "ebdbb2";
-        cursor = "1d2021 928374";
-        regular0 = "282828";
-        regular1 = "cc241d";
-        regular2 = "98971a";
-        regular3 = "d79921";
-        regular4 = "458588";
-        regular5 = "b16286";
-        regular6 = "689d6a";
-        regular7 = "a89984";
-        bright0 = "928374";
-        bright1 = "fb4934";
-        bright2 = "b8bb26";
-        bright3 = "fabd2f";
-        bright4 = "83a598";
-        bright5 = "d3869b";
-        bright6 = "8ec07c";
-        bright7 = "ebdbb2";
       };
     };
   };
@@ -602,6 +590,17 @@ in
     if [ ! -e "$HOME/.config/webapps.list" ]; then
       $DRY_RUN_CMD install -Dm644 ${./webapps.list} "$HOME/.config/webapps.list"
     fi
+  '';
+
+  # The palette's files exist before the dock first writes them (it does at
+  # every start): foot and hyprlock report an include that is not there as
+  # a config error. Empty is fine — foot's own colours, hyprlock's defaults.
+  home.activation.seedPaletteFiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    dir="$HOME/.local/state/golem/theme"
+    $DRY_RUN_CMD mkdir -p "$dir"
+    for f in foot.ini hyprlock.conf; do
+      [ -e "$dir/$f" ] || $DRY_RUN_CMD touch "$dir/$f"
+    done
   '';
 
   # Bundled webapp icons

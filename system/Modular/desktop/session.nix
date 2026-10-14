@@ -90,6 +90,17 @@ in
   services.gvfs.enable = true;
   environment.sessionVariables.GIO_EXTRA_MODULES = [ "${pkgs.gvfs}/lib/gio/modules" ];
   programs.dconf.enable = true;
+
+  # Qt apps wear THE PALETTE too (Controls → Colours): qt5ct/qt6ct as the
+  # platform theme, pointed by the dock at the colour scheme it writes
+  # (~/.local/state/golem/theme/qt.conf; waverunner palette.rs writes
+  # ~/.config/qt{5,6}ct/qt{5,6}ct.conf when nothing else owns them). Without
+  # this Qt apps ignored dark mode altogether. The variable reaches apps from
+  # the next login.
+  qt = {
+    enable = true;
+    platformTheme = "qt5ct";
+  };
   services.udisks2.enable = true;
   environment.systemPackages = [ pkgs.glib pkgs.wsdd ];
 }
