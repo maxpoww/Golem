@@ -82,6 +82,21 @@
               installation_mode = "force_installed";
               private_browsing = true;
             };
+
+            # Dark Reader — DARK WEBSITES (2026-10-14, Max: "dark mode everywhere,
+            # with the option ... activate on websites (darkreader on)"). Off
+            # unless the owner turns "Dark websites" on in Controls → Colours
+            # AND the look is dark: golem-chrome.js (DARK WEBSITES) enables and
+            # disables it from the dock's theme file. normal_installed, not
+            # force_installed: a force-installed extension cannot be disabled,
+            # and disabled is its resting state. Out of the toolbar: Golem's
+            # switch is the one way to it.
+            "addon@darkreader.org" = {
+              install_url = "file://${xpi "addon@darkreader.org"}";   # pinned, in the package (./extensions.json)
+              installation_mode = "normal_installed";
+              private_browsing = true;
+              default_area = "menupanel";
+            };
           };
 
           # ---- debloat: windows, tabs, search — nothing else -----------

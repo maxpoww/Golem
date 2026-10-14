@@ -2785,11 +2785,13 @@ try {
           step("fps-page-60-not-smooth", tf.indexOf("false,true,true,false")===0);   // 60 fps: not smooth, still supported; 30 fps supported; an MSE type naming 60 fps refused
           Services.prefs.setBoolPref(CB_ON,false);
           see(function(t2){ r.codecs.pageOff=t2; step("codecs-kill-switch-restores", t2==="true,true,true"); Services.prefs.clearUserPref(CB_ON);
-            // the two extensions ship inside the package (seam/extensions.json) and must be installed and active on a fresh profile
+            // the extensions ship inside the package (seam/extensions.json): uBO and ATBC installed and active on a fresh
+            // profile; Dark Reader installed and RESTING disabled (no theme file here = dark websites off)
             try{ var AM=ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager;
-              Promise.all([AM.getAddonByID("uBlock0@raymondhill.net"), AM.getAddonByID("ATBC@EasonWong")]).then(function(a){
+              Promise.all([AM.getAddonByID("uBlock0@raymondhill.net"), AM.getAddonByID("ATBC@EasonWong"), AM.getAddonByID("addon@darkreader.org")]).then(function(a){
                 r.extensions=a.map(function(x){ return x?{id:x.id,version:x.version,active:x.isActive,src:(x.installTelemetryInfo&&x.installTelemetryInfo.source)||null}:null; });
-                step("extensions-from-package-active", !!(a[0]&&a[0].isActive&&a[1]&&a[1].isActive)); done();
+                step("extensions-from-package-active", !!(a[0]&&a[0].isActive&&a[1]&&a[1].isActive));
+                step("dark-reader-installed-resting", !!(a[2] && !a[2].isActive)); done();
               },function(e){ step("extensions-from-package-active:"+e,false); done(); });
             }catch(e){ step("extensions-from-package-threw:"+e,false); done(); } });
           },1200);
@@ -3302,4 +3304,72 @@ try {
     .registerFactory(Components.ID("{6c7f1b36-7a1e-4d0b-9c5e-5a1c2b7f0e11}"),"Golem webapp command line",WA_CONTRACT,waFactory);
   Services.catMan.addCategoryEntry("command-line-handler","b-golem-app",WA_CONTRACT,false,true);
   WALOG("webapps module loaded");
+} catch(e){}
+
+// ===================================================================
+// DARK WEBSITES (2026-10-14, Max: "dark mode everywhere, with the option on
+// configuration of activate on websites (darkreader on)"). Dark Reader ships
+// pinned in the package (seam/extensions.json, normal_installed so it CAN be
+// disabled) and rests disabled. It is ENABLED only while the owner's
+// Controls -> Colours "Dark websites" is on AND the look is dark: both are in
+// the theme file the dock writes (waverunner palette.rs,
+// XDG_STATE_HOME/golem/theme/colors.json: "dark", "dark_websites"). Seam looks
+// at that file's time every 2 s (one stat) and reads it only when it moved.
+// Webapp windows share the profile, so they follow too.
+// Dark Reader opens its help page on darkreader.org when it is installed; a
+// page of it opened in the first minutes after the install is closed again.
+// Dev override: golem.seam.darkWebsites = "on" | "off" ("" follows Golem).
+// ===================================================================
+try {
+  var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites";
+  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null;
+  function DWLOG(m){ try{ OVLOG("dark: "+m); }catch(e){} }
+  function dwAM(){ return ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager; }
+  function dwFile(){
+    var f=null, dir=""; try{ dir=Services.env.get("XDG_STATE_HOME"); }catch(e){}
+    if(dir){ f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath(dir); }
+    else { f=Services.dirsvc.get("Home",Components.interfaces.nsIFile); f.append(".local"); f.append("state"); }
+    f.append("golem"); f.append("theme"); f.append("colors.json"); return f;
+  }
+  // What the owner asked for: the override, else the theme file. undefined = no news.
+  function dwRead(){
+    var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
+    if(o==="on") return true; if(o==="off") return false;
+    var f=dwFile(); if(!f.exists()) return false;
+    var t=f.lastModifiedTime; if(t===dwSeen) return undefined; dwSeen=t;
+    try{ var c=JSON.parse(ovReadText(f)); return !!(c && c.dark && c.dark_websites); }catch(e){ return undefined; }
+  }
+  function dwApply(){
+    try{ dwAM().getAddonByID(DW_ID).then(function(a){
+      if(!a) return;
+      try{ if(a.installDate && Date.now()-a.installDate.getTime()<180000) dwInstalledAt=a.installDate.getTime(); }catch(e){}
+      if(dwWant && a.userDisabled){ a.enable(); DWLOG("on"); }
+      else if(!dwWant && !a.userDisabled){ a.disable(); DWLOG("off"); }
+    },function(e){ DWLOG("addon:"+e); }); }catch(e){ DWLOG("apply:"+e); }
+  }
+  function dwTick(){
+    var w=dwRead(); if(w===undefined || w===dwWant) return;
+    dwWant=w; dwApply();
+  }
+  function dwStart(){
+    if(dwTimer) return;
+    try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
+    try{ dwAM().addAddonListener({
+      onInstalled:function(a){ if(a && a.id===DW_ID){ dwInstalledAt=Date.now(); dwApply(); } },
+      onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false) dwApply(); }
+    }); }catch(e){}
+    dwTick(); if(dwWant===null){ dwWant=false; dwApply(); }
+    dwTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+    dwTimer.initWithCallback({ notify:function(){ dwTick(); } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+  }
+  function dwWindow(w){
+    try{ w.gBrowser.addTabsProgressListener({ onLocationChange:function(b,wp,req,loc){
+      try{
+        if(!loc || loc.spec.indexOf(DW_HELP)!==0 || !dwInstalledAt || Date.now()-dwInstalledAt>180000) return;
+        var t=w.gBrowser.getTabForBrowser(b); if(t && w.gBrowser.tabs.length>1) w.setTimeout(function(){ try{ w.gBrowser.removeTab(t); DWLOG("closed its help page"); }catch(e){} },0);
+      }catch(e){}
+    }}); }catch(e){}
+  }
+  Services.obs.addObserver({observe:function(w){ try{ dwStart(); dwWindow(w); }catch(e){} }},"browser-delayed-startup-finished");
+  DWLOG("dark websites module loaded");
 } catch(e){}
