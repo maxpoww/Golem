@@ -37,6 +37,10 @@
 { config, lib, pkgs, ... }:
 
 let
+  # The dock's command: on the PATH on an install, the live checkout's on
+  # the dev box (as hyprland.lua's binds — home.nix `shellNeedles`).
+  dockCtl =
+    if config.golem.home.devCheckout then "/home/max/launcher/target/debug/waverunner-ctl" else "waverunner-ctl";
   # The display's power by ACTION: Golem's Hyprland takes
   # hl.dsp.dpms({ action = "on" | "off" | "toggle" }). A bare string is IGNORED
   # and the call TOGGLES: after a wake-up the screen was already on, the "on"
@@ -44,7 +48,15 @@ let
   # alive (2026-09-30; the first test, off then on, could not tell the two
   # apart). A script, not an inline command: hypridle's config language
   # would read the braces.
+  # And the dock is told: a wallpaper that MOVES holds still while the
+  # screen is off and goes on when it is back (it cost a tenth of a core
+  # with nobody to see it; launcher `App::wallpaper_hold`). Never in the
+  # way: no dock, or one that does not know the word, changes nothing.
   golemDpms = pkgs.writeShellScript "golem-dpms" ''
+    case "$1" in
+      off) ${dockCtl} wallpaper hold screen >/dev/null 2>&1 || true ;;
+      on)  ${dockCtl} wallpaper go screen >/dev/null 2>&1 || true ;;
+    esac
     exec hyprctl dispatch "hl.dsp.dpms({ action = \"$1\" })"
   '';
   dpms = state: "${golemDpms} ${state}";
