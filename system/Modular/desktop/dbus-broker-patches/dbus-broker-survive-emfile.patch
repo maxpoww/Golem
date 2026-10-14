@@ -1,0 +1,155 @@
+--- a/src/util/sockopt.c
++++ b/src/util/sockopt.c
+@@ -240,6 +240,14 @@
+                         return SOCKOPT_E_UNAVAILABLE;
+                 if (errno == EINVAL || errno == ESRCH)
+                         return SOCKOPT_E_REAPED;
++                /*
++                 * Out of file descriptors: the pidfd is a nicety, not the
++                 * connection. Treat it as unavailable rather than fatal --
++                 * a fatal error here exits the broker, and on a session bus
++                 * that takes the whole session down.
++                 */
++                if (errno == EMFILE || errno == ENFILE)
++                        return SOCKOPT_E_UNAVAILABLE;
+ 
+                 return error_origin(-errno);
+         }
+--- a/src/bus/listener.h
++++ b/src/bus/listener.h
+@@ -18,6 +18,13 @@
+         Bus *bus;
+         char guid[16];
+         int socket_fd;
++        /*
++         * Held in reserve: when the process is out of file descriptors a
++         * pending connection can still be accepted and closed with it, so
++         * the broker refuses the client instead of exiting or spinning.
++         */
++        int spare_fd;
++        unsigned long n_refused;
+         DispatchFile socket_file;
+         PolicyRegistry *policy;
+         CList peer_list;
+@@ -25,6 +32,7 @@
+ 
+ #define LISTENER_NULL(_x) {                                                     \
+                 .socket_fd = -1,                                                \
++                .spare_fd = -1,                                                 \
+                 .socket_file = DISPATCH_FILE_NULL((_x).socket_file),            \
+                 .peer_list = C_LIST_INIT((_x).peer_list),                       \
+         }
+--- a/src/bus/listener.c
++++ b/src/bus/listener.c
+@@ -4,10 +4,65 @@
+ 
+ #include <c-list.h>
+ #include <c-stdaux.h>
++#include <dirent.h>
++#include <fcntl.h>
+ #include <stdlib.h>
+ #include <sys/epoll.h>
++#include <sys/resource.h>
+ #include <sys/socket.h>
+ #include "bus/bus.h"
++#include "util/log.h"
++
++/*
++ * Descriptors the broker keeps for its own work: a memfd per large message,
++ * a pidfd per peer, the odd timer. Connections are never let eat into them,
++ * because once they are gone any of those allocations fails, and a failure
++ * there is fatal.
++ */
++#define LISTENER_FD_HEADROOM 64
++
++static unsigned long listener_fds_open(void) {
++        DIR *d = opendir("/proc/self/fd");
++        unsigned long n = 0;
++
++        if (!d)
++                return (unsigned long)-1;
++        while (readdir(d))
++                ++n;
++        closedir(d);
++        return n;
++}
++
++static bool listener_out_of_headroom(void) {
++        struct rlimit rl;
++        unsigned long n;
++
++        if (getrlimit(RLIMIT_NOFILE, &rl) < 0)
++                return false;
++        n = listener_fds_open();
++        if (n == (unsigned long)-1)
++                return true;
++        return n + LISTENER_FD_HEADROOM >= rl.rlim_cur;
++}
++
++/* Take the pending connection and close it at once: the client is refused,
++ * the backlog does not keep waking us. */
++static void listener_refuse(Listener *listener) {
++        int fd;
++
++        if (listener->spare_fd >= 0)
++                listener->spare_fd = c_close(listener->spare_fd);
++        fd = accept4(listener->socket_fd, NULL, NULL, SOCK_CLOEXEC | SOCK_NONBLOCK);
++        if (fd >= 0)
++                c_close(fd);
++        else if (errno == EAGAIN)
++                dispatch_file_clear(&listener->socket_file, EPOLLIN);
++        listener->spare_fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
++        if (listener->n_refused++ == 0 && listener->bus && listener->bus->log) {
++                log_append_here(listener->bus->log, LOG_WARNING, 0, NULL);
++                log_commitf(listener->bus->log, "Out of file descriptors: a new connection was refused rather than the bus exiting; something is leaking connections.");
++        }
++}
+ #include "bus/listener.h"
+ #include "bus/peer.h"
+ #include "bus/policy.h"
+@@ -23,6 +78,11 @@
+         if (!(dispatch_file_events(file) & EPOLLIN))
+                 return 0;
+ 
++        if (listener_out_of_headroom()) {
++                listener_refuse(listener);
++                return 0;
++        }
++
+         fd = accept4(listener->socket_fd, NULL, NULL, SOCK_CLOEXEC | SOCK_NONBLOCK);
+         if (fd < 0) {
+                 if (errno == EAGAIN) {
+@@ -33,6 +93,15 @@
+                          */
+                         dispatch_file_clear(&listener->socket_file, EPOLLIN);
+                         return 0;
++                } else if (errno == EMFILE || errno == ENFILE) {
++                        /*
++                         * Out of file descriptors after all (the headroom
++                         * check above is the normal guard): refuse rather
++                         * than exit — exiting takes a session bus, and the
++                         * session with it, down for one connection too many.
++                         */
++                        listener_refuse(listener);
++                        return 0;
+                 } else {
+                         /*
+                          * The linux UDS layer does not return pending errors
+@@ -103,6 +172,9 @@
+ 
+         dispatch_file_select(&listener->socket_file, EPOLLIN);
+ 
++        /* The reserve for refusing a connection when none is left (optional). */
++        listener->spare_fd = open("/dev/null", O_RDONLY | O_CLOEXEC);
++
+         listener->socket_fd = socket_fd;
+         listener->policy = policy;
+         listener = NULL;
+@@ -117,6 +189,7 @@
+ 
+         policy_registry_free(listener->policy);
+         dispatch_file_deinit(&listener->socket_file);
++        listener->spare_fd = c_close(listener->spare_fd);
+         listener->socket_fd = c_close(listener->socket_fd);
+         listener->bus = NULL;
+ }

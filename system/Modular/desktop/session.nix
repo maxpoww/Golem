@@ -17,9 +17,68 @@
 # Ported from the fat system/configuration.nix (gvfs + GIO_EXTRA_MODULES).
 # Landed 2026-09-30 (deep debug, parity P9): installs had 0 GIO modules and no
 # gsettings.
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 
+let
+  # THE SESSION BUS (user dbus-broker) must survive running out of file
+  # descriptors. Stock dbus-broker exits on EMFILE at accept, or at the pidfd
+  # it takes per peer; a dead session bus has uwsm tear the whole session down
+  # (dev box, 2026-10-14 06:22:55: three days up, something leaking connections,
+  # `sockopt_get_peerpidfd … Too many open files`, greetd closed the session,
+  # Max at the greeter). Patched: the pidfd is optional (out of descriptors =
+  # "unavailable"), and a connection that cannot be accepted is REFUSED through a
+  # spare descriptor the listener keeps for exactly that, with one warning in
+  # the journal — the client fails, the bus lives, the session lives.
+  dbusBroker = pkgs.dbus-broker.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./dbus-broker-patches/dbus-broker-survive-emfile.patch ];
+  });
+
+  # THE BUS GUARD: every five minutes, how full the session bus is. At half its
+  # limit the owner is told, with the process holding the most connections; at
+  # 80 % the running broker's limit is raised on the spot (prlimit: raising the
+  # soft limit up to the hard one needs no privilege). A line a run in
+  # ~/.local/state/golem/bus-guard.log, so a leak can be read off later.
+  busGuard = pkgs.writeShellScript "golem-bus-guard" ''
+    set -u
+    PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.gawk pkgs.procps pkgs.util-linux pkgs.systemd pkgs.libnotify ]}
+    export DBUS_SESSION_BUS_ADDRESS="''${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
+    log="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/bus-guard.log"
+    mkdir -p "$(dirname "$log")"
+    broker=$(pgrep -u "$(id -u)" -x dbus-broker | head -1)
+    [ -n "$broker" ] || exit 0
+    fds=$(ls /proc/$broker/fd 2>/dev/null | wc -l)
+    soft=$(awk '/Max open files/ {print $4}' /proc/$broker/limits)
+    hard=$(awk '/Max open files/ {print $5}' /proc/$broker/limits)
+    [ "$soft" -gt 0 ] 2>/dev/null || exit 0
+    pct=$(( fds * 100 / soft ))
+    # The process with the most connections: every unique name on the bus,
+    # resolved to its process through the bus itself.
+    top=$(for n in $(busctl --user list --no-pager --no-legend --unique 2>/dev/null | awk '{print $1}'); do
+            pid=$(busctl --user call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus GetConnectionUnixProcessID s "$n" 2>/dev/null | awk '{print $2}')
+            [ -n "$pid" ] && echo "$pid $(cat /proc/$pid/comm 2>/dev/null || echo '?')"
+          done | sort | uniq -c | sort -rn | head -3 | awk '{printf "%s %s(%s) ", $1, $3, $2}')
+    echo "$(date '+%F %T') broker=$broker fds=$fds/$soft ($pct%) top: $top" >> "$log"
+    if [ "$pct" -ge 80 ] && [ "$soft" -lt "$hard" ]; then
+      prlimit --pid "$broker" --nofile="$hard:$hard" 2>/dev/null && echo "$(date '+%F %T') raised the broker's limit to $hard" >> "$log"
+      notify-send -u critical "El bus de sesión está al $pct %" "Le subí el tope para que no se caiga. Algo fuga conexiones: $top"
+    elif [ "$pct" -ge 50 ]; then
+      notify-send -u normal "El bus de sesión está al $pct %" "Algo deja conexiones abiertas: $top"
+    fi
+  '';
+in
 {
+  services.dbus.brokerPackage = dbusBroker;
+
+  systemd.user.services.golem-bus-guard = {
+    description = "Golem: how full the session bus is";
+    serviceConfig = { Type = "oneshot"; ExecStart = "${busGuard}"; };
+  };
+  systemd.user.timers.golem-bus-guard = {
+    description = "Golem: look at the session bus every five minutes";
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "2min"; OnUnitActiveSec = "5min"; AccuracySec = "1min"; };
+  };
+
   services.gvfs.enable = true;
   environment.sessionVariables.GIO_EXTRA_MODULES = [ "${pkgs.gvfs}/lib/gio/modules" ];
   programs.dconf.enable = true;
