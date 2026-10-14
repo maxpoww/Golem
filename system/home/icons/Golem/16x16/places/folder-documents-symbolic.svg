@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+  <defs>
+    <mask id="sym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
+      <g transform="translate(12 12) scale(1.0316) translate(-12.208 -12.083)">
+      <path d="M7.2 3.2h6.4l5.2 5.2v11a1.6 1.6 0 0 1-1.6 1.6H7.2a1.6 1.6 0 0 1-1.6-1.6V4.8a1.6 1.6 0 0 1 1.6-1.6z" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M13.6 3.6v4.8h4.8" fill="none" stroke="#000" stroke-width="1.939" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M8.8 12.6h6.4" fill="none" stroke="#000" stroke-width="1.939" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M8.8 15.6h6.4" fill="none" stroke="#000" stroke-width="1.939" stroke-linejoin="round" stroke-linecap="round"/>
+      <path data-line="1" d="M8.8 18.4h3.6" fill="none" stroke="#000" stroke-width="1.939" stroke-linejoin="round" stroke-linecap="round"/>
+      </g>
+    </mask>
+  </defs>
+  <rect x="-3" y="-3" width="30" height="30" fill="#4f535b" mask="url(#sym)"/>
+</svg>

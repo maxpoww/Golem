@@ -257,6 +257,46 @@ def write(name, svg):
 write("folder", FOLDER.replace("{mask}", "").replace("{mark}", ""))
 for name, shapes in SYMBOLS.items():
     write(name, FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:" + name, shapes))).replace("{mark}", MARK))
+# SYMBOLIC: each folder's symbol alone, flat, for where a folder is too small
+# to carry it (Max, 2026-10-14: "the sidebar dirs become the symbols if I
+# make them too small") — `<name>-symbolic`, the freedesktop way, in the
+# tone's ink; the plain folder's is its outline. Drawn at the 16 px weight.
+SYMBOLIC = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16">
+  <defs>{mask}
+  </defs>
+  <rect x="-3" y="-3" width="30" height="30" fill="{ink}" mask="url(#sym)"/>
+</svg>
+"""
+SYMBOLIC_INK = {"light": "#4f535b", "dark": "#cdd1d8"}[TONE]
+FOLDER_GLYPH = [shape(W, 'path d="M3.6 6.6a2 2 0 0 1 2-2h4.3l2 2.1h6.5a2 2 0 0 1 2 2v9.1a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"')]
+
+def write_symbolic(name, key, shapes):
+    global LINE, DETAIL
+    keep = (LINE, DETAIL)
+    LINE, DETAIL = 3.2, 2.0
+    try:
+        inner = centred(key, shapes)
+    finally:
+        LINE, DETAIL = keep
+    os.makedirs(os.path.join(OUT, "places"), exist_ok=True)
+    path = os.path.join(OUT, "places", name + "-symbolic.svg")
+    with open(path + ".tmp", "w") as f:
+        f.write(SYMBOLIC.replace("{mask}", MASK.replace("{shapes}", inner)).replace("{ink}", SYMBOLIC_INK))
+    os.replace(path + ".tmp", path)
+
+# The bin's own, so it stands with the others when they are symbols.
+TRASH_GLYPH = [
+    line(W, "M4.4 6.6h15.2", 2.2),
+    line(W, "M9.4 6.2V4.6h5.2v1.6", 1.8),
+    shape(W, 'path d="M6.4 8.8h11.2l-1 10a1.8 1.8 0 0 1-1.8 1.6H9.2a1.8 1.8 0 0 1-1.8-1.6z"'),
+    line(B, "M10.2 11.4v5.8", 1.3),
+    line(B, "M13.8 11.4v5.8", 1.3),
+]
+write_symbolic("folder", "dir:folder", FOLDER_GLYPH)
+write_symbolic("user-trash", "dir:user-trash", TRASH_GLYPH)
+for name, shapes in SYMBOLS.items():
+    write_symbolic(name, "dir:" + name, shapes)
+
 # Names that mean the same folder.
 for alias, target in [("folder-network", "folder-remote"), ("folder-recent-calendar", "folder-calendar")][:1]:
     path = os.path.join(OUT, "places", alias + ".svg")
