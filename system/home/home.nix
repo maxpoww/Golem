@@ -247,6 +247,7 @@ in
     enable = true;
     defaultEditor = true;
     plugins = with pkgs.vimPlugins; [
+      mini-nvim   # mini.base16: THE PALETTE's colours (the dock's nvim.lua, below)
       nvim-web-devicons
       nvim-tree-lua
       nvim-treesitter.withAllGrammars
@@ -287,8 +288,14 @@ in
       vim.opt.expandtab = true
       vim.opt.clipboard = "unnamedplus"
       vim.opt.timeoutlen = 300
-      vim.opt.background = "dark"
-      vim.cmd("colorscheme retrobox")
+      -- THE PALETTE (Controls → Colours): the dock writes nvim.lua (mini.base16
+      -- with its sixteen colours, at the look in use); read at each start.
+      -- Without it, the old retrobox.
+      local golem_theme = vim.fn.expand("~/.local/state/golem/theme/nvim.lua")
+      if not (vim.fn.filereadable(golem_theme) == 1 and pcall(dofile, golem_theme)) then
+        vim.opt.background = "dark"
+        vim.cmd("colorscheme retrobox")
+      end
       local status_ok, treesitter = pcall(require, "nvim-treesitter.configs")
       if status_ok then
       treesitter.setup({
