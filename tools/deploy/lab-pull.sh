@@ -19,13 +19,33 @@ attr="${GOLEM_ATTR:-golem-desktop}"
 owner=$(stat -c %U /home/*/Golem 2>/dev/null | head -1)
 dir=$(ls -d /home/*/Golem | head -1)
 cd "$dir"
-runuser -u "$owner" -- git pull -q --ff-only
+# The machine's own Seam pin: seam-update bumps seam/sources.json in place
+# when Mozilla ships (Acer, 2026-10-14: 158.0 over upstream's 157.0.1) and the
+# lab refused every deploy from then on. Same rule as golem-autoupdate: set it
+# aside, pull, and put it back only if it is still NEWER than upstream's —
+# a machine pin is the lane's state, like hosts/target, never an owner edit.
+pin=seam/sources.json; heldpin=""
+if ! git diff --quiet HEAD -- "$pin" 2>/dev/null; then
+  heldpin=$(mktemp); cat "$pin" > "$heldpin"
+  runuser -u "$owner" -- git checkout -q HEAD -- "$pin"
+fi
+runuser -u "$owner" -- git pull -q --ff-only || { [ -n "$heldpin" ] && cat "$heldpin" > "$pin" && runuser -u "$owner" -- git add "$pin"; exit 1; }
+if [ -n "$heldpin" ]; then
+  held=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$heldpin")
+  upv=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$pin")
+  if [ "$held" != "$upv" ] && [ "$(printf '%s\n%s\n' "$held" "$upv" | sort -V | tail -1)" = "$held" ]; then
+    cat "$heldpin" > "$pin"; runuser -u "$owner" -- git add "$pin"
+    echo "lab-pull: kept this machine's newer Seam pin ($held over upstream's $upv)"
+  fi
+  rm -f "$heldpin"
+fi
 head=$(git rev-parse HEAD); up=$(git rev-parse origin/main)
 [ "$head" = "$up" ] || { echo "lab-pull: HEAD $head is not origin/main $up — not blessing" >&2; exit 1; }
 # Tracked changes other than the machine's own files mean a local edit.
-if git status --porcelain --untracked-files=no | grep -v -E '^[AM ][AM ] hosts/target/' | grep -q .; then
+own='^[AM ][AM ] (hosts/target/|seam/sources\.json$)'
+if git status --porcelain --untracked-files=no | grep -v -E "$own" | grep -q .; then
   echo "lab-pull: local edits in the checkout — not blessing:" >&2
-  git status --porcelain --untracked-files=no | grep -v -E '^[AM ][AM ] hosts/target/' >&2
+  git status --porcelain --untracked-files=no | grep -v -E "$own" >&2
   exit 1
 fi
 golem-bless
