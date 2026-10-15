@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Golem Files' own icon (Max, 2026-10-15: "cascada… 3 dirs and a little more
-offset"): three of Golem's folders stacked in a cascade, up and to the right,
-the ones behind a shade darker. Written into the theme's apps/ (both tones
+"""Golem Files' own icon (Max, 2026-10-15: "we should use only the folder with
+the folder symbol"): Golem's folder with a folder engraved on it. On the dock
+its launcher draws it itself and two folders come out from behind it on hover
+(waverunner's files_icon.rs). Written into the theme's apps/ (both tones
 wear the same: an app's icon stands on the dock's plate). build-theme.sh runs it.
 (It must not import make.py: that import WRITES the folders, in the light
 tone — it once turned the dark theme silver.)"""
@@ -32,16 +33,18 @@ HEAD = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64"
 <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
 <filter id="bev" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#000" flood-opacity=".45"/></filter></defs>'''
 
-SCALE, STEP = 0.8, 7.4
+GLYPH = "M3.6 6.6a2 2 0 0 1 2-2h4.3l2 2.1h6.5a2 2 0 0 1 2 2v9.1a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"
 
 
 def main():
-    body = ""
-    for i in range(3):
-        n = 2 - i  # the one furthest back first
-        x = 32 - 26 * SCALE - STEP + n * STEP
-        y = 32 - 22.5 * SCALE + STEP - n * STEP
-        body += f'<g transform="translate({x:.2f} {y:.2f}) scale({SCALE})">' + folder(n, n * 0.2) + "</g>"
+    # Golem's folder where it stands (6, 9.5), a folder engraved on it: a
+    # light edge under it, then the darker grey (the lab's "símbolo").
+    gx, gy = 26 - 12 * 1.15, 26.5 - 12.2 * 1.15
+    sym = "".join(
+        f'<path d="{GLYPH}" fill="{c}" stroke="{c}" stroke-width="1.2" stroke-linejoin="round" '
+        f'opacity="{o}" transform="translate({gx:.2f} {gy + dy:.2f}) scale(1.15)"/>'
+        for c, o, dy in (("#fff", 0.6, 0.75), ("#a1a6af", 1, 0)))
+    body = '<g transform="translate(6 9.5)">' + folder(0, 0) + sym + "</g>"
     os.makedirs(os.path.join(OUT, "apps"), exist_ok=True)
     path = os.path.join(OUT, "apps", "golem-files.svg")
     with open(path + ".tmp", "w") as f:
