@@ -73,6 +73,11 @@ let
       notify-send -u normal "El bus de sesión está al $pct %" "Algo deja conexiones abiertas: $top"
     fi
   '';
+  golemSchemas = pkgs.runCommand "golem-gsettings-schemas" { } ''
+    mkdir -p $out/share/glib-2.0/schemas
+    cp ${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/*/glib-2.0/schemas/*.xml $out/share/glib-2.0/schemas/
+    ${pkgs.glib.dev}/bin/glib-compile-schemas $out/share/glib-2.0/schemas
+  '';
 in
 {
   services.dbus.brokerPackage = dbusBroker;
@@ -102,5 +107,17 @@ in
     platformTheme = "qt5ct";
   };
   services.udisks2.enable = true;
-  environment.systemPackages = [ pkgs.glib pkgs.wsdd ];
+  environment.systemPackages = [ pkgs.glib pkgs.wsdd golemSchemas ];
+  # THE SESSION'S GSETTINGS SCHEMAS. GTK reads the theme, the icon theme and
+  # the fonts an app should wear from dconf's org.gnome.desktop.interface —
+  # but only where it finds that schema compiled on XDG_DATA_DIRS. nixpkgs
+  # keeps every package's schemas inside the package (share/gsettings-schemas/
+  # <pkg>/…), reachable only through that package's own wrapper: Thunar and
+  # the GNOME apps carry gsettings-desktop-schemas in theirs, Inkscape does
+  # not, and `gsettings` itself answered "No schemas installed" in the
+  # session (dev box and ASUS, 2026-10-15). So the dock's dconf writes — the
+  # look's icon theme, the palette's GTK theme (waverunner palette.rs) —
+  # reached some apps and not others. The base schemas go into the system
+  # path, compiled, where every app's data dirs already look.
+  environment.pathsToLink = [ "/share/glib-2.0" ];
 }

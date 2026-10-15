@@ -178,9 +178,11 @@ in
       name = "Golem-Dark";
       package = golemIcons;
     };
-    # GTK3 apps (file-roller, simple-scan) only go dark if told to.
-    gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
-    gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+    # No prefer-dark-theme: the look is the dock's to set, live — GTK 3 wears
+    # the palette's theme over adw-gtk3 or adw-gtk3-dark by look (waverunner
+    # palette.rs), libadwaita follows the portal's colour scheme (and warns
+    # about this key, which it ignores). Forced dark here kept GTK 3 apps dark
+    # in the light look (2026-10-15).
     # No window buttons in the apps' own header bars: Golem's titlebar
     # already has close/minimize/maximize (red/yellow/green), and GNOME apps
     # showed a second close × beside it (ASUS dogfood, 2026-10-02; Max: "yes

@@ -166,3 +166,55 @@ sleep 3
 for p in $pids; do [ -n "$p" ] && printf '%-18s %s%% of a core\n' "$(cat /proc/$p/comm 2>/dev/null)" "$(( ($(sample "$p")-${a0[$p]:-0})*100/300 ))"; done
 free -m | awk '/^Mem:/{printf "mem used %d MB of %d, avail %d\n",$3,$2,$7} /^Swap:/{printf "swap used %d MB of %d\n",$3,$2}'
 cat /proc/pressure/cpu 2>/dev/null | head -1
+
+# THE COLOURS (Controls → Colours + Dark mode; waverunner palette.rs): what
+# the dock wrote for the apps, and whether each consumer can see it from
+# INSIDE the session. A MISSING / NO / "No schemas" here is a finding: the
+# palette reaches the apps only through these files, keys and variables.
+section colours
+T=${XDG_STATE_HOME:-$HOME/.local/state}/golem/theme
+C=${XDG_CONFIG_HOME:-$HOME/.config}
+D=${XDG_DATA_HOME:-$HOME/.local/share}
+P=/etc/profiles/per-user/$(id -un)
+if [ -d "$T" ]; then
+  for f in colors.json foot.ini hyprlock.conf gtk4.css qt.conf qt5.conf nvim.lua; do
+    if [ -s "$T/$f" ]; then printf '  %-14s ok %6s B  written %ss ago\n' "$f" "$(stat -c %s "$T/$f")" "$(( $(date +%s) - $(stat -c %Y "$T/$f") ))"
+    else printf '  %-14s MISSING\n' "$f"; fi
+  done
+  echo "  colors.json: $(grep -E '"(name|palette|dark|dynamic|dark_websites|accent|base01)"' "$T/colors.json" 2>/dev/null | tr -d ' \n')"
+else echo "  theme dir MISSING: $T"; fi
+echo "settings.json colors: $(tr -d ' \n' < "$C/golem/settings.json" 2>/dev/null | grep -o '"colors":{[^}]*}' | head -c 160)"
+echo "dconf org/gnome/desktop/interface:"
+for k in color-scheme gtk-theme icon-theme accent-color; do printf '  %-13s %s\n' "$k" "$(dconf read /org/gnome/desktop/interface/$k 2>&1 | head -c 60)"; done
+echo "gsettings (session schemas): $(gsettings get org.gnome.desktop.interface gtk-theme 2>&1 | head -c 60)"
+if have gdbus; then
+  for k in color-scheme accent-color; do
+    printf 'portal %-12s %s\n' "$k" "$(timeout 4 gdbus call --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop --method org.freedesktop.portal.Settings.ReadOne org.freedesktop.appearance $k 2>&1 | head -c 70)"
+  done
+fi
+adw=NO; for d in "$P/share/themes" /run/current-system/sw/share/themes "$D/themes"; do [ -e "$d/adw-gtk3/gtk-3.0/gtk.css" ] && adw="$d"; done
+echo "gtk: adw-gtk3=$adw  own themes: $(ls -d "$D"/themes/Golem-* 2>/dev/null | xargs -rn1 basename | tr '\n' ' ')"
+for n in Golem-A Golem-B; do [ -d "$D/themes/$n" ] && echo "  $n: gtk-3.0=$( [ -s "$D/themes/$n/gtk-3.0/gtk.css" ] && echo ok || echo MISSING ) gtk-4.0=$( [ -s "$D/themes/$n/gtk-4.0/gtk.css" ] && echo ok || echo MISSING ) base=$(grep -o 'adw-gtk3[-a-z]*' "$D/themes/$n/gtk-3.0/gtk.css" 2>/dev/null | head -1)"; done
+echo "  settings.ini: $(grep -E 'theme|dark' "$C/gtk-3.0/settings.ini" 2>/dev/null | tr '\n' ' ')"
+echo "  gtk-4.0/gtk.css: $(head -c 110 "$C/gtk-4.0/gtk.css" 2>/dev/null | tr '\n' ' ')"
+echo "qt: QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME:-<unset>}"
+echo "  qt5ct: $(grep color_scheme_path "$C/qt5ct/qt5ct.conf" 2>/dev/null || echo MISSING)  qt6ct: $(grep color_scheme_path "$C/qt6ct/qt6ct.conf" 2>/dev/null || echo MISSING)"
+for f in qt.conf qt5.conf; do [ -f "$T/$f" ] && echo "  $f roles: $(sed -n 2p "$T/$f" | tr ',' '\n' | wc -l)"; done
+echo "  platformthemes on QT_PLUGIN_PATH: $(for d in ${QT_PLUGIN_PATH//:/ }; do ls "$d/platformthemes" 2>/dev/null | grep -o 'qt[56]ct'; done | sort -u | tr '\n' ' ')"
+echo "foot: $(grep -h '^include' "$C/foot/foot.ini" 2>/dev/null | head -1)  check-config=$(have foot && (foot --check-config >/dev/null 2>&1 && echo ok || echo FAIL) || echo n/a)"
+echo "hyprlock: $(grep -h '^source' "$C/hypr/hyprlock.conf" 2>/dev/null | head -1 | cut -c1-80)  theme vars: $(grep -c 'golem_' "$T/hyprlock.conf" 2>/dev/null)"
+if have hyprctl; then
+  echo "hyprland: active_border=$(hyprctl getoption general:col.active_border 2>/dev/null | head -1 | cut -c1-70)"
+  echo "          inactive=$(hyprctl getoption general:col.inactive_border 2>/dev/null | head -1 | cut -c1-40)  background=$(hyprctl getoption misc:background_color 2>/dev/null | head -1 | cut -c1-30)"
+fi
+echo "btop: $(grep color_theme "$C/btop/btop.conf" 2>/dev/null || echo 'no conf')  theme file: $( [ -s "$C/btop/themes/golem.theme" ] && echo ok || echo MISSING)"
+echo "nvim: theme file $( [ -s "$T/nvim.lua" ] && echo ok || echo MISSING )  mini.nvim: $(ls "$P"/share/nvim/site/pack/*/start/ 2>/dev/null | grep -c mini)"
+echo "obs: $(grep -A3 '^\[Appearance\]' "$C/obs-studio/user.ini" 2>/dev/null | grep '^Theme' || echo 'no user.ini / no Theme')"
+seamdir=$(dirname "$(dirname "$(readlink -f "$(command -v seam 2>/dev/null)" 2>/dev/null)")")
+echo "seam: dark reader in profile: $(grep -o '"addon@darkreader.org"' "$D/seam/extensions.json" 2>/dev/null | head -1 || echo NO)  chrome script palette: $(grep -ac 'SEAM PALETTE' "$seamdir"/lib/firefox-bin-*/mozilla.cfg 2>/dev/null | head -1)  userChrome golem-bg: $(grep -c 'golem-bg' "$D/seam/chrome/userChrome.css" 2>/dev/null)"
+echo "yazi: hex colours in theme.toml: $(grep -c '"#' "$C/yazi/theme.toml" 2>/dev/null) (0 = the terminal's names)"
+echo "icons: $(ls -d "$P"/share/icons/Golem* 2>/dev/null | xargs -rn1 basename | tr '\n' ' ') golem-files dark tone: $(grep -o '#737882' "$P/share/icons/Golem-Dark/scalable/apps/golem-files.svg" 2>/dev/null | head -1 | sed 's/#737882/graphite/')"
+echo "dock: $(pgrep -a -x waverunner | head -1 | cut -c1-90)"
+pl=$(journalctl --user -u waverunner --no-pager 2>/dev/null | grep 'palette:' | tail -1 | cut -c1-120)
+[ -n "$pl" ] || pl=$(grep 'palette:' "$HOME/.local/state/waverunner/daemon.log" 2>/dev/null | tail -1 | cut -c1-120)
+echo "dock log: ${pl:-no palette line}"
