@@ -13,6 +13,9 @@
 # work out of the box as soon as a user install it."
 #
 # ---- OBS Studio ------------------------------------------------------------
+# Its look is THE PALETTE's: user.ini names OBS's System theme, which draws
+# with Qt's colours (qt6ct, Golem's palette); its own Yami ignores them. The
+# dock does the same for an OBS opened before this (waverunner palette.rs).
 # Stock OBS opens on an empty scene: a black preview, and Record writes a
 # black video (the ThinkPad's first recording, 2026-10-01). On Wayland a
 # screen can only be captured through the portal, after the owner picks it,
