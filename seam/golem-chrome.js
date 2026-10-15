@@ -3433,7 +3433,7 @@ try {
 // ===================================================================
 try {
   var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites";
-  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwCfg=null, dwKey="", dwBusy=false, dwAgain=false;
+  var dwRan=false, dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwCfg=null, dwKey="", dwBusy=false, dwAgain=false;
   var DW_LOG=[];   // the last few things it did (the self-test reports them)
   function DWLOG(m){ try{ DW_LOG.push(m); if(DW_LOG.length>20) DW_LOG.shift(); OVLOG("dark: "+m); }catch(e){} }
   function dwAM(){ return ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager; }
@@ -3529,14 +3529,23 @@ try {
     var a=await dwAM().getAddonByID(DW_ID);
     if(!a) return;
     try{ if(a.installDate && Date.now()-a.installDate.getTime()<180000) dwInstalledAt=a.installDate.getTime(); }catch(e){}
-    if(!dwWant){ if(!a.userDisabled){ await a.disable(); DWLOG("off"); } return; }
-    if(a.userDisabled){ await a.enable(); DWLOG("on"); }
+    // OFF. Disabled, Dark Reader leaves the styles it put into the pages that are open
+    // (ASUS, 2026-10-15: both switches off, Spotify and YouTube Music kept the palette
+    // until reloaded); enabled with no site to theme, it takes them back out at once.
+    // So once it has run in this session, off = no sites; it rests disabled only from
+    // the start, when no page wears it yet.
+    if(!dwWant){
+      if(a.userDisabled) return;
+      if(!dwRan){ await a.disable(); DWLOG("off"); return; }
+      if(!dwCfg) return;
+    } else if(a.userDisabled){ await a.enable(); DWLOG("on"); }
     if(!dwCfg) return;
+    dwRan=true;
     // Right after its install the extension restarts once: an instance caught shutting down
     // cannot open its storage — look again, a few times.
     for(var i=0;i<6;i++){
       try{
-        if(await dwWriteTheme(dwCfg)){ await a.disable(); await a.enable(); DWLOG("palette "+dwCfg.bg+" / "+dwCfg.ink+(dwCfg.dark?" dark":" light")+" web="+dwCfg.web+" apps="+dwCfg.apps+" hosts="+dwCfg.hosts.length); }
+        if(await dwWriteTheme(dwWant ? dwCfg : Object.assign({}, dwCfg, {web:false, apps:false}))){ await a.disable(); await a.enable(); DWLOG("palette "+dwCfg.bg+" / "+dwCfg.ink+(dwCfg.dark?" dark":" light")+" web="+dwCfg.web+" apps="+dwCfg.apps+" hosts="+dwCfg.hosts.length); }
         return;
       }catch(e){ DWLOG("write:"+e); await dwPause(1000); }
     }
