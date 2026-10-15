@@ -106,10 +106,9 @@ in
                       # are how Golem Files previews them — waverunner thumb_more.rs)
     unar              # Archive previews
     jq                # JSON previews
-    poppler           # PDF previews
+    poppler-utils     # PDF previews (pdftoppm: a PDF's first page in Golem Files too)
     # MORE THUMBNAILS (Max, 2026-10-15: "as many files as possible as
     # thumbnails"): Golem Files runs every freedesktop .thumbnailer these bring.
-    poppler-utils           # pdftoppm: a PDF's first page
     gnome-epub-thumbnailer  # an epub's / mobi's cover
     libgsf                  # gsf-office-thumbnailer: Word, Excel, PowerPoint, LibreOffice
     exiftool                # a camera RAW photo's own JPEG (dcraw is marked insecure)
