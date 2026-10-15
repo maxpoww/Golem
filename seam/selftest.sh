@@ -6,6 +6,8 @@
 #   ./selftest.sh --one [BREAK]    one run; BREAK = throw-open | nav-bar | agent-sheet | ...
 #
 # Env overrides:
+#   SEAM_SELFTEST_STATE  XDG_STATE_HOME for the run (default: inside the throwaway profile =
+#                        no Golem theme file = Golem's dark palette, what the checks expect)
 #   SEAM_BUILD   Seam store path   (default: newest /nix/store/*-seam-<pinned version>)
 #   SEAM_SCRIPT  golem-chrome.js   (default: /etc/nixos/golem-chrome.js; in the Fedora
 #                                   toolbox that's /run/host/etc/nixos/golem-chrome.js)
@@ -53,7 +55,7 @@ run(){ # run <break> -> prints result json
   # uBO's first-run default flips network.prefetch-next off before its managed setting lands;
   # production (home.nix) pins it on — mirror that here so the hover-prefetch test sees it
   echo 'user_pref("network.prefetch-next", true);' >> "$prof/user.js"
-  HOME="$prof" XDG_CACHE_HOME="$prof/.cache" XDG_CONFIG_HOME="$prof/.config" \
+  HOME="$prof" XDG_CACHE_HOME="$prof/.cache" XDG_CONFIG_HOME="$prof/.config" XDG_STATE_HOME="${SEAM_SELFTEST_STATE:-$prof/.local/state}" \
   LD_LIBRARY_PATH="$LDP" MOZ_HEADLESS=1 MOZ_CRASHREPORTER_DISABLE=1 MOZ_LEGACY_PROFILES=1 \
   SEAM_SELFTEST="$out" SEAM_SELFTEST_BREAK="$1" SEAM_SELFTEST_HTTP="${SEAM_SELFTEST_HTTP:-}" \
     timeout 90 "$T/firefox" --headless --no-remote -profile "$prof" about:blank >/dev/null 2>&1 || true
@@ -99,7 +101,7 @@ if [ "${1:-}" = "--host" ]; then
   cat > "$HB/run.sh" <<EOS
 #!/bin/bash
 exec systemd-run --user --scope --quiet --collect --slice=app-graphical.slice -p CPUWeight=100 -p Delegate=yes --unit=seam-selftest-\$\$ -- \
-  taskset -c 0 env HOME="$HB/prof" XDG_CACHE_HOME="$HB/prof/.cache" XDG_CONFIG_HOME="$HB/prof/.config" LD_LIBRARY_PATH="$LDP" \
+  taskset -c 0 env HOME="$HB/prof" XDG_CACHE_HOME="$HB/prof/.cache" XDG_CONFIG_HOME="$HB/prof/.config" XDG_STATE_HOME="$HB/prof/.local/state" LD_LIBRARY_PATH="$LDP" \
   MOZ_HEADLESS=1 MOZ_LEGACY_PROFILES=1 GOLEM_HYPRCTL=/run/current-system/sw/bin/hyprctl \
   SEAM_SELFTEST="$HB/out.json" SEAM_SELFTEST_HOST=1 SEAM_SELFTEST_BREAK="" SEAM_SELFTEST_HTTP="${SEAM_SELFTEST_HTTP:-}" \
   timeout 240 "$HB/farm/firefox" --headless --no-remote -profile "$HB/prof" about:blank > "$HB/run.log" 2>&1

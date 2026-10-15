@@ -158,15 +158,23 @@ try {
 // Arg 2 is scale (finite double), arg 4 is an options DICTIONARY (not a
 // boolean). Call it on browser.browsingContext.currentWindowGlobal.
 //
-// PALETTE tracks Seam: backdrop = the bar colour rgb(29,32,38); the
-// current-tab ring uses the adaptive --lwt-accent-color (ATBC) with a blue
+// PALETTE tracks Seam: backdrop = THE GOLEM COLOUR (the palette's surface,
+// base01 — rgb(29,32,38) in Golem's own dark palette; see SEAM PALETTE below);
+// the current-tab ring uses the adaptive --lwt-accent-color (ATBC) with a blue
 // fallback. Style is INLINE on every script-made node — userChrome.css
 // does not reliably reach light-DOM nodes created at runtime.
 // ===================================================================
 try {
   var OV_HTML = "http://www.w3.org/1999/xhtml";
   // ---- Seam palette ----
-  var OV_BACKDROP = "rgb(29,32,38)";      // new-tab / bar colour — keep in SYNC with userContent.css (blank-page bg) + userChrome.css (toolbar bg)
+  // SEAM PALETTE (2026-10-15, Max: "the pallete have to be everywhere"). The Golem colour
+  // and the overview's are THE PALETTE's (Controls -> Colours; the dock writes
+  // XDG_STATE_HOME/golem/theme/colors.json): the Golem colour = its surface (base01), cards
+  // a step toward its ink, text its ink. Golem's own dark palette keeps the exact values
+  // below. Read at start and whenever the file moves (one stat every 2 s); open windows
+  // follow at once (gsApply), blank/new-tab pages through a registered sheet (gsContent),
+  // error pages from the next window. No file = Golem's dark, as before.
+  var OV_BACKDROP = "rgb(29,32,38)";      // new-tab / bar colour (the Golem colour)
   var OV_CARD     = "rgb(39,43,52)";
   var OV_CARD_HOV = "rgb(48,53,63)";
   var OV_FOOTER   = "rgb(25,28,34)";
@@ -175,6 +183,64 @@ try {
   var OV_TEXT     = "#e7e9ef";
   var OV_MUTED    = "#9aa0ab";
   var OV_SNAP_BG  = "#20242c";
+  var GS_RGB=[29,32,38], GS_DARK=true, GS_ERR_FG="#fff", GS_ERR_DIM="rgba(255,255,255,.62)", gsSeen=-1, gsTimer=null, gsSheetUri=null;
+  function gsRGB(){ return GS_RGB.slice(); }
+  function gsFile(){
+    var f=null, dir=""; try{ dir=Services.env.get("XDG_STATE_HOME"); }catch(e){}
+    if(dir){ f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath(dir); }
+    else { f=Services.dirsvc.get("Home",Components.interfaces.nsIFile); f.append(".local"); f.append("state"); }
+    f.append("golem"); f.append("theme"); f.append("colors.json"); return f;
+  }
+  function gsHex(h){ var m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(h||"")); return m?[parseInt(m[1],16),parseInt(m[2],16),parseInt(m[3],16)]:null; }
+  function gsCss(c){ return "rgb("+c[0]+","+c[1]+","+c[2]+")"; }
+  function gsMix(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
+  // The palette's colours -> the Seam palette. Pure (the self-test calls it).
+  function gsDerive(c){
+    var bg=gsHex(c.base01), ink=gsHex(c.base05), dim=gsHex(c.base04), deep=gsHex(c.base00), raised=gsHex(c.base02);
+    if(!bg||!ink||!dim||!deep||!raised) return null;
+    var dark=c.dark!==false;
+    if(dark && bg.join(",")==="29,32,38") return {rgb:bg, dark:true, backdrop:"rgb(29,32,38)", card:"rgb(39,43,52)", cardHov:"rgb(48,53,63)", footer:"rgb(25,28,34)",
+      thumb:"linear-gradient(160deg,rgb(47,52,63),rgb(30,33,40))", text:"#e7e9ef", muted:"#9aa0ab", snap:"#20242c", errFg:"#fff", errDim:"rgba(255,255,255,.62)"};
+    return {rgb:bg, dark:dark, backdrop:gsCss(bg), card:gsCss(gsMix(bg,ink,0.07)), cardHov:gsCss(gsMix(bg,ink,0.13)), footer:gsCss(gsMix(bg,deep,0.5)),
+      thumb:"linear-gradient(160deg,"+gsCss(raised)+","+gsCss(bg)+")", text:gsCss(ink), muted:gsCss(dim), snap:gsCss(deep),
+      errFg:dark?"#fff":gsCss(ink), errDim:dark?"rgba(255,255,255,.62)":"rgba("+ink.join(",")+",.62)"};
+  }
+  function gsSet(p){
+    GS_RGB=p.rgb; GS_DARK=p.dark; OV_BACKDROP=p.backdrop; OV_CARD=p.card; OV_CARD_HOV=p.cardHov; OV_FOOTER=p.footer;
+    OV_THUMB_BG=p.thumb; OV_TEXT=p.text; OV_MUTED=p.muted; OV_SNAP_BG=p.snap; GS_ERR_FG=p.errFg; GS_ERR_DIM=p.errDim;
+  }
+  // Read the file if it moved. True when the Golem colour changed.
+  function gsRead(){
+    try{
+      var f=gsFile(); if(!f.exists()) return false;
+      var t=f.lastModifiedTime; if(t===gsSeen) return false; gsSeen=t;
+      var p=gsDerive(JSON.parse(ovReadText(f))); if(!p) return false;
+      var was=OV_BACKDROP+OV_TEXT; gsSet(p); return was!==OV_BACKDROP+OV_TEXT;
+    }catch(e){ return false; }
+  }
+  // Blank and new-tab pages: an agent sheet (its !important outranks userContent.css's).
+  function gsContent(){
+    try{
+      var sss=Components.classes["@mozilla.org/content/style-sheet-service;1"].getService(Components.interfaces.nsIStyleSheetService);
+      var css='@-moz-document url("about:blank"), url("about:newtab"), url("about:home") { :root, html, body { background-color: '+OV_BACKDROP+' !important; } }';
+      var uri=Services.io.newURI("data:text/css,"+encodeURIComponent(css));
+      if(gsSheetUri && sss.sheetRegistered(gsSheetUri,sss.AGENT_SHEET)) sss.unregisterSheet(gsSheetUri,sss.AGENT_SHEET);
+      sss.loadAndRegisterSheet(uri,sss.AGENT_SHEET); gsSheetUri=uri;
+    }catch(e){}
+  }
+  // An open window takes the Golem colour: the chrome's variable, and the bar where it shows it.
+  function gsApply(win){
+    try{ win.document.documentElement.style.setProperty("--golem-bg",OV_BACKDROP); }catch(e){}
+    try{ if(win.__gtPlaceholder!==undefined) gtApply(win,gsRGB()); }catch(e){}
+  }
+  function gsEachWindow(fn){ try{ var en=Services.wm.getEnumerator("navigator:browser"); while(en.hasMoreElements()) fn(en.getNext()); }catch(e){} }
+  function gsStart(){
+    if(gsTimer) return;
+    gsContent();
+    gsTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+    gsTimer.initWithCallback({ notify:function(){ if(gsRead()){ gsContent(); gsEachWindow(gsApply); } } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+  }
+  gsRead();
   // ---- card geometry ----
   var OV_CARD_H   = "360px";
   var OV_COL_MIN  = "440px";
@@ -1118,7 +1184,7 @@ try {
       // gradient in private windows. Always the Golem colour (Max, 2026-09-25). Agent
       // !important outranks Firefox's own !important variants. Pages themselves are
       // unaffected — this only shows before a document paints.
-      css+=":root,:root[privatebrowsingmode]{--tabpanel-background-color:"+OV_BACKDROP+"!important;}";
+      css+=":root,:root[privatebrowsingmode]{--tabpanel-background-color:var(--golem-bg,"+OV_BACKDROP+")!important;}";
       // Paint the bar itself: under the default theme the top bar is a NATIVE (GTK) surface,
       // so the variables alone only reached the address field. :where() keeps these rules
       // below the overview's flat pin (which must win while the grid is up).
@@ -1258,7 +1324,7 @@ try {
     try{
       if(gtOn() || !gtNeedsLoad(win,tab)) return false;
       win.__gtHold={tab:tab, from:gtInlineAccent(win)};
-      gtApply(win,[29,32,38]); win.__gtPlaceholder="hold";
+      gtApply(win,gsRGB()); win.__gtPlaceholder="hold";
       return true;
     }catch(e){ return false; }
   }
@@ -1274,7 +1340,7 @@ try {
           win.__gtHold=null; }                                                  // the new page reported → its colour now
       }
       var a=gtInlineAccent(win);
-      if(a && GT_PLACEHOLDERS.indexOf(a)!==-1){ gtApply(win,[29,32,38]); win.__gtPlaceholder=a; }
+      if(a && GT_PLACEHOLDERS.indexOf(a)!==-1){ gtApply(win,gsRGB()); win.__gtPlaceholder=a; }
       else if(win.__gtPlaceholder!==undefined){ win.__gtPlaceholder=undefined; gtClear(win); }
     }catch(e){}
   }
@@ -1874,9 +1940,9 @@ try {
   // crashed tab); the Try-again of a plain network error goes (the toolbar reloads). The
   // blocked page the own-pages gate lands on says it is not part of Seam.
   // =================================================================
-  var EP_FS="data:application/javascript,"+encodeURIComponent(
+  function epFS(){ return "data:application/javascript,"+encodeURIComponent(
     "(function(){"+
-    "var BG='rgb(29,32,38)', FG='#fff', DIM='rgba(255,255,255,.62)';"+
+    "var BG='"+OV_BACKDROP+"', FG='"+GS_ERR_FG+"', DIM='"+GS_ERR_DIM+"';"+
     "function isErr(d){ var u=d.documentURI||''; return /^about:(neterror|certerror|httpsonlyerror|blocked|tabcrashed|restartrequired|framecrashed)/.test(u); }"+
     "function errCode(d){ var m=/[?&]e=([^&]*)/.exec(d.documentURI||''); return m?decodeURIComponent(m[1]):''; }"+
     "function keepButtons(d){ var u=d.documentURI||'', e=errCode(d); return /^about:(certerror|httpsonlyerror|blocked|tabcrashed|restartrequired)/.test(u) || /cert|ssl|captive|clockSkew|nss|mitm|hsts|pkp|sts/i.test(e); }"+
@@ -1906,12 +1972,12 @@ try {
     "addEventListener('DOMContentLoaded',function(ev){ arm(ev.target); },true);"+
     "addEventListener('pageshow',function(ev){ arm(ev.target); },true);"+
     "try{ arm(content.document); }catch(e){}"+
-    "})();");
+    "})();"); }
   function epInit(win){
     if(win.__golemEpInit) return; win.__golemEpInit=true;
     var on=true; try{ on=Services.prefs.getBoolPref("golem.seam.ownErrorPages",true); }catch(e){}
     if(!on) return;
-    try{ win.messageManager.loadFrameScript(EP_FS,true); }catch(e){ OVLOG("error pages framescript:"+e); }
+    try{ win.messageManager.loadFrameScript(epFS(),true); }catch(e){ OVLOG("error pages framescript:"+e); }
   }
 
   // =================================================================
@@ -2548,12 +2614,12 @@ try {
   function gtPlaceholderTest(win,r,step,done){
     try{
       var root=win.document.documentElement, cs=function(v){ return (win.getComputedStyle(root).getPropertyValue(v)||"").trim(); };
-      var golem=gtTheme([29,32,38]).vars;
+      var golem=gtTheme(gsRGB()).vars;
       var nb=win.document.getElementById("nav-bar");
       // .browserContainer is what paints the content area before a page does
       var bc=win.gBrowser.selectedBrowser.closest(".browserContainer");
       r.loadingBg={var:cs("--tabpanel-background-color"), browserContainer:bc&&win.getComputedStyle(bc).backgroundColor};
-      step("loading-content-golem", r.loadingBg.browserContainer==="rgb(29, 32, 38)");
+      step("loading-content-golem", r.loadingBg.browserContainer==="rgb("+gsRGB().join(", ")+")");
       // Each step WAITS for its expected state (up to 1.5 s) instead of assuming 150 ms: on a
       // saturated weak machine (MacBook Air, 2026-10-06 — the throwaway profile's uBlock
       // compiling on both cores) the fixed delay failed one step or another at random. The
@@ -2593,7 +2659,7 @@ try {
     var base=""; try{ base=Services.env.get("SEAM_SELFTEST_HTTP"); }catch(e){}
     if(!base || gtOn()){ step("hold-skipped",true); done(); return; }
     try{
-      var gb=win.gBrowser, root=win.document.documentElement, golem=gtTheme([29,32,38]).vars;
+      var gb=win.gBrowser, root=win.document.documentElement, golem=gtTheme(gsRGB()).vars;
       var cs=function(v){ return (win.getComputedStyle(root).getPropertyValue(v)||"").trim(); };
       var home=gb.selectedTab, red="rgb(192, 43, 59)";
       var sel=function(t){ try{ gb.selectedTab=t; }catch(e){} if(gb.selectedTab!==t){ try{ gb.tabContainer.selectedIndex=Array.prototype.indexOf.call(gb.tabs,t); }catch(e){} } };
@@ -2619,7 +2685,7 @@ try {
             root.style.setProperty("--lwt-accent-color","rgb(10, 120, 200)");   // the new page reports
             // "follows the page" = the hold is released and the bar shows a real page colour: the
             // synthetic blue, or the test page's own colour when ATBC's genuine report lands after it
-            var golemAcc=gtTheme([29,32,38]).vars["--lwt-accent-color"], isPage=function(a,tint){ return tint===null && a!=="" && a!==red && a!==golemAcc; };
+            var golemAcc=gtTheme(gsRGB()).vars["--lwt-accent-color"], isPage=function(a,tint){ return tint===null && a!=="" && a!==red && a!==golemAcc; };
             var t1=Date.now(); (function follow(){ var acc=cs("--lwt-accent-color"), tint=root.getAttribute("golem-tint"); if(!isPage(acc,tint) && Date.now()-t1<1500){ win.setTimeout(follow,50); return; }
               r.hold.reported={accent:acc, tint:tint, afterMs:Date.now()-t1};
               step("hold-follows-page", isPage(acc,tint));
@@ -2805,6 +2871,14 @@ try {
     try{
       var a=nvDecide("156|580.1",""), b=nvDecide("156|580.1","156|580.1"), c=nvDecide("157|580.1","156|580.1");
       step("nv-default-hardware", a.mode==="hardware" && !a.clear);
+      // SEAM PALETTE (pure): Golem's dark keeps its exact colours; another palette's surface
+      // is the Golem colour and its ink the text; the file this run sees (none) leaves Golem's.
+      var gd=gsDerive({dark:true,base00:"#16171a",base01:"#1d2026",base02:"#2a2e35",base04:"#8a8f98",base05:"#e6e3dd"});
+      var gl=gsDerive({dark:false,base00:"#f7f5f1",base01:"#ece9e3",base02:"#dedad2",base04:"#6f6b64",base05:"#2b2a28"});
+      step("palette-golem-dark-unchanged", !!gd && gd.backdrop==="rgb(29,32,38)" && gd.card==="rgb(39,43,52)" && gd.errFg==="#fff");
+      step("palette-light-follows", !!gl && gl.backdrop==="rgb(236,233,227)" && gl.text==="rgb(43,42,40)" && gl.errFg==="rgb(43,42,40)" && !gl.dark);
+      step("palette-junk-refused", gsDerive({base01:"nope"})===null);
+      r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
       step("nv-retry-after-update", c.mode==="hardware" && c.clear);
       var st={last:0,crashes:0};
@@ -2920,7 +2994,7 @@ try {
       step("buttons-at-startup", r.btnEarlyMs!==null && r.btnEarlyMs<50 && !!d.getElementById("golem-overview-btn") && !!(win.__golemOvTools&&win.__golemOvTools.parentNode) && win.__golemOvTools.style.display==="flex");
       // #nav-bar has a 0.1s background-color transition: read the flat bar AFTER it settles
       win.setTimeout(function(){ try{
-      (function(){ var nb=d.getElementById("nav-bar"); var bg=nb?win.getComputedStyle(nb).backgroundColor:""; r.openBarBg=bg; step("open-bar-flat", bg==="rgb(29, 32, 38)"); })();
+      (function(){ var nb=d.getElementById("nav-bar"); var bg=nb?win.getComputedStyle(nb).backgroundColor:""; r.openBarBg=bg; step("open-bar-flat", bg==="rgb("+gsRGB().join(", ")+")"); })();
       (function(){ var ob=d.getElementById("golem-overview-btn"), tb=win.__golemOvTools&&win.__golemOvTools.firstChild;
         r.ovIcons={btn:ob&&win.getComputedStyle(ob).color, tool:tb&&win.getComputedStyle(tb).color};
         step("overview-icons-white", r.ovIcons.btn==="rgb(255, 255, 255)" && r.ovIcons.tool==="rgb(255, 255, 255)"); })();
@@ -2995,6 +3069,7 @@ try {
     try{ w.setTimeout(function(){
       try{ ovButton(w); ovPlaceButton(w); }catch(e){ OVLOG("button:"+e); }   // no-op create; re-seat after toolbar reflow
       try{ ovInit(w); }catch(e){ OVLOG("init:"+e); }
+      try{ gsStart(); gsApply(w); }catch(e){ OVLOG("palette:"+e); }
       try{ gtInit(w); }catch(e){ OVLOG("tint:"+e); }
       try{ gtPlaceholderWatch(w); }catch(e){ OVLOG("placeholder:"+e); }
       if(!OV_SELFTEST){ try{ bwInit(w); }catch(e){ OVLOG("warm init:"+e); } }   // the selftest drives it directly

@@ -61,7 +61,7 @@
      peek) is fully invisible — yet it still catches hover, because opacity:0
      elements still receive pointer events, keeping the 14px catch strip live. */
   background-color: color-mix(in srgb,
-    var(--lwt-sidebar-background-color, var(--lwt-accent-color, rgb(29, 32, 38))) 95%,
+    var(--lwt-sidebar-background-color, var(--lwt-accent-color, var(--golem-bg, rgb(29, 32, 38)))) 95%,
     transparent) !important;
   opacity: 0 !important;
   transform: translateX(-271px) !important;   /* 14px invisible catch strip */

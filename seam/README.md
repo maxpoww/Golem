@@ -442,6 +442,25 @@ What Seam adds (golem-chrome.js WEBAPPS):
 Kill switch `golem.seam.apps` (false: the flag is consumed and the URL opens as a plain
 tab). Test: `./webapps-selftest.sh` (19 checks, headless, real build).
 
+## The palette and dark websites (2026-10-14/15)
+
+Seam wears THE PALETTE (Controls → Colours in the dock; the dock writes
+`$XDG_STATE_HOME/golem/theme/colors.json`). `golem-chrome.js` reads that file at start and
+whenever it moves (one stat every 2 s):
+
+- **SEAM PALETTE.** The Golem colour (new tab, blank page, loading area, the bar while a tab
+  loads, the sidebar's fallback, the overview's backdrop) is the palette's surface `base01`;
+  the overview's cards, text and the error pages come from its other greys and ink. Golem's
+  own dark palette keeps the exact old values (rgb(29,32,38) and friends). Blank/new-tab pages
+  get it through an agent sheet the script registers (it outranks `userContent.css`, which
+  stays as the fallback); error pages take it from the next window.
+- **DARK WEBSITES.** Dark Reader is pinned in `extensions.json` (normal_installed: it rests
+  disabled) and is enabled only while `dark_websites` AND `dark` are true in that file.
+  Override for testing: pref `golem.seam.darkWebsites` = `on` / `off`.
+- `selftest.sh` runs with its own empty state dir (Golem's dark palette); give it another
+  with `SEAM_SELFTEST_STATE=<dir holding golem/theme/colors.json>` — the checks compare
+  against whatever the Golem colour is.
+
 ## Why Mozilla's build and not nixpkgs'
 
 - **Speed:** the pin tracks Mozilla directly, so the delay is hours, not the days a channel takes.
