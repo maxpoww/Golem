@@ -208,7 +208,7 @@ if have hyprctl; then
   echo "          inactive=$(hyprctl getoption general:col.inactive_border 2>/dev/null | head -1 | cut -c1-40)  background=$(hyprctl getoption misc:background_color 2>/dev/null | head -1 | cut -c1-30)"
 fi
 echo "btop: $(grep color_theme "$C/btop/btop.conf" 2>/dev/null || echo 'no conf')  theme file: $( [ -s "$C/btop/themes/golem.theme" ] && echo ok || echo MISSING)"
-echo "nvim: theme file $( [ -s "$T/nvim.lua" ] && echo ok || echo MISSING )  mini.nvim: $(ls "$P"/share/nvim/site/pack/*/start/ 2>/dev/null | grep -c mini)"
+echo "nvim: theme file $( [ -s "$T/nvim.lua" ] && echo ok || echo MISSING )  mini.base16: $(have nvim && timeout 8 nvim --headless -c "lua io.stdout:write((pcall(require,'mini.base16') and 'ok' or 'MISSING')..' colorscheme='..(vim.g.colors_name or 'none'))" -c q 2>/dev/null || echo n/a)"
 echo "obs: $(grep -A3 '^\[Appearance\]' "$C/obs-studio/user.ini" 2>/dev/null | grep '^Theme' || echo 'no user.ini / no Theme')"
 seamdir=$(dirname "$(dirname "$(readlink -f "$(command -v seam 2>/dev/null)" 2>/dev/null)")")
 echo "seam: dark reader in profile: $(grep -o '"addon@darkreader.org"' "$D/seam/extensions.json" 2>/dev/null | head -1 || echo NO)  chrome script palette: $(grep -ac 'SEAM PALETTE' "$seamdir"/lib/firefox-bin-*/mozilla.cfg 2>/dev/null | head -1)  userChrome golem-bg: $(grep -c 'golem-bg' "$D/seam/chrome/userChrome.css" 2>/dev/null)"
