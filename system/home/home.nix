@@ -112,7 +112,7 @@ in
     poppler-utils           # pdftoppm: a PDF's first page
     gnome-epub-thumbnailer  # an epub's / mobi's cover
     libgsf                  # gsf-office-thumbnailer: Word, Excel, PowerPoint, LibreOffice
-    dcraw                   # a camera RAW photo's own JPEG (dcraw -e)
+    exiftool                # a camera RAW photo's own JPEG (dcraw is marked insecure)
     fd                # Fast file searching
     ripgrep
 
