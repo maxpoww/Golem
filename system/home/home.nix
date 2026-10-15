@@ -102,10 +102,17 @@ in
     wl-clipboard
     xdg-user-dirs      # localizes ~/Downloads → ~/Transferências etc. (see below)
 
-    ffmpegthumbnailer # Video previews
+    ffmpegthumbnailer # Video previews (and a song's cover: its .thumbnailer files
+                      # are how Golem Files previews them — waverunner thumb_more.rs)
     unar              # Archive previews
     jq                # JSON previews
     poppler           # PDF previews
+    # MORE THUMBNAILS (Max, 2026-10-15: "as many files as possible as
+    # thumbnails"): Golem Files runs every freedesktop .thumbnailer these bring.
+    poppler-utils           # pdftoppm: a PDF's first page
+    gnome-epub-thumbnailer  # an epub's / mobi's cover
+    libgsf                  # gsf-office-thumbnailer: Word, Excel, PowerPoint, LibreOffice
+    dcraw                   # a camera RAW photo's own JPEG (dcraw -e)
     fd                # Fast file searching
     ripgrep
 
