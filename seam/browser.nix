@@ -45,7 +45,14 @@
         extraAutoConfig = ''
           pref("general.config.sandbox_enabled", false);
         '';
-        extraPrefs = builtins.readFile ./golem-chrome.js;
+        # Dark Reader's own "already dark" list goes in ahead of the script as
+        # DW_DARK_SITES (DARK WEBSITES enables it on all of them). The first
+        # line stays a comment: autoconfig eats it.
+        extraPrefs = let
+          darkSites = builtins.filter (l: l != "" && builtins.substring 0 1 l != "#")
+            (final.lib.splitString "\n" (builtins.readFile ./dark-sites.txt));
+        in "// Golem: Dark Reader's dark-sites list (seam/dark-sites.txt)\nvar DW_DARK_SITES = ${builtins.toJSON darkSites};\n"
+          + builtins.readFile ./golem-chrome.js;
 
         extraPolicies = {
           # ---- the content blocker -------------------------------------

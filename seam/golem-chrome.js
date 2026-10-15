@@ -3457,13 +3457,21 @@ try {
     var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
     var db=await SI.open(SI.getStoragePrincipal(pol.extension), pol.extension.hasPermission("unlimitedStorage"));
     try{
-      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion","detectDarkTheme"]);
+      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion","detectDarkTheme","enabledFor"]);
       var th=cur.theme||{};
-      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2 && cur.detectDarkTheme===false) return false;
+      // Dark Reader never touches the sites on its own list of "already dark"
+      // ones (open.spotify.com, music.youtube.com… ~900) unless the user names
+      // them: they all go into enabledFor, so the palette reaches them too
+      // (Max, 2026-10-15: the Spotify and YouTube Music webapps stayed theirs).
+      // The list is the pinned xpi's own, put ahead of this script by
+      // browser.nix (seam/dark-sites.txt).
+      var dark=(typeof DW_DARK_SITES!=="undefined" && Array.isArray(DW_DARK_SITES)) ? DW_DARK_SITES : [];
+      var listed=Array.isArray(cur.enabledFor) && cur.enabledFor.length===dark.length;
+      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2 && cur.detectDarkTheme===false && listed) return false;
       // detectDarkTheme off: a site that is dark already (YouTube) is recoloured
       // into the palette too, instead of being left in its own black (Max,
       // 2026-10-15: "i dont see our pallete changing youtube").
-      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, detectDarkTheme:false, theme:dwTheme(col)});
+      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, detectDarkTheme:false, enabledFor:dark, theme:dwTheme(col)});
       return true;
     } finally { try{ db.close(); }catch(e){} }
   }
