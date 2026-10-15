@@ -2857,6 +2857,14 @@ try {
               Promise.all([AM.getAddonByID("uBlock0@raymondhill.net"), AM.getAddonByID("ATBC@EasonWong"), AM.getAddonByID("addon@darkreader.org")]).then(function(a){
                 r.extensions=a.map(function(x){ return x?{id:x.id,version:x.version,active:x.isActive,src:(x.installTelemetryInfo&&x.installTelemetryInfo.source)||null}:null; });
                 step("extensions-from-package-active", !!(a[0]&&a[0].isActive&&a[1]&&a[1].isActive));
+                if(a[2] && a[2].isActive){   // a run with dark websites on (SEAM_SELFTEST_STATE): what its storage holds
+                  (async function(){ try{ var pol=win.WebExtensionPolicy.getByID("addon@darkreader.org");
+                    var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
+                    var db=await SI.open(SI.getStoragePrincipal(pol.extension),false); var v=await db.get(["theme","syncSettings","fetchNews"]); db.close();
+                    r.darkReader={bg:v.theme&&v.theme.darkSchemeBackgroundColor, ink:v.theme&&v.theme.darkSchemeTextColor, sync:v.syncSettings, news:v.fetchNews, log:DW_LOG.slice()};
+                  }catch(e){ r.darkReader={error:String(e)}; } step("dark-reader-installed-resting", false); done(); })();
+                  return;
+                }
                 step("dark-reader-installed-resting", !!(a[2] && !a[2].isActive)); done();
               },function(e){ step("extensions-from-package-active:"+e,false); done(); });
             }catch(e){ step("extensions-from-package-threw:"+e,false); done(); } });
@@ -3393,12 +3401,20 @@ try {
 // Webapp windows share the profile, so they follow too.
 // Dark Reader opens its help page on darkreader.org when it is installed; a
 // page of it opened in the first minutes after the install is closed again.
+// THE PALETTE on websites (Max, 2026-10-15: "no dark, not pallete"): Dark
+// Reader's dark background and text are the palette's surface (base01, the
+// colour of Seam's own chrome) and ink (base05). They are written into its
+// storage.local (it can only be opened while the extension runs) with
+// syncSettings off (so it reads them) and fetchNews off (no darkreader.org
+// requests); it reads its settings only at its start, so a change is followed
+// by one disable/enable.
 // Dev override: golem.seam.darkWebsites = "on" | "off" ("" follows Golem).
 // ===================================================================
 try {
   var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites";
-  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null;
-  function DWLOG(m){ try{ OVLOG("dark: "+m); }catch(e){} }
+  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwColors=null, dwKey="", dwBusy=false, dwAgain=false;
+  var DW_LOG=[];   // the last few things it did (the self-test reports them)
+  function DWLOG(m){ try{ DW_LOG.push(m); if(DW_LOG.length>20) DW_LOG.shift(); OVLOG("dark: "+m); }catch(e){} }
   function dwAM(){ return ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager; }
   function dwFile(){
     var f=null, dir=""; try{ dir=Services.env.get("XDG_STATE_HOME"); }catch(e){}
@@ -3406,32 +3422,79 @@ try {
     else { f=Services.dirsvc.get("Home",Components.interfaces.nsIFile); f.append(".local"); f.append("state"); }
     f.append("golem"); f.append("theme"); f.append("colors.json"); return f;
   }
-  // What the owner asked for: the override, else the theme file. undefined = no news.
+  // What the owner asked for: the override, else the theme file (its colours too). undefined = no news.
   function dwRead(){
+    var f=dwFile(), c=null;
+    if(f.exists()){
+      var t=f.lastModifiedTime;
+      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; }
+        dwColors = c && /^#[0-9a-f]{6}$/i.test(c.base01||"") && /^#[0-9a-f]{6}$/i.test(c.base05||"") ? {bg:c.base01, ink:c.base05} : null; }
+      else c=undefined;
+    }
     var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
     if(o==="on") return true; if(o==="off") return false;
-    var f=dwFile(); if(!f.exists()) return false;
-    var t=f.lastModifiedTime; if(t===dwSeen) return undefined; dwSeen=t;
-    try{ var c=JSON.parse(ovReadText(f)); return !!(c && c.dark && c.dark_websites); }catch(e){ return undefined; }
+    if(c===undefined) return undefined;
+    return !!(c && c.dark && c.dark_websites);
   }
+  // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours.
+  function dwTheme(col){
+    return {mode:1, brightness:100, contrast:100, grayscale:0, sepia:0, useFont:false, fontFamily:"Open Sans", textStroke:0,
+      engine:"dynamicTheme", stylesheet:"", darkSchemeBackgroundColor:col.bg, darkSchemeTextColor:col.ink,
+      lightSchemeBackgroundColor:"#dcdad7", lightSchemeTextColor:"#181a1b", scrollbarColor:"", selectionColor:"auto",
+      styleSystemControls:false, lightColorScheme:"Default", darkColorScheme:"Default", immediateModify:false};
+  }
+  // WebExtensionPolicy is a window global, not this script's.
+  function dwPolicy(id){ try{ var w=Services.wm.getMostRecentWindow("navigator:browser"); return w && w.WebExtensionPolicy ? w.WebExtensionPolicy.getByID(id) : null; }catch(e){ return null; } }
+  function dwPause(ms){ return new Promise(function(r){ var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer); t.initWithCallback({notify:function(){ r(); }},ms,Components.interfaces.nsITimer.TYPE_ONE_SHOT); }); }
+  // Write the palette into Dark Reader's storage. True when something changed (it must restart to read it).
+  async function dwWriteTheme(col){
+    var pol=null;
+    for(var i=0;i<30;i++){ pol=dwPolicy(DW_ID); if(pol && pol.active && pol.extension) break; await dwPause(100); }
+    if(!pol || !pol.extension) return false;
+    var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
+    var db=await SI.open(SI.getStoragePrincipal(pol.extension), pol.extension.hasPermission("unlimitedStorage"));
+    try{
+      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion"]);
+      var th=cur.theme||{};
+      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2) return false;
+      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, theme:dwTheme(col)});
+      return true;
+    } finally { try{ db.close(); }catch(e){} }
+  }
+  async function dwApplyNow(){
+    var a=await dwAM().getAddonByID(DW_ID);
+    if(!a) return;
+    try{ if(a.installDate && Date.now()-a.installDate.getTime()<180000) dwInstalledAt=a.installDate.getTime(); }catch(e){}
+    if(!dwWant){ if(!a.userDisabled){ await a.disable(); DWLOG("off"); } return; }
+    if(a.userDisabled){ await a.enable(); DWLOG("on"); }
+    if(!dwColors) return;
+    // Right after its install the extension restarts once: an instance caught shutting down
+    // cannot open its storage — look again, a few times.
+    for(var i=0;i<6;i++){
+      try{
+        if(await dwWriteTheme(dwColors)){ await a.disable(); await a.enable(); DWLOG("palette "+dwColors.bg+" / "+dwColors.ink); }
+        return;
+      }catch(e){ DWLOG("write:"+e); await dwPause(1000); }
+    }
+  }
+  // One at a time; a change that comes in meanwhile is applied after.
   function dwApply(){
-    try{ dwAM().getAddonByID(DW_ID).then(function(a){
-      if(!a) return;
-      try{ if(a.installDate && Date.now()-a.installDate.getTime()<180000) dwInstalledAt=a.installDate.getTime(); }catch(e){}
-      if(dwWant && a.userDisabled){ a.enable(); DWLOG("on"); }
-      else if(!dwWant && !a.userDisabled){ a.disable(); DWLOG("off"); }
-    },function(e){ DWLOG("addon:"+e); }); }catch(e){ DWLOG("apply:"+e); }
+    if(dwBusy){ dwAgain=true; return; }
+    dwBusy=true;
+    dwApplyNow().catch(function(e){ DWLOG("apply:"+e); }).then(function(){ dwBusy=false; if(dwAgain){ dwAgain=false; dwApply(); } });
   }
   function dwTick(){
-    var w=dwRead(); if(w===undefined || w===dwWant) return;
-    dwWant=w; dwApply();
+    var w=dwRead(); if(w===undefined) return;
+    var key=w+"|"+(w && dwColors ? dwColors.bg+dwColors.ink : "");
+    if(w===dwWant && key===dwKey) return;
+    dwWant=w; dwKey=key; dwApply();
   }
   function dwStart(){
     if(dwTimer) return;
     try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
     try{ dwAM().addAddonListener({
       onInstalled:function(a){ if(a && a.id===DW_ID){ dwInstalledAt=Date.now(); dwApply(); } },
-      onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false) dwApply(); }
+      onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false && !dwBusy) dwApply(); }
     }); }catch(e){}
     dwTick(); if(dwWant===null){ dwWant=false; dwApply(); }
     dwTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
