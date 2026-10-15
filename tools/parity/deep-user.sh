@@ -194,7 +194,7 @@ if have gdbus; then
 fi
 adw=NO; for d in "$P/share/themes" /run/current-system/sw/share/themes "$D/themes"; do [ -e "$d/adw-gtk3/gtk-3.0/gtk.css" ] && adw="$d"; done
 echo "gtk: adw-gtk3=$adw  own themes: $(ls -d "$D"/themes/Golem-* 2>/dev/null | xargs -rn1 basename | tr '\n' ' ')"
-for n in Golem-A Golem-B; do [ -d "$D/themes/$n" ] && echo "  $n: gtk-3.0=$( [ -s "$D/themes/$n/gtk-3.0/gtk.css" ] && echo ok || echo MISSING ) gtk-4.0=$( [ -s "$D/themes/$n/gtk-4.0/gtk.css" ] && echo ok || echo MISSING ) base=$(grep -o 'adw-gtk3[-a-z]*' "$D/themes/$n/gtk-3.0/gtk.css" 2>/dev/null | head -1)"; done
+for n in Golem-A Golem-B; do [ -d "$D/themes/$n" ] && echo "  $n: gtk-3.0=$( [ -s "$D/themes/$n/gtk-3.0/gtk.css" ] && echo ok || echo MISSING ) gtk-4.0=$( [ -s "$D/themes/$n/gtk-4.0/gtk.css" ] && echo ok || echo MISSING ) base=$(grep '^@import' "$D/themes/$n/gtk-3.0/gtk.css" 2>/dev/null | grep -o 'adw-gtk3[-a-z]*' | head -1)"; done
 echo "  settings.ini: $(grep -E 'theme|dark' "$C/gtk-3.0/settings.ini" 2>/dev/null | tr '\n' ' ')"
 echo "  gtk-4.0/gtk.css: $(head -c 110 "$C/gtk-4.0/gtk.css" 2>/dev/null | tr '\n' ' ')"
 echo "qt: QT_QPA_PLATFORMTHEME=${QT_QPA_PLATFORMTHEME:-<unset>}"
@@ -211,10 +211,10 @@ echo "btop: $(grep color_theme "$C/btop/btop.conf" 2>/dev/null || echo 'no conf'
 echo "nvim: theme file $( [ -s "$T/nvim.lua" ] && echo ok || echo MISSING )  mini.base16: $(have nvim && timeout 8 nvim --headless -c "lua io.stdout:write((pcall(require,'mini.base16') and 'ok' or 'MISSING')..' colorscheme='..(vim.g.colors_name or 'none'))" -c q 2>/dev/null || echo n/a)"
 echo "obs: $(grep -A3 '^\[Appearance\]' "$C/obs-studio/user.ini" 2>/dev/null | grep '^Theme' || echo 'no user.ini / no Theme')"
 seamdir=$(dirname "$(dirname "$(readlink -f "$(command -v seam 2>/dev/null)" 2>/dev/null)")")
-echo "seam: dark reader in profile: $(grep -o '"addon@darkreader.org"' "$D/seam/extensions.json" 2>/dev/null | head -1 || echo NO)  chrome script palette: $(grep -ac 'SEAM PALETTE' "$seamdir"/lib/firefox-bin-*/mozilla.cfg 2>/dev/null | head -1)  userChrome golem-bg: $(grep -c 'golem-bg' "$D/seam/chrome/userChrome.css" 2>/dev/null)"
+echo "seam: dark reader in profile: $( [ -f "$D/seam/extensions.json" ] && (grep -q '"addon@darkreader.org"' "$D/seam/extensions.json" && echo yes || echo NO) || echo 'n/a (Seam never started)')  chrome script palette: $(grep -ac 'SEAM PALETTE' "$seamdir"/lib/firefox-bin-*/mozilla.cfg 2>/dev/null | head -1)  userChrome golem-bg: $(grep -c 'golem-bg' "$D/seam/chrome/userChrome.css" 2>/dev/null)"
 echo "yazi: hex colours in theme.toml: $(grep -c '"#' "$C/yazi/theme.toml" 2>/dev/null) (0 = the terminal's names)"
 echo "icons: $(ls -d "$P"/share/icons/Golem* 2>/dev/null | xargs -rn1 basename | tr '\n' ' ') golem-files dark tone: $(grep -o '#737882' "$P/share/icons/Golem-Dark/scalable/apps/golem-files.svg" 2>/dev/null | head -1 | sed 's/#737882/graphite/')"
-echo "dock: $(pgrep -a -x waverunner | head -1 | cut -c1-90)"
+echo "dock: $(pgrep -a -f 'bin/\.?waverunner(-wrapped)?$' | head -1 | cut -c1-90)"
 pl=$(journalctl --user -u waverunner --no-pager 2>/dev/null | grep 'palette:' | tail -1 | cut -c1-120)
 [ -n "$pl" ] || pl=$(grep 'palette:' "$HOME/.local/state/waverunner/daemon.log" 2>/dev/null | tail -1 | cut -c1-120)
 echo "dock log: ${pl:-no palette line}"

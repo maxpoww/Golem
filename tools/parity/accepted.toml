@@ -12,6 +12,8 @@
 "render:direct_scanout"       = "Golem turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
 "input:kb_model"              = "the installer's keyboard answer (golem.keyboard.model) — per machine by design"
 "general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
+"general:col.inactive_border" = "the palette's base02 while the shell wears the palette (Controls → Colours, Dynamic colour off), hyprland.lua's otherwise — the owner's choice per machine (2026-10-15)"
+"misc:background_color"       = "the palette's ground (base00), pushed by waverunner — differs with the palette each machine wears (2026-10-15)"
 
 [bind]
 "main|SUPER|L" = "Super+L locks the screen (hyprlock, P11); the dev box has no lock screen yet"
