@@ -3457,10 +3457,13 @@ try {
     var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
     var db=await SI.open(SI.getStoragePrincipal(pol.extension), pol.extension.hasPermission("unlimitedStorage"));
     try{
-      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion"]);
+      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion","detectDarkTheme"]);
       var th=cur.theme||{};
-      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2) return false;
-      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, theme:dwTheme(col)});
+      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2 && cur.detectDarkTheme===false) return false;
+      // detectDarkTheme off: a site that is dark already (YouTube) is recoloured
+      // into the palette too, instead of being left in its own black (Max,
+      // 2026-10-15: "i dont see our pallete changing youtube").
+      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, detectDarkTheme:false, theme:dwTheme(col)});
       return true;
     } finally { try{ db.close(); }catch(e){} }
   }
