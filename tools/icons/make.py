@@ -297,6 +297,12 @@ write_symbolic("user-trash", "dir:user-trash", TRASH_GLYPH)
 # Up: the folder this one is in (Files' `..` once its places are symbols).
 UP_GLYPH = [line(W, "M12 19.4V5.6", 2.4), line(W, "M6.6 11 12 5.6l5.4 5.4", 2.4)]
 write_symbolic("go-up", "dir:go-up", UP_GLYPH)
+
+# …and as FOLDERS too, for Files' places at a folder's size (Max, 2026-10-15:
+# "create a dir with symbol for '..' and the recycle bin"): `folder-up` (the
+# arrow up) and `user-trash` (the bin).
+write("folder-up", FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:go-up", UP_GLYPH))).replace("{mark}", MARK))
+write("user-trash", FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:user-trash", TRASH_GLYPH))).replace("{mark}", MARK))
 for name, shapes in SYMBOLS.items():
     write_symbolic(name, "dir:" + name, shapes)
 
