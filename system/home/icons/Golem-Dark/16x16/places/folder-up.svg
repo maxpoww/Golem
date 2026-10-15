@@ -8,9 +8,9 @@
       <feDropShadow dx="0" dy="1.6" stdDeviation="1" flood-color="#000" flood-opacity=".6"/>
     </filter>
     <mask id="sym" maskUnits="userSpaceOnUse" x="-3" y="-3" width="30" height="30">
-      <g transform="translate(12 12) scale(1.2314) translate(-12.000 -12.458)">
-      <path data-line="1" d="M12 19.4V5.6" fill="none" stroke="#fff" stroke-width="2.761" stroke-linejoin="round" stroke-linecap="round"/>
-      <path data-line="1" d="M6.6 11 12 5.6l5.4 5.4" fill="none" stroke="#fff" stroke-width="2.761" stroke-linejoin="round" stroke-linecap="round"/>
+      <g transform="translate(12 12) scale(0.7347) translate(-12.000 -12.000)">
+      <circle cx="7" cy="12" r="2.6" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="17" cy="12" r="2.6" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
       </g>
     </mask>
   </defs>

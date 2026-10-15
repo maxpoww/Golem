@@ -215,7 +215,12 @@ LINE, DETAIL = VARIANT["line"], VARIANT["detail"]
 ROUND = {"file:web", "file:disc", "file:harddisk", "dir:folder-sync"}
 KEY = {"square": 18.6, "round": 19.6, "long": 19.6, "thin": 20.4}
 
+# Symbols sized by hand, not by their shape's keyline.
+KEY_OF = {"dir:folder-up": 12.0}  # the two dots: a period's size, not a symbol's
+
 def keyline(key, w, h):
+    if key in KEY_OF:
+        return KEY_OF[key]
     lo, hi = min(w, h), max(w, h)
     if key in ROUND:
         return KEY["round"]
@@ -301,7 +306,9 @@ write_symbolic("go-up", "dir:go-up", UP_GLYPH)
 # …and as FOLDERS too, for Files' places at a folder's size (Max, 2026-10-15:
 # "create a dir with symbol for '..' and the recycle bin"): `folder-up` (the
 # arrow up) and `user-trash` (the bin).
-write("folder-up", FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:go-up", UP_GLYPH))).replace("{mark}", MARK))
+# (`..` says what it is: two dots — Max, 2026-10-15; its symbolic stays the arrow.)
+DOTS_GLYPH = [shape(W, 'circle cx="7" cy="12" r="2.6"'), shape(W, 'circle cx="17" cy="12" r="2.6"')]
+write("folder-up", FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:folder-up", DOTS_GLYPH))).replace("{mark}", MARK))
 write("user-trash", FOLDER.replace("{mask}", MASK.replace("{shapes}", centred("dir:user-trash", TRASH_GLYPH))).replace("{mark}", MARK))
 for name, shapes in SYMBOLS.items():
     write_symbolic(name, "dir:" + name, shapes)
