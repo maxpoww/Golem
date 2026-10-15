@@ -3,11 +3,11 @@
 window — its bar with the three discs — holding four of Golem's folders, the
 first selected. Written into the theme's apps/ (both tones wear the same: an
 app's icon stands on the dock's plate, not on the page). build-theme.sh runs it."""
-import os, re, sys, io, contextlib
+import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, HERE)
-with contextlib.redirect_stdout(io.StringIO()):
-    import make
+# (It reads the folders' finished drawings; it must not import make.py, whose
+# import WRITES the folders — in the light tone, over Golem-Dark's: that
+# turned the dark theme silver for a day, 2026-10-15.)
 
 OUT = os.environ.get("GOLEM_ICON_OUT", HERE)
 
