@@ -3073,11 +3073,14 @@ try {
         if(++_st<22) w.setTimeout(ovStartupStep, 100);   // ~2.2s of tighter retries/re-asserts
       })();
     } }catch(e){}
+    // The palette's Golem colour on the window BEFORE its first paint settles: the
+    // sidebar's and the loading area's fallback is Golem's dark, and a light palette
+    // showed it for the beat the rest of this init waits (2026-10-15).
+    try{ gsStart(); gsApply(w); }catch(e){ OVLOG("palette:"+e); }
     // button + capture wiring can settle a beat later
     try{ w.setTimeout(function(){
       try{ ovButton(w); ovPlaceButton(w); }catch(e){ OVLOG("button:"+e); }   // no-op create; re-seat after toolbar reflow
       try{ ovInit(w); }catch(e){ OVLOG("init:"+e); }
-      try{ gsStart(); gsApply(w); }catch(e){ OVLOG("palette:"+e); }
       try{ gtInit(w); }catch(e){ OVLOG("tint:"+e); }
       try{ gtPlaceholderWatch(w); }catch(e){ OVLOG("placeholder:"+e); }
       if(!OV_SELFTEST){ try{ bwInit(w); }catch(e){ OVLOG("warm init:"+e); } }   // the selftest drives it directly
