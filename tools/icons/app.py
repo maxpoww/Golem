@@ -2,13 +2,30 @@
 """Golem Files' own icon (Max, 2026-10-15: "we should use only the folder with
 the folder symbol"): Golem's folder with a folder engraved on it. On the dock
 its launcher draws it itself and two folders come out from behind it on hover
-(waverunner's files_icon.rs). Written into the theme's apps/ (both tones
-wear the same: an app's icon stands on the dock's plate). build-theme.sh runs it.
+(waverunner's files_icon.rs). Written into the theme's apps/ in the theme's
+TONE (GOLEM_ICON_TONE): silver, or GRAPHITE for Golem-Dark — the dock's own
+drawing turns graphite in the dark look, and everything that takes the icon
+from the theme (fast launch, the Apps grid, notifications) showed silver
+beside it (Max, 2026-10-15). build-theme.sh runs it once a tone.
 (It must not import make.py: that import WRITES the folders, in the light
 tone — it once turned the dark theme silver.)"""
 import os
 
 OUT = os.environ.get("GOLEM_ICON_OUT", os.path.dirname(os.path.abspath(__file__)))
+TONE = os.environ.get("GOLEM_ICON_TONE", "light")
+# Silver → graphite: make.py's DARK map (and files_icon.rs's GRAPHITE), copied —
+# app.py must not import make.py (see above).
+DARK = [
+    ("#eef0f3", "#737882"), ("#c2c6cd", "#4f535c"),   # front
+    ("#b3b8c0", "#50545d"), ("#8f949e", "#3b3e46"),   # folder's back
+    ('stop-opacity=".35"', 'stop-opacity=".16"'),      # gloss
+    ('flood-color="#fff" flood-opacity=".5"', 'flood-color="#fff" flood-opacity=".22"'),
+    ('flood-color="#000" flood-opacity=".45"', 'flood-color="#000" flood-opacity=".6"'),
+    ('fill="#fff" opacity=".55"', 'fill="#fff" opacity=".22"'),  # the top's hairline
+    ('fill="#a1a6af" stroke="#a1a6af"', 'fill="#3c4048" stroke="#3c4048"'),  # the engraving
+    ('stroke="#fff" stroke-width="1.2" stroke-linejoin="round" opacity="0.6"',
+     'stroke="#fff" stroke-width="1.2" stroke-linejoin="round" opacity="0.18"'),  # its light edge
+]
 
 
 def mix(a, b, t):
@@ -47,8 +64,13 @@ def main():
     body = '<g transform="translate(6 9.5)">' + folder(0, 0) + sym + "</g>"
     os.makedirs(os.path.join(OUT, "apps"), exist_ok=True)
     path = os.path.join(OUT, "apps", "golem-files.svg")
+    svg = HEAD + body + "</svg>\n"
+    if TONE == "dark":
+        for a, b in DARK:
+            assert a in svg, a
+            svg = svg.replace(a, b)
     with open(path + ".tmp", "w") as f:
-        f.write(HEAD + body + "</svg>\n")
+        f.write(svg)
     os.replace(path + ".tmp", path)
 
 
