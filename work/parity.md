@@ -182,6 +182,11 @@ on either laptop.
 
 | Date | Finding | Fix |
 |---|---|---|
+| 2026-10-15 | (colours deep debug, dev box + ASUS) NO GSETTINGS SCHEMAS IN THE SESSION: `gsettings get org.gnome.desktop.interface gtk-theme` → "No schemas installed" on both. GTK reads gtk-theme/icon-theme/fonts from dconf only where that schema is compiled on XDG_DATA_DIRS; nixpkgs keeps schemas inside each package, reachable through its wrapper → Thunar and the GNOME apps saw the dock's dconf writes, Inkscape and `gsettings` did not. Fixed 72b75be: session.nix compiles gsettings-desktop-schemas into /run/current-system/sw/share/glib-2.0/schemas. Proven: a GTK 3 app on the real session bus switched theme live on `dconf write`. |
+| 2026-10-15 | (colours) the dock's live GTK theme (Golem-A/B over adw-gtk3) had no gtk-4.0 half → GTK 4 apps given that name fell back to GTK's whole Default theme under libadwaita's own. Fixed launcher 641c079 (a gtk-4.0/gtk.css of the palette's variables). |
+| 2026-10-15 | (colours) home.nix forced gtk-application-prefer-dark-theme=1 for GTK 3 and GTK 4 → GTK 3 apps stayed dark in the light look (libadwaita warns and ignores it). Fixed 72b75be. |
+| 2026-10-15 | (colours) palette.rs ran dconf with no timeout → a dead bus would have held the palette thread, and every later colour change, for good. Fixed launcher 641c079 (4 s patience). settings.lua carries the palette's ground/borders for a compositor start without the dock (c7e58ab). Seam put the palette's colour on a window a second after init (dark flash on light palettes) — fixed (this commit). |
+| 2026-10-15 | (probe) deep-user.sh gained a `colours` section: every file, key and variable the palette travels through, read from inside the session. Its first Neovim check read a plugin dir home-manager never fills (f51f54e). |
 | 2026-09-29 | `shell`: Super+E dead, `$SHELL` = a missing zsh | home.nix derives SHELL from the owner's login shell (6bcbd4f) |
 | 2026-09-29 | `option:input:float_switch_override_focus`: focus followed the mouse between tiled and floating | ported `= 0` (click to focus, everywhere) |
 | 2026-09-29 | `bind:main\|SUPER\|RETURN` + the `stage` submap: STAGE mode missing | ported the bind + submap |
