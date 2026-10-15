@@ -296,6 +296,14 @@ in
         vim.opt.background = "dark"
         vim.cmd("colorscheme retrobox")
       end
+      -- …and an open editor follows a change of palette, accent or look: the
+      -- dock rewrites the file (a rename into place), so its folder is watched.
+      local golem_watch = vim.uv.new_fs_event()
+      if golem_watch then
+        golem_watch:start(vim.fn.fnamemodify(golem_theme, ":h"), {}, vim.schedule_wrap(function(_, name)
+          if name == "nvim.lua" and vim.fn.filereadable(golem_theme) == 1 then pcall(dofile, golem_theme) end
+        end))
+      end
       local status_ok, treesitter = pcall(require, "nvim-treesitter.configs")
       if status_ok then
       treesitter.setup({
@@ -367,33 +375,36 @@ in
       };
     };
 
+    # THE PALETTE: the terminal's colour NAMES, not hex — foot's sixteen are
+    # the palette's (the dock's foot.ini), so yazi follows Controls → Colours
+    # and dark/light with no file of its own. (Was a fixed gruvbox.)
     theme = {
       mgr = {
-        cwd = { fg = "#d79921"; bold = true; };
-        hovered = { fg = "#1d2021"; bg = "#fabd2f"; bold = true; };
-        selected = { fg = "#1d2021"; bg = "#b8bb26"; bold = true; };
-        border = { fg = "#504945"; };
+        cwd = { fg = "yellow"; bold = true; };
+        hovered = { fg = "black"; bg = "yellow"; bold = true; };
+        selected = { fg = "black"; bg = "green"; bold = true; };
+        border = { fg = "darkgray"; };
       };
 
       status = {
-        mode_normal = { fg = "#1d2021"; bg = "#83a598"; bold = true; };
-        mode_select = { fg = "#1d2021"; bg = "#b8bb26"; bold = true; };
-        mode_unset = { fg = "#1d2021"; bg = "#d3869b"; bold = true; };
-        permissions_t = { fg = "#83a598"; };
-        permissions_r = { fg = "#fabd2f"; };
-        permissions_w = { fg = "#fb4934"; };
-        permissions_x = { fg = "#b8bb26"; };
+        mode_normal = { fg = "black"; bg = "blue"; bold = true; };
+        mode_select = { fg = "black"; bg = "green"; bold = true; };
+        mode_unset = { fg = "black"; bg = "magenta"; bold = true; };
+        permissions_t = { fg = "blue"; };
+        permissions_r = { fg = "yellow"; };
+        permissions_w = { fg = "red"; };
+        permissions_x = { fg = "green"; };
       };
 
       filetype = {
         rules = [
-          { mime = "inode/directory"; fg = "#d79921"; bold = true; }
-          { mime = "image/*"; fg = "#8ec07c"; }
-          { mime = "video/*"; fg = "#d3869b"; }
-          { mime = "audio/*"; fg = "#b16286"; }
-          { mime = "application/archive"; fg = "#fb4934"; }
-          { mime = "application/zip"; fg = "#fb4934"; }
-          { mime = "application/pdf"; fg = "#fabd2f"; }
+          { mime = "inode/directory"; fg = "yellow"; bold = true; }
+          { mime = "image/*"; fg = "cyan"; }
+          { mime = "video/*"; fg = "magenta"; }
+          { mime = "audio/*"; fg = "magenta"; }
+          { mime = "application/archive"; fg = "red"; }
+          { mime = "application/zip"; fg = "red"; }
+          { mime = "application/pdf"; fg = "yellow"; }
         ];
       };
     };

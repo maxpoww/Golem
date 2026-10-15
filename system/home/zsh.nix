@@ -124,6 +124,9 @@ programs.fzf = {
       EDITOR = "nvim";
       VISUAL = "nvim";
       MANPAGER = "bat -l man -p";
+      # bat (cat, man, the fzf preview) in the terminal's own colours, which
+      # are THE PALETTE's (Controls → Colours; foot includes the dock's file).
+      BAT_THEME = "ansi";
       GPG_TTY = "$(tty)";
       VIRTUAL_ENV_DISABLE_PROMPT = "1";
       _FZF_PREVIEW_CMD = "bat --color=always --style=plain,numbers --line-range=:500 {}";
