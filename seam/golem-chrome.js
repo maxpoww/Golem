@@ -2895,6 +2895,8 @@ try {
       step("web-off-apps-on", appsOnly.on && !dwSites(appsOnly,dk).enabledByDefault && dwSites(appsOnly,dk).enabledFor.join()===hs.join());
       step("web-both-off", none.on===false);
       step("web-light-mode", dwTheme(dwConfig(Object.assign({web:true,apps:true},base,{dark:false}))).mode===0 && dwTheme(appsOnly).mode===1);
+      var cu=dwCustom(dwConfig(Object.assign({web:true,apps:true},base)),dk), last=cu[cu.length-1];
+      step("web-dark-made-sites-take-the-ground", cu.length===5 && cu[0].theme.engine==="cssFilter" && last.url.join()===dk.join() && last.theme.mode===0 && last.theme.lightSchemeTextColor==="#111111" && last.theme.lightSchemeBackgroundColor==="#eeeeee");
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
@@ -3474,6 +3476,20 @@ try {
     if(c===undefined) return undefined;
     return !!(dwCfg && dwCfg.on);
   }
+  // The sites that are DARK BY MAKING (Dark Reader's own list: Spotify, YouTube Music…).
+  // Its dark mode only scales a dark ground further down (lightness 0..0.5 -> 0..0.4,
+  // the palette's hue on top): they stayed near-black, never the palette (ASUS,
+  // 2026-10-15: Spotify #0e0f0f where the palette's surface is #1c1f1e). Its LIGHT mode
+  // is a straight line through lightness, black -> the text colour, white -> the
+  // background colour; for them the two are given the other way round — black to the
+  // palette's ground, white to its ink — so their ground IS the palette's, in either look.
+  // Dark Reader's built-in per-site themes (cssFilter for office suites) stay first.
+  var DW_BUILT_IN_SITES=["*.officeapps.live.com","*.sharepoint.com","docs.google.com","onedrive.live.com"];
+  function dwCustom(cfg, dark){
+    var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
+    if(dark.length){ var t=dwTheme(cfg); t.mode=0; t.lightSchemeBackgroundColor=cfg.ink; t.lightSchemeTextColor=cfg.bg; out.push({url:dark.slice(), theme:t}); }
+    return out;
+  }
   // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours and the mode.
   function dwTheme(col){
     return {mode:col.dark===false?0:1, brightness:100, contrast:100, grayscale:0, sepia:0, useFont:false, fontFamily:"Open Sans", textStroke:0,
@@ -3501,6 +3517,7 @@ try {
       // (Max, 2026-10-15: "i dont see our pallete changing youtube").
       var dark=(typeof DW_DARK_SITES!=="undefined" && Array.isArray(DW_DARK_SITES)) ? DW_DARK_SITES : [];
       var want=dwSites(cfg, dark);
+      want.customThemes=dwCustom(cfg, dark);
       want.schemeVersion=2; want.syncSettings=false; want.fetchNews=false; want.detectDarkTheme=false; want.theme=dwTheme(cfg);
       var keys=Object.keys(want), cur=await db.get(keys);
       if(keys.every(function(k){ return JSON.stringify(cur[k])===JSON.stringify(want[k]); })) return false;
