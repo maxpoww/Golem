@@ -2886,6 +2886,16 @@ try {
       step("palette-golem-dark-unchanged", !!gd && gd.backdrop==="rgb(29,32,38)" && gd.card==="rgb(39,43,52)" && gd.errFg==="#fff");
       step("palette-light-follows", !!gl && gl.backdrop==="rgb(236,233,227)" && gl.text==="rgb(43,42,40)" && gl.errFg==="rgb(43,42,40)" && !gl.dark);
       step("palette-junk-refused", gsDerive({base01:"nope"})===null);
+      // COLOURS ON THE WEB (pure): webapps follow "apps", websites "web", both looks.
+      var dk=["open.spotify.com","x.dark"], hs=["open.spotify.com","mail.google.com"], base={base01:"#111111",base05:"#eeeeee",dark:true,webapp_hosts:hs};
+      var both=dwSites(dwConfig(Object.assign({web:true,apps:true},base)),dk), webOnly=dwSites(dwConfig(Object.assign({web:true,apps:false},base)),dk);
+      var appsOnly=dwConfig(Object.assign({web:false,apps:true},base)), none=dwConfig(Object.assign({web:false,apps:false},base));
+      step("web-both-on", both.enabledByDefault && both.enabledFor.join()==="open.spotify.com,x.dark,mail.google.com" && both.disabledFor.length===0);
+      step("web-on-apps-off", webOnly.enabledByDefault && webOnly.enabledFor.join()==="x.dark" && webOnly.disabledFor.join()===hs.join());
+      step("web-off-apps-on", appsOnly.on && !dwSites(appsOnly,dk).enabledByDefault && dwSites(appsOnly,dk).enabledFor.join()===hs.join());
+      step("web-both-off", none.on===false);
+      step("web-light-mode", dwTheme(dwConfig(Object.assign({web:true,apps:true},base,{dark:false}))).mode===0 && dwTheme(appsOnly).mode===1);
+      step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
       step("nv-retry-after-update", c.mode==="hardware" && c.clear);
@@ -3393,29 +3403,35 @@ try {
 } catch(e){}
 
 // ===================================================================
-// DARK WEBSITES (2026-10-14, Max: "dark mode everywhere, with the option on
-// configuration of activate on websites (darkreader on)"). Dark Reader ships
-// pinned in the package (seam/extensions.json, normal_installed so it CAN be
-// disabled) and rests disabled. It is ENABLED only while the owner's
-// Controls -> Colours "Dark websites" is on AND the look is dark: both are in
-// the theme file the dock writes (waverunner palette.rs,
-// XDG_STATE_HOME/golem/theme/colors.json: "dark", "dark_websites"). Seam looks
-// at that file's time every 2 s (one stat) and reads it only when it moved.
-// Webapp windows share the profile, so they follow too.
+// DARK WEBSITES -> COLOURS ON THE WEB (2026-10-14, Max: "dark mode everywhere,
+// with the option ... (darkreader on)"; 2026-10-15: one Colours page). Dark
+// Reader ships pinned in the package (seam/extensions.json, normal_installed so
+// it CAN be disabled) and rests disabled. The dock's theme file
+// (XDG_STATE_HOME/golem/theme/colors.json, waverunner palette.rs) says what the
+// owner asked for, and Seam looks at its time every 2 s (one stat):
+//   "web"  — Colours on the web: every website wears the palette;
+//   "apps" — Colours on apps: the WEBAPPS wear it ("webapp_hosts", the hosts
+//            the dock's webapp launchers open — Spotify, YouTube Music…);
+//   "dark" — the look: Dark Reader's dark mode, or its light one.
+// Dark Reader decides per site, not per window, so the two meet in its lists:
+// web on  -> on by default; the webapps' hosts are left out when apps is off;
+// web off -> off by default; the webapps' hosts are on when apps is on;
+// both off -> the extension is disabled. (A website that IS a webapp's host
+// follows the webapp, in a tab too.)
 // Dark Reader opens its help page on darkreader.org when it is installed; a
 // page of it opened in the first minutes after the install is closed again.
 // THE PALETTE on websites (Max, 2026-10-15: "no dark, not pallete"): Dark
-// Reader's dark background and text are the palette's surface (base01, the
-// colour of Seam's own chrome) and ink (base05). They are written into its
-// storage.local (it can only be opened while the extension runs) with
-// syncSettings off (so it reads them) and fetchNews off (no darkreader.org
-// requests); it reads its settings only at its start, so a change is followed
-// by one disable/enable.
+// Reader's background and text are the palette's surface and ink ("web_bg",
+// "web_ink"; base01/base05 from an older dock), for both its schemes. They are
+// written into its storage.local (it can only be opened while the extension
+// runs) with syncSettings off (so it reads them) and fetchNews off (no
+// darkreader.org requests); it reads its settings only at its start, so a
+// change is followed by one disable/enable.
 // Dev override: golem.seam.darkWebsites = "on" | "off" ("" follows Golem).
 // ===================================================================
 try {
   var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites";
-  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwColors=null, dwKey="", dwBusy=false, dwAgain=false;
+  var dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwCfg=null, dwKey="", dwBusy=false, dwAgain=false;
   var DW_LOG=[];   // the last few things it did (the self-test reports them)
   function DWLOG(m){ try{ DW_LOG.push(m); if(DW_LOG.length>20) DW_LOG.shift(); OVLOG("dark: "+m); }catch(e){} }
   function dwAM(){ return ChromeUtils.importESModule("resource://gre/modules/AddonManager.sys.mjs").AddonManager; }
@@ -3425,53 +3441,70 @@ try {
     else { f=Services.dirsvc.get("Home",Components.interfaces.nsIFile); f.append(".local"); f.append("state"); }
     f.append("golem"); f.append("theme"); f.append("colors.json"); return f;
   }
-  // What the owner asked for: the override, else the theme file (its colours too). undefined = no news.
+  // What the owner asked for, from the theme file (pure; the self-test calls it):
+  // {on, dark, web, apps, hosts, bg, ink}, or null for a file that says nothing usable.
+  function dwConfig(c){
+    if(!c || typeof c!=="object") return null;
+    var hex=/^#[0-9a-f]{6}$/i, bg=hex.test(c.web_bg||"") ? c.web_bg : c.base01, ink=hex.test(c.web_ink||"") ? c.web_ink : c.base05;
+    if(!hex.test(bg||"") || !hex.test(ink||"")) return null;
+    // An older dock wrote only "dark_websites" (dark look only).
+    var web = typeof c.web==="boolean" ? c.web : !!(c.dark && c.dark_websites);
+    var apps = c.apps!==false;
+    var hosts = Array.isArray(c.webapp_hosts) ? c.webapp_hosts.filter(function(h){ return typeof h==="string" && /^[a-z0-9.-]+$/i.test(h); }).map(function(h){ return h.toLowerCase(); }) : [];
+    return {on: web || (apps && hosts.length>0), dark: c.dark!==false, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink};
+  }
+  // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
+  function dwSites(cfg, dark){
+    var hosts=cfg.hosts, isApp={}; hosts.forEach(function(h){ isApp[h]=true; });
+    if(cfg.web) return {enabledByDefault:true,
+      enabledFor: cfg.apps ? dark.concat(hosts.filter(function(h){ return dark.indexOf(h)<0; })) : dark.filter(function(h){ return !isApp[h]; }),
+      disabledFor: cfg.apps ? [] : hosts.slice()};
+    return {enabledByDefault:false, enabledFor: cfg.apps ? hosts.slice() : [], disabledFor:[]};
+  }
+  // The override, else the theme file. undefined = no news.
   function dwRead(){
     var f=dwFile(), c=null;
     if(f.exists()){
       var t=f.lastModifiedTime;
-      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; }
-        dwColors = c && /^#[0-9a-f]{6}$/i.test(c.base01||"") && /^#[0-9a-f]{6}$/i.test(c.base05||"") ? {bg:c.base01, ink:c.base05} : null; }
+      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwCfg=dwConfig(c); }
       else c=undefined;
     }
     var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
     if(o==="on") return true; if(o==="off") return false;
     if(c===undefined) return undefined;
-    return !!(c && c.dark && c.dark_websites);
+    return !!(dwCfg && dwCfg.on);
   }
-  // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours.
+  // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours and the mode.
   function dwTheme(col){
-    return {mode:1, brightness:100, contrast:100, grayscale:0, sepia:0, useFont:false, fontFamily:"Open Sans", textStroke:0,
+    return {mode:col.dark===false?0:1, brightness:100, contrast:100, grayscale:0, sepia:0, useFont:false, fontFamily:"Open Sans", textStroke:0,
       engine:"dynamicTheme", stylesheet:"", darkSchemeBackgroundColor:col.bg, darkSchemeTextColor:col.ink,
-      lightSchemeBackgroundColor:"#dcdad7", lightSchemeTextColor:"#181a1b", scrollbarColor:"", selectionColor:"auto",
+      lightSchemeBackgroundColor:col.bg, lightSchemeTextColor:col.ink, scrollbarColor:"", selectionColor:"auto",
       styleSystemControls:false, lightColorScheme:"Default", darkColorScheme:"Default", immediateModify:false};
   }
   // WebExtensionPolicy is a window global, not this script's.
   function dwPolicy(id){ try{ var w=Services.wm.getMostRecentWindow("navigator:browser"); return w && w.WebExtensionPolicy ? w.WebExtensionPolicy.getByID(id) : null; }catch(e){ return null; } }
   function dwPause(ms){ return new Promise(function(r){ var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer); t.initWithCallback({notify:function(){ r(); }},ms,Components.interfaces.nsITimer.TYPE_ONE_SHOT); }); }
-  // Write the palette into Dark Reader's storage. True when something changed (it must restart to read it).
-  async function dwWriteTheme(col){
+  // Write the palette and the sites into Dark Reader's storage. True when something changed (it must restart to read it).
+  async function dwWriteTheme(cfg){
     var pol=null;
     for(var i=0;i<30;i++){ pol=dwPolicy(DW_ID); if(pol && pol.active && pol.extension) break; await dwPause(100); }
     if(!pol || !pol.extension) return false;
     var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
     var db=await SI.open(SI.getStoragePrincipal(pol.extension), pol.extension.hasPermission("unlimitedStorage"));
     try{
-      var cur=await db.get(["theme","syncSettings","fetchNews","schemeVersion","detectDarkTheme","enabledFor"]);
-      var th=cur.theme||{};
       // Dark Reader never touches the sites on its own list of "already dark"
-      // ones (open.spotify.com, music.youtube.com… ~900) unless the user names
-      // them: they all go into enabledFor, so the palette reaches them too
-      // (Max, 2026-10-15: the Spotify and YouTube Music webapps stayed theirs).
-      // The list is the pinned xpi's own, put ahead of this script by
-      // browser.nix (seam/dark-sites.txt).
+      // ones (open.spotify.com, music.youtube.com… ~1300) unless the user names
+      // them: with the web on they all go into enabledFor, so the palette
+      // reaches them too. The list is the pinned xpi's own, put ahead of this
+      // script by browser.nix (seam/dark-sites.txt). detectDarkTheme off: a
+      // site that is dark already (YouTube) is recoloured into the palette too
+      // (Max, 2026-10-15: "i dont see our pallete changing youtube").
       var dark=(typeof DW_DARK_SITES!=="undefined" && Array.isArray(DW_DARK_SITES)) ? DW_DARK_SITES : [];
-      var listed=Array.isArray(cur.enabledFor) && cur.enabledFor.length===dark.length;
-      if(th.darkSchemeBackgroundColor===col.bg && th.darkSchemeTextColor===col.ink && cur.syncSettings===false && cur.fetchNews===false && cur.schemeVersion===2 && cur.detectDarkTheme===false && listed) return false;
-      // detectDarkTheme off: a site that is dark already (YouTube) is recoloured
-      // into the palette too, instead of being left in its own black (Max,
-      // 2026-10-15: "i dont see our pallete changing youtube").
-      await db.set({schemeVersion:2, syncSettings:false, fetchNews:false, detectDarkTheme:false, enabledFor:dark, theme:dwTheme(col)});
+      var want=dwSites(cfg, dark);
+      want.schemeVersion=2; want.syncSettings=false; want.fetchNews=false; want.detectDarkTheme=false; want.theme=dwTheme(cfg);
+      var keys=Object.keys(want), cur=await db.get(keys);
+      if(keys.every(function(k){ return JSON.stringify(cur[k])===JSON.stringify(want[k]); })) return false;
+      await db.set(want);
       return true;
     } finally { try{ db.close(); }catch(e){} }
   }
@@ -3481,12 +3514,12 @@ try {
     try{ if(a.installDate && Date.now()-a.installDate.getTime()<180000) dwInstalledAt=a.installDate.getTime(); }catch(e){}
     if(!dwWant){ if(!a.userDisabled){ await a.disable(); DWLOG("off"); } return; }
     if(a.userDisabled){ await a.enable(); DWLOG("on"); }
-    if(!dwColors) return;
+    if(!dwCfg) return;
     // Right after its install the extension restarts once: an instance caught shutting down
     // cannot open its storage — look again, a few times.
     for(var i=0;i<6;i++){
       try{
-        if(await dwWriteTheme(dwColors)){ await a.disable(); await a.enable(); DWLOG("palette "+dwColors.bg+" / "+dwColors.ink); }
+        if(await dwWriteTheme(dwCfg)){ await a.disable(); await a.enable(); DWLOG("palette "+dwCfg.bg+" / "+dwCfg.ink+(dwCfg.dark?" dark":" light")+" web="+dwCfg.web+" apps="+dwCfg.apps+" hosts="+dwCfg.hosts.length); }
         return;
       }catch(e){ DWLOG("write:"+e); await dwPause(1000); }
     }
@@ -3499,7 +3532,7 @@ try {
   }
   function dwTick(){
     var w=dwRead(); if(w===undefined) return;
-    var key=w+"|"+(w && dwColors ? dwColors.bg+dwColors.ink : "");
+    var key=w+"|"+(w && dwCfg ? JSON.stringify(dwCfg) : "");
     if(w===dwWant && key===dwKey) return;
     dwWant=w; dwKey=key; dwApply();
   }
