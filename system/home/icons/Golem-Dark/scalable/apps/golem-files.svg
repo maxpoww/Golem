@@ -1,18 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs>
 <linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
-<filter id="bev" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#000" flood-opacity=".45"/></filter></defs><g transform="translate(18.60 6.60) scale(0.8)"><defs><linearGradient id="f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ccd0d6"/><stop offset="1" stop-color="#a6abb3"/></linearGradient>
-<linearGradient id="b2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9da3ac"/><stop offset="1" stop-color="#7b808a"/></linearGradient></defs>
-<path fill="url(#b2)" filter="url(#bev)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
-<rect fill="url(#f2)" filter="url(#bev)" x="0" y="8" width="52" height="37" rx="4.5"/>
-<rect fill="url(#gl)" x="0" y="8" width="52" height="37" rx="4.5"/>
-<rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/></g><g transform="translate(11.20 14.00) scale(0.8)"><defs><linearGradient id="f1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dde0e4"/><stop offset="1" stop-color="#b4b8c0"/></linearGradient>
-<linearGradient id="b1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a8adb6"/><stop offset="1" stop-color="#858a94"/></linearGradient></defs>
-<path fill="url(#b1)" filter="url(#bev)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
-<rect fill="url(#f1)" filter="url(#bev)" x="0" y="8" width="52" height="37" rx="4.5"/>
-<rect fill="url(#gl)" x="0" y="8" width="52" height="37" rx="4.5"/>
-<rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/></g><g transform="translate(3.80 21.40) scale(0.8)"><defs><linearGradient id="f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
+<filter id="bev" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#000" flood-opacity=".45"/></filter></defs><g transform="translate(6 9.5)"><defs><linearGradient id="f0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef0f3"/><stop offset="1" stop-color="#c2c6cd"/></linearGradient>
 <linearGradient id="b0" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8c0"/><stop offset="1" stop-color="#8f949e"/></linearGradient></defs>
 <path fill="url(#b0)" filter="url(#bev)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
 <rect fill="url(#f0)" filter="url(#bev)" x="0" y="8" width="52" height="37" rx="4.5"/>
 <rect fill="url(#gl)" x="0" y="8" width="52" height="37" rx="4.5"/>
-<rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/></g></svg>
+<rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/><path d="M3.6 6.6a2 2 0 0 1 2-2h4.3l2 2.1h6.5a2 2 0 0 1 2 2v9.1a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z" fill="#fff" stroke="#fff" stroke-width="1.2" stroke-linejoin="round" opacity="0.6" transform="translate(12.20 13.22) scale(1.15)"/><path d="M3.6 6.6a2 2 0 0 1 2-2h4.3l2 2.1h6.5a2 2 0 0 1 2 2v9.1a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z" fill="#a1a6af" stroke="#a1a6af" stroke-width="1.2" stroke-linejoin="round" opacity="1" transform="translate(12.20 12.47) scale(1.15)"/></g></svg>
