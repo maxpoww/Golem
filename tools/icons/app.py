@@ -1,54 +1,53 @@
 #!/usr/bin/env python3
-"""Golem Files' own icon (Max, 2026-10-14: "vamos a usar la ventana"): a Golem
-window — its bar with the three discs — holding four of Golem's folders, the
-first selected. Written into the theme's apps/ (both tones wear the same: an
-app's icon stands on the dock's plate, not on the page). build-theme.sh runs it."""
-import os, re
-HERE = os.path.dirname(os.path.abspath(__file__))
-# (It reads the folders' finished drawings; it must not import make.py, whose
-# import WRITES the folders — in the light tone, over Golem-Dark's: that
-# turned the dark theme silver for a day, 2026-10-15.)
+"""Golem Files' own icon (Max, 2026-10-15: "cascada… 3 dirs and a little more
+offset"): three of Golem's folders stacked in a cascade, up and to the right,
+the ones behind a shade darker. Written into the theme's apps/ (both tones
+wear the same: an app's icon stands on the dock's plate). build-theme.sh runs it.
+(It must not import make.py: that import WRITES the folders, in the light
+tone — it once turned the dark theme silver.)"""
+import os
 
-OUT = os.environ.get("GOLEM_ICON_OUT", HERE)
+OUT = os.environ.get("GOLEM_ICON_OUT", os.path.dirname(os.path.abspath(__file__)))
 
-def folder(name):
-    """One of the folders' finished drawing (light tone, scalable), as a
-    nested picture; its ids made its own."""
-    with open(os.path.join(HERE, "..", "..", "system", "home", "icons", "Golem", "scalable", "places", name + ".svg")) as f:
-        svg = f.read()
-    tag = name.replace("-", "")
-    svg = re.sub(r'id="([^"]+)"', lambda m: f'id="{tag}{m.group(1)}"', svg)
-    svg = re.sub(r'url\(#([^)]+)\)', lambda m: f'url(#{tag}{m.group(1)})', svg)
-    return svg
 
-def nested(svg, x, y, size):
-    inner = re.sub(r'<svg[^>]*>', '', svg, count=1).rsplit("</svg>", 1)[0]
-    return f'<svg x="{x}" y="{y}" width="{size}" height="{size}" viewBox="0 0 64 64">{inner}</svg>'
+def mix(a, b, t):
+    a = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(a, b))
 
-ICON = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#343a46"/><stop offset="1" stop-color="#262b34"/></linearGradient>
-    <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="1.6" stdDeviation="1.2" flood-color="#000" flood-opacity=".45"/>
-    </filter>
-  </defs>
-  <rect fill="url(#win)" filter="url(#lift)" x="5" y="7" width="54" height="50" rx="8"/>
-  <path fill="#3d4451" d="M13,7H51A8,8 0 0 1 59,15V18H5V15A8,8 0 0 1 13,7Z"/>
-  <path fill="#fff" opacity=".12" d="M13,7H51A8,8 0 0 1 59,15V15.8A8,8 0 0 0 51,7.8H13A8,8 0 0 0 5,15.8V15A8,8 0 0 1 13,7Z"/>
-  <circle cx="11.6" cy="12.5" r="2.2" fill="#ff453a"/><circle cx="18" cy="12.5" r="2.2" fill="#ff9f0a"/><circle cx="24.4" cy="12.5" r="2.2" fill="#30d158"/>
-  <rect fill="#fff" opacity=".1" x="8.5" y="20.5" width="23" height="17" rx="3.5"/>
-  {folders}
-</svg>
-"""
+
+def folder(n, k):
+    """Golem's simple folder (52 x 45) in its silver, `k` of the way darker."""
+    f0, f1 = mix("#eef0f3", "#9aa0aa", k), mix("#c2c6cd", "#7c828c", k)
+    b0, b1 = mix("#b3b8c0", "#7d838d", k), mix("#8f949e", "#5e636c", k)
+    return f'''<defs><linearGradient id="f{n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{f0}"/><stop offset="1" stop-color="{f1}"/></linearGradient>
+<linearGradient id="b{n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{b0}"/><stop offset="1" stop-color="{b1}"/></linearGradient></defs>
+<path fill="url(#b{n})" filter="url(#bev)" d="M0,4.5A4.5,4.5 0 0 1 4.5,0H17.5C20,0 21.2,.9 22.6,2.6L24,4.3C24.6,5 25.2,5.3 26.2,5.3H47.5A4.5,4.5 0 0 1 52,9.8V40H0Z"/>
+<rect fill="url(#f{n})" filter="url(#bev)" x="0" y="8" width="52" height="37" rx="4.5"/>
+<rect fill="url(#gl)" x="0" y="8" width="52" height="37" rx="4.5"/>
+<rect fill="#fff" opacity=".55" x="4.5" y="8" width="43" height=".7" rx=".35"/>'''
+
+
+HEAD = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs>
+<linearGradient id="gl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<filter id="bev" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="-.6" stdDeviation="0" flood-color="#fff" flood-opacity=".5"/><feDropShadow dx="0" dy="1.2" stdDeviation=".9" flood-color="#000" flood-opacity=".45"/></filter></defs>'''
+
+SCALE, STEP = 0.8, 7.4
+
 
 def main():
-    picks = [("folder-download", 9, 19.5), ("folder-pictures", 32, 19.5), ("folder-music", 9, 37), ("folder", 32, 37)]
-    body = "".join(nested(folder(n), x, y, 21) for n, x, y in picks)
+    body = ""
+    for i in range(3):
+        n = 2 - i  # the one furthest back first
+        x = 32 - 26 * SCALE - STEP + n * STEP
+        y = 32 - 22.5 * SCALE + STEP - n * STEP
+        body += f'<g transform="translate({x:.2f} {y:.2f}) scale({SCALE})">' + folder(n, n * 0.2) + "</g>"
     os.makedirs(os.path.join(OUT, "apps"), exist_ok=True)
     path = os.path.join(OUT, "apps", "golem-files.svg")
     with open(path + ".tmp", "w") as f:
-        f.write(ICON.replace("{folders}", body))
+        f.write(HEAD + body + "</svg>\n")
     os.replace(path + ".tmp", path)
+
 
 if __name__ == "__main__":
     main()
