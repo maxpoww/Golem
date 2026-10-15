@@ -2860,8 +2860,8 @@ try {
                 if(a[2] && a[2].isActive){   // a run with dark websites on (SEAM_SELFTEST_STATE): what its storage holds
                   (async function(){ try{ var pol=win.WebExtensionPolicy.getByID("addon@darkreader.org");
                     var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
-                    var db=await SI.open(SI.getStoragePrincipal(pol.extension),false); var v=await db.get(["theme","syncSettings","fetchNews"]); db.close();
-                    r.darkReader={bg:v.theme&&v.theme.darkSchemeBackgroundColor, ink:v.theme&&v.theme.darkSchemeTextColor, sync:v.syncSettings, news:v.fetchNews, log:DW_LOG.slice()};
+                    var db=await SI.open(SI.getStoragePrincipal(pol.extension),false); var v=await db.get(["theme","syncSettings","fetchNews","enabledFor"]); db.close();
+                    r.darkReader={bg:v.theme&&v.theme.darkSchemeBackgroundColor, ink:v.theme&&v.theme.darkSchemeTextColor, sync:v.syncSettings, news:v.fetchNews, log:DW_LOG.slice(), enabledFor:(v.enabledFor||[]).length, spotify:(v.enabledFor||[]).indexOf("open.spotify.com")};
                   }catch(e){ r.darkReader={error:String(e)}; } step("dark-reader-installed-resting", false); done(); })();
                   return;
                 }
