@@ -96,6 +96,7 @@ in
 
   # Desktop plumbing every Golem needs, lean or not.
   home.packages = with pkgs; [
+    adw-gtk3   # libadwaita's look for GTK 3 apps; the dock themes it with the palette (Golem-A/B)
     papirus-icon-theme
     phinger-cursors
     wl-clipboard
@@ -192,13 +193,12 @@ in
     # ~/.config/gtk-4.0/gtk.css, which only imports what the dock writes —
     # every libadwaita colour variable, both looks (a dark/light switch is
     # live in running apps; a palette or accent change at their next start).
-    # GTK 3 gets the named colours Adwaita lets a user override.
     gtk4.extraCss = ''
       @import url("file://${config.home.homeDirectory}/.local/state/golem/theme/gtk4.css");
     '';
-    gtk3.extraCss = ''
-      @import url("file://${config.home.homeDirectory}/.local/state/golem/theme/gtk3.css");
-    '';
+    # GTK 3 has no user stylesheet: its apps wear the palette as a THEME the
+    # dock writes over adw-gtk3 (below) and switches by name, which GTK 3
+    # reloads live — a user gtk.css is read once and would pin the old one.
   };
 
   # The rest of what libadwaita reads at runtime. Only keys the gtk module
