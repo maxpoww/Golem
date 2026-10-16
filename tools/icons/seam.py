@@ -72,7 +72,7 @@ def svg():
 <mask id="cut" {bx}><rect x="-20" y="-20" width="140" height="140" fill="#fff"/>{ticks("#000")}</mask>
 <mask id="pl" {bx}><circle cx="50" cy="50" r="40" fill="#fff"/>{ticks("#000")}</mask>
 <mask id="op" {bx}>{ticks("#fff")}</mask></defs>
-<g opacity=".8"><g transform="translate(5 5) scale(.9)">
+<g opacity=".8"><g transform="translate(-6.25 -7.5) scale(1.125)">
 <g mask="url(#cut)"><g filter="url(#ce)"><g fill="url(#c)">{disc}</g></g><g fill="url(#g)">{disc}</g></g>
 <g mask="url(#op)"><g filter="url(#cd)"><rect mask="url(#pl)" fill="#000" x="-20" y="-20" width="140" height="140"/></g></g>
 <g clip-path="url(#cl)">{rose()}</g>
