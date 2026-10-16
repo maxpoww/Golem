@@ -112,6 +112,9 @@ in
     gnome-epub-thumbnailer  # an epub's / mobi's cover
     libgsf                  # gsf-office-thumbnailer: Word, Excel, PowerPoint, LibreOffice
     exiftool                # a camera RAW photo's own JPEG (dcraw is marked insecure)
+    # QUICK LOOK (Max, 2026-10-16: Space in Golem Files — waverunner peek_kinds.rs):
+    mupdf-headless          # mutool: a PDF's page at the size it is shown, the fastest there is
+    libarchive              # bsdtar: what is in an archive, nothing unpacked
     fd                # Fast file searching
     ripgrep
 
