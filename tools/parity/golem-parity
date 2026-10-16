@@ -133,6 +133,10 @@ def main():
     diff("bind", binds(ref), binds(tgt), "bind")
     diff("rule", lua_rules(ref), lua_rules(tgt), "window rule")
     diff("motion", lua_motion(ref), lua_motion(tgt), "motion")
+    # Upkeep: the policy lines must match; the @ lines are facts checked below.
+    upkeep = lambda snap: dict(l.split("=", 1) for l in snap.get("upkeep", "").splitlines()
+                               if "=" in l and not l.startswith("@"))
+    diff("upkeep", upkeep(ref), upkeep(tgt), "upkeep")
 
     # Reference-free: broken on sight.
     errs = tgt.get("configerrors", "").strip()
@@ -163,6 +167,13 @@ def main():
             reason = acc("xdg-default", mime)
             (explained if reason else findings).append(
                 (fid, f"default handler for {mime} is {did}: {st.replace('-', ' ')}", reason))
+    facts = dict(l[1:].split("=", 1) for l in tgt.get("upkeep", "").splitlines() if l.startswith("@"))
+    gens = int(facts.get("generations") or 0)
+    if gens > 20:
+        findings.append(("upkeep-generations", f"{gens} system versions on disk (the gc keeps 15: is nix-gc running and pruning?)", None))
+    disk = int(facts.get("disk") or 0)
+    if disk >= 90:
+        findings.append(("upkeep-disk", f"the disk is {disk} % full", None))
     sh = tgt.get("shell", "")
     if sh.startswith("MISSING"):
         findings.append(("shell", f"$SHELL does not exist: {sh}", None))

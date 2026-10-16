@@ -190,6 +190,32 @@ if have xdg-mime; then
   done
 else echo n/a; fi
 
+# The upkeep that keeps a machine from filling up or rotting: the store's gc
+# policy, the cleanup and check timers, how many system versions sit on disk,
+# how full the disk is. The dev box ran its own age-based gc for weeks and
+# reached 99 % full with 68 system versions while every installed Golem kept
+# 15; nothing here compared it (2026-10-16).
+section upkeep
+if have systemctl; then
+  pre=$(systemctl cat nix-gc.service 2>/dev/null | grep -o -- '--delete-generations [^ "]*' | head -1)
+  echo "gc.prune=${pre:-none}"
+  start=$(systemctl cat nix-gc.service 2>/dev/null | sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' | head -1)
+  age=$( [ -n "$start" ] && grep -o -- '--delete-older-than [^ "]*' "$start" 2>/dev/null | head -1)
+  echo "gc.age=${age:-none}"
+  for t in nix-gc golem-store-check fstrim; do
+    systemctl is-enabled "$t.timer" >/dev/null 2>&1 && echo "timer.$t=on" || echo "timer.$t=off"
+  done
+  for t in golem-disk-care golem-disk-warn; do
+    systemctl --user is-enabled "$t.timer" >/dev/null 2>&1 && echo "usertimer.$t=on" || echo "usertimer.$t=off"
+  done
+fi
+for k in min-free max-free auto-optimise-store; do
+  v=$(sed -n "s/^$k = //p" /etc/nix/nix.conf 2>/dev/null | tail -1)
+  echo "nix.$k=${v:-unset}"
+done
+echo "@generations=$(ls -d /nix/var/nix/profiles/system-*-link 2>/dev/null | wc -l)"
+echo "@disk=$(df --output=pcent / 2>/dev/null | tail -1 | tr -dc 0-9)"
+
 section failed_user;   systemctl --user --failed --plain --no-legend 2>/dev/null
 section failed_system; systemctl --failed --plain --no-legend 2>/dev/null
 
