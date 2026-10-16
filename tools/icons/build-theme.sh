@@ -20,8 +20,6 @@ for tone in light dark; do
   done
   # Golem Files' own icon, in the tone (graphite in the dark, as the dock draws it).
   GOLEM_ICON_TONE=$tone GOLEM_ICON_OUT="$DEST/scalable" python3 "$HERE/app.py"
-  # Seam's compass, in the tone of the theme (the dock swings its needle).
-  GOLEM_ICON_TONE=$tone GOLEM_ICON_OUT="$DEST/scalable" python3 "$HERE/seam.py"
   sed -e "s/^Name=Golem$/Name=$name/" -e "s/^Inherits=.*/Inherits=$inherits/" "$HERE/index.theme" > "$DEST/index.theme"
   echo "$name: $(find "$DEST" -name '*.svg' | wc -l) names"
 done
