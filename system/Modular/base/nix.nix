@@ -3,6 +3,8 @@
 { config, lib, ... }:
 
 {
+  imports = [ ./store-gc.nix ];
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;
   # A store path's CONTENTS reach the disk before the path is registered
@@ -22,24 +24,8 @@
   nix.channel.enable = false;
   nix.nixPath = lib.mkForce [ "nixpkgs=flake:nixpkgs" ];
 
-  # Count-based rollback depth: keep the newest 15 system generations
-  # (matching the boot menu limit, so every entry stays bootable), then
-  # collect. Age-based deletion once silently evaporated rollback on a
-  # machine not rebuilt for 8 days. `-`: don't fail on a system without
-  # the profile.
-  nix.gc = {
-    automatic = true;
-    dates = "daily";
-  };
-  systemd.services.nix-gc.serviceConfig.ExecStartPre = [
-    "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15"
-  ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
-  # A switch never restarts a long background oneshot: switch-to-configuration
-  # waits for a restarted oneshot to FINISH, so a dock install (which
-  # switches) sat behind a store check running on the Acer's spinning disk
-  # for as long as the check took (night dogfood, 2026-10-03). A changed job
-  # simply runs its new version next time.
-  systemd.services.nix-gc.restartIfChanged = false;
+  # The gc policy (keep 15 system generations, collect daily, collect during
+  # a build when the disk runs low) lives in base/store-gc.nix.
 
   # A WEEKLY store check: every path's contents against its hash, and
   # whatever is damaged fetched again (--repair). A store can be damaged

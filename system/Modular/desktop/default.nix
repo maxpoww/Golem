@@ -35,6 +35,8 @@
     ./crash-recovery.nix    # a crash loop → back to the previous version; never Hyprland's safe mode
     ./app-setup.nix         # an installed app arrives with the system it needs (Steam's 32-bit
                             #   graphics, Docker's daemon and group, LocalSend's port…)
+    ./disk-care.nix         # the home cleans itself (old Trash, stale build caches, old pins)
+                            #   + a warning when the disk is nearly full
     ./care.nix              # what the gear box's machine pages ask of the system: trim, clean-up,
                             #   update check, charge limit, the format tools
     ./idle.nix              # hyprlock's PAM service (the idle daemon is the home layer's)
