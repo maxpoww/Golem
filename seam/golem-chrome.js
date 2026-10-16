@@ -3471,7 +3471,9 @@ try {
     var web = typeof c.web==="boolean" ? c.web : !!(c.dark && c.dark_websites);
     var apps = c.apps!==false;
     var hosts = Array.isArray(c.webapp_hosts) ? c.webapp_hosts.filter(function(h){ return typeof h==="string" && /^[a-z0-9.-]+$/i.test(h); }).map(function(h){ return h.toLowerCase(); }) : [];
-    return {on: web || (apps && hosts.length>0), dark: c.dark!==false, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink};
+    // The web has a Dark/Light of its own beside its slider (Max, 2026-10-16): "web_dark", else the system's look.
+    var dark = typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false;
+    return {on: web || (apps && hosts.length>0), dark: dark, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink};
   }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
   function dwSites(cfg, dark){
