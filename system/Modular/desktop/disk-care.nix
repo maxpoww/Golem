@@ -48,11 +48,13 @@ let
             -name .rustc_info.json -type f -print 2>/dev/null |
           while IFS= read -r info; do
             dir=$(dirname "$info")
-            [ -f "$dir/CACHEDIR.TAG" ] && echo "$dir"
+            if [ -f "$dir/CACHEDIR.TAG" ]; then echo "$dir"; fi
           done
         # the worktrees Golem's own development keeps under ~/.cache
         find "$cache" -mindepth 3 -maxdepth 3 -name .rustc_info.json -type f -printf '%h\n' 2>/dev/null
-        for d in "$HOME/.gradle/caches" "$HOME/.gradle/daemon"; do [ -d "$d" ] && echo "$d"; done
+        for d in "$HOME/.gradle/caches" "$HOME/.gradle/daemon"; do
+          if [ -d "$d" ]; then echo "$d"; fi
+        done
       } | while IFS= read -r dir; do
           # Anything inside touched in the last 14 days: still in use.
           [ -z "$(find "$dir" -newermt '-14 days' -print -quit 2>/dev/null)" ] || continue
