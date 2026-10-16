@@ -49,9 +49,9 @@ let
           while IFS= read -r info; do
             dir=$(dirname "$info")
             if [ -f "$dir/CACHEDIR.TAG" ]; then echo "$dir"; fi
-          done
+          done || true   # find fails on a folder it may not read
         # the worktrees Golem's own development keeps under ~/.cache
-        find "$cache" -mindepth 3 -maxdepth 3 -name .rustc_info.json -type f -printf '%h\n' 2>/dev/null
+        find "$cache" -mindepth 3 -maxdepth 3 -name .rustc_info.json -type f -printf '%h\n' 2>/dev/null || true
         for d in "$HOME/.gradle/caches" "$HOME/.gradle/daemon"; do
           if [ -d "$d" ]; then echo "$d"; fi
         done
