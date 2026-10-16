@@ -3473,7 +3473,9 @@ try {
     var hosts = Array.isArray(c.webapp_hosts) ? c.webapp_hosts.filter(function(h){ return typeof h==="string" && /^[a-z0-9.-]+$/i.test(h); }).map(function(h){ return h.toLowerCase(); }) : [];
     // The web has a Dark/Light of its own beside its slider (Max, 2026-10-16): "web_dark", else the system's look.
     var dark = typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false;
-    return {on: web || (apps && hosts.length>0), dark: dark, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink};
+    // The webapps kept in their own colours (the dock's apps list): their sites stay as made.
+    var skip = Array.isArray(c.web_skip) ? c.web_skip.filter(function(h){ return typeof h==="string" && /^[a-z0-9.-]+$/i.test(h); }).map(function(h){ return h.toLowerCase(); }) : [];
+    return {on: web || (apps && hosts.length>0), dark: dark, web: web, apps: apps, hosts: hosts, skip: skip, bg: bg, ink: ink};
   }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
   function dwSites(cfg, dark){
@@ -3508,7 +3510,7 @@ try {
     if(f.exists()){
       var t=f.lastModifiedTime;
       if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwCfg=dwConfig(c);
-        if(dwCfg){ dwCfg.sites=dwOwnSites(); if(Object.keys(dwCfg.sites).some(function(h){ return dwCfg.sites[h]; })) dwCfg.on=true; } }
+        if(dwCfg){ dwCfg.sites=Object.assign({}, ...dwCfg.skip.map(function(h){ var o={}; o[h]=false; return o; }), dwOwnSites()); if(Object.keys(dwCfg.sites).some(function(h){ return dwCfg.sites[h]; })) dwCfg.on=true; } }
       else c=undefined;
     }
     var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
