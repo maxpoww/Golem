@@ -238,7 +238,7 @@ try {
     if(gsTimer) return;
     gsContent();
     gsTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
-    gsTimer.initWithCallback({ notify:function(){ if(gsRead()){ gsContent(); gsEachWindow(gsApply); } } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+    gsTimer.initWithCallback({ notify:function(){ if(gsRead()){ gsContent(); gsEachWindow(function(w){ gsApply(w); ovRepaint(w); }); } } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
   }
   gsRead();
   // ---- card geometry ----
@@ -664,6 +664,22 @@ try {
     try{ win.gBrowser.selectedBrowser.docShellIsActive = !hide; }catch(e){}
   }
 
+  // The overview's own colours, from the palette in use: at each open, and on an open
+  // overview when the palette changes (its pieces carry them inline; the title and the
+  // count were painted only when the overview was first made — ASUS, 2026-10-15).
+  function ovPaint(win){
+    var d=win.document, ov=d.getElementById("golem-overview"); if(!ov) return;
+    ov.style.background=OV_BACKDROP;
+    var t=d.getElementById("golem-ov-title"); if(t) t.style.color=OV_TEXT;
+    var c=d.getElementById("golem-ov-count"); if(c) c.style.color=OV_MUTED;
+  }
+  function ovRepaint(win){
+    try{
+      if(!win.document.getElementById("golem-overview")) return;
+      ovPaint(win);
+      if(ovIsOpen(win)){ ovBarPinColor(win,OV_BACKDROP,OV_BACKDROP); ovRender(win); }
+    }catch(e){}
+  }
   function ovIsOpen(win){ var o=win.document.getElementById("golem-overview"); return !!(o && o.style.display!=="none"); }
 
   // Load ONCE: an agent-level stylesheet that repaints the address-bar field to the
@@ -774,7 +790,7 @@ try {
       ov.addEventListener("click",function(ev){ if(ev.target===ov || ev.target===scroll) ovClose(win); });
 
       var head=OVEL(win,"div","flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:18px 30px 12px 30px;");
-      var h=OVEL(win,"div","color:"+OV_TEXT+";font-size:16px;font-weight:600;"); h.textContent="Tabs";
+      var h=OVEL(win,"div","color:"+OV_TEXT+";font-size:16px;font-weight:600;"); h.textContent="Tabs"; h.id="golem-ov-title";
       var count=OVEL(win,"div","color:"+OV_MUTED+";font-size:13px;"); count.id="golem-ov-count";
       var spacer=OVEL(win,"div","flex:1;");
       var close=OVEL(win,"div","width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);color:#cfd3db;cursor:pointer;font-size:14px;");
@@ -791,7 +807,7 @@ try {
       ov.appendChild(head); ov.appendChild(scroll); host.appendChild(ov);
     }
     win.__golemPage=0;   // reset paging on each open
-    ov.style.background = OV_BACKDROP;   // fixed new-tab colour (matches the bar)
+    ovPaint(win);
     ovBarPinColor(win,OV_BACKDROP,OV_BACKDROP);   // the overview pins the bar FLAT
     ovBarOverride(win,true);             // make the bar the same colour, seamlessly, on open
     ovShowTools(win,true);               // reveal the app-action row left of the toggle
@@ -2896,7 +2912,9 @@ try {
       step("web-both-off", none.on===false);
       step("web-light-mode", dwTheme(dwConfig(Object.assign({web:true,apps:true},base,{dark:false}))).mode===0 && dwTheme(appsOnly).mode===1);
       var cu=dwCustom(dwConfig(Object.assign({web:true,apps:true},base)),dk), last=cu[cu.length-1];
-      step("web-dark-made-sites-take-the-ground", cu.length===5 && cu[0].theme.engine==="cssFilter" && last.url.join()===dk.join() && last.theme.mode===0 && last.theme.lightSchemeTextColor==="#111111" && last.theme.lightSchemeBackgroundColor==="#eeeeee");
+      step("web-dark-made-sites-take-the-ground", cu.length===5 && cu[0].theme.engine==="cssFilter" && last.url.join()===dk.join() && last.theme.mode===1 && last.theme.contrast===87 && last.theme.brightness===100);
+      var lt=dwDarkMade(dwConfig(Object.assign({web:true,apps:true},base,{dark:false})));
+      step("web-dark-made-light-look-swaps", lt.mode===0 && lt.lightSchemeTextColor==="#111111" && lt.lightSchemeBackgroundColor==="#eeeeee");
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
@@ -3485,9 +3503,23 @@ try {
   // palette's ground, white to its ink — so their ground IS the palette's, in either look.
   // Dark Reader's built-in per-site themes (cssFilter for office suites) stay first.
   var DW_BUILT_IN_SITES=["*.officeapps.live.com","*.sharepoint.com","docs.google.com","onedrive.live.com"];
+  // In the DARK look a straight swap also turns their light pieces light (Spotify's
+  // cookie bar, the fade under YouTube Music's header went through a bright grey — ASUS,
+  // 2026-10-15). There they keep Dark Reader's dark mode instead, and its colour matrix
+  // (contrast c, then brightness k, applied after its mapping: x -> c·k·x + (1-c)/2)
+  // lifts its black to the palette's ground g and keeps its white at the ink i:
+  // (1-c)/2 = g, c·k + (1-c)/2 = i. In the light look, the swap.
+  function dwDarkMade(cfg){
+    var t=dwTheme(cfg);
+    if(cfg.dark===false){ t.mode=0; t.lightSchemeBackgroundColor=cfg.ink; t.lightSchemeTextColor=cfg.bg; return t; }
+    var avg=function(h){ var m=/^#?(..)(..)(..)$/.exec(h); return m ? (parseInt(m[1],16)+parseInt(m[2],16)+parseInt(m[3],16))/765 : 0; };
+    var g=Math.min(avg(cfg.bg),0.3), i=Math.max(avg(cfg.ink),g+0.3), c=1-2*g, k=(i-g)/c;
+    t.mode=1; t.contrast=Math.round(c*100); t.brightness=Math.round(k*100);
+    return t;
+  }
   function dwCustom(cfg, dark){
     var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
-    if(dark.length){ var t=dwTheme(cfg); t.mode=0; t.lightSchemeBackgroundColor=cfg.ink; t.lightSchemeTextColor=cfg.bg; out.push({url:dark.slice(), theme:t}); }
+    if(dark.length) out.push({url:dark.slice(), theme:dwDarkMade(cfg)});
     return out;
   }
   // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours and the mode.
