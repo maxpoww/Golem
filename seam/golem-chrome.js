@@ -714,7 +714,7 @@ try {
       // back, forward, reload (Max, 2026-09-25). visibility:hidden, NOT display:none: it
       // keeps their layout space so the tool row and the toggle stay exactly where they
       // are (the toggle must not jump out from under the pointer that hover-opened it).
-      var hide=":root[golem-ov] #back-button,:root[golem-ov] #forward-button,:root[golem-ov] #stop-reload-button,:root[golem-ov] #urlbar-container";
+      var hide=":root[golem-ov] #golem-drop-btn,:root[golem-ov] #back-button,:root[golem-ov] #forward-button,:root[golem-ov] #stop-reload-button,:root[golem-ov] #urlbar-container";
       var css=top+"{background-color:"+PA+"!important;background-image:none!important;border-color:"+PA+"!important;}"
             + fld+"{background-color:"+PF+"!important;background-image:none!important;border-color:"+PF+"!important;}"
             + hide+"{visibility:hidden!important;}"
@@ -3478,17 +3478,37 @@ try {
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
   function dwSites(cfg, dark){
     var hosts=cfg.hosts, isApp={}; hosts.forEach(function(h){ isApp[h]=true; });
-    if(cfg.web) return {enabledByDefault:true,
+    var out;
+    if(cfg.web) out={enabledByDefault:true,
       enabledFor: cfg.apps ? dark.concat(hosts.filter(function(h){ return dark.indexOf(h)<0; })) : dark.filter(function(h){ return !isApp[h]; }),
       disabledFor: cfg.apps ? [] : hosts.slice()};
-    return {enabledByDefault:false, enabledFor: cfg.apps ? hosts.slice() : [], disabledFor:[]};
+    else out={enabledByDefault:false, enabledFor: cfg.apps ? hosts.slice() : [], disabledFor:[]};
+    // The owner's own word for a site (the DROP beside the address bar) comes last.
+    var own=cfg.sites||{};
+    Object.keys(own).forEach(function(h){
+      out.enabledFor=out.enabledFor.filter(function(x){ return x!==h; });
+      out.disabledFor=out.disabledFor.filter(function(x){ return x!==h; });
+      (own[h] ? out.enabledFor : out.disabledFor).push(h);
+    });
+    return out;
   }
+  // Whether a site wears the palette, by the config alone (the drop's state).
+  function dwSiteOn(cfg, host){
+    if(!cfg || !host) return false;
+    var own=cfg.sites||{}; if(typeof own[host]==="boolean") return own[host];
+    if(cfg.hosts.indexOf(host)>=0) return cfg.apps;
+    return cfg.web;
+  }
+  // The owner's per-site word, kept in a pref: {"host": true|false}.
+  var DW_SITES_PREF="golem.seam.siteColours";
+  function dwOwnSites(){ try{ var o=JSON.parse(Services.prefs.getStringPref(DW_SITES_PREF,"{}")); return o && typeof o==="object" ? o : {}; }catch(e){ return {}; } }
   // The override, else the theme file. undefined = no news.
   function dwRead(){
     var f=dwFile(), c=null;
     if(f.exists()){
       var t=f.lastModifiedTime;
-      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwCfg=dwConfig(c); }
+      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwCfg=dwConfig(c);
+        if(dwCfg){ dwCfg.sites=dwOwnSites(); if(Object.keys(dwCfg.sites).some(function(h){ return dwCfg.sites[h]; })) dwCfg.on=true; } }
       else c=undefined;
     }
     var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
@@ -3594,11 +3614,12 @@ try {
     var w=dwRead(); if(w===undefined) return;
     var key=w+"|"+(w && dwCfg ? JSON.stringify(dwCfg) : "");
     if(w===dwWant && key===dwKey) return;
-    dwWant=w; dwKey=key; dwApply();
+    dwWant=w; dwKey=key; dwApply(); dwDrops();
   }
   function dwStart(){
     if(dwTimer) return;
     try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
+    try{ Services.prefs.addObserver(DW_SITES_PREF,{observe:function(){ dwSeen=-1; dwTick(); dwDrops(); }}); }catch(e){}
     try{ dwAM().addAddonListener({
       onInstalled:function(a){ if(a && a.id===DW_ID){ dwInstalledAt=Date.now(); dwApply(); } },
       onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false && !dwBusy) dwApply(); }
@@ -3607,7 +3628,43 @@ try {
     dwTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
     dwTimer.initWithCallback({ notify:function(){ dwTick(); } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
   }
+  // THE DROP (Max, 2026-10-16): beside the address bar, this site wears the
+  // palette or its own colours — a click turns it, and it is remembered.
+  var DW_DROP_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6C6.2 4.3 3.6 7 3.6 9.9a4.4 4.4 0 0 0 8.8 0C12.4 7 9.8 4.3 8 1.6z" fill="FILL" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+  function dwHost(w){ try{ var u=w.gBrowser.currentURI; return /^https?$/.test(u.scheme) ? u.host.toLowerCase() : ""; }catch(e){ return ""; } }
+  function dwDrop(w){
+    try{
+      var d=w.document, b=d.getElementById("golem-drop-btn");
+      if(!b){
+        var target=d.getElementById("nav-bar-customization-target"), url=d.getElementById("urlbar-container"); if(!target||!url) return;
+        b=d.createElementNS("http://www.w3.org/1999/xhtml","div"); b.id="golem-drop-btn";
+        b.style.cssText="display:flex;align-items:center;justify-content:center;align-self:center;width:30px;height:28px;margin:0 2px;flex:0 0 auto;border-radius:6px;cursor:pointer;color:var(--toolbarbutton-icon-fill, currentColor);transition:background 110ms ease;";
+        b.addEventListener("mouseenter",function(){ b.style.background="var(--toolbarbutton-background-color-hover, rgba(255,255,255,.08))"; });
+        b.addEventListener("mouseleave",function(){ b.style.background="transparent"; });
+        b.addEventListener("click",function(ev){
+          ev.preventDefault(); ev.stopPropagation();
+          var h=dwHost(w); if(!h || !dwCfg) return;
+          var own=dwOwnSites(), was=dwSiteOn(Object.assign({},dwCfg,{sites:own}),h);
+          own[h]=!was;
+          // Back to what the sliders say: the word is dropped, not kept.
+          var plain=Object.assign({},dwCfg,{sites:{}});
+          if(dwSiteOn(plain,h)===own[h]) delete own[h];
+          Services.prefs.setStringPref(DW_SITES_PREF, JSON.stringify(own));
+        });
+        url.after(b);
+      }
+      var h=dwHost(w);
+      b.style.display = h && dwCfg ? "flex" : "none";
+      var on=dwSiteOn(Object.assign({},dwCfg||{},{sites:dwOwnSites()}),h);
+      b.innerHTML=DW_DROP_SVG.replace("FILL", on ? "currentColor" : "none");
+      b.setAttribute("title", on ? "This site wears your colours — click for its own" : "This site wears its own colours — click for yours");
+    }catch(e){ DWLOG("drop:"+e); }
+  }
+  function dwDrops(){ try{ var e=Services.wm.getEnumerator("navigator:browser"); while(e.hasMoreElements()) dwDrop(e.getNext()); }catch(e){} }
   function dwWindow(w){
+    try{ w.gBrowser.tabContainer.addEventListener("TabSelect",function(){ dwDrop(w); }); }catch(e){}
+    try{ w.gBrowser.addProgressListener({ onLocationChange:function(){ dwDrop(w); } }); }catch(e){}
+    dwDrop(w);
     try{ w.gBrowser.addTabsProgressListener({ onLocationChange:function(b,wp,req,loc){
       try{
         if(!loc || loc.spec.indexOf(DW_HELP)!==0 || !dwInstalledAt || Date.now()-dwInstalledAt>180000) return;
