@@ -199,15 +199,18 @@ try {
     var bg=gsHex(c.base01), ink=gsHex(c.base05), dim=gsHex(c.base04), deep=gsHex(c.base00), raised=gsHex(c.base02);
     if(!bg||!ink||!dim||!deep||!raised) return null;
     var dark=c.dark!==false;
+    // The palette's accent (a newer dock writes it): what the drop on the bar lights with.
+    var acc=gsHex(c.accent), accent=acc?gsCss(acc):"";
     if(dark && bg.join(",")==="29,32,38") return {rgb:bg, dark:true, backdrop:"rgb(29,32,38)", card:"rgb(39,43,52)", cardHov:"rgb(48,53,63)", footer:"rgb(25,28,34)",
-      thumb:"linear-gradient(160deg,rgb(47,52,63),rgb(30,33,40))", text:"#e7e9ef", muted:"#9aa0ab", snap:"#20242c", errFg:"#fff", errDim:"rgba(255,255,255,.62)"};
+      thumb:"linear-gradient(160deg,rgb(47,52,63),rgb(30,33,40))", text:"#e7e9ef", muted:"#9aa0ab", snap:"#20242c", errFg:"#fff", errDim:"rgba(255,255,255,.62)", accent:accent};
     return {rgb:bg, dark:dark, backdrop:gsCss(bg), card:gsCss(gsMix(bg,ink,0.07)), cardHov:gsCss(gsMix(bg,ink,0.13)), footer:gsCss(gsMix(bg,deep,0.5)),
       thumb:"linear-gradient(160deg,"+gsCss(raised)+","+gsCss(bg)+")", text:gsCss(ink), muted:gsCss(dim), snap:gsCss(deep),
-      errFg:dark?"#fff":gsCss(ink), errDim:dark?"rgba(255,255,255,.62)":"rgba("+ink.join(",")+",.62)"};
+      errFg:dark?"#fff":gsCss(ink), errDim:dark?"rgba(255,255,255,.62)":"rgba("+ink.join(",")+",.62)", accent:accent};
   }
+  var GS_ACCENT="";
   function gsSet(p){
     GS_RGB=p.rgb; GS_DARK=p.dark; OV_BACKDROP=p.backdrop; OV_CARD=p.card; OV_CARD_HOV=p.cardHov; OV_FOOTER=p.footer;
-    OV_THUMB_BG=p.thumb; OV_TEXT=p.text; OV_MUTED=p.muted; OV_SNAP_BG=p.snap; GS_ERR_FG=p.errFg; GS_ERR_DIM=p.errDim;
+    OV_THUMB_BG=p.thumb; OV_TEXT=p.text; OV_MUTED=p.muted; OV_SNAP_BG=p.snap; GS_ERR_FG=p.errFg; GS_ERR_DIM=p.errDim; GS_ACCENT=p.accent||"";
   }
   // Read the file if it moved. True when the Golem colour changed.
   function gsRead(){
@@ -2916,6 +2919,22 @@ try {
       var lt=dwDarkMade(dwConfig(Object.assign({web:true,apps:true},base,{dark:false})));
       step("web-dark-made-light-look-swaps", lt.mode===0 && lt.lightSchemeTextColor==="#111111" && lt.lightSchemeBackgroundColor==="#eeeeee");
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
+      // THE DROP (pure): a site taken out while the web is on, one put in while it is off,
+      // the dock's own list honoured, and the turn each click makes.
+      var none2={off:[],on:[]}, sites={off:["x.dark"],on:["news.ycombinator.com"]};
+      var wOff=dwSites(dwConfig(Object.assign({web:true,apps:true},base),sites),dk);
+      step("drop-site-off-while-web-on", wOff.enabledByDefault && wOff.enabledFor.indexOf("x.dark")<0 && wOff.disabledFor.join()==="x.dark");
+      var wOn=dwConfig(Object.assign({web:false,apps:false},base),sites);
+      step("drop-site-on-while-web-off", wOn.on===true && dwSites(wOn,dk).enabledFor.join()==="news.ycombinator.com");
+      var sk=dwSites(dwConfig(Object.assign({web:true,apps:true,web_skip:["open.spotify.com"]},base),none2),dk);
+      step("drop-dock-skip-honoured", sk.enabledFor.indexOf("open.spotify.com")<0 && sk.disabledFor.join()==="open.spotify.com");
+      var cOn=dwConfig(Object.assign({web:true,apps:true},base),sites), cOffW=dwConfig(Object.assign({web:false,apps:true},base),sites);
+      step("drop-state", dwSiteStateOf(cOn,"x.dark").on===false && dwSiteStateOf(cOn,"en.wikipedia.org").on===true && dwSiteStateOf(cOffW,"open.spotify.com").on===true && dwSiteStateOf(cOffW,"en.wikipedia.org").on===false);
+      var t1=dwToggleOf(cOn,sites,"en.wikipedia.org"), t2=dwToggleOf(cOn,sites,"x.dark"), t3=dwToggleOf(cOffW,sites,"en.wikipedia.org"), t4=dwToggleOf(cOffW,sites,"open.spotify.com");
+      step("drop-turns", t1.off.join()==="x.dark,en.wikipedia.org" && t2.off.length===0 && t3.on.join()==="news.ycombinator.com,en.wikipedia.org" && t4.off.join()==="x.dark,open.spotify.com");
+      var dockSk=dwConfig(Object.assign({web:true,apps:true,web_skip:["open.spotify.com"]},base),none2);
+      step("drop-dock-skip-not-ours-to-turn", dwSiteStateOf(dockSk,"open.spotify.com").dock===true && dwToggleOf(dockSk,none2,"open.spotify.com").off.length===0);
+      step("drop-junk-hosts-refused", dwHosts(["Good.Host","bad host","",42,"x".repeat(300)]).join()==="good.host");
       r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
       step("nv-retry-after-update", c.mode==="hardware" && c.clear);
@@ -3110,6 +3129,7 @@ try {
     // button + capture wiring can settle a beat later
     try{ w.setTimeout(function(){
       try{ ovButton(w); ovPlaceButton(w); }catch(e){ OVLOG("button:"+e); }   // no-op create; re-seat after toolbar reflow
+      try{ if(typeof dpButton==="function") dpButton(w); }catch(e){ OVLOG("drop:"+e); }   // the drop stays last on the bar
       try{ ovInit(w); }catch(e){ OVLOG("init:"+e); }
       try{ gtInit(w); }catch(e){ OVLOG("tint:"+e); }
       try{ gtPlaceholderWatch(w); }catch(e){ OVLOG("placeholder:"+e); }
@@ -3448,9 +3468,17 @@ try {
 // darkreader.org requests); it reads its settings only at its start, so a
 // change is followed by one disable/enable.
 // Dev override: golem.seam.darkWebsites = "on" | "off" ("" follows Golem).
+// THE DROP (Max, 2026-10-17: "add the drop on seam, at the very right end of
+// the bar"; the approved Golem Language mockup): a drop at the right end of
+// the bar, in the accent while THIS site wears the palette, dim while it
+// keeps its own colours; a click turns it. Per site, in a pref of Seam's
+// own (golem.seam.sites = {"off":[hosts],"on":[hosts]}): "off" = sites
+// taken out while the web is on, "on" = sites put in while it is off. The
+// dock's own list of webapps kept in their own colours ("web_skip" in the
+// theme file, Colours → Apps) is honoured too and is the dock's to turn.
 // ===================================================================
 try {
-  var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites";
+  var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites", DW_SITES_PREF="golem.seam.sites";
   var dwRan=false, dwWant=null, dwSeen=-1, dwInstalledAt=0, dwTimer=null, dwCfg=null, dwKey="", dwBusy=false, dwAgain=false;
   var DW_LOG=[];   // the last few things it did (the self-test reports them)
   function DWLOG(m){ try{ DW_LOG.push(m); if(DW_LOG.length>20) DW_LOG.shift(); OVLOG("dark: "+m); }catch(e){} }
@@ -3463,30 +3491,75 @@ try {
   }
   // What the owner asked for, from the theme file (pure; the self-test calls it):
   // {on, dark, web, apps, hosts, bg, ink}, or null for a file that says nothing usable.
-  function dwConfig(c){
+  // A list of hosts as given, each a plain host name, lower-case, once.
+  function dwHosts(a){
+    var seen={}, out=[];
+    (Array.isArray(a)?a:[]).forEach(function(h){ if(typeof h!=="string" || !/^[a-z0-9.-]{1,253}$/i.test(h)) return; h=h.toLowerCase(); if(!seen[h]){ seen[h]=1; out.push(h); } });
+    return out;
+  }
+  // The owner's own per-site choices (the drop's), from Seam's pref.
+  function dwSitesPref(){
+    var o=null; try{ o=JSON.parse(Services.prefs.getStringPref(DW_SITES_PREF,"")||"{}"); }catch(e){ o=null; }
+    return {off: dwHosts(o && o.off), on: dwHosts(o && o.on)};
+  }
+  // `sites`: the per-site choices (given by the tests; else the pref's).
+  function dwConfig(c, sites){
     if(!c || typeof c!=="object") return null;
     var hex=/^#[0-9a-f]{6}$/i, bg=hex.test(c.web_bg||"") ? c.web_bg : c.base01, ink=hex.test(c.web_ink||"") ? c.web_ink : c.base05;
     if(!hex.test(bg||"") || !hex.test(ink||"")) return null;
     // An older dock wrote only "dark_websites" (dark look only).
     var web = typeof c.web==="boolean" ? c.web : !!(c.dark && c.dark_websites);
     var apps = c.apps!==false;
-    var hosts = Array.isArray(c.webapp_hosts) ? c.webapp_hosts.filter(function(h){ return typeof h==="string" && /^[a-z0-9.-]+$/i.test(h); }).map(function(h){ return h.toLowerCase(); }) : [];
-    return {on: web || (apps && hosts.length>0), dark: c.dark!==false, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink};
+    var hosts = dwHosts(c.webapp_hosts), skip = dwHosts(c.web_skip);
+    var own = sites || dwSitesPref();
+    return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: c.dark!==false, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink,
+      skip: skip, off: own.off, onSites: own.on};
   }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
+  // A site the owner took out (the drop) or the dock keeps in its own colours (web_skip)
+  // is never on; a site the owner put in (the drop, with the web off) is on.
   function dwSites(cfg, dark){
-    var hosts=cfg.hosts, isApp={}; hosts.forEach(function(h){ isApp[h]=true; });
+    var hosts=cfg.hosts, isApp={}, out={}; hosts.forEach(function(h){ isApp[h]=true; });
+    (cfg.skip||[]).concat(cfg.off||[]).forEach(function(h){ out[h]=true; });
+    var keep=function(h){ return !out[h]; };
     if(cfg.web) return {enabledByDefault:true,
-      enabledFor: cfg.apps ? dark.concat(hosts.filter(function(h){ return dark.indexOf(h)<0; })) : dark.filter(function(h){ return !isApp[h]; }),
-      disabledFor: cfg.apps ? [] : hosts.slice()};
-    return {enabledByDefault:false, enabledFor: cfg.apps ? hosts.slice() : [], disabledFor:[]};
+      enabledFor: (cfg.apps ? dark.concat(hosts.filter(function(h){ return dark.indexOf(h)<0; })) : dark.filter(function(h){ return !isApp[h]; })).filter(keep),
+      disabledFor: dwHosts((cfg.apps ? [] : hosts.slice()).concat(cfg.skip||[], cfg.off||[]))};
+    return {enabledByDefault:false, enabledFor: dwHosts((cfg.apps ? hosts.slice() : []).concat(cfg.onSites||[])).filter(keep), disabledFor:[]};
   }
+  // Whether `host` wears the palette under `cfg` (pure), and whose choice keeps it out:
+  // {on, dock} — dock: the dock's list has it (Colours → Apps), not the drop's to turn.
+  function dwSiteStateOf(cfg, host){
+    if(!cfg || !host) return {on:false, dock:false};
+    var has=function(a){ return (a||[]).indexOf(host)>=0; };
+    if(has(cfg.skip)) return {on:false, dock:true};
+    if(cfg.web) return {on: !has(cfg.off), dock:false};
+    return {on: (cfg.apps && has(cfg.hosts)) || has(cfg.onSites), dock:false};
+  }
+  // The per-site choices with `host` turned (pure): what the drop writes.
+  function dwToggleOf(cfg, sites, host){
+    var st=dwSiteStateOf(cfg, host), without=function(a){ return a.filter(function(h){ return h!==host; }); };
+    var off=without(sites.off), on=without(sites.on);
+    if(st.dock) return {off:off, on:on};
+    if(cfg.web){ if(st.on) off.push(host); }
+    else if(!st.on) on.push(host);
+    else if(cfg.apps && cfg.hosts.indexOf(host)>=0) off.push(host);
+    return {off:dwHosts(off), on:dwHosts(on)};
+  }
+  function dwSiteState(host){ return dwSiteStateOf(dwCfg, host); }
+  function dwToggleSite(host){
+    if(!dwCfg || !host) return;
+    var next=dwToggleOf(dwCfg, dwSitesPref(), host);
+    try{ Services.prefs.setStringPref(DW_SITES_PREF, JSON.stringify(next)); }catch(e){ DWLOG("sites pref:"+e); }
+    DWLOG("drop "+host+": "+(dwSiteStateOf(dwConfig(dwLastRaw, next), host).on?"on":"off"));
+  }
+  var dwLastRaw=null;   // the theme file as last parsed (the drop turns a site against it)
   // The override, else the theme file. undefined = no news.
   function dwRead(){
     var f=dwFile(), c=null;
     if(f.exists()){
       var t=f.lastModifiedTime;
-      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwCfg=dwConfig(c); }
+      if(t!==dwSeen){ dwSeen=t; try{ c=JSON.parse(ovReadText(f)); }catch(e){ c=null; } dwLastRaw=c; dwCfg=dwConfig(c); }
       else c=undefined;
     }
     var o=""; try{ o=Services.prefs.getStringPref(DW_PREF,""); }catch(e){}
@@ -3592,11 +3665,13 @@ try {
     var w=dwRead(); if(w===undefined) return;
     var key=w+"|"+(w && dwCfg ? JSON.stringify(dwCfg) : "");
     if(w===dwWant && key===dwKey) return;
-    dwWant=w; dwKey=key; dwApply();
+    dwWant=w; dwKey=key; dwApply(); dpPaintAll();
   }
   function dwStart(){
     if(dwTimer) return;
     try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
+    // (The drop's choices live in a pref: a change is a change of the config.)
+    try{ Services.prefs.addObserver(DW_SITES_PREF,{observe:function(){ dwSeen=-1; dwTick(); dpPaintAll(); }}); }catch(e){}
     try{ dwAM().addAddonListener({
       onInstalled:function(a){ if(a && a.id===DW_ID){ dwInstalledAt=Date.now(); dwApply(); } },
       onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false && !dwBusy) dwApply(); }
@@ -3608,11 +3683,49 @@ try {
   function dwWindow(w){
     try{ w.gBrowser.addTabsProgressListener({ onLocationChange:function(b,wp,req,loc){
       try{
+        if(b===w.gBrowser.selectedBrowser) dpPaint(w);
         if(!loc || loc.spec.indexOf(DW_HELP)!==0 || !dwInstalledAt || Date.now()-dwInstalledAt>180000) return;
         var t=w.gBrowser.getTabForBrowser(b); if(t && w.gBrowser.tabs.length>1) w.setTimeout(function(){ try{ w.gBrowser.removeTab(t); DWLOG("closed its help page"); }catch(e){} },0);
       }catch(e){}
     }}); }catch(e){}
+    try{ w.gBrowser.tabContainer.addEventListener("TabSelect",function(){ dpPaint(w); }); }catch(e){}
+    try{ dpButton(w); }catch(e){ DWLOG("drop:"+e); }
   }
+  // ---- THE DROP: the last thing on the bar.
+  var DP_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.6C6.2 4.3 3.6 7 3.6 9.9a4.4 4.4 0 0 0 8.8 0C12.4 7 9.8 4.3 8 1.6z" fill="currentColor"/></svg>';
+  // The site of the window's selected tab (`null` on a page that is not a site).
+  function dpHost(w){
+    try{ var u=w.gBrowser.currentURI; if(!u || !/^https?$/.test(u.scheme)) return null; var h=u.host; return (h && /^[a-z0-9.-]{1,253}$/i.test(h)) ? h.toLowerCase() : null; }catch(e){ return null; }
+  }
+  function dpButton(w){
+    var d=w.document, b=d.getElementById("golem-drop-btn");
+    var navbar=d.getElementById("nav-bar"); if(!navbar) return;
+    if(!b){
+      b=OVEL(w,"div","display:flex;align-items:center;justify-content:center;align-self:center;width:30px;height:28px;margin:0 6px 0 2px;flex:0 0 auto;border-radius:6px;cursor:pointer;color:var(--toolbarbutton-icon-fill, currentColor);transition:background 110ms ease,color 160ms ease;");
+      b.id="golem-drop-btn";
+      b.innerHTML=DP_SVG;
+      b.addEventListener("mouseenter",function(){ b.style.background="var(--toolbarbutton-background-color-hover, rgba(255,255,255,.08))"; });
+      b.addEventListener("mouseleave",function(){ b.style.background="transparent"; });
+      b.addEventListener("click",function(ev){ ev.preventDefault(); ev.stopPropagation(); var h=dpHost(w); if(h) dwToggleSite(h); });
+      DWLOG("drop added");
+    }
+    // The very right end of the bar: after everything (the hamburger there is hidden).
+    if(b.parentNode!==navbar || navbar.lastElementChild!==b) navbar.appendChild(b);
+    dpPaint(w);
+  }
+  function dpPaint(w){
+    try{
+      var b=w.document.getElementById("golem-drop-btn"); if(!b) return;
+      var h=dpHost(w);
+      if(!h || !dwCfg){ b.style.display="none"; return; }
+      b.style.display="flex";
+      var st=dwSiteState(h), acc=GS_ACCENT||"var(--lwt-accent-color, #4d9fff)";
+      b.style.color = st.on ? acc : "var(--toolbarbutton-icon-fill, currentColor)";
+      b.style.opacity = st.on ? "1" : "0.55";
+      b.setAttribute("title", st.dock ? "Kept in its own colours (Colours \u2192 Apps)" : st.on ? "Your colours on this site" : "This site keeps its own colours");
+    }catch(e){}
+  }
+  function dpPaintAll(){ gsEachWindow(function(w){ dpPaint(w); }); }
   Services.obs.addObserver({observe:function(w){ try{ dwStart(); dwWindow(w); }catch(e){} }},"browser-delayed-startup-finished");
   DWLOG("dark websites module loaded");
 } catch(e){}
