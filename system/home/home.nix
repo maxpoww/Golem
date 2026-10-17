@@ -115,6 +115,7 @@ in
     # QUICK LOOK (Max, 2026-10-16: Space in Golem Files — waverunner peek_kinds.rs):
     mupdf-headless          # mutool: a PDF's page at the size it is shown, the fastest there is
     libarchive              # bsdtar: what is in an archive, nothing unpacked
+    libjxl                  # djxl + a thumbnailer: JPEG XL pictures in Quick Look and Files
     fd                # Fast file searching
     ripgrep
 
