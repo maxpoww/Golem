@@ -117,8 +117,8 @@ special() {
     mpv*) echo "look|a player: draws its own controls";;
     scrcpy*|bash) echo "n/a|the phone's own screen";;
     *.html) echo "covered|opens in Seam";;
-    google-chrome*|chromium*) echo "covered|Chrome's own colour = the accent (restart)";;
-    brave*) echo "look|Brave: dark/light only";;
+    google-chrome*|chromium*) echo "n/a|a browser: only Seam is coloured";;
+    brave*) echo "n/a|a browser: only Seam is coloured";;
     vlc*|.vlc*) echo "covered|Qt interface (qt5ct/qt6ct)";;
     *) return 1;;
   esac
