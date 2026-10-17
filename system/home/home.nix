@@ -635,6 +635,7 @@ in
 
   # Bundled webapp icons
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-claude.svg".source = ./webapp-claude.svg;
+  xdg.dataFile."icons/hicolor/scalable/apps/webapp-whatsapp.svg".source = ./webapp-whatsapp.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-gemini.svg".source = ./webapp-gemini.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-twitch.svg".source = ./webapp-twitch.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-zoom.svg".source = ./webapp-zoom.svg;
