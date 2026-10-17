@@ -717,7 +717,7 @@ try {
       // back, forward, reload (Max, 2026-09-25). visibility:hidden, NOT display:none: it
       // keeps their layout space so the tool row and the toggle stay exactly where they
       // are (the toggle must not jump out from under the pointer that hover-opened it).
-      var hide=":root[golem-ov] #back-button,:root[golem-ov] #forward-button,:root[golem-ov] #stop-reload-button,:root[golem-ov] #urlbar-container";
+      var hide=":root[golem-ov] #golem-drop-btn,:root[golem-ov] #back-button,:root[golem-ov] #forward-button,:root[golem-ov] #stop-reload-button,:root[golem-ov] #urlbar-container";
       var css=top+"{background-color:"+PA+"!important;background-image:none!important;border-color:"+PA+"!important;}"
             + fld+"{background-color:"+PF+"!important;background-image:none!important;border-color:"+PF+"!important;}"
             + hide+"{visibility:hidden!important;}"
@@ -2918,6 +2918,7 @@ try {
       step("web-dark-made-sites-take-the-ground", cu.length===5 && cu[0].theme.engine==="cssFilter" && last.url.join()===dk.join() && last.theme.mode===1 && last.theme.contrast===87 && last.theme.brightness===100);
       var lt=dwDarkMade(dwConfig(Object.assign({web:true,apps:true},base,{dark:false})));
       step("web-dark-made-light-look-swaps", lt.mode===0 && lt.lightSchemeTextColor==="#111111" && lt.lightSchemeBackgroundColor==="#eeeeee");
+      step("web-own-look", dwConfig(Object.assign({web:true,apps:true},base,{dark:true,web_dark:false})).dark===false && dwConfig(Object.assign({web:true,apps:true},base,{dark:false,web_dark:true})).dark===true && dwConfig(Object.assign({web:true,apps:true},base,{dark:false})).dark===false);
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       // THE DROP (pure): a site taken out while the web is on, one put in while it is off,
       // the dock's own list honoured, and the turn each click makes.
@@ -3512,7 +3513,9 @@ try {
     var apps = c.apps!==false;
     var hosts = dwHosts(c.webapp_hosts), skip = dwHosts(c.web_skip);
     var own = sites || dwSitesPref();
-    return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: c.dark!==false, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink,
+    // The web has a Dark/Light of its own beside its slider (Max, 2026-10-16): "web_dark", else the system's look.
+    var dark = typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false;
+    return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: dark, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink,
       skip: skip, off: own.off, onSites: own.on};
   }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
