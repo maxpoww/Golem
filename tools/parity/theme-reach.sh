@@ -109,7 +109,7 @@ special() {
     btop*) echo "covered|btop golem.theme";;
     yazi*) echo "covered|yazi theme.toml";;
     lf) echo "covered|in the terminal (foot's colours)";;
-    xterm*|.xterm*) echo "covered|X resources (xrdb)";;
+    xterm*|.xterm*) echo "n/a|old X program (not themed by design)";;
     blueman*|..blueman*|thunar*|.thunar*) echo "covered|GTK 3 theme (Golem-A/B)";;
     lsp-plugins*) echo "MISSING|draws itself (its own skin)";;
     launch-arch-vm*|qemu*) echo "n/a|a virtual machine's own screen";;
