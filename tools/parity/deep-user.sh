@@ -218,3 +218,9 @@ echo "dock: $(pgrep -a -f 'bin/\.?waverunner(-wrapped)?$' | head -1 | cut -c1-90
 pl=$(journalctl --user -u waverunner --no-pager 2>/dev/null | grep 'palette:' | tail -1 | cut -c1-120)
 [ -n "$pl" ] || pl=$(grep 'palette:' "$HOME/.local/state/waverunner/daemon.log" 2>/dev/null | tail -1 | cut -c1-120)
 echo "dock log: ${pl:-no palette line}"
+
+# Which installed apps the palette reaches, and by what route (theme-reach.sh;
+# Max, 2026-10-17). A MISSING line is an app no route colours yet.
+section theme_reach
+"$(dirname "$0")/theme-reach.sh" 2>/dev/null | grep -v ' webapp ' || echo n/a
+echo "webapps: $("$(dirname "$0")/theme-reach.sh" 2>/dev/null | grep -c ' webapp ') (Seam's colours)"
