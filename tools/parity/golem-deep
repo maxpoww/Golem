@@ -29,7 +29,8 @@ mkdir -p "$(dirname "$out")"
   echo "##### golem-deep $target $(date -Is)"
   echo "##### SESSION half (spawned by Hyprland)"
   scp -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$HERE/deep-user.sh" "$target:/tmp/golem-deep-user.sh"
-  "${SSH[@]}" "$target" 'export XDG_RUNTIME_DIR=/run/user/$(id -u); for d in "$XDG_RUNTIME_DIR"/hypr/*/; do export HYPRLAND_INSTANCE_SIGNATURE=$(basename "$d"); hyprctl version >/dev/null 2>&1 && break; done; rm -f /tmp/golem-deep.out /tmp/golem-deep.done; hyprctl eval "hl.exec_cmd(\"sh -c '"'"'bash /tmp/golem-deep-user.sh > /tmp/golem-deep.out 2>&1; touch /tmp/golem-deep.done'"'"'\")" >/dev/null; for i in $(seq 1 90); do [ -e /tmp/golem-deep.done ] && break; sleep 1; done; cat /tmp/golem-deep.out'
+  scp -q -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR "$HERE/theme-reach.sh" "$target:/tmp/theme-reach.sh"
+  "${SSH[@]}" "$target" 'export XDG_RUNTIME_DIR=/run/user/$(id -u); for d in "$XDG_RUNTIME_DIR"/hypr/*/; do export HYPRLAND_INSTANCE_SIGNATURE=$(basename "$d"); hyprctl version >/dev/null 2>&1 && break; done; rm -f /tmp/golem-deep.out /tmp/golem-deep.done; hyprctl eval "hl.exec_cmd(\"sh -c '"'"'bash /tmp/golem-deep-user.sh > /tmp/golem-deep.out 2>&1; touch /tmp/golem-deep.done'"'"'\")" >/dev/null; for i in $(seq 1 180); do [ -e /tmp/golem-deep.done ] && break; sleep 1; done; cat /tmp/golem-deep.out'
   echo
   echo "##### ROOT half"
   "${SSH[@]}" "root@$host" 'bash -s' < "$HERE/deep-root.sh"

@@ -222,5 +222,8 @@ echo "dock log: ${pl:-no palette line}"
 # Which installed apps the palette reaches, and by what route (theme-reach.sh;
 # Max, 2026-10-17). A MISSING line is an app no route colours yet.
 section theme_reach
-"$(dirname "$0")/theme-reach.sh" 2>/dev/null | grep -v ' webapp ' || echo n/a
-echo "webapps: $("$(dirname "$0")/theme-reach.sh" 2>/dev/null | grep -c ' webapp ') (Seam's colours)"
+tr=$(timeout 90 bash "$(dirname "$0")/theme-reach.sh" 2>/dev/null)
+if [ -n "$tr" ]; then
+  printf '%s\n' "$tr" | grep -v ' webapp '
+  echo "webapps: $(printf '%s\n' "$tr" | grep -c ' webapp ') (Seam's colours)"
+else echo n/a; fi
