@@ -196,7 +196,25 @@ else echo n/a; fi
 # reached 99 % full with 68 system versions while every installed Golem kept
 # 15; nothing here compared it (2026-10-16).
 section upkeep
-if have systemctl; then
+# (Inside a Toolbx container — the dev box's reference run — systemd and
+# /etc are the container's: the host's are read as files instead, or every
+# upkeep key came out "absent" and parity flagged ten false findings.)
+if [[ -e /run/.toolboxenv && -d /run/host/etc/static/systemd/system ]]; then
+  units=/run/host/etc/static/systemd/system
+  pre=$(cat "$units/nix-gc.service" "$units"/nix-gc.service.d/*.conf 2>/dev/null | grep -o -- '--delete-generations [^ "]*' | head -1)
+  echo "gc.prune=${pre:-none}"
+  start=$(cat "$units/nix-gc.service" 2>/dev/null | sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' | head -1)
+  age=$( [ -n "$start" ] && grep -o -- '--delete-older-than [^ "]*' "$start" 2>/dev/null | head -1)
+  echo "gc.age=${age:-none}"
+  for t in nix-gc golem-store-check fstrim; do
+    [[ -e "$units/timers.target.wants/$t.timer" ]] && echo "timer.$t=on" || echo "timer.$t=off"
+  done
+  for t in golem-disk-care golem-disk-warn; do
+    [[ -e "$HOME/.config/systemd/user/timers.target.wants/$t.timer" || -e /run/host/etc/static/systemd/user/timers.target.wants/$t.timer ]] \
+      && echo "usertimer.$t=on" || echo "usertimer.$t=off"
+  done
+  nixconf=/run/host/etc/static/nix/nix.conf
+elif have systemctl; then
   pre=$(systemctl cat nix-gc.service 2>/dev/null | grep -o -- '--delete-generations [^ "]*' | head -1)
   echo "gc.prune=${pre:-none}"
   start=$(systemctl cat nix-gc.service 2>/dev/null | sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' | head -1)
@@ -210,7 +228,7 @@ if have systemctl; then
   done
 fi
 for k in min-free max-free auto-optimise-store; do
-  v=$(sed -n "s/^$k = //p" /etc/nix/nix.conf 2>/dev/null | tail -1)
+  v=$(sed -n "s/^$k = //p" "${nixconf:-/etc/nix/nix.conf}" 2>/dev/null | tail -1)
   echo "nix.$k=${v:-unset}"
 done
 echo "@generations=$(ls -d /nix/var/nix/profiles/system-*-link 2>/dev/null | wc -l)"
