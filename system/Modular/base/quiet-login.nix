@@ -31,7 +31,9 @@ let
       # process "6 years old" and opened the gate at once (Acer, 2026-10-03).
       shell_age() {
         local pid st
-        pid=$(ps -eo pid=,args= | awk '$2 ~ /\/bin\/waverunner$/ { print $1; exit }')
+        # (…/bin/waverunner installed; …/release/waverunner on the dev box,
+        # which runs its dock from the checkout.)
+        pid=$(ps -eo pid=,args= | awk '$2 ~ /\/(bin|release)\/waverunner$/ { print $1; exit }')
         [ -n "$pid" ] || return 0
         st=$(cat "/proc/$pid/stat" 2>/dev/null) || return 0
         st=''${st##*) }   # after the command name (which may hold spaces)
