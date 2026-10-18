@@ -2913,12 +2913,24 @@ try {
       step("web-on-apps-off", webOnly.enabledByDefault && webOnly.enabledFor.join()==="x.dark" && webOnly.disabledFor.join()===hs.join());
       step("web-off-apps-on", appsOnly.on && !dwSites(appsOnly,dk).enabledByDefault && dwSites(appsOnly,dk).enabledFor.join()===hs.join());
       step("web-both-off", none.on===false);
-      step("web-light-mode", dwTheme(dwConfig(Object.assign({web:true,apps:true},base,{dark:false}))).mode===0 && dwTheme(appsOnly).mode===1);
+      var lightPair={dark:false,base01:"#eeeeee",base05:"#111111"};
+      step("web-light-mode", dwTheme(dwConfig(Object.assign({web:true,apps:true},base,lightPair))).mode===0 && dwTheme(appsOnly).mode===1);
       var cu=dwCustom(dwConfig(Object.assign({web:true,apps:true},base)),dk), last=cu[cu.length-1];
-      step("web-dark-made-sites-take-the-ground", cu.length===5 && cu[0].theme.engine==="cssFilter" && last.url.join()===dk.join() && last.theme.mode===1 && last.theme.contrast===87 && last.theme.brightness===100);
-      var lt=dwDarkMade(dwConfig(Object.assign({web:true,apps:true},base,{dark:false})));
-      step("web-dark-made-light-look-swaps", lt.mode===0 && lt.lightSchemeTextColor==="#111111" && lt.lightSchemeBackgroundColor==="#eeeeee");
-      step("web-own-look", dwConfig(Object.assign({web:true,apps:true},base,{dark:true,web_dark:false})).dark===false && dwConfig(Object.assign({web:true,apps:true},base,{dark:false,web_dark:true})).dark===true && dwConfig(Object.assign({web:true,apps:true},base,{dark:false})).dark===false);
+      step("web-dark-made-sites-take-the-ground", cu.length===7 && cu[0].theme.engine==="cssFilter" && last.url.join()==="x.dark" && last.theme.mode===1 && last.theme.contrast===87 && last.theme.brightness===100);
+      var lt=dwDarkMade(dwConfig(Object.assign({web:true,apps:true},base,lightPair)));
+      step("web-dark-made-light-look-swaps", lt.mode===0 && lt.lightSchemeTextColor==="#eeeeee" && lt.lightSchemeBackgroundColor==="#111111");
+      step("web-own-look", dwConfig(Object.assign({web:true,apps:true},base,{web_dark:false,web_bg:"#eeeeee",web_ink:"#111111"})).dark===false && dwConfig(Object.assign({web:true,apps:true},lightPair,{webapp_hosts:hs,web_dark:true,web_bg:"#111111",web_ink:"#eeeeee"})).dark===true);
+      // Max's evening (2026-10-17): the web's Light pair beside a Dark flag. The pair decides.
+      step("web-pair-decides-the-look", dwConfig(Object.assign({web:true,apps:true},base,{web_dark:true,web_bg:"#dde7e5",web_ink:"#232a28"})).dark===false);
+      // A webapp wears the APPS' row: web Light, apps Dark (teal).
+      var split=dwConfig(Object.assign({web:true,apps:true},base,{dark:true,base01:"#09515a",base05:"#dee2e2",web_dark:false,web_bg:"#dde7e5",web_ink:"#232a28"}));
+      var cs=dwCustom(split,dk), of=function(h){ for(var i=0;i<cs.length;i++){ if(cs[i].url.indexOf(h)>=0) return cs[i].theme; } return null; };
+      var tSp=of("open.spotify.com"), tMail=of("mail.google.com"), tX=of("x.dark");
+      step("web-webapps-wear-the-apps-row", !!tSp && tSp.mode===1 && !!tMail && tMail.mode===1 && tMail.darkSchemeBackgroundColor==="#09515a" && !!tX && tX.mode===0 && cs.indexOf(cs.filter(function(c){ return c.url.indexOf("x.dark")>=0; })[0])>cs.indexOf(cs.filter(function(c){ return c.url.indexOf("open.spotify.com")>=0; })[0]));
+      // On a dark-made site the text stays bright, whatever the ink's hue (Hacker's neon green).
+      var nt=dwDarkMade(dwRow(true,"#105706","#39ff14")), white=(nt.contrast/100)*(nt.brightness/100)+(1-nt.contrast/100)/2;
+      step("web-dark-made-keeps-text-bright", nt.mode===1 && white>=0.79);
+      step("web-scheme-per-site", dwSchemeOf(split,"mail.google.com",true)==="dark" && dwSchemeOf(split,"en.wikipedia.org",true)==="light" && dwSchemeOf(split,"en.wikipedia.org",false)==="none" && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),"en.wikipedia.org",true)==="none");
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       // THE DROP (pure): a site taken out while the web is on, one put in while it is off,
       // the dock's own list honoured, and the turn each click makes.
@@ -3513,10 +3525,39 @@ try {
     var apps = c.apps!==false;
     var hosts = dwHosts(c.webapp_hosts), skip = dwHosts(c.web_skip);
     var own = sites || dwSitesPref();
-    // The web has a Dark/Light of its own beside its slider (Max, 2026-10-16): "web_dark", else the system's look.
-    var dark = typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false;
-    return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: dark, web: web, apps: apps, hosts: hosts, bg: bg, ink: ink,
-      skip: skip, off: own.off, onSites: own.on};
+    // Two rows, each its own look and pair (Max, 2026-10-18): the WEB's ("web_dark",
+    // web_bg/web_ink) and the APPS' (`dark`, base01/base05) — a webapp is an app, it
+    // wears the apps' colours (Spotify, YouTube and Google wore the web's Light while
+    // the apps were Dark: "dark grey on black"). Each row's look is read from its own
+    // pair, never from a flag beside it: a dock and a Seam of different days gave Dark
+    // Reader dark mode with a light pair, and every dark site went flat grey.
+    var web_ = dwRow(typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false, bg, ink);
+    var app = hex.test(c.base01||"") && hex.test(c.base05||"") ? dwRow(c.dark!==false, c.base01, c.base05) : web_;
+    return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: web_.dark, web: web, apps: apps, hosts: hosts, bg: web_.bg, ink: web_.ink,
+      app: app, skip: skip, off: own.off, onSites: own.on};
+  }
+  // A colour's brightness as a grey of the same luminance (0..1, sRGB): what a filter
+  // that only scales brightness can keep of it. (A plain channel average put Hacker's
+  // neon green at 43 %: its white text went dim green on green.)
+  function dwGrey(h){
+    var m=/^#?(..)(..)(..)$/.exec(h||""); if(!m) return 0;
+    var lin=function(x){ x=parseInt(x,16)/255; return x<=0.04045 ? x/12.92 : Math.pow((x+0.055)/1.055,2.4); };
+    var y=0.2126*lin(m[1])+0.7152*lin(m[2])+0.0722*lin(m[3]);
+    return y<=0.0031308 ? 12.92*y : 1.055*Math.pow(y,1/2.4)-0.055;
+  }
+  // A row: its ground, its ink, and the look they make (dark = the ground is the darker).
+  function dwRow(dark, bg, ink){
+    var a=dwGrey(bg), b=dwGrey(ink);
+    return {dark: a===b ? !!dark : a<b, bg: bg, ink: ink};
+  }
+  // The look a site is shown in (pure): "dark"/"light" while the palette is on it, the
+  // row it belongs to deciding; "none" (the system's) otherwise. Told to the tab, so a
+  // site that follows the system's look sends the page of OUR look — Google sent its
+  // dark page to a Light web and Dark Reader made it dark text on dark.
+  function dwSchemeOf(cfg, host, want){
+    if(!want || !cfg || !host || !dwSiteStateOf(cfg, host).on) return "none";
+    var row=(cfg.apps && cfg.hosts.indexOf(host)>=0 && cfg.app) ? cfg.app : cfg;
+    return row.dark ? "dark" : "light";
   }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
   // A site the owner took out (the drop) or the dock keeps in its own colours (web_skip)
@@ -3588,14 +3629,21 @@ try {
   function dwDarkMade(cfg){
     var t=dwTheme(cfg);
     if(cfg.dark===false){ t.mode=0; t.lightSchemeBackgroundColor=cfg.ink; t.lightSchemeTextColor=cfg.bg; return t; }
-    var avg=function(h){ var m=/^#?(..)(..)(..)$/.exec(h); return m ? (parseInt(m[1],16)+parseInt(m[2],16)+parseInt(m[3],16))/765 : 0; };
-    var g=Math.min(avg(cfg.bg),0.3), i=Math.max(avg(cfg.ink),g+0.3), c=1-2*g, k=(i-g)/c;
+    // (Brightness as a grey of the same luminance; the white kept at 80 % at least.)
+    var g=Math.min(dwGrey(cfg.bg),0.3), i=Math.min(1,Math.max(dwGrey(cfg.ink),0.8,g+0.5)), c=1-2*g, k=(i-g)/c;
     t.mode=1; t.contrast=Math.round(c*100); t.brightness=Math.round(k*100);
     return t;
   }
   function dwCustom(cfg, dark){
-    var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
-    if(dark.length) out.push({url:dark.slice(), theme:dwDarkMade(cfg)});
+    // (Dark Reader takes the FIRST theme whose sites match: the webapps' come before the web's.)
+    var apps=(cfg.apps && cfg.app) ? cfg.hosts : [], isApp={};
+    apps.forEach(function(h){ isApp[h]=true; });
+    var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(isApp[u] ? cfg.app : cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
+    var appDark=apps.filter(function(h){ return dark.indexOf(h)>=0; }), appPlain=apps.filter(function(h){ return dark.indexOf(h)<0; });
+    if(appDark.length) out.push({url:appDark, theme:dwDarkMade(cfg.app)});
+    if(appPlain.length) out.push({url:appPlain, theme:dwTheme(cfg.app)});
+    var webDark=dark.filter(function(h){ return !isApp[h]; });
+    if(webDark.length) out.push({url:webDark, theme:dwDarkMade(cfg)});
     return out;
   }
   // Dark Reader's whole theme (it replaces the stored one), its defaults but the colours and the mode.
@@ -3668,8 +3716,16 @@ try {
     var w=dwRead(); if(w===undefined) return;
     var key=w+"|"+(w && dwCfg ? JSON.stringify(dwCfg) : "");
     if(w===dwWant && key===dwKey) return;
-    dwWant=w; dwKey=key; dwApply(); dpPaintAll();
+    dwWant=w; dwKey=key; dwApply(); dpPaintAll(); dwSchemeAll();
   }
+  function dwScheme(b){
+    try{
+      var u=b.currentURI, host=(u && /^https?$/.test(u.scheme)) ? u.host.toLowerCase() : null;
+      var v=dwSchemeOf(dwCfg, host, dwWant), bc=b.browsingContext;
+      if(bc && bc.top===bc && bc.prefersColorSchemeOverride!==v) bc.prefersColorSchemeOverride=v;
+    }catch(e){}
+  }
+  function dwSchemeAll(){ gsEachWindow(function(w){ try{ w.gBrowser.browsers.forEach(dwScheme); }catch(e){} }); }
   function dwStart(){
     if(dwTimer) return;
     try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
@@ -3687,6 +3743,7 @@ try {
     try{ w.gBrowser.addTabsProgressListener({ onLocationChange:function(b,wp,req,loc){
       try{
         if(b===w.gBrowser.selectedBrowser) dpPaint(w);
+        dwScheme(b);
         if(!loc || loc.spec.indexOf(DW_HELP)!==0 || !dwInstalledAt || Date.now()-dwInstalledAt>180000) return;
         var t=w.gBrowser.getTabForBrowser(b); if(t && w.gBrowser.tabs.length>1) w.setTimeout(function(){ try{ w.gBrowser.removeTab(t); DWLOG("closed its help page"); }catch(e){} },0);
       }catch(e){}
