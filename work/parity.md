@@ -165,6 +165,26 @@ failed units, and menubox launchers that run nothing.
   unreachable for 1 to 2 minutes with nothing in the log. Not investigated
   further. First things to try: power save off for `wl`, or pin the band.
 
+- **P20. The dev box has no weekly store check (2026-10-17, Acer round).**
+  Every installed Golem runs `golem-store-check` (base/nix.nix: weekly
+  `nix-store --verify --check-contents --repair`, idle IO); the dev box's
+  /etc/nixos imports store-gc.nix and disk-care.nix but not base/nix.nix, so
+  it has none. Max's call: import it (a weekly full read of a big store on
+  idle IO) or accept it in accepted.toml. Only visible since the collector
+  reads the host's units from inside the Toolbx (41887de): before, the dev
+  box's whole upkeep read "absent" and parity showed ten false findings.
+
+### Acer round 2026-10-17 (gen 66 → 68, launcher d6e07cf → 35ec737)
+
+golem-deep clean (no failed units, no cores, theme files all written,
+theme_reach: every app covered except LibreOffice; browsers other than Seam
+n/a by design). Found and fixed on the Acer: a leaked Ctrl +/−/0 bind after a
+dock restart (35ec737), the bar's ink on open boxes in a Light shell
+(b0068e8), kdeglobals growing a blank line per change (6392195), a cold icon
+rebuild holding the palette writer 78 s (559aaec), "up 0 min" before the
+first reading (ac8dcbf). Known, not a bug: libadwaita apps take a new
+palette at their next start (the Colours page says so).
+
 ### Deep debug 2026-09-30: verified OK (no finding)
 
 Suspend/resume on the MacBook (rtcwake 25 s: same session, dock, wifi and
