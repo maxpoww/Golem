@@ -165,7 +165,7 @@ failed units, and menubox launchers that run nothing.
   unreachable for 1 to 2 minutes with nothing in the log. Not investigated
   further. First things to try: power save off for `wl`, or pin the band.
 
-- **P20. The dev box has no weekly store check (2026-10-17, Acer round).**
+- **P20 → DONE 2026-10-17 (Max: "make it work as any other Golem machine"; Golem 710e696, dev box gen 751): base/store-check.nix, imported by base/nix.nix and by /etc/nixos; the quiet-login gate now finds a dock run from its checkout. Parity Acer vs dev box: 0 findings.** Was: the dev box has no weekly store check (2026-10-17, Acer round).
   Every installed Golem runs `golem-store-check` (base/nix.nix: weekly
   `nix-store --verify --check-contents --repair`, idle IO); the dev box's
   /etc/nixos imports store-gc.nix and disk-care.nix but not base/nix.nix, so
