@@ -8,7 +8,7 @@
      numbered section. Front door: PLAN.md.
 
      ABOVE ALL OF THEM: constitution.md — Max's definition and the five
-     pillars. These six laws are downstream of it, and each one serves one
+     pillars. These seven laws are downstream of it, and each one serves one
      of the three feelings its acceptance test names (control, security,
      power); the mapping is in constitution.md. A seventh law should be
      able to say which feeling it serves. -->
@@ -587,3 +587,75 @@ This rule adds line 12 to the module DoD in `modules.md`:
 > 12. **One motion** — the change it makes goes out as a single act, and the
 >     user never sees a state on the way that nobody asked for. Verified by:
 >     watch it happen. If you can count the steps, it is not done.
+
+---
+
+## 7. In Front of the User
+
+*Agreed 2026-10-18 (Max), designing the Auto mode of Lighting: "always try to
+act in front of the user, and act when the user is waiting for something to
+happen — that does not mean slow or later, it means the right moment, to make
+the user feel relief."*
+
+**The system acts where the user can see it, at the moment they are waiting
+for it.**
+
+A change made behind the user's back is a change they have to discover. They
+come back to a screen that looks different and cannot tell whether they did
+it, the system did it, or something broke — the same picture as a bug. A change
+made in front of them, at the moment they half-expected it, says the opposite:
+*it noticed*. The user stops having to watch over the system; they learn that
+it will pick things up. That is trust, and it is built one witnessed change at
+a time.
+
+The case it was born from: the evening's Lighting. If nobody is at the computer
+at 19:00, nothing dims at 19:00. When the user sits down at 21:00, the screen
+shows exactly what they left; they open the browser, start working, half
+thinking *"it should be darker by now — it will notice"*; about two minutes in,
+the lights go down, slow and smooth, in front of them. The relief of that
+moment is the point.
+
+### Corollaries
+
+- **Present first.** A change that can wait, waits for the user to be there:
+  at the machine, screen on and unlocked, actually using it. Nothing the user
+  is meant to feel is spent on an empty room.
+- **Then on cue, not on the clock.** Right after arriving the user is finding
+  their bearings. The change comes once they have settled in (Lighting: about
+  two minutes of use), when it reads as the system catching up rather than a
+  jolt at login.
+- **The right moment is not later.** This is no licence to be slow. A change
+  the user asks for still happens at once (§6). This law governs the changes
+  the *system* starts: they wait for the user's presence, never for the
+  system's convenience.
+- **Missed moments are not replayed.** A user who was away for three of the
+  evening's steps sees one change, to where things are now — not a recap.
+- **Made to be seen.** A change made in front of the user is long enough to
+  read as a deliberate act (Lighting: 15–20 s, like a dimmer) — never a snap,
+  never a crawl too slow to notice.
+- **Not while they are absorbed.** Fullscreen video, a game, a screen share:
+  the user is at the machine but not looking at the system. The change waits
+  until they come out.
+- **What was seen last is what comes back.** Across a restart, a lock or a
+  sleep, the user is shown the state they last saw, and it changes in front of
+  them — never between sessions.
+
+### Where it breaks
+
+Some things cannot wait for an audience: a warning — a battery about to die, a
+disk nearly full — arrives when it is true, present or not, because waiting
+would cost the user something real (that is `Warning`'s rule, not this one).
+And work the user cannot perceive — a file rewritten, a cache rebuilt — may
+happen whenever it is cheapest, best of all while they are away, so it costs
+them nothing in front of them. This law is about the changes the user is meant
+to *feel*.
+
+### Definition of done
+
+This rule adds line 13 to the module DoD in `modules.md`:
+
+> 13. **In front of the user** — a change the system makes on its own, that the
+>     user is meant to notice, happens while the user is present and settled,
+>     visibly and smoothly, and never into an empty room. Verified by: leave
+>     before the moment, come back after it — the old state is still showing,
+>     and it changes in front of you once you are working again.

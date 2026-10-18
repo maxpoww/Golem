@@ -133,3 +133,9 @@
     never sees a state on the way that nobody asked for. Verified by: watch it
     happen. If you can count the steps, it is not done.
     (A Transition Is One Motion — `UXRules.md` §6.)
+13. **In front of the user** — a change the system makes on its own, that the
+    user is meant to notice, happens while the user is present and settled,
+    visibly and smoothly, and never into an empty room. Verified by: leave
+    before the moment, come back after it — the old state is still showing,
+    and it changes in front of you once you are working again.
+    (In Front of the User — `UXRules.md` §7.)

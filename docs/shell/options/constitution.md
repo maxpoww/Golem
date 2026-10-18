@@ -236,15 +236,15 @@ friction, and the reward is the user feeling they figured it out. This is
 why pillar 4 measures friction at all, and why the right response to a
 struggling user is *more reach*, never more explanation.
 
-**3. Control, security and power** — three feelings, and each of the six
+**3. Control, security and power** — three feelings, and each of the seven
 UX laws serves one of them. This is the clearest evidence the laws were
 not arbitrary:
 
 | Feeling | The laws that produce it |
 |---|---|
 | **Control** | §1 The Leader (act twice without re-aiming) · §2 The Still Bar (nothing moves that you did not move) · §6 One Motion (you never watch the machinery) |
-| **Security** | §4 Sticky OPTIONS (the way back is never taken away) · §5 One Kills the Other (the state shown is the state you are in) · `Warning` never faded (the dangerous truth always arrives) |
+| **Security** | §4 Sticky OPTIONS (the way back is never taken away) · §5 One Kills the Other (the state shown is the state you are in) · `Warning` never faded (the dangerous truth always arrives) · §7 In Front of the User (it picks things up, and you see it pick them up) |
 | **Power** | `Control` never faded (mastery is never punished with hand-holding) · §3 One Material (one surface, one physics — a thing you can learn completely) |
 
-A seventh law, when one comes, should be able to say which feeling it
+An eighth law, when one comes, should be able to say which feeling it
 serves. If it serves none of the three, it is a preference, not a law.
