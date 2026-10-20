@@ -412,12 +412,15 @@ hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(fileManager))
 -- a time limit, so Super held and let go (a change of mind, a hover with
 -- Super+drag in sight) opened the box. The press starts a 300 ms window; only
 -- a release inside it counts. Rig: ~/.cache/golem-nested/tap-test.sh.
-local tapFresh, tapGen = false, 0
+-- The same press also opens a 40 ms window that tells a keyboard's own macro
+-- from a hand (superBurst, read by Super+Shift+S below).
+local tapFresh, tapGen, superBurst = false, 0, false
 for _, key in ipairs({ "Super_L", "Super_R" }) do
     hl.bind(key, function()
         tapGen = tapGen + 1
         local mine = tapGen
-        tapFresh = true
+        tapFresh, superBurst = true, true
+        hl.timer(function() if tapGen == mine then superBurst = false end end, { timeout = 40, type = "oneshot" })
         hl.timer(function() if tapGen == mine then tapFresh = false end end, { timeout = 300, type = "oneshot" })
     end, { non_consuming = true })
     hl.bind(mainMod .. " + " .. key, function()
@@ -538,7 +541,18 @@ hl.bind(mainMod .. " + S", hl.dsp.focus({ direction = "down" }))
 hl.bind(mainMod .. " + SHIFT + A", hl.dsp.window.move({ direction = "left" }))
 hl.bind(mainMod .. " + SHIFT + D", hl.dsp.window.move({ direction = "right" }))
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.window.move({ direction = "up" }))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ direction = "down" }))
+-- The PrtSc key of a Lenovo (Slim Pro 9, 2026-10-20) is Windows' Snipping
+-- Tool chord: the keyboard itself types Super+Shift+S, all three inside a few
+-- ms (only Fn+PrtSc sends a real Print). A hand never gets S in within 40 ms
+-- of Super, so a burst that fast is the key: a screenshot, not a move.
+local screenshot = hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy')
+hl.bind(mainMod .. " + SHIFT + S", function()
+    if superBurst then
+        hl.dispatch(screenshot)
+    else
+        hl.dispatch(hl.dsp.window.move({ direction = "down" }))
+    end
+end)
 
 -- Resize the focused window with mainMod + arrows (hold to repeat)
 hl.bind(mainMod .. " + Left",  hl.dsp.window.resize({ x = -40, y = 0,   relative = true }), { repeating = true })
@@ -595,7 +609,7 @@ hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
 -- PrtSc: drag a region, the shot goes straight to the clipboard.
-hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'), { submap_universal = true })
+hl.bind("Print", screenshot, { submap_universal = true })
 
 
 
