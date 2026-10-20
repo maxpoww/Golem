@@ -68,6 +68,10 @@ end)
 
 ---- ENVIRONMENT VARIABLES ----
 hl.env("SHELL",          "/run/current-system/sw/bin/zsh")
+-- Where the zone files are. A zone picked in the control panel rides the
+-- session as a bare name (TZ=America/…); glibc has no built-in place for
+-- the files on NixOS, so without this every clock read UTC (2026-10-20).
+hl.env("TZDIR",          "/etc/zoneinfo")
 -- What apps launched from here should use (a .desktop entry with
 -- Terminal=true needs $TERMINAL; without it xdg-open had nothing to run).
 hl.env("TERMINAL",       "foot")
