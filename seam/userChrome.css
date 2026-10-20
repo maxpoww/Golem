@@ -141,6 +141,14 @@
 *|*.urlbarView-background {
   box-shadow: none !important;
 }
+/* The chosen suggestion wears the accent's own ink. ATBC paints its background with the
+   system accent (the palette's), but under a theme Firefox's text for it is a fixed white —
+   white on a light accent (Max, 2026-10-20, India Ink). AccentColorText is the palette's
+   accent_ink (the dock writes it into the GTK theme), so the pair always reads. */
+*|*:root {
+  --urlbarview-background-color-selected: AccentColor !important;
+  --urlbarview-text-color-selected: AccentColorText !important;
+}
 
 /* ===================== THE BAR IS ONE ROW WITH THE TRAFFIC LIGHTS =====================
    (Max, 2026-10-04: "the whole bar to feel aligned but also the traffic buttons to feel
