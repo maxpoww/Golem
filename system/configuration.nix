@@ -20,6 +20,9 @@
     ./hardware/power-laptop.nix
     ./hardware/storage.nix
     ./hardware/virt-guest.nix
+    # Shared with the Modular base: a CPU the platform pins at its slowest
+    # while cool and on the charger is released (decides at runtime).
+    ./Modular/power/prochot.nix
     ./hardware-detect.nix
     ./hardware-runtime.nix
     ./golem-brightness.nix   # brightness that follows the connected panel, not a name

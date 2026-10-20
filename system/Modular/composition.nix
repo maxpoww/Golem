@@ -43,6 +43,11 @@
     ./base/recover.nix      # golem-recover: the source back to what built a working system
     ./base/autoupdate.nix
     ./base/seed.nix         # the seed's upstream + golem-seed-adopt (P10)
+    # A CPU the platform pins at its slowest while cool and on the charger (a
+    # dead battery, an unknown charger) is released (Max, 2026-10-20: every
+    # machine with "this kind of shit"). Base, not a census leaf: installed
+    # machines keep their modules.nix, and it decides on the machine itself.
+    ./power/prochot.nix
     # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
     # SSH-reachable by the dev box + auto-joins the lab wifi, so testing happens
     # over SSH not the console. DELETE this line (and lab/lab-door.nix) at the
