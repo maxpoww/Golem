@@ -594,6 +594,9 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
+-- PrtSc: drag a region, the shot goes straight to the clipboard.
+hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'), { submap_universal = true })
+
 
 
 ---- WINDOWS AND WORKSPACES ----
