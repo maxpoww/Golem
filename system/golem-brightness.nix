@@ -87,7 +87,12 @@ ${pick}
   #     chose (half by default); its own keys still work, and what they do
   #     stays until the room goes from dark to lit or back;
   #   - lid closed, or the backlight at 0 (the hibernate hook holds it there
-  #     through the sleep): it waits and learns nothing.
+  #     through the sleep): it waits and learns nothing;
+  #   - the owner AWAY (the dock's two minutes without input,
+  #     $XDG_RUNTIME_DIR/golem/away): nothing moves. Back, the screen is as
+  #     they left it and follows the room in front of them (Golem's UX law
+  #     §7; Max, 2026-10-21, back to a screen dimmed to "off" while away);
+  #     and anything under ~2 lx is one dark, not halved again and again.
   #
   # ONLY WHERE THERE IS A SENSOR: the command and its service exist when the
   # census says so (golem.hardware.lightSensor, set by golem-hw-detect at
@@ -107,6 +112,10 @@ ${pick}
       state="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/autobrightness"
       # The level the owner had when it was switched on, for `off` to put back.
       manual="$state-manual"
+      # There while the owner is away (the dock writes it: two minutes without
+      # input; a film playing is someone there). Nothing moves meanwhile:
+      # Golem changes the screen in front of its owner, never behind them.
+      away="''${XDG_RUNTIME_DIR:-/run/user/$UID}/golem/away"
 
       ${pick}
       # Both overridable for the test rig (a fake /sys in a temp dir).
@@ -421,11 +430,19 @@ ${pick}
         if [[ "$lid" == *closed* ]] || ! read_actual || (( actual == 0 )); then
           written="" kwritten=""; nap 2; continue
         fi
+        if [ -e "$away" ]; then
+          written=$actual prev="" down=0; nap 2; continue
+        fi
         if ! read_mlux; then
           find_sensor || true
           nap 2; continue
         fi
         log_light
+        # Under ~2 lx is simply dark: these sensors read 0, 1 or 2 lx in the
+        # same unlit room, and a curve still halving down there went under the
+        # owner's own choice for the dark (32 % where they had set 38 %: "the
+        # screen was turned off" — Max, 2026-10-21).
+        if (( lg < 160 )); then lg=160; fi
         # The last two readings: the darker one decides a move up, the
         # brighter one a move down, so one odd reading (a hand, a lamp swept
         # past) moves nothing either way.
