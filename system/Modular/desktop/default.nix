@@ -36,6 +36,8 @@
     ./app-setup.nix         # an installed app arrives with the system it needs (Steam's 32-bit
                             #   graphics, Docker's daemon and group, LocalSend's port…)
     ./disk-care.nix         # the home cleans itself (old Trash, stale build caches, old pins)
+    ./printing.nix          # plug a printer or a scanner in and it works: CUPS + drivers +
+                            # driverless (IPP/AirPrint/eSCL), the queue made by itself
                             #   + a warning when the disk is nearly full
     ./care.nix              # what the gear box's machine pages ask of the system: trim, clean-up,
                             #   update check, charge limit, the format tools
@@ -52,7 +54,6 @@
     #   waveview.nix     the Hyprland overview/spread plugin
     #   portals.nix      xdg-desktop-portal   (NEW — absent everywhere today)
     #   ime.nix          fcitx5 + engines     (NEW — the global-input hole)
-    #   printing.nix     CUPS                 (NEW — absent everywhere today)
     #   + the home layer (home-manager: hyprland.lua, waverunner, foot, neovim)
     # NOTE: desktop/test-chrome.nix is TEST-ONLY and deliberately NOT here —
     # it is composed only into the golem-desktop-test cut.
