@@ -1,0 +1,50 @@
+Golem: a swipe to another workspace does not give the keyboard to the window
+under the pointer when that workspace already has its window focused.
+
+At the end of a workspace swipe Hyprland calls InputManager::refocus(), a
+pointer move that FOCUSES the window under the cursor whatever follow_mouse
+says. CMonitor::changeWorkspace has just focused the workspace's last used
+window; with follow_mouse = 2 (Golem's: the keyboard is detached from the
+pointer) the refocus then moved the keyboard to the window under the cursor,
+often one BEHIND the focused one. waverunner's focus memory (focus_cycle.rs,
+settle_target) gave it back ~100 ms later — and in between the covered window
+was active: its dim lifted, its border lit, and it blinked.
+
+Measured on the dev box 2026-10-21 (waveview's FOCUS trace + the compositor's
+events): workspace change → foot (reason WORKSPACE_CHANGE), +0.5 ms → seam
+under the pointer (reason CLICK = refocus), +97 ms → foot again (a dispatch).
+Only when the pointer rested over the covered window — "not always".
+
+Now: with follow_mouse != 1 and a window already focused on the workspace
+arrived at, only the pointer's focus is updated (simulateMouseMovement). An
+empty workspace, or follow_mouse = 1, behave as before.
+
+Golem's own; keep.
+
+diff -ru a/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp b/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
+--- a/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp	2026-10-21 03:04:08.921840832 +0000
++++ b/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp	2026-10-21 03:04:08.944855462 +0000
+@@ -302,7 +302,22 @@
+     m_workspaceBegin   = nullptr;
+     m_initialDirection = 0;
+ 
+-    g_pInputManager->refocus();
++    // Golem: the workspace change above has ALREADY focused that workspace's own
++    // window (the one last used there). A full refocus then handed the KEYBOARD to
++    // whatever window was under the pointer — with follow_mouse = 2, where the
++    // pointer does not carry the keyboard, often a window BEHIND the one just
++    // focused: it lit up, then waverunner gave the focus back ~100 ms later, and
++    // the covered window "blinked" (Max, 2026-10-21: "when I slide to a workspace
++    // with a window on top of another the covered one blinks… not always" — only
++    // when the pointer rested over the covered one). With the keyboard detached
++    // from the pointer and a window already focused on the workspace arrived at,
++    // only the POINTER's focus is brought up to date.
++    static auto PFOLLOWMOUSE = CConfigValue<Config::INTEGER>("input:follow_mouse");
++    const auto  FOCUSED      = Desktop::focusState()->window();
++    if (*PFOLLOWMOUSE != 1 && FOCUSED && FOCUSED->m_workspace == pSwitchedTo)
++        g_pInputManager->simulateMouseMovement();
++    else
++        g_pInputManager->refocus();
+ 
+     // apply alpha
+     for (auto const& ls : Desktop::focusState()->monitor()->m_layerSurfaceLayers[2]) {

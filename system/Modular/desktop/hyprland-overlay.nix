@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus fifteen patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus sixteen patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -81,6 +81,14 @@
 #                         and the whole session went with it (2026-09-30). The
 #                         walk stops at the first dead link. Drop once fixed
 #                         upstream.
+#   swipe-end-focus       the end of a workspace SWIPE gave the keyboard to the
+#                         window under the pointer — with follow_mouse = 2 often
+#                         one BEHIND the workspace's own focused window, which
+#                         lit up until waverunner gave the focus back ~100 ms
+#                         later: the covered window "blinked" (Max, 2026-10-21).
+#                         With follow_mouse != 1 and a window already focused on
+#                         the workspace arrived at, only the pointer's focus is
+#                         updated. Golem's own; keep.
 #   vfr-hold              misc:vfr_hold_ms (default 2000, baked into the
 #                         patch): keeps the frame clock alive after damage on
 #                         VRR outputs, the episodic VRR brightness flicker.
@@ -133,6 +141,7 @@ final: prev: {
       ./hyprland-patches/hyprland-screenshare-region-session.patch
       ./hyprland-patches/hyprland-snap-reserved-edge.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
+      ./hyprland-patches/hyprland-swipe-end-focus.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-visible-region-damage.patch
       ./hyprland-patches/hyprland-window-square-top.patch
