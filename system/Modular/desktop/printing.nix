@@ -86,13 +86,14 @@ let
         printf '%s' "$uri" | grep -qiF "serial=$serial" || continue
         state=$(lpstat -p "$queue" 2>/dev/null) || continue
         case "$state" in *disabled*) ;; *) continue ;; esac
-        # Paused by the unplug, not by hand with a reason given.
+        # Paused by the unplug (whatever the cut print wrote over it: nothing,
+        # a filter's last line, the backend's error), or by CUPS when the print
+        # failed with the printer off. Not by hand: a plain `cupsdisable`
+        # says "Paused", and that one stays.
         why=$(printf '%s\n' "$state" | sed -n 2p | sed 's/^[[:space:]]*//')
-        case "$why" in
-          "" | "reason unknown" | "Unplugged or turned off")
-            cupsenable "$queue" && echo "golem-printer-back: $queue takes up again"
-            ;;
-        esac
+        if [ "$why" != "Paused" ]; then
+          cupsenable "$queue" && echo "golem-printer-back: $queue takes up again"
+        fi
       done
     '';
   };
