@@ -57,6 +57,46 @@ let
     '';
   };
 
+  # Root, after system-config-printer has looked at a printer plugged in (or
+  # turned on): its queue, paused when it went away, takes up again. s-c-p
+  # does that itself only while the queue's message is still its own
+  # "Unplugged or turned off" — and a print cut by the unplug writes its error
+  # over it, so the queue stayed paused for good (Max's DeskJet, 2026-10-21:
+  # turned off with paper out mid-print, back on, nothing printed).
+  printerBack = pkgs.writeShellApplication {
+    name = "golem-printer-back";
+    runtimeInputs = [ pkgs.cups pkgs.coreutils pkgs.gnugrep pkgs.gnused ];
+    text = ''
+      export LC_ALL=C
+      # usb-BBB-DDD: the device that came (configure-printer@'s instance).
+      case "''${1:-}" in usb-*-*) ;; *) exit 0 ;; esac
+      inst=''${1#usb-}
+      bus=$((10#''${inst%-*}))
+      dev=$((10#''${inst#*-}))
+      serial=
+      for d in /sys/bus/usb/devices/*; do
+        if [ "$(cat "$d/busnum" 2>/dev/null)" = "$bus" ] && [ "$(cat "$d/devnum" 2>/dev/null)" = "$dev" ]; then
+          serial=$(cat "$d/serial" 2>/dev/null || true)
+        fi
+      done
+      [ -n "$serial" ] || exit 0
+      # "device for <queue>: <uri>" — the queues of this very printer.
+      lpstat -v 2>/dev/null | while read -r _ _ queue uri; do
+        queue=''${queue%:}
+        printf '%s' "$uri" | grep -qiF "serial=$serial" || continue
+        state=$(lpstat -p "$queue" 2>/dev/null) || continue
+        case "$state" in *disabled*) ;; *) continue ;; esac
+        # Paused by the unplug, not by hand with a reason given.
+        why=$(printf '%s\n' "$state" | sed -n 2p | sed 's/^[[:space:]]*//')
+        case "$why" in
+          "" | "reason unknown" | "Unplugged or turned off")
+            cupsenable "$queue" && echo "golem-printer-back: $queue takes up again"
+            ;;
+        esac
+      done
+    '';
+  };
+
   # The owner's side: a printer that was not there before is announced once.
   printerNotice = pkgs.writeShellApplication {
     name = "golem-printer-notice";
@@ -130,6 +170,10 @@ in
     services.udev.packages = [ pkgs.sane-airscan ];
 
     users.users.${owner}.extraGroups = [ "lp" "scanner" ];
+
+    # A printer back: its paused queue takes up again (`printerBack`).
+    systemd.services."configure-printer@".serviceConfig.ExecStartPost =
+      "${printerBack}/bin/golem-printer-back %i";
 
     systemd.services.golem-printers = {
       description = "Golem: a default printer, and the list the desktop reads";
