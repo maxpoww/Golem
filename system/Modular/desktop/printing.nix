@@ -121,6 +121,11 @@ in
     hardware.sane = {
       enable = true;
       extraBackends = [ pkgs.sane-airscan pkgs.hplip ];
+      # A webcam is not a scanner: SANE's v4l backend lists every camera as
+      # one (a scanning app offering "Integrated Camera"), and every scanner
+      # look would open each camera — the MacBook's FaceTime HD must have no
+      # reader but PipeWire (quirks/facetimehd.nix).
+      disabledDefaultBackends = [ "v4l" ];
     };
     services.udev.packages = [ pkgs.sane-airscan ];
 
