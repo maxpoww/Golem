@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus sixteen patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus seventeen patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -93,6 +93,13 @@
 #                         patch): keeps the frame clock alive after damage on
 #                         VRR outputs, the episodic VRR brightness flicker.
 #                         Inert without VRR.
+#   vfr-hold-share        a screen share's own damage is not the screen
+#                         changing: every copy a client asked for (the dock
+#                         samples the screen every 0.8 s) began the hold again,
+#                         and the panel never left its full rate — the dev box
+#                         at rest: Hyprland 12 % of a core, a page flip every
+#                         0.4 s (2026-10-22). A global set, not a CMonitor
+#                         member: no layout change for the plugin.
 #   visible-region-damage  hyprland-surface-v1's visible region (the shell tells
 #                         Hyprland where each of its surfaces has anything to
 #                         show, so nothing is drawn or blurred behind the rest:
@@ -143,6 +150,7 @@ final: prev: {
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-swipe-end-focus.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
+      ./hyprland-patches/hyprland-vfr-hold-share.patch
       ./hyprland-patches/hyprland-visible-region-damage.patch
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch

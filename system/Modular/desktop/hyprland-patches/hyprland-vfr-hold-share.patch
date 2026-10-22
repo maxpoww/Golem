@@ -1,0 +1,89 @@
+diff --git a/src/helpers/Monitor.cpp b/src/helpers/Monitor.cpp
+index 5d1a7ef..0588f6f 100644
+--- a/src/helpers/Monitor.cpp
++++ b/src/helpers/Monitor.cpp
+@@ -76,7 +76,10 @@ CMonitor::CMonitor(SP<Aquamarine::IOutput> output_) : m_state(this), m_output(ou
+     m_dpmsBlackOpacity->setUpdateCallback([this](auto) { g_pHyprRenderer->damageMonitor(m_self.lock()); });
+ }
+ 
++std::unordered_set<const CMonitor*> g_vfrHoldShareOnly;
++
+ CMonitor::~CMonitor() {
++    g_vfrHoldShareOnly.erase(this);
+     m_events.destroy.emit();
+     if (g_pHyprRenderer && g_pHyprRenderer->glBackend())
+         g_pHyprRenderer->glBackend()->destroyMonitorResources(m_self);
+@@ -1184,6 +1187,7 @@ void CMonitor::clearModeRetry() {
+ }
+ 
+ void CMonitor::addDamage(const pixman_region32_t* rg) {
++    g_vfrHoldShareOnly.erase(this);
+     if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+         m_damage.damageEntire();
+         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+@@ -1196,6 +1200,7 @@ void CMonitor::addDamage(const CRegion& rg) {
+ }
+ 
+ void CMonitor::addDamage(const CBox& box) {
++    g_vfrHoldShareOnly.erase(this);
+     if (m_cursorZoom->value() != 1.f && g_pCompositor->getMonitorFromCursor() == m_self) {
+         m_damage.damageEntire();
+         g_pCompositor->scheduleFrameForMonitor(m_self.lock(), Aquamarine::IOutput::AQ_SCHEDULE_DAMAGE);
+diff --git a/src/helpers/Monitor.hpp b/src/helpers/Monitor.hpp
+index 44c343f..f0aa659 100644
+--- a/src/helpers/Monitor.hpp
++++ b/src/helpers/Monitor.hpp
+@@ -27,6 +27,7 @@
+ #include <hyprutils/os/FileDescriptor.hpp>
+ #include <sys/types.h>
+ #include <chrono>
++#include <unordered_set>
+ 
+ #include "../helpers/TransferFunction.hpp"
+ #include "../config/shared/monitor/MonitorRule.hpp"
+@@ -444,3 +445,10 @@ class CMonitor {
+     int   m_maxLuminance      = -1;
+     int   m_maxAvgLuminance   = -1;
+ };
++
++// vfr hold (Golem, misc:vfr_hold_ms): the monitors whose only damage since their last frame is
++// what a screen share asked for (its frame's copy, ScreenshareFrame::share). That is not the
++// screen changing: counted, every copy a client asked for began the hold again, and with one
++// that samples the screen a few times a second (the dock) the panel never left its full rate.
++// Taken out at any other damage (CMonitor::addDamage) and at every frame (renderMonitor).
++extern std::unordered_set<const CMonitor*> g_vfrHoldShareOnly;
+diff --git a/src/managers/screenshare/ScreenshareFrame.cpp b/src/managers/screenshare/ScreenshareFrame.cpp
+index 438d828..f97bc71 100644
+--- a/src/managers/screenshare/ScreenshareFrame.cpp
++++ b/src/managers/screenshare/ScreenshareFrame.cpp
+@@ -114,8 +114,13 @@ eScreenshareError CScreenshareFrame::share(SP<IHLBuffer> buffer, const CRegion&
+ 
+     if (m_session->m_type == SHARE_MONITOR || m_session->m_type == SHARE_REGION) {
+         const auto PMONITOR = m_session->monitor();
+-        if (PMONITOR)
++        if (PMONITOR) {
++            // vfr hold (Golem): this damage is the share's own, not the screen changing
++            const bool REAL = PMONITOR->m_damage.hasChanged() && !g_vfrHoldShareOnly.contains(PMONITOR.get());
+             PMONITOR->addDamage(PMONITOR->resources()->pendingMirrorFBDamage());
++            if (!REAL)
++                g_vfrHoldShareOnly.insert(PMONITOR.get());
++        }
+     }
+ 
+     // schedule a frame so that when a screenshare starts it isn't black until the output is updated
+diff --git a/src/render/Renderer.cpp b/src/render/Renderer.cpp
+index 5f62f0b..bee317e 100644
+--- a/src/render/Renderer.cpp
++++ b/src/render/Renderer.cpp
+@@ -2047,8 +2047,10 @@ void IHyprRenderer::renderMonitor(PHLMONITOR pMonitor, bool commit) {
+ 
+     const auto NOW = Time::steadyNow();
+ 
+-    if (pMonitor->m_damage.hasChanged())
++    // (A screen share's own damage is not the screen changing: g_vfrHoldShareOnly.)
++    if (pMonitor->m_damage.hasChanged() && !g_vfrHoldShareOnly.contains(pMonitor.get()))
+         pMonitor->m_lastDamageAt = NOW;
++    g_vfrHoldShareOnly.erase(pMonitor.get());
+ 
+     if (!shouldRenderMonitor(pMonitor) && damageBlinkCleanup == 0)
+         return;
