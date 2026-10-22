@@ -52,15 +52,11 @@ let
     text = ''
 ${pick}
       dev=$(pick) || { echo "golem-brightness: no backlight device found" >&2; exit 1; }
-      # -e4 exponential curve — Max's tuned feel — and a floor of 4 % of the
-      # light: under it the screen looks switched off (Max, 2026-10-22: "a
-      # min 4% floor and that is it"). -n takes the device's own number.
-      max=0
-      read -r max < "/sys/class/backlight/$dev/max_brightness" || true
-      case "$max" in ""|*[!0-9]*) max=0 ;; esac
-      floor=$(( (max * 4 + 99) / 100 ))
-      if (( floor < 2 )); then floor=2; fi
-      exec brightnessctl -e4 -n"$floor" -d "$dev" "$@"
+      # -e4 exponential curve — Max's tuned feel. By hand it goes all the way
+      # to 0, the screen off (Max, 2026-10-22: "i want to be able to turn my
+      # screen off"); only the auto keeps its 4 % floor (golem-autobrightness,
+      # which leaves a screen at 0 alone).
+      exec brightnessctl -e4 -n0 -d "$dev" "$@"
     '';
   };
 
@@ -164,7 +160,7 @@ ${pick}
 
       # Tenths of a percent ↔ the backlight's own number, on the keys' curve
       # (brightnessctl -e4: value = max * fraction^4), never under 4 % of the
-      # light — the keys' own floor (golem-brightness).
+      # light (the keys go to 0; the auto does not).
       to_raw() {
         local p=$1
         rawv=$(( (max * p * p * p * p + 500000000000) / 1000000000000 ))
