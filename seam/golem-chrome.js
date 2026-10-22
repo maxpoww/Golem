@@ -3536,7 +3536,11 @@ try {
     // pair, never from a flag beside it: a dock and a Seam of different days gave Dark
     // Reader dark mode with a light pair, and every dark site went flat grey.
     var web_ = dwRow(typeof c.web_dark==="boolean" ? c.web_dark : c.dark!==false, bg, ink);
-    var app = hex.test(c.base01||"") && hex.test(c.base05||"") ? dwRow(c.dark!==false, c.base01, c.base05) : web_;
+    // (The dock's apps_bg/apps_ink when it gives them: under Ambient they hold through the
+    // light's steps — base01/base05 follow every step for the bar, and every new pair
+    // restarts Dark Reader, a flash on every open page. Max, 2026-10-21: "no jumps at all".)
+    var ab = hex.test(c.apps_bg||"") && hex.test(c.apps_ink||"") ? [c.apps_bg, c.apps_ink] : [c.base01, c.base05];
+    var app = hex.test(ab[0]||"") && hex.test(ab[1]||"") ? dwRow(c.dark!==false, ab[0], ab[1]) : web_;
     return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: web_.dark, web: web, apps: apps, hosts: hosts, bg: web_.bg, ink: web_.ink,
       app: app, skip: skip, off: own.off, onSites: own.on};
   }
