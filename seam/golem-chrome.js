@@ -3797,3 +3797,162 @@ try {
   Services.obs.addObserver({observe:function(w){ try{ dwStart(); dwWindow(w); }catch(e){} }},"browser-delayed-startup-finished");
   DWLOG("dark websites module loaded");
 } catch(e){}
+
+// ===================================================================
+// THE RECENTS' KITCHEN (2026-10-22, Max: "can we make Seam leave the files 'cooked' and
+// pick them up with the shell from a dir?" — the shell never goes on the network). For the
+// dock's lone app row (waverunner web_actions.rs): what each page really is, which the
+// history alone does not say —
+//   * its TITLE as it is now: an app like YouTube Music names the song after the history
+//     has written "YouTube Music";
+//   * its PREVIEW PICTURE (og:image / twitter:image);
+//   * what it PLAYS: the media session the page publishes for the media keys (song,
+//     artist, album, cover) — Spotify, YouTube Music, YouTube.
+// A frame script in every tab (and webapp window) reads them a moment after the title
+// changes or the page shows, and while media plays every 20 s; this side keeps them in
+// XDG_STATE_HOME/golem/seam/recents/recents.json and fetches each picture ONCE, by Seam
+// itself, from the address the page gave, into pics/<hash>.<jpg|png|webp> (an image of at
+// most 2 MB). Private windows: nothing. Bounded: 1000 pages, 300 plays, pictures no one
+// names any more removed. Kill switch: golem.seam.recents=false. Log: SEAM_RECENTS_LOG=<file>.
+// ===================================================================
+try {
+  var RK_PREF="golem.seam.recents", RK_PAGES=1000, RK_PLAYS=300, RK_PIC_MAX=2*1024*1024;
+  function RKLOG(m){
+    var p=""; try{ p=Services.env.get("SEAM_RECENTS_LOG"); }catch(e){} if(!p) return;
+    try{ var f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile); f.initWithPath(p);
+      var os=Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);
+      os.init(f,0x02|0x08|0x10,0o644,0); var s="recents: "+m+"\n"; os.write(s,s.length); os.close(); }catch(e){}
+  }
+  function rkOn(){ try{ return Services.prefs.getBoolPref(RK_PREF,true); }catch(e){ return true; } }
+  function rkDir(){
+    var s=""; try{ s=Services.env.get("XDG_STATE_HOME"); }catch(e){}
+    if(!s){ var h=""; try{ h=Services.env.get("HOME"); }catch(e){} if(!h) return ""; s=h+"/.local/state"; }
+    return s+"/golem/seam/recents";
+  }
+  function rkWin(){ try{ return Services.wm.getMostRecentWindow("navigator:browser"); }catch(e){ return null; } }
+  // A short steady name for an address (cyrb53).
+  function rkHash(str){
+    var h1=0xdeadbeef, h2=0x41c6ce57;
+    for(var i=0;i<str.length;i++){ var ch=str.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+    h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+    h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+    return (h2>>>0).toString(16).padStart(8,"0")+(h1>>>0).toString(16).padStart(8,"0");
+  }
+  function rkWeb(s){ return typeof s==="string" && s.length<=2000 && /^https?:\/\//i.test(s); }
+  function rkClip(s,n){ return String(s==null?"":s).replace(/[\u0000-\u001f]/g," ").trim().slice(0,n); }
+
+  // The content side: a moment after the title changes or the page shows, what the page is.
+  var RK_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
+    "(function(){var t=0,poll=0,lastPlay='';"+
+    "function waive(o){try{return Components.utils.waiveXrays(o);}catch(e){return o;}}"+
+    "function art(md){try{var a=waive(md).artwork||md.artwork;var best=null,bw=-1;for(var i=0;i<a.length;i++){var it=waive(a[i]);var s=String(it.src||'');var w=parseInt(String(it.sizes||'').split(/[xX]/)[0],10)||0;if(/^https?:/i.test(s)&&w>=bw){best=s;bw=w;}}return best;}catch(e){return null;}}"+
+    "function og(d){try{var m=d.querySelector('meta[property=\"og:image\"],meta[name=\"og:image\"],meta[name=\"twitter:image\"],meta[property=\"twitter:image\"]');if(!m)return null;var v=m.getAttribute('content');if(!v)return null;var u=new content.URL(v,d.baseURI);return /^https?:$/.test(u.protocol)?u.href:null;}catch(e){return null;}}"+
+    "function media(){try{var md=content.navigator.mediaSession.metadata;if(!md||!md.title)return null;return {title:String(md.title),artist:String(md.artist||''),album:String(md.album||''),art:art(md)};}catch(e){return null;}}"+
+    "function send(){t=0;try{var d=content.document,l=content.location;if(!/^https?:$/.test(l.protocol))return;var m=media();if(m)lastPlay=m.title+'|'+m.artist;"+
+    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:og(d),media:m});"+
+    "if(m&&!poll)poll=content.setInterval(function(){var n=media();if(!n){content.clearInterval(poll);poll=0;return;}if(n.title+'|'+n.artist!==lastPlay)soon();},20000);}catch(e){}}"+
+    "function soon(){try{if(t)content.clearTimeout(t);t=content.setTimeout(send,1500);}catch(e){}}"+
+    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;soon();},false);})();");
+
+  var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0;
+  // What an earlier run kept, read once before the first change is written over it.
+  function rkLoad(then){
+    if(rkReady){ then(); return; }
+    rkWaiting.push(then); if(rkWaiting.length>1) return;
+    var w=rkWin(), dir=rkDir(), done=function(){ rkReady=true; var q=rkWaiting; rkWaiting=[]; q.forEach(function(f){ try{ f(); }catch(e){ RKLOG("then:"+e); } }); };
+    if(!w || !dir){ done(); return; }
+    w.IOUtils.readJSON(dir+"/recents.json").then(function(j){
+      if(j && j.v===1 && j.pages && typeof j.pages==="object" && Array.isArray(j.plays)){ rk.pages=j.pages; rk.plays=j.plays; }
+      done();
+    }).catch(function(){ done(); });
+  }
+  function rkSave(){
+    if(rkTimer) return;
+    try{
+      rkTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+      rkTimer.initWithCallback({ notify:function(){ rkTimer=null; rkWrite(); } },2000,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+    }catch(e){ rkTimer=null; rkWrite(); }
+  }
+  function rkWrite(){
+    var w=rkWin(), dir=rkDir(); if(!w || !dir) return;
+    // Bounded: the newest pages, the newest plays.
+    var urls=Object.keys(rk.pages);
+    if(urls.length>RK_PAGES){
+      urls.sort(function(a,b){ return (rk.pages[b].at||0)-(rk.pages[a].at||0); });
+      urls.slice(RK_PAGES).forEach(function(u){ delete rk.pages[u]; });
+    }
+    if(rk.plays.length>RK_PLAYS) rk.plays.length=RK_PLAYS;
+    var io=w.IOUtils;
+    io.makeDirectory(dir+"/pics",{ignoreExisting:true,createAncestors:true})
+      .then(function(){ return io.writeUTF8(dir+"/recents.json",JSON.stringify(rk),{tmpPath:dir+"/recents.json.tmp"}); })
+      .then(function(){ if(++rkSaves%20===1) rkPrune(io,dir); })
+      .catch(function(e){ RKLOG("write:"+e); });
+  }
+  // Pictures no page and no play names any more.
+  function rkPrune(io,dir){
+    var keep={};
+    Object.keys(rk.pages).forEach(function(u){ if(rk.pages[u].pic) keep[rk.pages[u].pic]=1; });
+    rk.plays.forEach(function(p){ if(p.pic) keep[p.pic]=1; });
+    io.getChildren(dir+"/pics").then(function(kids){
+      kids.forEach(function(k){ var n=k.split("/").pop(); if(!keep[n] && !rkFetching[n.split(".")[0]]) io.remove(k).catch(function(){}); });
+    }).catch(function(){});
+  }
+  // A picture, fetched ONCE by Seam from the address the page gave: done(file name) when it is in.
+  function rkPicture(src,done){
+    if(!rkWeb(src)) return;
+    var name=rkHash(src), w=rkWin(), dir=rkDir(); if(!w || !dir) return;
+    if(rkFetching[name]) return; rkFetching[name]=1;
+    var io=w.IOUtils, exts=["jpg","png","webp"];
+    var finish=function(){ delete rkFetching[name]; };
+    // Already here from an earlier page?
+    Promise.all(exts.map(function(x){ return io.exists(dir+"/pics/"+name+"."+x); })).then(function(have){
+      for(var i=0;i<exts.length;i++){ if(have[i]){ finish(); done(name+"."+exts[i]); return; } }
+      return w.fetch(src,{credentials:"omit",cache:"force-cache",redirect:"follow"}).then(function(res){
+        var type=String(res.headers.get("content-type")||"").toLowerCase();
+        var ext=/jpe?g/.test(type)?"jpg":/png/.test(type)?"png":/webp/.test(type)?"webp":"";
+        if(!res.ok || !ext) throw "not a picture ("+res.status+" "+type+")";
+        return res.arrayBuffer().then(function(buf){
+          if(buf.byteLength===0 || buf.byteLength>RK_PIC_MAX) throw "size "+buf.byteLength;
+          var file=name+"."+ext;
+          return io.makeDirectory(dir+"/pics",{ignoreExisting:true,createAncestors:true})
+            .then(function(){ return io.write(dir+"/pics/"+file,new Uint8Array(buf),{tmpPath:dir+"/pics/"+file+".part"}); })
+            .then(function(){ finish(); done(file); });
+        });
+      });
+    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); });
+  }
+  // What a page told: kept as the page's, and what it plays as a play.
+  function rkHeard(m){
+    if(!rkOn()) return;
+    var b=m.target, d=m.data||{};
+    try{ if(b.browsingContext && b.browsingContext.usePrivateBrowsing){ RKLOG("private: not kept"); return; } }catch(e){}
+    try{ if(b.ownerGlobal.PrivateBrowsingUtils.isBrowserPrivate(b)){ RKLOG("private: not kept"); return; } }catch(e){}
+    if(!rkWeb(d.url)) return;
+    rkLoad(function(){
+      var now=Math.round(Date.now()/1000), url=String(d.url);
+      var page=rk.pages[url]||{}, title=rkClip(d.title,300);
+      if(title) page.title=title;
+      page.at=now; rk.pages[url]=page;
+      if(rkWeb(d.og) && !page.pic) rkPicture(d.og,function(f){ page.pic=f; rkSave(); });
+      var md=d.media;
+      if(md && md.title){
+        var host=""; try{ host=Services.io.newURI(url).host.toLowerCase(); }catch(e){}
+        var t=rkClip(md.title,300), a=rkClip(md.artist,200), key=host+"|"+t+"|"+a, play=null;
+        for(var i=0;i<rk.plays.length;i++){ var p=rk.plays[i]; if(p.host+"|"+p.title+"|"+p.artist===key){ play=rk.plays.splice(i,1)[0]; break; } }
+        // Heard again within ten minutes: the same listening, not another.
+        if(play){ if(now-(play.at||0)>600) play.n=(play.n||1)+1; }
+        else play={host:host,title:t,artist:a,album:rkClip(md.album,200),n:1};
+        play.url=url; play.at=now; rk.plays.unshift(play);
+        if(rkWeb(md.art) && !play.pic) rkPicture(md.art,function(f){ play.pic=f; rkSave(); });
+      }
+      rkSave();
+    });
+  }
+  function rkWindow(w){
+    if(w.__golemRkInit) return; w.__golemRkInit=true;
+    try{ w.messageManager.addMessageListener("golem:recent",rkHeard); }catch(e){ RKLOG("listen:"+e); }
+    try{ w.messageManager.loadFrameScript(RK_FS,true); }catch(e){ RKLOG("framescript:"+e); }
+  }
+  Services.obs.addObserver({observe:function(w){ try{ if(rkOn()) rkWindow(w); }catch(e){ RKLOG("window:"+e); } }},"browser-delayed-startup-finished");
+  RKLOG("recents kitchen loaded");
+} catch(e){}

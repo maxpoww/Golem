@@ -442,6 +442,22 @@ What Seam adds (golem-chrome.js WEBAPPS):
 Kill switch `golem.seam.apps` (false: the flag is consumed and the URL opens as a plain
 tab). Test: `./webapps-selftest.sh` (19 checks, headless, real build).
 
+## The recents' kitchen (2026-10-22): what the dock's recents are made of
+
+The dock never goes on the network (Max: "can we make Seam leave the files 'cooked' and pick
+them up with the shell from a dir?"). For its lone app row (waverunner `web_actions.rs`) Seam
+keeps what each page really is — its **title as it is now** (YouTube Music names the song after
+the history wrote "YouTube Music"), its **preview picture** (`og:image` / `twitter:image`) and what
+it **plays** (the media session the page publishes for the media keys: song, artist, album,
+cover — Spotify, YouTube Music, YouTube) — in `$XDG_STATE_HOME/golem/seam/recents/`:
+`recents.json` (`{v:1, pages:{url:{title,at,pic}}, plays:[{host,url,title,artist,album,n,at,pic}]}`,
+1000 pages, 300 plays) and `pics/<16 hex>.<jpg|png|webp>`. A frame script in every tab and webapp
+window reads the page 1.5 s after its title changes or it shows, and every 20 s while it plays;
+each picture is fetched ONCE by Seam itself from the address the page gave (an image of at most
+2 MB, no cookies), and pictures nothing names any more are removed. Private windows: nothing.
+Kill switch `golem.seam.recents`; log `SEAM_RECENTS_LOG=<file>`. The dock reads it as data a page
+had a hand in (size limits, http(s) only, pictures only of Seam's naming in `pics/`, no links).
+
 ## The palette and dark websites (2026-10-14/15)
 
 Seam wears THE PALETTE (Controls → Colours in the dock; the dock writes
