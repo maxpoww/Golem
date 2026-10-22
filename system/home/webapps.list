@@ -14,6 +14,7 @@ WhatsApp       | https://web.whatsapp.com      | webapp-whatsapp
 Google         | https://www.google.com        | google
 Spotify        | https://open.spotify.com      | spotify
 Gmail          | https://mail.google.com       | gmail
+Outlook        | https://outlook.live.com/mail | ms-outlook
 Netflix        | https://www.netflix.com       | netflix
 Instagram      | https://www.instagram.com     | instagram
 Facebook       | https://www.facebook.com      | facebook
@@ -28,6 +29,7 @@ Twitch         | https://www.twitch.tv         | webapp-twitch
 Zoom           | https://app.zoom.us           | webapp-zoom
 Snapchat       | https://web.snapchat.com      | webapp-snapchat
 Pinterest      | https://www.pinterest.com     | webapp-pinterest
+LinkedIn       | https://www.linkedin.com      | webapp-linkedin
 eBay           | https://www.ebay.com          | webapp-ebay
 ChatGPT        | https://chatgpt.com           | webapp-chatgpt
 Apple Music    | https://music.apple.com       | apple-music
@@ -48,6 +50,7 @@ Google Calendar | https://calendar.google.com  | calendar
 # --- productivity & work ---
 Notion         | https://www.notion.so         | notion
 Figma          | https://www.figma.com         | figma
+Canva          | https://www.canva.com         | webapp-canva
 Slack          | https://app.slack.com/client  | slack
 Trello         | https://trello.com            | trello
 Miro           | https://miro.com              | miro
@@ -73,6 +76,8 @@ Proton Mail    | https://mail.proton.me        | proton-mail
 Dropbox        | https://www.dropbox.com       | dropbox
 Steam          | https://store.steampowered.com | steam
 Duolingo       | https://www.duolingo.com      | duolingo
+AliExpress     | https://www.aliexpress.com    | webapp-aliexpress
+Booking        | https://www.booking.com       | webapp-booking
 
 # --- dev, finance, more ---
 Messenger      | https://www.messenger.com     | webapp-messenger

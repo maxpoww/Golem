@@ -650,6 +650,10 @@ in
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-messenger.svg".source = ./webapp-messenger.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-asana.svg".source = ./webapp-asana.svg;
   xdg.dataFile."icons/hicolor/scalable/apps/webapp-vercel.svg".source = ./webapp-vercel.svg;
+  xdg.dataFile."icons/hicolor/scalable/apps/webapp-linkedin.svg".source = ./webapp-linkedin.svg;
+  xdg.dataFile."icons/hicolor/scalable/apps/webapp-canva.svg".source = ./webapp-canva.svg;
+  xdg.dataFile."icons/hicolor/scalable/apps/webapp-aliexpress.svg".source = ./webapp-aliexpress.svg;
+  xdg.dataFile."icons/hicolor/scalable/apps/webapp-booking.svg".source = ./webapp-booking.svg;
 
   # XDG User Directories — localized, not hardcoded English.
   #
