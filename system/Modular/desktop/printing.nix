@@ -98,6 +98,17 @@ let
     '';
   };
 
+  # The ink of a printer that does not tell CUPS (most HP inkjets over USB),
+  # for the Printers page: HPLIP's own device code, without the tray icon and
+  # the update check its hp-levels starts (printer-ink.py).
+  printerInk = pkgs.writeShellApplication {
+    name = "golem-printer-ink";
+    text = ''
+      export GOLEM_HPLIP=${pkgs.hplip} GOLEM_SITE=${pkgs.python3.sitePackages}
+      exec ${pkgs.python3}/bin/python3 -I ${./printer-ink.py} "$@"
+    '';
+  };
+
   # The owner's side: a printer that was not there before is announced once.
   printerNotice = pkgs.writeShellApplication {
     name = "golem-printer-notice";
@@ -128,6 +139,8 @@ let
 in
 {
   config = lib.mkIf (!config.golem.lean) {
+    environment.systemPackages = [ printerInk ];
+
     services.printing = {
       enable = true;
       drivers = with pkgs; [
