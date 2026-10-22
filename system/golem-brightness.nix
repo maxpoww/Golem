@@ -299,14 +299,17 @@ ${pick}
 
       # The curve, in tenths of a percent, for a light $1: 40 % in the dark,
       # 7.3 points per doubling (100 % at 300 lx), plus what the owner chose
-      # around that light, kept inside 15–100 %.
+      # around that light, kept inside 40–100 %: under 40 % (on these panels
+      # ~2.5 % of the light) the screen looks switched off — Max, 2026-10-22,
+      # twice, back at the computer in a dark room to 33 %. The keys still go
+      # lower by hand.
       curve() { tgt=$(( 400 + 73 * $1 / 100 )); }
       target_for() {
         curve "$1"
         offset_at "$1"
         tgt=$(( tgt + off ))
         if (( tgt > 1000 )); then tgt=1000; fi
-        if (( tgt < 150 )); then tgt=150; fi
+        if (( tgt < 400 )); then tgt=400; fi
       }
 
       # The sensor hub can come up after the session (ISH firmware load).
@@ -414,7 +417,7 @@ ${pick}
       echo "golem-autobrightness: sensor $sensor, backlight $bl (max $max), ''${#plg[@]} remembered"
       # first: the start, where the screen goes to the room without waiting.
       # held: the light (lg) at which the owner set a level with the keys.
-      first=1 held="" prev="" lo=0 hi=0 down=0 last=$EPOCHSECONDS
+      first=1 held="" prev="" lo=0 hi=0 down=0 last=$EPOCHSECONDS was_away=0 back_at=0
       while :; do
         now=$EPOCHSECONDS
         # A gap in the ticks = the machine slept: whatever the backlight holds
@@ -431,8 +434,11 @@ ${pick}
           written="" kwritten=""; nap 2; continue
         fi
         if [ -e "$away" ]; then
-          written=$actual prev="" down=0; nap 2; continue
+          written=$actual prev="" down=0 was_away=1; nap 2; continue
         fi
+        # Back: for a minute the screen only gets brighter, never dimmer —
+        # it must not drop under the eyes of someone just sat down.
+        if (( was_away == 1 )); then was_away=0 back_at=$now; fi
         if ! read_mlux; then
           find_sensor || true
           nap 2; continue
@@ -490,7 +496,7 @@ ${pick}
           fade "$p10" "$tu" 0.016
           down=0
           echo "golem-autobrightness: $(( mlux / 1000 )) lx → $(( tu / 10 ))%"
-        elif (( dd <= -50 )); then
+        elif (( dd <= -50 )) && (( now - back_at >= 60 )); then
           down=$(( down + 1 ))
           if (( down >= 3 )); then
             fade "$p10" "$td" 0.033
