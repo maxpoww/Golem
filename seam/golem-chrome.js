@@ -241,7 +241,11 @@ try {
     if(gsTimer) return;
     gsContent();
     gsTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
-    gsTimer.initWithCallback({ notify:function(){ if(gsRead()){ gsContent(); gsEachWindow(function(w){ gsApply(w); ovRepaint(w); }); } } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+    // Every half second (a stat; the file is read only when it changed): the
+    // light's switch between the looks happens under a still of the screen
+    // that lifts over 2.5 s, and at 2 s a page could turn half-seen
+    // (Max, 2026-10-21: "no jumps at all").
+    gsTimer.initWithCallback({ notify:function(){ if(gsRead()){ gsContent(); gsEachWindow(function(w){ gsApply(w); ovRepaint(w); }); } } },500,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
   }
   gsRead();
   // ---- card geometry ----
@@ -3737,7 +3741,7 @@ try {
     }); }catch(e){}
     dwTick(); if(dwWant===null){ dwWant=false; dwApply(); }
     dwTimer=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
-    dwTimer.initWithCallback({ notify:function(){ dwTick(); } },2000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);
+    dwTimer.initWithCallback({ notify:function(){ dwTick(); } },500,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);   // (half a second: see gsStart)
   }
   function dwWindow(w){
     try{ w.gBrowser.addTabsProgressListener({ onLocationChange:function(b,wp,req,loc){
