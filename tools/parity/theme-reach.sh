@@ -93,7 +93,7 @@ special() {
     foot*) echo "covered|foot.ini + live colour sequences";;
     nvim*) echo "covered|nvim.lua";;
     soffice*|libreoffice*) echo "MISSING|LibreOffice application colours (registrymodifications.xcu)";;
-    gimp*) echo "MISSING|GIMP 3 theme folder";;
+    gimp*) echo "covered|its System theme on Golem's GTK, gimp.css spin scales (restart)";;
     blender*) echo "MISSING|Blender userpref theme XML";;
     krita*) echo "MISSING|Krita colour scheme (kdeglobals-style .colors)";;
     thunderbird*) echo "MISSING|Thunderbird userChrome (Seam's way)";;
