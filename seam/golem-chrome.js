@@ -3805,7 +3805,9 @@ try {
 // history alone does not say —
 //   * its TITLE as it is now: an app like YouTube Music names the song after the history
 //     has written "YouTube Music";
-//   * its PREVIEW PICTURE (og:image / twitter:image);
+//   * its PREVIEW PICTURE (og:image / twitter:image) — only while the page is still at the
+//     address it loaded at: an app that changes page without loading (YouTube, Spotify)
+//     keeps the first page's tags, and every later page got its picture;
 //   * what it PLAYS: the media session the page publishes for the media keys (song,
 //     artist, album, cover) — Spotify, YouTube Music, YouTube.
 // A frame script in every tab (and webapp window) reads them a moment after the title
@@ -3868,16 +3870,16 @@ try {
 
   // The content side: a moment after the title changes or the page shows, what the page is.
   var RK_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
-    "(function(){var t=0,poll=0,lastPlay='';"+
+    "(function(){var t=0,poll=0,lastPlay='',loaded='';"+
     "function waive(o){try{return Components.utils.waiveXrays(o);}catch(e){return o;}}"+
     "function art(md){try{var a=waive(md).artwork||md.artwork;var best=null,bw=-1;for(var i=0;i<a.length;i++){var it=waive(a[i]);var s=String(it.src||'');var w=parseInt(String(it.sizes||'').split(/[xX]/)[0],10)||0;if(/^https?:/i.test(s)&&w>=bw){best=s;bw=w;}}return best;}catch(e){return null;}}"+
     "function og(d){try{var m=d.querySelector('meta[property=\"og:image\"],meta[name=\"og:image\"],meta[name=\"twitter:image\"],meta[property=\"twitter:image\"]');if(!m)return null;var v=m.getAttribute('content');if(!v)return null;var u=new content.URL(v,d.baseURI);return /^https?:$/.test(u.protocol)?u.href:null;}catch(e){return null;}}"+
     "function media(){try{var md=content.navigator.mediaSession.metadata;if(!md||!md.title)return null;return {title:String(md.title),artist:String(md.artist||''),album:String(md.album||''),art:art(md)};}catch(e){return null;}}"+
     "function send(){t=0;try{var d=content.document,l=content.location;if(!/^https?:$/.test(l.protocol))return;var m=media();if(m)lastPlay=m.title+'|'+m.artist;"+
-    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:og(d),media:m});"+
+    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:(String(l.href)===loaded?og(d):null),media:m});"+
     "if(m&&!poll)poll=content.setInterval(function(){var n=media();if(!n){content.clearInterval(poll);poll=0;return;}if(n.title+'|'+n.artist!==lastPlay)soon();},20000);}catch(e){}}"+
     "function soon(){try{if(t)content.clearTimeout(t);t=content.setTimeout(send,1500);}catch(e){}}"+
-    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;soon();},false);})();");
+    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;try{loaded=String(content.location.href);}catch(e){}soon();},false);})();");
 
   var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0, rkLater=false, rkSavedAt=0;
   // What an earlier run kept, read once before the first change is written over it.
@@ -3969,12 +3971,21 @@ try {
       if(md && md.title){
         var host=""; try{ host=Services.io.newURI(url).host.toLowerCase(); }catch(e){}
         var t=rkClip(md.title,300), a=rkClip(md.artist,200), key=host+"|"+t+"|"+a, play=null;
+        // Where it plays: where it was first heard (a mini player keeps playing on the
+        // pages one goes on to) — and a YouTube video's own page, told by its picture's
+        // address (i.ytimg.com/vi/<id>/), wherever it was heard.
+        var vid=null;
+        if(/(^|\.)youtube\.com$/.test(host) && rkWeb(md.art)){ var vm=/\/vi(?:_webp)?\/([A-Za-z0-9_-]{11})\//.exec(md.art); if(vm) vid=vm[1]; }
+        var at=vid ? "https://"+host+"/watch?v="+vid : url;
         for(var i=0;i<rk.plays.length;i++){ var p=rk.plays[i]; if(p.host+"|"+p.title+"|"+p.artist===key){ play=rk.plays.splice(i,1)[0]; break; } }
         // Heard again within ten minutes: the same listening, not another.
-        if(play){ if(now-(play.at||0)>600){ play.n=(play.n||1)+1; changed=true; } if(rk.plays[0]!==undefined && i>0) changed=true; }
-        else { play={host:host,title:t,artist:a,album:rkClip(md.album,200),n:1}; changed=true; }
-        if(play.url!==url) changed=true;
-        play.url=url; play.at=now; rk.plays.unshift(play);
+        if(play){
+          if(now-(play.at||0)>600){ play.n=(play.n||1)+1; play.url=at; changed=true; }   // heard again: where it is now
+          else if(vid && play.url!==at){ play.url=at; changed=true; }
+          if(i>0) changed=true;
+        }
+        else { play={host:host,title:t,artist:a,album:rkClip(md.album,200),n:1,url:at}; changed=true; }
+        play.at=now; rk.plays.unshift(play);
         if(rkWeb(md.art) && !play.pic) rkPicture(md.art,url,function(f){ play.pic=f; rkSave(); });
       }
       // Written when something changed; times alone at most every five minutes.

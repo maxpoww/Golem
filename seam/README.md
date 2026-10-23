@@ -459,7 +459,10 @@ knows (`RK_CDN`), never from this computer or its network (a page must not make 
 router) —, and pictures nothing names any more are removed. Private windows: nothing. Clearing the
 history clears it (whole, or the pages taken out: Forget About This Site, a range). Written only
 when something changed (times alone at most every five minutes). Test: the headless run with
-`SEAM_RECENTS_TEST_CLEAR=<ms>` clears the history that long after start.
+`SEAM_RECENTS_TEST_CLEAR=<ms>` clears the history that long after start. A page's preview picture is
+taken only while it is still at the address it loaded at (an app that changes page without loading
+keeps the first page's tags); a song stays where it was first heard (a mini player plays on), and a
+YouTube video's is its own page, told by its picture's address.
 Kill switch `golem.seam.recents`; log `SEAM_RECENTS_LOG=<file>`. The dock reads it as data a page
 had a hand in (size limits, http(s) only, pictures only of Seam's naming in `pics/`, no links).
 
