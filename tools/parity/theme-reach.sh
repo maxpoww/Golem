@@ -101,10 +101,7 @@ special() {
     thunderbird*) echo "look|its own dark/light from the portal (legible; checked 2026-10-23)";;
     obsidian*) echo "MISSING|Obsidian CSS snippet";;
     discord*|vesktop*|slack*|signal*|element*|teams*) echo "look|Electron: dark/light only (no theme file of its own)";;
-    kitty*) echo "MISSING|kitty include file";;
-    alacritty*) echo "MISSING|Alacritty import file";;
-    wezterm*) echo "MISSING|WezTerm colour scheme file";;
-    ghostty*) echo "MISSING|Ghostty theme file";;
+    kitty*|alacritty*|wezterm*|ghostty*) echo "n/a|another terminal: only Golem's own (foot) is coloured";;
     konsole*) echo "covered|KDE colour scheme (Konsole profile: MISSING)";;
     steam*) echo "look|Steam: its own skin";;
     waverunner*) echo "covered|Golem's own (the dock's colours)";;
