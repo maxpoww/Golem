@@ -196,7 +196,10 @@ try {
   function gsMix(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
   // The palette's colours -> the Seam palette. Pure (the self-test calls it).
   function gsDerive(c){
-    var bg=gsHex(c.base01), ink=gsHex(c.base05), dim=gsHex(c.base04), deep=gsHex(c.base00), raised=gsHex(c.base02);
+    // (Muted words: the dock's quiet ink, which reads 4.5:1 — base04 did not
+    // on half the palettes, the legibility audit 2026-10-23; base04 from an
+    // older dock.)
+    var bg=gsHex(c.base01), ink=gsHex(c.base05), dim=gsHex(c.quiet)||gsHex(c.base04), deep=gsHex(c.base00), raised=gsHex(c.base02);
     if(!bg||!ink||!dim||!deep||!raised) return null;
     var dark=c.dark!==false;
     // The palette's accent (a newer dock writes it): what the drop on the bar lights with.
@@ -725,11 +728,13 @@ try {
       var css=top+"{background-color:"+PA+"!important;background-image:none!important;border-color:"+PA+"!important;}"
             + fld+"{background-color:"+PF+"!important;background-image:none!important;border-color:"+PF+"!important;}"
             + hide+"{visibility:hidden!important;}"
-            // Overview buttons are ALWAYS white (Max, 2026-09-25): the bar is flat dark while the
-            // grid is up, but the icon colour follows the page's scheme (black on bright pages).
-            // Declared on the toolbox, so it overrides the theme's root value for everything in it.
-            + ":root[golem-ov] #navigator-toolbox{--toolbarbutton-icon-fill:#ffffff!important;--toolbarbutton-icon-fill-attention:#ffffff!important;"
-            + "--toolbarbutton-background-color-hover:rgba(255,255,255,.1)!important;--toolbarbutton-background-color-active:rgba(255,255,255,.16)!important;color:#ffffff!important;}";
+            // Overview buttons wear the ink of the bar they sit on (`--golem-pin-ink`, set with
+            // the pin: ovBarPinColor), not the page's scheme. They were always white (Max,
+            // 2026-09-25, when the bar was always dark): on a light palette's bar, white on
+            // white (the legibility audit, 2026-10-23). Declared on the toolbox, so it
+            // overrides the theme's root value for everything in it.
+            + ":root[golem-ov] #navigator-toolbox{--toolbarbutton-icon-fill:var(--golem-pin-ink,#ffffff)!important;--toolbarbutton-icon-fill-attention:var(--golem-pin-ink,#ffffff)!important;"
+            + "--toolbarbutton-background-color-hover:color-mix(in srgb,var(--golem-pin-ink,#ffffff) 10%,transparent)!important;--toolbarbutton-background-color-active:color-mix(in srgb,var(--golem-pin-ink,#ffffff) 16%,transparent)!important;color:var(--golem-pin-ink,#ffffff)!important;}";
       var uri=Services.io.newURI("data:text/css;charset=utf-8,"+encodeURIComponent(css));
       win.windowUtils.loadSheet(uri, win.windowUtils.AGENT_SHEET);
       win.__golemOvSheetOK=true;
@@ -763,7 +768,20 @@ try {
   // "overlapped colours" that came back.
   function ovRememberBar(win,tab){ try{ if(!tab || (win.__gtHold && win.__gtHold.tab===tab)) return; var c=ovReadBar(win); if(!c||!c.f||c.f.indexOf("light-dark(")!==-1) return; var key=c.f+"|"+c.a, L=win.__golemBarLast, now=Date.now(); if(L && L.tab===tab && L.key===key){ if(now-L.t>=250) tab.__golemBar=c; } else win.__golemBarLast={tab:tab,key:key,t:now}; }catch(e){} }
   // Set what the pin paints: flat for the overview, or a tab's predicted colours on a switch.
-  function ovBarPinColor(win,f,a){ try{ var s=win.document.documentElement.style; s.setProperty("--golem-pin-f",f||OV_BACKDROP); s.setProperty("--golem-pin-a",a||OV_BACKDROP); }catch(e){} }
+  function ovBarPinColor(win,f,a){ try{ var s=win.document.documentElement.style; s.setProperty("--golem-pin-f",f||OV_BACKDROP); s.setProperty("--golem-pin-a",a||OV_BACKDROP); s.setProperty("--golem-pin-ink",gsInkOn(a||OV_BACKDROP)); }catch(e){} }
+  // The ink that reads on a CSS colour (rgb()/rgba()/#hex): the palette's words where
+  // they read 4.5:1 on it, else black or white, whichever reads (one always does).
+  function gsRgbOf(css){
+    var m=/rgba?\(\s*(\d+)[ ,]+(\d+)[ ,]+(\d+)/i.exec(String(css||""));
+    return m?[+m[1],+m[2],+m[3]]:gsHex(css);
+  }
+  function gsLum(c){ var l=c.map(function(v){ v/=255; return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4); }); return 0.2126*l[0]+0.7152*l[1]+0.0722*l[2]; }
+  function gsRatio(a,b){ var x=gsLum(a), y=gsLum(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); }
+  function gsInkOn(css){
+    var bg=gsRgbOf(css); if(!bg) return OV_TEXT;
+    var ink=gsRgbOf(OV_TEXT); if(ink && gsRatio(ink,bg)>=4.5) return OV_TEXT;
+    return gsLum(bg)>0.179?"#000000":"#ffffff";
+  }
 
   // TEMP diagnostic (OV_DEBUG): confirm the sheet took — read the field's ACTUAL painted
   // colour and the ATBC variable, so a miss is traced from the log, not guessed.
