@@ -3812,8 +3812,12 @@ try {
 // changes or the page shows, and while media plays every 20 s; this side keeps them in
 // XDG_STATE_HOME/golem/seam/recents/recents.json and fetches each picture ONCE, by Seam
 // itself, from the address the page gave, into pics/<hash>.<jpg|png|webp> (an image of at
-// most 2 MB). Private windows: nothing. Bounded: 1000 pages, 300 plays, pictures no one
-// names any more removed. Kill switch: golem.seam.recents=false. Log: SEAM_RECENTS_LOG=<file>.
+// most 2 MB) — only from the page's own site or a known picture server of the sites the dock
+// knows, never from this computer or its network (a page must not make Seam call the router).
+// Private windows: nothing. Clearing the history clears it (all of it, or the pages taken
+// out: Forget About This Site). Written only when something changed. Bounded: 1000 pages,
+// 300 plays, pictures no one names any more removed. Kill switch: golem.seam.recents=false.
+// Log: SEAM_RECENTS_LOG=<file>.
 // ===================================================================
 try {
   var RK_PREF="golem.seam.recents", RK_PAGES=1000, RK_PLAYS=300, RK_PIC_MAX=2*1024*1024;
@@ -3839,6 +3843,27 @@ try {
     return (h2>>>0).toString(16).padStart(8,"0")+(h1>>>0).toString(16).padStart(8,"0");
   }
   function rkWeb(s){ return typeof s==="string" && s.length<=2000 && /^https?:\/\//i.test(s); }
+  // Where a picture may come from: the page's own site, or a picture server of one of
+  // the sites the dock knows; never an address of this computer or its network.
+  var RK_CDN=["ytimg.com","ggpht.com","googleusercontent.com","gstatic.com","scdn.co","spotifycdn.com",
+    "media-amazon.com","ssl-images-amazon.com","ebayimg.com","fbcdn.net","cdninstagram.com","twimg.com",
+    "redditmedia.com","redd.it","githubusercontent.com","githubassets.com","wikimedia.org","nflxext.com",
+    "nflximg.net","nflxso.net","pinimg.com","tiktokcdn.com","tiktokcdn-us.com","licdn.com","discordapp.com",
+    "discordapp.net","alicdn.com","aliexpress-media.com","bstatic.com","muscache.com","sndcdn.com","dzcdn.net",
+    "steamstatic.com","sstatic.net","jtvnw.net","oaistatic.com","oaiusercontent.com"];
+  function rkBase(h){ try{ return Services.eTLD.getBaseDomainFromHost(h); }catch(e){ return h; } }
+  function rkNear(h){
+    if(!h || h==="localhost" || h.indexOf(":")>=0 || /^[0-9.]+$/.test(h)) return true;   // this computer, an address by number
+    return /\.(local|localdomain|lan|home|internal|intranet|corp)$/i.test(h) || h.indexOf(".")<0;
+  }
+  function rkMayFetch(src,pageUrl){
+    try{
+      var h=Services.io.newURI(src).host.toLowerCase(), ph=Services.io.newURI(pageUrl).host.toLowerCase();
+      var near=false; try{ near=Services.prefs.getBoolPref("golem.seam.recents.nearPictures",false); }catch(e){}   // the headless test's local pages
+      if(rkNear(h) && !near) return false;
+      var b=rkBase(h); return b===rkBase(ph) || RK_CDN.indexOf(b)>=0;
+    }catch(e){ return false; }
+  }
   function rkClip(s,n){ return String(s==null?"":s).replace(/[\u0000-\u001f]/g," ").trim().slice(0,n); }
 
   // The content side: a moment after the title changes or the page shows, what the page is.
@@ -3854,7 +3879,7 @@ try {
     "function soon(){try{if(t)content.clearTimeout(t);t=content.setTimeout(send,1500);}catch(e){}}"+
     "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;soon();},false);})();");
 
-  var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0;
+  var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0, rkLater=false, rkSavedAt=0;
   // What an earlier run kept, read once before the first change is written over it.
   function rkLoad(then){
     if(rkReady){ then(); return; }
@@ -3875,6 +3900,7 @@ try {
   }
   function rkWrite(){
     var w=rkWin(), dir=rkDir(); if(!w || !dir) return;
+    rkLater=false; rkSavedAt=Date.now();
     // Bounded: the newest pages, the newest plays.
     var urls=Object.keys(rk.pages);
     if(urls.length>RK_PAGES){
@@ -3898,8 +3924,9 @@ try {
     }).catch(function(){});
   }
   // A picture, fetched ONCE by Seam from the address the page gave: done(file name) when it is in.
-  function rkPicture(src,done){
+  function rkPicture(src,pageUrl,done){
     if(!rkWeb(src)) return;
+    if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); return; }
     var name=rkHash(src), w=rkWin(), dir=rkDir(); if(!w || !dir) return;
     if(rkFetching[name]) return; rkFetching[name]=1;
     var io=w.IOUtils, exts=["jpg","png","webp"];
@@ -3929,30 +3956,75 @@ try {
     try{ if(b.ownerGlobal.PrivateBrowsingUtils.isBrowserPrivate(b)){ RKLOG("private: not kept"); return; } }catch(e){}
     if(!rkWeb(d.url)) return;
     rkLoad(function(){
-      var now=Math.round(Date.now()/1000), url=String(d.url);
-      var page=rk.pages[url]||{}, title=rkClip(d.title,300);
-      if(title) page.title=title;
-      page.at=now; rk.pages[url]=page;
-      if(rkWeb(d.og) && !page.pic) rkPicture(d.og,function(f){ page.pic=f; rkSave(); });
+      var now=Math.round(Date.now()/1000), url=String(d.url), changed=false;
+      var page=rk.pages[url];
+      if(!page){ page={}; rk.pages[url]=page; changed=true; }
+      var title=rkClip(d.title,300);
+      if(title && page.title!==title){ page.title=title; changed=true; }
+      // (Seen again after an hour: it moves up among the kept pages.)
+      if(now-(page.at||0)>3600) changed=true;
+      page.at=now;
+      if(rkWeb(d.og) && !page.pic) rkPicture(d.og,url,function(f){ page.pic=f; rkSave(); });
       var md=d.media;
       if(md && md.title){
         var host=""; try{ host=Services.io.newURI(url).host.toLowerCase(); }catch(e){}
         var t=rkClip(md.title,300), a=rkClip(md.artist,200), key=host+"|"+t+"|"+a, play=null;
         for(var i=0;i<rk.plays.length;i++){ var p=rk.plays[i]; if(p.host+"|"+p.title+"|"+p.artist===key){ play=rk.plays.splice(i,1)[0]; break; } }
         // Heard again within ten minutes: the same listening, not another.
-        if(play){ if(now-(play.at||0)>600) play.n=(play.n||1)+1; }
-        else play={host:host,title:t,artist:a,album:rkClip(md.album,200),n:1};
+        if(play){ if(now-(play.at||0)>600){ play.n=(play.n||1)+1; changed=true; } if(rk.plays[0]!==undefined && i>0) changed=true; }
+        else { play={host:host,title:t,artist:a,album:rkClip(md.album,200),n:1}; changed=true; }
+        if(play.url!==url) changed=true;
         play.url=url; play.at=now; rk.plays.unshift(play);
-        if(rkWeb(md.art) && !play.pic) rkPicture(md.art,function(f){ play.pic=f; rkSave(); });
+        if(rkWeb(md.art) && !play.pic) rkPicture(md.art,url,function(f){ play.pic=f; rkSave(); });
       }
-      rkSave();
+      // Written when something changed; times alone at most every five minutes.
+      if(changed) rkSave();
+      else { rkLater=true; if(Date.now()-rkSavedAt>300000) rkSave(); }
     });
   }
+  // The history cleared, whole or a page at a time (Forget About This Site, a range of
+  // it): what was kept of those pages goes with them — the dock must not show a song
+  // the owner wiped.
+  function rkWipe(){
+    rk={v:1,pages:{},plays:[]}; rkReady=true; RKLOG("history cleared: all forgotten");
+    var w=rkWin(), dir=rkDir(); rkWrite();
+    if(w && dir) w.IOUtils.getChildren(dir+"/pics").then(function(kids){ kids.forEach(function(k){ w.IOUtils.remove(k).catch(function(){}); }); }).catch(function(){});
+  }
+  function rkForget(urls){
+    rkLoad(function(){
+      var gone=0;
+      urls.forEach(function(u){ if(rk.pages[u]){ delete rk.pages[u]; gone++; } });
+      var keep=rk.plays.filter(function(p){ return urls.indexOf(p.url)<0; }); gone+=rk.plays.length-keep.length; rk.plays=keep;
+      if(gone){ RKLOG("forgot "+gone); rkSave(); }
+    });
+  }
+  var rkPlacesOn=false;
+  function rkPlaces(w){
+    if(rkPlacesOn) return;
+    try{
+      w.PlacesObservers.addListener(["history-cleared","page-removed"],function(events){
+        var urls=[];
+        events.forEach(function(ev){
+          if(ev.type==="history-cleared") rkWipe();
+          else if(ev.type==="page-removed" && ev.isRemovedFromStore) urls.push(String(ev.url));
+        });
+        if(urls.length) rkForget(urls);
+      });
+      rkPlacesOn=true;
+    }catch(e){ RKLOG("places:"+e); }
+  }
+  try{ Services.obs.addObserver({observe:function(){ rkWipe(); }},"browser:purge-session-history"); }catch(e){}
   function rkWindow(w){
     if(w.__golemRkInit) return; w.__golemRkInit=true;
+    rkPlaces(w);
     try{ w.messageManager.addMessageListener("golem:recent",rkHeard); }catch(e){ RKLOG("listen:"+e); }
     try{ w.messageManager.loadFrameScript(RK_FS,true); }catch(e){ RKLOG("framescript:"+e); }
   }
   Services.obs.addObserver({observe:function(w){ try{ if(rkOn()) rkWindow(w); }catch(e){ RKLOG("window:"+e); } }},"browser-delayed-startup-finished");
+  // The headless test: the history cleared a while after start (SEAM_RECENTS_TEST_CLEAR=<ms>).
+  try{
+    var rkClearIn=parseInt(Services.env.get("SEAM_RECENTS_TEST_CLEAR"),10);
+    if(rkClearIn>0) Services.obs.addObserver({observe:function(w){ w.setTimeout(function(){ try{ w.PlacesUtils.history.clear(); }catch(e){ RKLOG("test clear:"+e); } },rkClearIn); }},"browser-delayed-startup-finished");
+  }catch(e){}
   RKLOG("recents kitchen loaded");
 } catch(e){}

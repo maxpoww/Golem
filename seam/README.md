@@ -454,7 +454,12 @@ cover — Spotify, YouTube Music, YouTube) — in `$XDG_STATE_HOME/golem/seam/re
 1000 pages, 300 plays) and `pics/<16 hex>.<jpg|png|webp>`. A frame script in every tab and webapp
 window reads the page 1.5 s after its title changes or it shows, and every 20 s while it plays;
 each picture is fetched ONCE by Seam itself from the address the page gave (an image of at most
-2 MB, no cookies), and pictures nothing names any more are removed. Private windows: nothing.
+2 MB, no cookies) — only from the page's own site or a known picture server of the sites the dock
+knows (`RK_CDN`), never from this computer or its network (a page must not make Seam call the
+router) —, and pictures nothing names any more are removed. Private windows: nothing. Clearing the
+history clears it (whole, or the pages taken out: Forget About This Site, a range). Written only
+when something changed (times alone at most every five minutes). Test: the headless run with
+`SEAM_RECENTS_TEST_CLEAR=<ms>` clears the history that long after start.
 Kill switch `golem.seam.recents`; log `SEAM_RECENTS_LOG=<file>`. The dock reads it as data a page
 had a hand in (size limits, http(s) only, pictures only of Seam's naming in `pics/`, no links).
 
