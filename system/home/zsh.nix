@@ -85,6 +85,9 @@ programs.fzf = {
     defaultCommand = "fd --type f --hidden --strip-cwd-prefix";
     fileWidgetCommand = "fd --type f --hidden --strip-cwd-prefix";
     defaultOptions = [
+      # (The terminal's sixteen, the palette's — its own 256-colour scheme
+      # kept a dark selection in the Light look.)
+      "--color=16"
       "--height=60%"
       "--layout=reverse"
       "--border=rounded"
@@ -97,6 +100,15 @@ programs.fzf = {
     ];
   };
 
+
+  # bat (cat, man, the fzf preview) in the terminal's own colours, which are
+  # THE PALETTE's (Controls → Colours; foot includes the dock's file) — for
+  # every shell: a new install's is bash, and set in zsh's alone, bat wore its
+  # own dark theme there (the legibility audit, 2026-10-23).
+  home.sessionVariables = {
+    MANPAGER = "bat -l man -p";
+    BAT_THEME = "ansi";
+  };
 
   # Main Zsh Configuration
   programs.zsh = {
@@ -123,10 +135,6 @@ programs.fzf = {
     sessionVariables = {
       EDITOR = "nvim";
       VISUAL = "nvim";
-      MANPAGER = "bat -l man -p";
-      # bat (cat, man, the fzf preview) in the terminal's own colours, which
-      # are THE PALETTE's (Controls → Colours; foot includes the dock's file).
-      BAT_THEME = "ansi";
       GPG_TTY = "$(tty)";
       VIRTUAL_ENV_DISABLE_PROMPT = "1";
       _FZF_PREVIEW_CMD = "bat --color=always --style=plain,numbers --line-range=:500 {}";

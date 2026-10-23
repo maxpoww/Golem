@@ -46,9 +46,13 @@
 let
   installed = name: lib.any (p: lib.getName p == name) config.home.packages;
   obs = ./fits/obs-studio;
+  opencodeConfig = pkgs.writeText "opencode.json" (builtins.toJSON {
+    "$schema" = "https://opencode.ai/config.json";
+    theme = "system";
+  });
 in
 {
-  config = lib.mkIf (installed "obs-studio") {
+  config = lib.mkMerge [ (lib.mkIf (installed "obs-studio") {
     home.activation.fitObsStudio = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       fit_done="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/fits/obs-studio"
       obs_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/obs-studio"
@@ -68,5 +72,38 @@ in
         $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
       fi
     '';
-  };
+  })
+
+  # ---- Terminal programs that paint their own colours ----------------------
+  # (The legibility audit, 2026-10-23: Claude Code's built-in dark theme wrote
+  # white words into a Light terminal — invisible.) Each is set ONCE to follow
+  # the terminal, only where the owner never chose a theme, and never while
+  # the program runs (it rewrites its own file).
+  # - Claude Code: "auto" = "Auto (match terminal)": it asks the terminal for
+  #   its background (OSC 11) and wears its own dark or light theme to match.
+  #   Its file appears at its first run; until then there is nothing to set.
+  # - opencode: "system" = the terminal's own colours, which are the palette's.
+  {
+    home.activation.fitTerminalThemes = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      fits="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/fits"
+      jq=${pkgs.jq}/bin/jq
+      cc="$HOME/.claude.json"
+      if [ ! -e "$fits/claude-code-theme" ] && [ -e "$cc" ] && ! ${pkgs.procps}/bin/pgrep -u "$(id -u)" -x claude >/dev/null; then
+        if $jq -e 'has("theme") | not' "$cc" >/dev/null 2>&1; then
+          $DRY_RUN_CMD $jq '.theme = "auto"' "$cc" > "$cc.golem-tmp" && $DRY_RUN_CMD mv -f "$cc.golem-tmp" "$cc"
+        fi
+        $DRY_RUN_CMD install -Dm644 /dev/null "$fits/claude-code-theme"
+      fi
+      oc="''${XDG_CONFIG_HOME:-$HOME/.config}/opencode/opencode.json"
+      if [ ! -e "$fits/opencode-theme" ] && ! ${pkgs.procps}/bin/pgrep -u "$(id -u)" -x opencode >/dev/null; then
+        if [ ! -e "$oc" ]; then
+          $DRY_RUN_CMD install -Dm644 ${opencodeConfig} "$oc"
+        elif $jq -e 'has("theme") | not' "$oc" >/dev/null 2>&1; then
+          $DRY_RUN_CMD $jq '.theme = "system"' "$oc" > "$oc.golem-tmp" && $DRY_RUN_CMD mv -f "$oc.golem-tmp" "$oc"
+        fi
+        $DRY_RUN_CMD install -Dm644 /dev/null "$fits/opencode-theme"
+      fi
+    '';
+  }
+  ];
 }
