@@ -207,7 +207,10 @@ hl.config({
         active_opacity   = 1.0,
         inactive_opacity = 1.0,
         dim_inactive = true,
-        dim_strength = 0.3,
+        -- (The dock sets it by the apps' look — 15% Light, 25% Dark — through
+        -- settings.lua and live: 0.3 took almost every word under 4.5:1, the
+        -- legibility audit, 2026-10-23. This is the Dark one, before the dock.)
+        dim_strength = 0.25,
         -- How dark the screen goes behind a window carrying `dim_around`. Only
         -- Golem's STAGE uses that rule, so this number is the stage's backdrop
         -- and nothing else's.
