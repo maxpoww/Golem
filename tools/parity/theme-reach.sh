@@ -92,11 +92,13 @@ special() {
     inkscape*) echo "covered|fixed GTK theme Golem (restart)";;
     foot*) echo "covered|foot.ini + live colour sequences";;
     nvim*) echo "covered|nvim.lua";;
-    soffice*|libreoffice*) echo "MISSING|LibreOffice application colours (registrymodifications.xcu)";;
+    soffice*|libreoffice*) echo "covered|Golem's GTK theme (VCL gtk3; the page stays white)";;
     gimp*) echo "covered|its System theme on Golem's GTK, gimp.css spin scales (restart)";;
     blender*) echo "MISSING|Blender userpref theme XML";;
-    krita*) echo "MISSING|Krita colour scheme (kdeglobals-style .colors)";;
-    thunderbird*) echo "MISSING|Thunderbird userChrome (Seam's way)";;
+    krita*) echo "covered|Golem colour scheme (fit: kritarc [theme] Theme=Golem)";;
+    shotcut*) echo "covered|its system theme on Golem's Qt palette (fit: Shotcut.conf theme=system)";;
+    darktable*) echo "n/a|neutral greys by design (a photo editor judges colour)";;
+    thunderbird*) echo "look|its own dark/light from the portal (legible; checked 2026-10-23)";;
     obsidian*) echo "MISSING|Obsidian CSS snippet";;
     discord*|vesktop*|slack*|signal*|element*|teams*) echo "look|Electron: dark/light only (no theme file of its own)";;
     kitty*) echo "MISSING|kitty include file";;

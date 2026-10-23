@@ -46,6 +46,22 @@
 let
   installed = name: lib.any (p: lib.getName p == name) config.home.packages;
   obs = ./fits/obs-studio;
+  # `ini-set FILE GROUP KEY VALUE`: KEY set in [GROUP] only where it is not
+  # set yet (a value there is the owner's); the file and the group made as
+  # needed. Written whole, then moved over.
+  iniSet = pkgs.writeShellScript "golem-ini-set" ''
+    file=$1 group=$2 key=$3 value=$4
+    [ -n "''${DRY_RUN:-}" ] && exit 0
+    mkdir -p "$(dirname "$file")"
+    [ -e "$file" ] || : > "$file"
+    ${pkgs.gawk}/bin/awk -v g="[$group]" -v k="$key" -v v="$value" '
+      $0 == g { in_g = 1; seen_g = 1; print; next }
+      /^\[/ { if (in_g && !set) { print k "=" v; set = 1 } in_g = 0 }
+      in_g && index($0, k "=") == 1 { set = 1 }
+      { print }
+      END { if (!seen_g) { print g; print k "=" v } else if (in_g && !set) print k "=" v }
+    ' "$file" > "$file.golem-tmp" && mv -f "$file.golem-tmp" "$file"
+  '';
   opencodeConfig = pkgs.writeText "opencode.json" (builtins.toJSON {
     "$schema" = "https://opencode.ai/config.json";
     theme = "system";
@@ -69,6 +85,33 @@ in
           $DRY_RUN_CMD install -m644 ${obs}/Untitled.json "$scene"
         fi
         # Either way this was the one time: from here the config is the owner's.
+        $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
+      fi
+    '';
+  })
+
+  # ---- Shotcut and Krita: their own theme pickers, set to Golem's ----------
+  # Shotcut's "system" theme draws with Qt's palette (qt6ct: Golem's); Krita's
+  # "Golem" colour scheme is the KDE scheme the dock writes. Set ONCE, where
+  # the app has never been set up or has no theme of its own yet, never while
+  # it runs (both write their settings as they quit). Checked in the rig,
+  # 2026-10-23 (the legibility audit holds Qt's and KDE's pairs).
+  (lib.mkIf (installed "shotcut") {
+    home.activation.fitShotcut = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      fit_done="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/fits/shotcut"
+      conf="''${XDG_CONFIG_HOME:-$HOME/.config}/Meltytech/Shotcut.conf"
+      if [ ! -e "$fit_done" ] && ! ${pkgs.procps}/bin/pgrep -u "$(id -u)" -x shotcut >/dev/null; then
+        ${iniSet} "$conf" General theme system
+        $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
+      fi
+    '';
+  })
+  (lib.mkIf (installed "krita") {
+    home.activation.fitKrita = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      fit_done="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/fits/krita"
+      conf="''${XDG_CONFIG_HOME:-$HOME/.config}/kritarc"
+      if [ ! -e "$fit_done" ] && ! ${pkgs.procps}/bin/pgrep -u "$(id -u)" -x krita >/dev/null; then
+        ${iniSet} "$conf" theme Theme Golem
         $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
       fi
     '';
