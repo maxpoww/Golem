@@ -127,6 +127,26 @@ in
     golem.update.cacheArgs = cacheArgs;
     golem.update.waveCommand = waveOf;
     nix.settings.trusted-public-keys = cfg.cache.publicKeys;
-    environment.systemPackages = [ waveOf ];
+
+    # An update must never freeze the machine. The Acer's first update
+    # through the cache (2026-10-27) compiled nothing and still froze the
+    # desktop: unpacking 8.7 GiB onto its spinning disk held I/O pressure at
+    # 98%, and BFQ (disk/policy.nix) split the disk FAIRLY between the
+    # daemon and the desktop. The daemon does every download, unpack and
+    # build: in the idle I/O class, with a low cgroup weight (which also
+    # covers its buffered writes, flushed by the kernel), the user's
+    # programs get the disk and the CPU first and the update takes the rest.
+    # Measured live on the Acer: nothing of the desktop left waiting on the
+    # disk. CPU: batch, not idle, so a dock install still finishes while
+    # someone works.
+    nix.daemonIOSchedClass = "idle";
+    nix.daemonCPUSchedPolicy = "batch";
+    systemd.services.nix-daemon.serviceConfig = {
+      IOWeight = 10;
+      CPUWeight = 10;
+    };
+    # Both on PATH for debugging: `golem-update-wave`, and
+    # `golem-cache-args ~/Golem` (is this checkout's version cached?).
+    environment.systemPackages = [ waveOf cacheArgs ];
   };
 }

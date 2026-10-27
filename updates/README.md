@@ -161,6 +161,16 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   `machine-id mod 7` unless set. The lab is 0. Nothing is reported or
   asked. `/run/golem-update-now` skips the wait on one machine.
 
+## An update never freezes the machine
+
+The nix daemon does every download, unpack and build of an update, so it
+runs in the idle I/O class with a low cgroup weight (`IOWeight=10`,
+`CPUWeight=10`, CPU policy batch; `client.nix`). With BFQ on rotational
+disks (`disk/policy.nix`) the user's programs get the disk first. Learned
+on the Acer (2026-10-27): its first update through the cache compiled
+nothing, yet unpacking 8.7 GiB onto its HDD froze the desktop at 98% I/O
+pressure while BFQ split the disk fairly.
+
 ## NixOS releases and the kernel
 
 - Golem follows a NixOS release branch (`nixos-YY.MM` + home-manager
