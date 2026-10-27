@@ -28,9 +28,11 @@
   description = "Golem OS — one flake, one complete Golem PC";
 
   inputs = {
-    # Pinned to the exact rev the live machine's nixos-26.05 channel is on,
-    # so the first builds come from the local store, not a world rebuild.
-    nixpkgs.url = "github:NixOS/nixpkgs/c5c4a43b0e8056328ec4529f735cabdb8f1942bb";
+    # NixOS's 26.05 channel branch: each of its commits is one Hydra built
+    # and tested. The update lane moves the lock to its newest commit once a
+    # week and builds every Golem system before publishing (updates/README.md);
+    # the jump to the next release is `golem-lane release`.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
