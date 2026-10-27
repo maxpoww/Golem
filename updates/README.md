@@ -110,21 +110,29 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   a complete Nix binary cache in one flat list: `nix-cache-info`,
   `<hash>.narinfo`, `<filehash>.nar.zst` (the narinfo `URL:` lines point at
   the flat name; the signature covers the content, not the location).
-- **What goes in** (`select.py`): every closure path cache.nixos.org
-  lacks whose derivation nix would *substitute* (`allowSubstitutes`, the
-  default). That is exactly what a machine would otherwise build: nvidia,
-  Seam, the dock, patched Hyprland **with all its outputs**, the Golem
-  scripts, the drivers… Not a size threshold: the first MacBook update
-  compiled Hyprland because its 20 KiB `man` output was below the old
-  64 KiB rule, and nix builds the whole derivation when one output it needs
-  is in no cache. Left out: trivial builds (`allowSubstitutes = false`:
-  nix builds those locally anyway), **per-machine** pieces (a fixture's
-  initrd, system-path, unit lists, hwdb, toplevel: every real machine
-  builds its own), **fixed-output downloads** (third-party files: each
-  machine fetches them from their source, we do not re-host them), and
-  eval-time sources. First version: 2675 closure paths, 591 not on
-  cache.nixos.org, 128 uploaded (3.5 GiB before compression, 2.8 of it
-  nvidia). A set over 990 files fails loudly rather than dropping pieces.
+- **What goes in** (`select.py`), two rules, both learned on the first
+  MacBook update (2026-10-27):
+  1. Every closure path cache.nixos.org lacks whose derivation nix would
+     *substitute* (`allowSubstitutes`): nvidia, Seam, the dock, patched
+     Hyprland **with all its outputs**, the Golem scripts, the drivers. Not
+     a size threshold: Hyprland's 20 KiB `man` output fell under the old
+     64 KiB rule and the laptop started compiling Hyprland, because nix
+     builds the whole derivation when one output it needs is in no cache.
+  2. **Closed under references**: whatever those refer to that
+     cache.nixos.org lacks comes along, whatever kind it is. Nix downloads a
+     path only if it can download every path it refers to; otherwise it
+     builds it. The dock compiled for 20 minutes because it refers (through
+     waverunner-translate) to translation models, third-party downloads that
+     were in no cache. So those downloads (open-licence models, browser
+     extensions), trivial config files and source files go in when a Golem
+     piece needs them.
+  Left out: per-machine pieces nothing else needs (a fixture's initrd,
+  system-path, unit lists, toplevel: every machine builds its own), trivial
+  builds and downloads nothing cached needs, and never-publish. A cached
+  piece that needs a never-publish path is reported as `blocked` (every
+  machine builds it). First version: 2675 closure paths, 591 not on
+  cache.nixos.org, 171 uploaded, no gaps. A set over 990 files fails
+  loudly rather than dropping pieces.
 - **Placeholders**: nix adds a path to a binary cache only if every path it
   refers to is already listed there. The lane writes a placeholder narinfo
   for each reference it does not upload, exports, and deletes them before

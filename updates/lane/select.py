@@ -30,8 +30,20 @@ and nix builds the WHOLE derivation when one output it needs is in no cache.
 Paths with no derivation (eval-time sources: patches, flake files) come
 from every machine's own evaluation and stay out.
 
-Three kinds stay out even when substitutable (first gate, 2026-10-27: 591
-paths cache.nixos.org lacks, 201 substitutable):
+The upload is then CLOSED under references: every path a chosen one refers
+to (transitively) that cache.nixos.org lacks goes in too, whatever kind it
+is. Nix downloads a path only when it can DOWNLOAD every path it refers
+to; one that is in no cache makes the closure "incomplete" and nix builds
+the derivation instead. The same MacBook update compiled the dock for 20
+minutes for that: waverunner-daemon refers (through waverunner-translate)
+to translation models, third-party downloads that were in no cache. So a
+download, a trivial config file or a source file a chosen path needs is
+uploaded with it (the downloads Golem pieces need are open-licence models
+and browser extensions). Only never-publish stays out; a chosen path that
+needs one is reported as `blocked`: every machine builds it.
+
+Kinds that stay out unless a chosen path needs them (first gate,
+2026-10-27: 591 paths cache.nixos.org lacks, 201 substitutable):
 - PER-MACHINE pieces: a fixture's initrd, system-path, unit lists, hwdb,
   toplevel… Every real machine builds its own from its own hardware and
   answers, so the fixtures' copies would never be used.
@@ -125,6 +137,22 @@ def main():
     no_drv = {p for p in eligible if substitutable(p) is None}
     chosen = eligible - local_only - no_drv
 
+    # Close under references (see the module comment).
+    closed, blocked = set(chosen), set()
+    todo = list(chosen)
+    while todo:
+        p = todo.pop()
+        for r in info[p]["refs"]:
+            if r == p or r in closed or r not in lacking:
+                continue
+            if r in refused:
+                blocked.add(p)
+                continue
+            closed.add(r)
+            todo.append(r)
+    pulled_in = closed - chosen
+    chosen = closed
+
     with open(out_file, "w") as f:
         for p in sorted(chosen):
             f.write(p + "\n")
@@ -153,6 +181,8 @@ def main():
         "downloads_left_out": len(downloads),
         "local_only_left_out": len(local_only),
         "no_derivation_left_out": len(no_drv),
+        "pulled_in_by_references": len(pulled_in),
+        "blocked_by_never_publish": sorted(name_of(p) for p in blocked),
         "chosen": len(chosen),
         "chosen_nar_mib": sum(info[p]["size"] for p in chosen) >> 20,
         "files": files,
