@@ -150,8 +150,11 @@ report() {  # one line per system: its kernel
 # release g-<rev12> of $CACHE_REPO, uploaded as a draft and made public only
 # when complete, then read back until GitHub serves every file.
 cache() {
-  local rev=$1 tag=g-${1:0:12} work sel n notes
-  work=$STATE/export; rm -rf "$work"; mkdir -p "$work"
+  local rev=$1 tag=g-${1:0:12} work sel n notes f
+  # A fresh directory per version: nix remembers what it saw in a binary
+  # cache by its URL, and the placeholders below must never be remembered.
+  rm -rf "$STATE/export"
+  work=$STATE/export/${rev:0:12}; EXPORT_OUT=$work/out; mkdir -p "$EXPORT_OUT"
   if gh release view "$tag" --repo "$CACHE_REPO" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx false \
      && verify "$tag" quiet; then
     say "cache $tag already published and complete"
@@ -159,28 +162,32 @@ cache() {
   fi
   gh release delete "$tag" --repo "$CACHE_REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
 
-  nix "${NIXF[@]}" path-info -r --json "$GATE_OUT" > "$work/closure.json"
+  nix "${NIXF[@]}" path-info -r --json --json-format 1 "$GATE_OUT" > "$work/closure.json"
   jq -r 'if type == "array" then .[].path else keys[] end' "$work/closure.json" \
     | sed 's|^/nix/store/||; s|-.*||' > "$work/hashes"
   # cache.nixos.org already has most of the closure; ask it about each path.
   # shellcheck disable=SC2016  # $c and $(…) belong to the inner sh
   xargs -P 48 -I{} sh -c 'c=$(curl -s -o /dev/null -w "%{http_code}" --retry 2 -I "https://cache.nixos.org/{}.narinfo"); [ "$c" = 200 ] || echo {}' \
     < "$work/hashes" > "$work/missing"
-  sel=$(python3 "$LIB/select.py" "$work/closure.json" "$work/missing" "$TREE/updates/lane/never-publish" "$work/chosen")
+  sel=$(python3 "$LIB/select.py" "$work/closure.json" "$work/missing" "$TREE/updates/lane/never-publish" "$work/chosen" "$EXPORT_OUT")
   say "cache: $sel"
   n=$(wc -l < "$work/chosen")
   [ "$n" -gt 0 ] || fail cache "nothing to upload — the selection is empty"
 
-  mkdir -p "$work/out"
   xargs -a "$work/chosen" nix "${NIXF[@]}" copy --no-recursive \
-    --to "file://$work/out?compression=zstd&parallel-compression=true&secret-key=$KEY" >> "$LOG" 2>&1 \
-    || fail cache "exporting the pieces failed"
+    --to "file://$EXPORT_OUT?compression=zstd&parallel-compression=true&secret-key=$KEY" >> "$LOG" 2>&1 \
+    || fail cache "exporting the pieces failed: $(last_error)"
+  # The placeholders only let nix accept the pieces; they never ship.
+  while read -r f; do rm -f "$EXPORT_OUT/$f"; done < "$EXPORT_OUT/placeholders.txt"
+  rm -f "$EXPORT_OUT/placeholders.txt"
+  [ "$(find "$EXPORT_OUT" -maxdepth 1 -name '*.narinfo' | wc -l)" = "$n" ] \
+    || fail cache "the export holds $(find "$EXPORT_OUT" -maxdepth 1 -name '*.narinfo' | wc -l) pieces, not the $n chosen"
   # GitHub release files sit in one flat list: the NARs move up next to the
   # narinfos, whose URL line says so (the signature covers the content, not
   # where it is stored).
-  mv "$work/out/nar/"* "$work/out/"
-  rm -rf "$work/out/nar" "$work/out/log" "$work/out/realisations"
-  sed -i 's|^URL: nar/|URL: |' "$work/out/"*.narinfo
+  mv "$EXPORT_OUT/nar/"* "$EXPORT_OUT/"
+  rm -rf "$EXPORT_OUT/nar" "$EXPORT_OUT/log" "$EXPORT_OUT/realisations"
+  sed -i 's|^URL: nar/|URL: |' "$EXPORT_OUT/"*.narinfo
 
   notes="Cache of Golem $rev ($n pieces, built and signed by the update lane).
 
@@ -190,7 +197,7 @@ $(report | sed 's/^/    /')"
   gh release create "$tag" --repo "$CACHE_REPO" --draft --target main \
      --title "Golem ${rev:0:12}" --notes "$notes" \
      >/dev/null || fail cache "creating release $tag failed"
-  find "$work/out" -maxdepth 1 -type f -print0 \
+  find "$EXPORT_OUT" -maxdepth 1 -type f -print0 \
     | xargs -0 -n 40 gh release upload "$tag" --repo "$CACHE_REPO" --clobber >> "$LOG" 2>&1 \
     || fail cache "uploading to release $tag failed"
   gh release edit "$tag" --repo "$CACHE_REPO" --draft=false >/dev/null || fail cache "publishing release $tag failed"
@@ -216,7 +223,7 @@ verify() {
   done
   [ -n "$quiet" ] && return 0
   pub=$(nix "${NIXF[@]}" key convert-secret-to-public < "$KEY")
-  one=$(for f in "$STATE/export/out/"*.narinfo; do
+  one=$(for f in "$EXPORT_OUT/"*.narinfo; do
           grep -q '^References: *$' "$f" || continue
           printf '%s %s\n' "$(sed -n 's/^FileSize: //p' "$f")" "$(sed -n 's/^StorePath: //p' "$f")"
         done 2>/dev/null | sort -n | head -1 | cut -d' ' -f2)

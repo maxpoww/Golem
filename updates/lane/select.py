@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Choose which store paths go into a version's cache (one GitHub release).
 
-    select.py CLOSURE_JSON MISSING_HASHES NEVER_PUBLISH OUT_LIST
+    select.py CLOSURE_JSON MISSING_HASHES NEVER_PUBLISH OUT_LIST [PLACEHOLDER_DIR]
 
 CLOSURE_JSON    `nix path-info -r --json` of the gate's output (any shape nix
                 prints: a list of objects or an object keyed by path).
@@ -9,6 +9,14 @@ MISSING_HASHES  one store hash per line: paths cache.nixos.org does NOT have.
 NEVER_PUBLISH   regexes (one per line, # comments) matched against the path's
                 name (after "<hash>-"): never uploaded, whatever else is true.
 OUT_LIST        written: the chosen store paths, one per line.
+PLACEHOLDER_DIR if given: a placeholder .narinfo there for every path the
+                chosen ones refer to but that is not chosen, and their file
+                names in PLACEHOLDER_DIR/placeholders.txt. Nix adds a path to
+                a binary cache only when every reference is already listed
+                in it ("the reference … is not valid"); the lane exports
+                into that directory, then deletes the placeholders before
+                uploading. A machine gets those references where it gets
+                them today: cache.nixos.org, its own build, the download.
 
 The rule. A path is worth uploading when cache.nixos.org lacks it AND it is
 heavy (NAR size >= the threshold): heavy = slow to build or fetch (the dock,
@@ -42,6 +50,7 @@ PER_MACHINE = [re.compile(r) for r in (
     r"^initrd-linux-", r"^nixos-system-", r"^system-path$", r"^system-units",
     r"^user-units", r"^etc$", r"^hwdb\.bin$", r"^home-manager-path$",
     r"^home-manager-generation$", r"^user-environment$", r"^X-Restart-Triggers",
+    r"^firmware$",
 )]
 START_THRESHOLD = 64 << 10  # 64 KiB
 
@@ -54,7 +63,8 @@ def load_closure(path):
         if d is None:
             continue
         info[p] = {"size": int(d.get("narSize", 0)),
-                   "fixed": str(d.get("ca") or "").startswith("fixed:")}
+                   "fixed": str(d.get("ca") or "").startswith("fixed:"),
+                   "hash": d.get("narHash", ""), "refs": d.get("references", [])}
     return info
 
 
@@ -65,6 +75,7 @@ def name_of(path):
 
 def main():
     closure_json, missing_file, never_file, out_file = sys.argv[1:5]
+    placeholder_dir = sys.argv[5] if len(sys.argv) > 5 else None
     info = load_closure(closure_json)
     missing = {l.strip() for l in open(missing_file) if l.strip()}
     never = [re.compile(l.strip()) for l in open(never_file)
@@ -92,6 +103,21 @@ def main():
         for p in sorted(chosen):
             f.write(p + "\n")
 
+    placeholders = sorted({r for p in chosen for r in info[p]["refs"]
+                           if r != p and r not in chosen and r in info})
+    if placeholder_dir:
+        names = []
+        for r in placeholders:
+            fn = hash_of(r) + ".narinfo"
+            refs = " ".join(x.rsplit("/", 1)[-1] for x in info[r]["refs"])
+            with open(f"{placeholder_dir}/{fn}", "w") as f:
+                f.write(f"StorePath: {r}\nURL: placeholder.nar\nCompression: none\n"
+                        f"NarHash: {info[r]['hash']}\nNarSize: {info[r]['size']}\n"
+                        f"References: {refs}\n")
+            names.append(fn)
+        with open(f"{placeholder_dir}/placeholders.txt", "w") as f:
+            f.write("".join(n + "\n" for n in names))
+
     total = sum(info[p]["size"] for p in chosen)
     print(json.dumps({
         "closure": len(info),
@@ -103,6 +129,7 @@ def main():
         "chosen": len(chosen),
         "chosen_nar_mib": total >> 20,
         "files": 2 * len(chosen) + 1,
+        "placeholders": len(placeholders),
     }))
 
 

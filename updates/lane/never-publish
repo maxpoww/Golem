@@ -7,6 +7,8 @@
 # holds something private. Redistributable unfree (nvidia_x11, broadcom-sta:
 # lib.licenses.unfreeRedistributable) is allowed.
 
-# Apple's FaceTime HD ISP firmware, cut out of Apple's driver download at
-# build time (licenses.unfree). Each Mac extracts it itself, in seconds.
+# Apple's FaceTime HD ISP firmware and its sensor calibration, cut out of
+# Apple's driver downloads at build time (both licenses.unfree). Each Mac
+# extracts them itself, in seconds.
 ^facetimehd-firmware
+^facetimehd-calibration
