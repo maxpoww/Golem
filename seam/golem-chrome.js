@@ -2952,6 +2952,10 @@ try {
       // On a dark-made site the text stays bright, whatever the ink's hue (Hacker's neon green).
       var nt=dwDarkMade(dwRow(true,"#105706","#39ff14")), white=(nt.contrast/100)*(nt.brightness/100)+(1-nt.contrast/100)/2;
       step("web-dark-made-keeps-text-bright", nt.mode===1 && white>=0.79);
+      // A webapp with a look of its own (the Apps page): its scheme and its own theme, first.
+      var mine=dwConfig(Object.assign({web:true,apps:true},base,{app_looks:{"mail.google.com":{dark:false,bg:"#eeeeee",ink:"#111111"},"open.spotify.com":{dark:true}}}));
+      var cm=dwCustom(mine,dk);
+      step("web-webapp-own-look", dwSchemeOf(mine,"mail.google.com",true)==="light" && dwSchemeOf(mine,"mail.google.com",false)==="light" && dwSchemeOf(mine,"open.spotify.com",true)==="dark" && cm[DW_BUILT_IN_SITES.length].url.join()==="mail.google.com" && cm[DW_BUILT_IN_SITES.length].theme.mode===0 && cm.filter(function(c){ return c.url.indexOf("mail.google.com")>=0; }).length===1);
       step("web-scheme-per-site", dwSchemeOf(split,"mail.google.com",true)==="dark" && dwSchemeOf(split,"en.wikipedia.org",true)==="light" && dwSchemeOf(split,"en.wikipedia.org",false)==="none" && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),"en.wikipedia.org",true)==="none");
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       // THE DROP (pure): a site taken out while the web is on, one put in while it is off,
@@ -3089,7 +3093,8 @@ try {
       (function(){ var nb=d.getElementById("nav-bar"); var bg=nb?win.getComputedStyle(nb).backgroundColor:""; r.openBarBg=bg; step("open-bar-flat", bg==="rgb("+gsRGB().join(", ")+")"); })();
       (function(){ var ob=d.getElementById("golem-overview-btn"), tb=win.__golemOvTools&&win.__golemOvTools.firstChild;
         r.ovIcons={btn:ob&&win.getComputedStyle(ob).color, tool:tb&&win.getComputedStyle(tb).color};
-        step("overview-icons-white", r.ovIcons.btn==="rgb(255, 255, 255)" && r.ovIcons.tool==="rgb(255, 255, 255)"); })();
+        // (They wear the ink of the bar they sit on — `--golem-pin-ink`, 2026-10-23 — no longer always white.)
+        step("overview-icons-read", !!r.ovIcons.btn && r.ovIcons.btn===r.ovIcons.tool && gsRatio(gsRgbOf(r.ovIcons.btn), gsRgbOf(r.openBarBg))>=4.5); })();
       ovClose(win);
       step("close-sane", sane());
       (function(){ var ob=d.getElementById("golem-overview-btn"); r.iconAfterClose=ob&&win.getComputedStyle(ob).color;
@@ -3559,8 +3564,17 @@ try {
     // restarts Dark Reader, a flash on every open page. Max, 2026-10-21: "no jumps at all".)
     var ab = hex.test(c.apps_bg||"") && hex.test(c.apps_ink||"") ? [c.apps_bg, c.apps_ink] : [c.base01, c.base05];
     var app = hex.test(ab[0]||"") && hex.test(ab[1]||"") ? dwRow(c.dark!==false, ab[0], ab[1]) : web_;
+    // A webapp with a look of its own (the dock's Apps page, Dark or Light — the
+    // dock's `app_looks`): its pages are told that look whatever the rest, and
+    // wear that look's pair while the palette is on them (2026-10-27: the look
+    // was offered and saved, and never reached here).
+    var looks={};
+    if(c.app_looks && typeof c.app_looks==="object") Object.keys(c.app_looks).forEach(function(h){
+      var o=c.app_looks[h]; if(!o || typeof o.dark!=="boolean") return;
+      looks[String(h).toLowerCase()] = hex.test(o.bg||"") && hex.test(o.ink||"") ? dwRow(o.dark, o.bg, o.ink) : {dark: o.dark};
+    });
     return {on: web || (apps && hosts.length>0) || own.on.length>0, dark: web_.dark, web: web, apps: apps, hosts: hosts, bg: web_.bg, ink: web_.ink,
-      app: app, skip: skip, off: own.off, onSites: own.on};
+      app: app, looks: looks, skip: skip, off: own.off, onSites: own.on};
   }
   // A colour's brightness as a grey of the same luminance (0..1, sRGB): what a filter
   // that only scales brightness can keep of it. (A plain channel average put Hacker's
@@ -3581,6 +3595,8 @@ try {
   // site that follows the system's look sends the page of OUR look — Google sent its
   // dark page to a Light web and Dark Reader made it dark text on dark.
   function dwSchemeOf(cfg, host, want){
+    var mine=cfg && host && cfg.looks ? cfg.looks[host] : null;
+    if(mine) return mine.dark ? "dark" : "light";
     if(!want || !cfg || !host || !dwSiteStateOf(cfg, host).on) return "none";
     var row=(cfg.apps && cfg.hosts.indexOf(host)>=0 && cfg.app) ? cfg.app : cfg;
     return row.dark ? "dark" : "light";
@@ -3661,10 +3677,14 @@ try {
     return t;
   }
   function dwCustom(cfg, dark){
-    // (Dark Reader takes the FIRST theme whose sites match: the webapps' come before the web's.)
+    // (Dark Reader takes the FIRST theme whose sites match: the webapps' come before the web's,
+    // and a webapp with a look of its own before the other webapps.)
     var apps=(cfg.apps && cfg.app) ? cfg.hosts : [], isApp={};
     apps.forEach(function(h){ isApp[h]=true; });
+    var looks=cfg.looks||{}, ownLook=function(h){ return !!(looks[h] && looks[h].bg); };
     var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(isApp[u] ? cfg.app : cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
+    apps.filter(ownLook).forEach(function(h){ out.push({url:[h], theme: dark.indexOf(h)>=0 ? dwDarkMade(looks[h]) : dwTheme(looks[h])}); });
+    apps=apps.filter(function(h){ return !ownLook(h); });
     var appDark=apps.filter(function(h){ return dark.indexOf(h)>=0; }), appPlain=apps.filter(function(h){ return dark.indexOf(h)<0; });
     if(appDark.length) out.push({url:appDark, theme:dwDarkMade(cfg.app)});
     if(appPlain.length) out.push({url:appPlain, theme:dwTheme(cfg.app)});
