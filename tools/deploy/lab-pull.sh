@@ -61,9 +61,21 @@ if git status --porcelain --untracked-files=no | grep -v -E "$own" | grep -q .; 
   exit 1
 fi
 golem-bless
-# golem-rebuild: the one rebuild lock, and the version's published cache.
-if command -v golem-rebuild >/dev/null 2>&1; then
-  golem-rebuild switch --flake "$dir#$attr"
+# The version's published cache (updates/client.nix), passed here too: a
+# machine still on a version from before the cache has a golem-rebuild that
+# does not know it yet, and would compile everything one last time.
+cache="https://github.com/maxpoww/golem-cache/releases/download/g-$(echo "$head" | cut -c1-12)"
+set --
+if nix --extra-experimental-features nix-command store info --store "$cache" >/dev/null 2>&1; then
+  set -- --option extra-substituters "$cache" \
+         --option extra-trusted-public-keys "golem-cache-1:lUUA5lNDJ8EJhxXLuebT5a3bL7c0SRJKUhNooEwO1B0="
+  echo "lab-pull: using the published cache of $(echo "$head" | cut -c1-12)"
 else
-  nixos-rebuild switch --flake "$dir#$attr"
+  echo "lab-pull: $(echo "$head" | cut -c1-12) has no published cache — this build compiles what it needs"
+fi
+# golem-rebuild: the one rebuild lock (and, on newer versions, the cache).
+if command -v golem-rebuild >/dev/null 2>&1; then
+  golem-rebuild switch --flake "$dir#$attr" "$@"
+else
+  nixos-rebuild switch --flake "$dir#$attr" "$@"
 fi
