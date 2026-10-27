@@ -42,7 +42,7 @@ telemetry.
 | `../tools/deploy/lab-pull.sh` | A lab deploy follows the machine's branch; `GOLEM_LAB_BRANCH=main` tries main early |
 | github.com/maxpoww/golem-cache | One release per published version |
 | Build machine: `~/.local/state/golem-lane/` | `status.json`, `logs/`, the lane's own clone `repo/`, the gate's gc root |
-| Build machine: `~/.local/share/golem-lane/cache-key.sec` | The signing key. Never in git. Back it up |
+| Build machine: `~/.local/share/golem-lane/cache-key.sec` | The signing key. Never in Golem's repo; backup in the private repo maxpoww/golem-keys |
 
 ## Two branches
 

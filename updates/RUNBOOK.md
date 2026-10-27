@@ -97,7 +97,10 @@ build and nixpkgs has no fix yet, carry a patch the way
 Its public half is in `client.nix` (`golem.update.cache.publicKeys`) and in
 golem-cache's README.
 
-- **Back it up** (password manager or an encrypted stick).
+- **The backup** is the private repo github.com/maxpoww/golem-keys
+  (`golem-cache-1.sec`; its README says how to restore it). Anyone who
+  controls that GitHub account can already push `stable`, so the copy adds
+  no new risk. Never make that repo public.
 - **Rotate** (lost, or as hygiene): `nix key generate-secret --key-name
   golem-cache-2 > …/cache-key.sec`, add the new public key to
   `publicKeys` next to the old one, publish. When every machine runs that
