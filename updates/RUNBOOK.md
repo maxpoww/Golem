@@ -58,6 +58,16 @@ golem-update-wave                                                            # i
   `ssh root@<ip> 'GOLEM_LAB_BRANCH=main sh -s' < tools/deploy/lab-pull.sh`.
   Its nightly update moves it back to `stable` and waits there until
   `stable` has caught up.
+- A long deploy (a NixOS move, a slow machine) must not hang on the SSH
+  session: a dropped connection kills the rebuild with it (MacBook,
+  2026-10-27: 25 min in, saturated wifi, no keepalive answer). Run it
+  detached on the machine and follow its journal:
+
+  ```sh
+  scp tools/deploy/lab-pull.sh root@<ip>:/run/golem-lab-pull.sh
+  ssh root@<ip> 'systemd-run --unit=golem-lab-pull --collect --setenv=PATH=/run/wrappers/bin:/run/current-system/sw/bin --setenv=GOLEM_LAB_BRANCH=main sh /run/golem-lab-pull.sh'
+  ssh root@<ip> 'journalctl -fu golem-lab-pull'
+  ```
 - After a version reaches the lab: `tools/parity/golem-parity max@<ip>`.
 
 ## The next NixOS release (twice a year)
