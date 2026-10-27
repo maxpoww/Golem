@@ -57,6 +57,7 @@ let
       for _ in 1 2 3; do
         if curl -fsSL --max-time 15 "$url/nix-cache-info" 2>/dev/null | grep -q '^StoreDir: /nix/store$'; then
           printf '%s\n' --option extra-substituters "$url"
+          echo "golem-cache-args: using the published cache of ''${rev:0:12} ($url)" >&2
           exit 0
         fi
         sleep 2

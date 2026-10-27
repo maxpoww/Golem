@@ -111,11 +111,17 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   `<hash>.narinfo`, `<filehash>.nar.zst` (the narinfo `URL:` lines point at
   the flat name; the signature covers the content, not the location).
 - **What goes in** (`select.py`): closure paths that cache.nixos.org lacks
-  AND are heavy (≥ 64 KiB: the dock, patched Hyprland, nvidia, Seam,
-  kernel modules, firmware…). The small rest (config and unit files, the
-  per-fixture toplevels) each machine builds in seconds, and its own differ
-  anyway. The dev box measured 352 such paths, 50 of them heavy. If a set
-  ever needs more than 990 files, the threshold doubles until it fits.
+  AND are heavy (≥ 64 KiB): nvidia (open and legacy), Seam, the dock,
+  patched Hyprland, the kernel modules and drivers, firmware… Left out:
+  the small rest (each machine builds it in seconds), the **per-machine**
+  pieces (a fixture's initrd, system-path, unit lists, hwdb, toplevel:
+  every real machine builds its own, so the fixtures' copies would never be
+  used), and **fixed-output downloads** (third-party files fetched
+  verbatim: each machine fetches them from their source, and we do not
+  re-host other people's files). The first version (2026-10-27): 2675
+  closure paths, 591 not on cache.nixos.org, 66 uploaded (3.5 GiB before
+  compression, 2.8 of it nvidia). If a set ever needs more than 990 files,
+  the threshold doubles until it fits.
 - **Licence**: only what we may redistribute. nvidia and broadcom-sta are
   `unfreeRedistributable` (allowed). Apple's FaceTime firmware is not and is
   in `never-publish`; each Mac extracts it itself, in seconds.
