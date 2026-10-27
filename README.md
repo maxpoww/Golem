@@ -24,6 +24,7 @@ its documentation and worklog.
 | `Installer/preinstall/` | The installer ISO's implementation (the flake the ISO is built from, `fixtures/` for the eval matrix, `run-vm.sh`) | `fixtures/` is read by the build. Don't move it |
 | `Installer/installing/` | The live INSTALLING program: `spec.md`, per-machine ledgers, delivery `tools/` | |
 | `seam/` | Seam, Golem's browser (Mozilla build + policies + chrome + 4h update lane) | ⚠ The dev box's `/etc/nixos` and `seam-update.service` use this absolute path. Never move |
+| `updates/` | **How Golem updates**: the update lane (build every system, cache its pieces on GitHub, publish `stable`), the client side every install gets, README + RUNBOOK | Installs follow `stable`, never `main`. ⚠ `client.nix` is imported by `system/Modular/composition.nix` |
 | `golem-connectd/` | Rust daemon (phone link) | |
 | `docs/` | All design and maintainer documentation (below) | |
 | `work/` | The living worklog: `GRIND.md`, `NOTES.md`, `todo/` (incl. `issues.md`) | Scratch, not spec |
@@ -52,9 +53,10 @@ its documentation and worklog.
 | `~/Golem-web` | golem-os.com | none |
 | `/etc/nixos` | The dev box's own config (Max's machine; imports `~/Golem/seam`) | none |
 
-A component change reaches Golem machines only after it is **pushed** and the
-pin is **bumped** here: `nix flake lock --update-input waverunner` (or
-`waveview`), then commit `flake.lock`.
+A component change reaches Golem machines only after it is **pushed**, the
+pin is **bumped** here (`nix flake lock --update-input waverunner`, or
+`waveview`, then commit `flake.lock`), and the update lane has built and
+published that commit to `stable` ([updates/README.md](updates/README.md)).
 
 ### Outside every repo
 

@@ -28,9 +28,11 @@
   description = "Golem OS — one flake, one complete Golem PC";
 
   inputs = {
-    # Pinned to the exact rev the live machine's nixos-26.05 channel is on,
-    # so the first builds come from the local store, not a world rebuild.
-    nixpkgs.url = "github:NixOS/nixpkgs/c5c4a43b0e8056328ec4529f735cabdb8f1942bb";
+    # NixOS's 26.05 channel branch: each of its commits is one Hydra built
+    # and tested. The update lane moves the lock to its newest commit once a
+    # week and builds every Golem system before publishing (updates/README.md);
+    # the jump to the next release is `golem-lane release`.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -309,6 +311,17 @@
     {
       packages.${system} = {
         inherit waveview bakedMatrix bakedManifest;
+
+        # What the update lane builds before it publishes a version, and
+        # whose pieces go into that version's cache (updates/README.md).
+        update-gate = import ./updates/gate.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit bakedUnique mkBakedEntry;
+          synthetic = [
+            { name = "nvidia-turing";     path = ./Installer/preinstall/fixtures/synthetic-nvidia-desktop-turing/facts.nix; }
+            { name = "nvidia-pre-turing"; path = ./Installer/preinstall/fixtures/synthetic-nvidia-desktop-pre-turing/facts.nix; }
+          ];
+        };
 
         # The Arc-1 deliverable: one command, one bootable Golem.
         iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;

@@ -21,14 +21,13 @@ houdini manual-download
 iaca_2_1 manual-download
 iaca manual-download
 ida-free manual-download
-immersed builds-24
+immersed builds-22
 indi-full-nonfree builds-36
 inspec builds-213
 interlude builds-32
 ios-cross-compile manual-download
 isle-portable manual-download
 jai manual-download
-jasp-desktop builds-234
 keyguard builds-1046
 kinect-audio-setup manual-download
 lattice-diamond manual-download
@@ -39,7 +38,7 @@ mathematica-cuda manual-download
 mathematica manual-download
 mistral-vibe builds-26
 modrinth-app builds-21
-osu-lazer builds-133
+osu-lazer builds-125
 picoscope builds-21
 pixinsight manual-download
 planetary_annihilation manual-download
@@ -61,7 +60,7 @@ upwork manual-download
 vagrant builds-76
 vessel manual-download
 vidmerger builds-53
-vrcvideocacher builds-23
+vrcvideocacher builds-22
 wolfram-engine manual-download
 wolfram-notebook manual-download
 wonderdraft manual-download

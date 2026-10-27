@@ -57,5 +57,6 @@
     # is gated on the blessed manifest. Shared with the fat path,
     # already leaf-shaped.
     ../golem-seal.nix
+    ../../updates/client.nix  # the update lane's cache key + per-version cache + waves
   ];
 }

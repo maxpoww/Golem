@@ -95,7 +95,21 @@ let
           flock -w 7200 9 || { echo "golem-rebuild: still busy after 2 h — giving up" >&2; exit 1; }
         fi
       fi
-      nixos-rebuild "$@"
+      # The version's published cache (updates/client.nix): what the update
+      # lane already built is downloaded, not compiled. None published → none.
+      extra=()
+      ${lib.optionalString (config.golem ? update) ''
+        flake=""; prev=""
+        for a in "$@"; do
+          case "$a" in --flake=*) flake=''${a#--flake=} ;; esac
+          if [ "$prev" = --flake ]; then flake=$a; fi
+          prev=$a
+        done
+        if [ -n "$flake" ]; then
+          mapfile -t extra < <(${config.golem.update.cacheArgs}/bin/golem-cache-args "''${flake%%#*}" || true)
+        fi
+      ''}
+      nixos-rebuild "$@" "''${extra[@]}"
     '';
   };
   # Copy the blessed files (the seal's own file set, data channels included)

@@ -14,7 +14,7 @@
 # This DELIBERATELY overrides base/ssh.nix's "no lab keys on shipped images"
 # (GolemSecurity phase 3) for the lab period — Max's explicit call. DELETE this
 # file and its composition.nix import at the finish line to restore that rule.
-{ config, ... }:
+{ config, lib, ... }:
 
 let
   # The dev box's keys. dev-lab is THIS box's ~/.ssh/id_ed25519 (what an ssh from
@@ -26,6 +26,9 @@ let
   ];
 in
 {
+  # The lab meets every new version first (wave 0, updates/client.nix). This
+  # file goes at the finish line, and with it installs spread over the week.
+  golem.update.wave = lib.mkDefault 0;
   users.users.${config.golem.owner}.openssh.authorizedKeys.keys = devKeys;
   users.users.root.openssh.authorizedKeys.keys = devKeys;
 
