@@ -194,6 +194,8 @@ lib.mkIf (config.golem.flakeDir != null) {
       # means a machine late in the week still updates when versions come
       # faster than its wave. Only pulling waits: a version already pulled
       # but never built is finished below. /run/golem-update-now skips it.
+      # The clock is cleared when the machine is current, or after a
+      # successful rebuild of what it pulled.
       wave=$(${config.golem.update.waveCommand}/bin/golem-update-wave)
       since=/var/lib/golem/update-behind-since
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
@@ -233,7 +235,6 @@ lib.mkIf (config.golem.flakeDir != null) {
           # up in systemctl --failed and every probe, not look healthy forever.
           exit 1
         fi
-        rm -f "$since"
       fi
       after=$(git rev-parse HEAD)
       if [ -n "$heldpin" ]; then
@@ -257,7 +258,11 @@ lib.mkIf (config.golem.flakeDir != null) {
       built=$(/nix/var/nix/profiles/system/sw/bin/nixos-version --configuration-revision 2>/dev/null || true)
       built=''${built%-dirty}
       if [ "$before" = "$after" ] && [ "$migrated" = 0 ] && [ "$built" = "$after" ]; then
-        echo "golem-autoupdate: already up to date ($after)."
+        if [ "$pull" = 0 ]; then
+          echo "golem-autoupdate: running $after; the newer version waits for this machine's wave."
+        else
+          echo "golem-autoupdate: already up to date ($after)."
+        fi
         exit 0
       fi
       if [ "$before" = "$after" ] && [ "$built" != "$after" ]; then
@@ -277,6 +282,10 @@ lib.mkIf (config.golem.flakeDir != null) {
         ${config.golem.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
         exit 1
       fi
+      # The wave's clock stops only once the new version is built: a build
+      # that failed (a download that broke) is tried again the next night,
+      # not a whole wave later.
+      if [ "$pull" = 1 ]; then rm -f "$since"; fi
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
     '';
   };

@@ -61,6 +61,8 @@ A seed that was installed when machines followed `main` is moved to
 2. **Weekly bump**: every `BUMP_DAYS` (7), `nix flake update nixpkgs
    home-manager`. Both follow their release branch: `nixos-YY.MM` is NixOS's
    channel branch, so the commit is one Hydra already built and tested.
+   When nixpkgs moved, the dock's package index (the Install list, made for
+   one nixpkgs: `tools/package-index/refresh.sh`) is regenerated with it.
    The bump is one commit, "flake.lock: weekly upstream".
 3. **Nothing new?** If that commit is already `stable`, stop.
 4. **The gate**: build `update-gate`, then every flake check. Any failure

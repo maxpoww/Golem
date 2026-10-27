@@ -91,12 +91,27 @@ bump() {
   git -C "$TREE" diff --quiet -- flake.lock && { say "nixpkgs and home-manager already newest"; return 0; }
   after=$(jq -r '.nodes.nixpkgs.locked.rev' "$TREE/flake.lock")
   git -C "$TREE" add flake.lock
+  # The dock's Install list is made for one nixpkgs (system/home/
+  # package-index.rev); the desktop matrix refuses it for any other.
+  if [ "$after" != "$before" ]; then
+    say "nixpkgs moved: refreshing the dock's package index (tools/package-index)"
+    (cd "$TREE" && tools/package-index/refresh.sh) >> "$LOG" 2>&1 \
+      || fail bump "the package index could not be refreshed for nixpkgs ${after:0:12}"
+    git -C "$TREE" add system/home/package-index.tsv system/home/package-index.rev tools/package-index/dropped.txt
+  fi
   git -C "$TREE" -c user.name="Golem update lane" commit -q -m "flake.lock: weekly upstream — nixpkgs ${before:0:12} → ${after:0:12}, home-manager
 
 Moved by the update lane (updates/README.md): the newest tested commit of
-both release branches. Built for every Golem system before publishing."
+both release branches, with the dock's package index made for it. Built for
+every Golem system before publishing."
   BUMPED=1
   say "bumped nixpkgs ${before:0:12} → ${after:0:12}"
+}
+
+last_error() {  # the last real error line of the run's log, colours stripped
+  sed -E 's/\x1b\[[0-9;]*[mK]//g' "$LOG" | grep -a -E '^ *error: ' \
+    | grep -a -v -E 'error: (build of|Cannot build|[0-9]+ dependenc)' | tail -1 \
+    | sed -E 's/^ *error: //' | cut -c1-240
 }
 
 checks() {  # every flake check, as build targets
@@ -111,16 +126,14 @@ gate() {
   say "gate: building every Golem system"
   if ! nix "${NIXF[@]}" build --keep-going -L --out-link "$STATE/gcroots/gate" \
         "$(flake)#packages.$SYSTEM.update-gate" >> "$LOG" 2>&1; then
-    grep -E '^error:' "$LOG" | tail -5 >&2 || true
-    fail gate "a Golem system does not build ($(grep -cE '^error: Cannot build' "$LOG" || true) failed builds)"
+    fail gate "a Golem system does not build ($(grep -acE '^error: Cannot build' "$LOG" || true) failed builds): $(last_error)"
   fi
   GATE_OUT=$(readlink -f "$STATE/gcroots/gate")
   [ -e "$GATE_OUT/." ] || fail gate "the gate built but its output is missing"
   mapfile -t targets < <(checks)
   say "gate: running ${#targets[@]} checks"
   if ! nix "${NIXF[@]}" build --keep-going -L --no-link "${targets[@]}" >> "$LOG" 2>&1; then
-    grep -E '^error:' "$LOG" | tail -5 >&2 || true
-    fail gate "a check fails"
+    fail gate "a check fails: $(last_error)"
   fi
 }
 
@@ -357,7 +370,7 @@ cmd_release() {
     say "release $to: every Golem system builds. Next: a lab round on $branch (RUNBOOK.md), then merge to main."
   else
     say "release $to: some systems do not build. The errors:"
-    grep -E '^error:' "$LOG" | sort -u | head -20 >&2 || true
+    grep -a -E '^ *error:' "$LOG" | sort -u | head -20 >&2 || true
   fi
   [ "$push" = --push ] && "${GIT_PUSH[@]}" push -q -u origin "$branch" && say "pushed $branch"
   say "log: $LOG"

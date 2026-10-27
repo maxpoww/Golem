@@ -15,8 +15,8 @@ let
     name = "golem-lane";
     runtimeInputs = [
       config.nix.package pkgs.git pkgs.gh pkgs.curl pkgs.jq pkgs.python3
-      pkgs.coreutils pkgs.util-linux pkgs.gnugrep pkgs.gnused pkgs.gawk
-      pkgs.findutils pkgs.libnotify
+      pkgs.bash pkgs.coreutils pkgs.util-linux pkgs.gnugrep pkgs.gnused pkgs.gawk
+      pkgs.findutils pkgs.libnotify   # bash, split, xargs: tools/package-index/refresh.sh
     ];
     # select.py and the rest of lane/ travel with the command.
     text = ''
