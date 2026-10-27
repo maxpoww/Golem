@@ -1,9 +1,17 @@
 #!/bin/sh
-# lab-pull.sh — bring a lab machine's Golem checkout to GitHub's main the way
-# the nightly auto-update does: a clean fast-forward from upstream, then
-# re-seal (golem-bless), then switch. Run AS ROOT on the machine:
+# lab-pull.sh — bring a lab machine's Golem checkout to the branch it follows
+# the way the nightly auto-update does: a clean fast-forward from upstream,
+# then re-seal (golem-bless), then switch. Run AS ROOT on the machine:
 #
 #     ssh root@<ip> 'sh -s' < tools/deploy/lab-pull.sh
+#
+# Installs follow "stable" (what the update lane published, updates/). To try
+# main on a lab machine BEFORE the lane publishes it:
+#
+#     ssh root@<ip> 'GOLEM_LAB_BRANCH=main sh -s' < tools/deploy/lab-pull.sh
+#
+# The nightly update moves it back to stable, and waits there until stable
+# has caught up with what the machine already runs.
 #
 # Why the bless: the install helper (waverunner-apply) only rebuilds a seed
 # that matches its blessed manifest. A pull without the bless left the
@@ -19,6 +27,10 @@ attr="${GOLEM_ATTR:-golem-desktop}"
 owner=$(stat -c %U /home/*/Golem 2>/dev/null | head -1)
 dir=$(ls -d /home/*/Golem | head -1)
 cd "$dir"
+if [ -n "${GOLEM_LAB_BRANCH:-}" ]; then
+  runuser -u "$owner" -- git fetch -q origin "+refs/heads/$GOLEM_LAB_BRANCH:refs/remotes/origin/$GOLEM_LAB_BRANCH"
+  runuser -u "$owner" -- git branch -q --set-upstream-to="origin/$GOLEM_LAB_BRANCH"
+fi
 # The machine's own Seam pin: seam-update bumps seam/sources.json in place
 # when Mozilla ships (Acer, 2026-10-14: 158.0 over upstream's 157.0.1) and the
 # lab refused every deploy from then on. Same rule as golem-autoupdate: set it
@@ -39,8 +51,8 @@ if [ -n "$heldpin" ]; then
   fi
   rm -f "$heldpin"
 fi
-head=$(git rev-parse HEAD); up=$(git rev-parse origin/main)
-[ "$head" = "$up" ] || { echo "lab-pull: HEAD $head is not origin/main $up — not blessing" >&2; exit 1; }
+head=$(git rev-parse HEAD); up=$(git rev-parse '@{u}')
+[ "$head" = "$up" ] || { echo "lab-pull: HEAD $head is not upstream's $(git rev-parse --abbrev-ref '@{u}') $up — not blessing" >&2; exit 1; }
 # Tracked changes other than the machine's own files mean a local edit.
 own='^[AM ][AM ] (hosts/target/|seam/sources\.json$)'
 if git status --porcelain --untracked-files=no | grep -v -E "$own" | grep -q .; then
@@ -49,4 +61,9 @@ if git status --porcelain --untracked-files=no | grep -v -E "$own" | grep -q .; 
   exit 1
 fi
 golem-bless
-nixos-rebuild switch --flake "$dir#$attr"
+# golem-rebuild: the one rebuild lock, and the version's published cache.
+if command -v golem-rebuild >/dev/null 2>&1; then
+  golem-rebuild switch --flake "$dir#$attr"
+else
+  nixos-rebuild switch --flake "$dir#$attr"
+fi

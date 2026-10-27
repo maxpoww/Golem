@@ -101,6 +101,19 @@ lib.mkIf (config.golem.flakeDir != null) {
         exit 0
       fi
 
+      # Installs follow golem.upstream.branch: "stable", where the update lane
+      # puts only versions it built, tested and cached (updates/README.md). A
+      # seed cloned when installs followed main moves over once that branch
+      # exists upstream; until the lane's first publish it doesn't, and the
+      # seed stays where it is.
+      want=${lib.escapeShellArg config.golem.upstream.branch}
+      cur=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
+      if [ "$cur" != "origin/$want" ] \
+         && runuser -u "$owner" -- git -C "$dir" fetch --quiet origin "+refs/heads/$want:refs/remotes/origin/$want" 2>/dev/null; then
+        runuser -u "$owner" -- git -C "$dir" branch --quiet --set-upstream-to="origin/$want"
+        echo "golem-autoupdate: now following $want (was ''${cur:-nothing})."
+      fi
+
       # A machine file from an installer before 2026-10-01 declares the owner's
       # password hash, which puts it in the world-readable store (base/users.nix).
       # Remove the line: the account is mutable and keeps its password, and the
@@ -174,6 +187,30 @@ lib.mkIf (config.golem.flakeDir != null) {
         fi
       fi
 
+      # THE WAVE (updates/client.nix): a new version waits this machine's
+      # wave, in days from the run that first found the machine behind, so
+      # the machines spread over the week and the lab (wave 0) meets every
+      # version first. Counting from "first behind", not from each version,
+      # means a machine late in the week still updates when versions come
+      # faster than its wave. Only pulling waits: a version already pulled
+      # but never built is finished below. /run/golem-update-now skips it.
+      wave=$(${config.golem.update.waveCommand}/bin/golem-update-wave)
+      since=/var/lib/golem/update-behind-since
+      [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
+      pull=1
+      runuser -u "$owner" -- git -C "$dir" fetch --quiet || true
+      upstream=$(git rev-parse '@{u}' 2>/dev/null || true)
+      if [ -z "$upstream" ] || git merge-base --is-ancestor "$upstream" HEAD 2>/dev/null; then
+        rm -f "$since"
+      else
+        [ -s "$since" ] || date +%s > "$since"
+        age=$(( $(date +%s) - $(cat "$since") ))
+        if [ "$age" -lt $(( wave * 86400 )) ] && [ ! -e /run/golem-update-now ]; then
+          echo "golem-autoupdate: a new version is out; this machine is in wave $wave and takes it in about $(( (wave * 86400 - age + 3599) / 3600 )) h."
+          pull=0
+        fi
+      fi
+
       # From the pull to the end (build, or recover), the source is in
       # flux: hold the rebuild lock for all of it, so a dock install never
       # reads a pulled-but-unbuilt (maybe broken) tree (MacBook, 2026-10-03:
@@ -186,14 +223,17 @@ lib.mkIf (config.golem.flakeDir != null) {
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch
       # (seen on the first real pull, 2026-09-30).
-      if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
-        echo "golem-autoupdate: seed cannot fast-forward (local commits?) — leaving the current generation; run rebuild-golem yourself." >&2
-        if [ -n "$heldpin" ]; then   # leave the tree exactly as we found it
-          cat "$heldpin" > "$dir/$pin"; runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
+      if [ "$pull" = 1 ]; then
+        if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
+          echo "golem-autoupdate: seed cannot fast-forward (local commits?) — leaving the current generation; run rebuild-golem yourself." >&2
+          if [ -n "$heldpin" ]; then   # leave the tree exactly as we found it
+            cat "$heldpin" > "$dir/$pin"; runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
+          fi
+          # FAILED, not success: a machine that can no longer update must show
+          # up in systemctl --failed and every probe, not look healthy forever.
+          exit 1
         fi
-        # FAILED, not success: a machine that can no longer update must show
-        # up in systemctl --failed and every probe, not look healthy forever.
-        exit 1
+        rm -f "$since"
       fi
       after=$(git rev-parse HEAD)
       if [ -n "$heldpin" ]; then
@@ -247,7 +287,11 @@ lib.mkIf (config.golem.flakeDir != null) {
     timerConfig = {
       OnCalendar = "daily";
       Persistent = true;        # catch up a missed run (laptop asleep at the hour)
-      RandomizedDelaySec = "45min";
+      # Each machine its own moment between midnight and 6:00, the same every
+      # night: systemd derives it from this machine's machine-id and the
+      # timer's name, on the machine, so the machines never all ask at once.
+      RandomizedDelaySec = "6h";
+      FixedRandomDelay = true;
     };
   };
 }

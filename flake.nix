@@ -310,6 +310,17 @@
       packages.${system} = {
         inherit waveview bakedMatrix bakedManifest;
 
+        # What the update lane builds before it publishes a version, and
+        # whose pieces go into that version's cache (updates/README.md).
+        update-gate = import ./updates/gate.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          inherit bakedUnique mkBakedEntry;
+          synthetic = [
+            { name = "nvidia-turing";     path = ./Installer/preinstall/fixtures/synthetic-nvidia-desktop-turing/facts.nix; }
+            { name = "nvidia-pre-turing"; path = ./Installer/preinstall/fixtures/synthetic-nvidia-desktop-pre-turing/facts.nix; }
+          ];
+        };
+
         # The Arc-1 deliverable: one command, one bootable Golem.
         iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;
       };

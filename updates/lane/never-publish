@@ -1,0 +1,12 @@
+# Paths the update lane must NEVER put in the public cache, whatever else is
+# true: regexes matched against the store path's name (after "<hash>-").
+# A machine that needs one builds or fetches it itself, as before.
+#
+# Rule for adding a line: the licence does not let us redistribute it
+# (nixpkgs: meta.license.free = false AND redistributable = false), or it
+# holds something private. Redistributable unfree (nvidia_x11, broadcom-sta:
+# lib.licenses.unfreeRedistributable) is allowed.
+
+# Apple's FaceTime HD ISP firmware, cut out of Apple's driver download at
+# build time (licenses.unfree). Each Mac extracts it itself, in seconds.
+^facetimehd-firmware

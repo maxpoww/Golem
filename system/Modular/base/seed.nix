@@ -120,7 +120,9 @@ in
     };
     branch = lib.mkOption {
       type = lib.types.str;
-      default = "main";
+      # "stable": only versions the update lane built, tested and cached
+      # (updates/README.md). main is where work lands first.
+      default = "stable";
       description = "The branch installs follow.";
     };
   };
