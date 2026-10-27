@@ -169,10 +169,29 @@ cache() {
   # shellcheck disable=SC2016  # $c and $(…) belong to the inner sh
   xargs -P 48 -I{} sh -c 'c=$(curl -s -o /dev/null -w "%{http_code}" --retry 2 -I "https://cache.nixos.org/{}.narinfo"); [ "$c" = 200 ] || echo {}' \
     < "$work/hashes" > "$work/missing"
-  sel=$(python3 "$LIB/select.py" "$work/closure.json" "$work/missing" "$TREE/updates/lane/never-publish" "$work/chosen" "$EXPORT_OUT")
+  # Whether nix would substitute each path at all is in its derivation
+  # (allowSubstitutes): select.py uploads exactly the ones it would.
+  jq -r --rawfile miss "$work/missing" '
+      ($miss | split("\n") | map(select(length > 0) | {(.): true}) | add // {}) as $m
+      | to_entries[] | select(.value != null)
+      | select($m[.key | ltrimstr("/nix/store/") | split("-")[0]]) | .value.deriver // empty' \
+      "$work/closure.json" | sort -u | while read -r f; do [ -e "$f" ] && echo "$f"; done > "$work/derivers"
+  if [ -s "$work/derivers" ]; then
+    xargs -a "$work/derivers" nix "${NIXF[@]}" derivation show > "$work/drvs.json" 2>> "$LOG" \
+      || fail cache "reading the derivations failed: $(last_error)"
+  else
+    echo '{}' > "$work/drvs.json"
+  fi
+  sel=$(python3 "$LIB/select.py" "$work/closure.json" "$work/drvs.json" "$work/missing" \
+          "$TREE/updates/lane/never-publish" "$work/chosen" "$EXPORT_OUT") \
+    || fail cache "selecting the pieces failed (select.py exit $?)"
   say "cache: $sel"
   n=$(wc -l < "$work/chosen")
   [ "$n" -gt 0 ] || fail cache "nothing to upload — the selection is empty"
+  # Second, independent check of the licence rule on the final list.
+  if sed 's|^/nix/store/[a-z0-9]*-||' "$work/chosen" | grep -E -f <(grep -v -E '^\s*(#|$)' "$TREE/updates/lane/never-publish") >&2; then
+    fail cache "a never-publish path is in the upload list"
+  fi
 
   xargs -a "$work/chosen" nix "${NIXF[@]}" copy --no-recursive \
     --to "file://$EXPORT_OUT?compression=zstd&parallel-compression=true&secret-key=$KEY" >> "$LOG" 2>&1 \

@@ -110,18 +110,25 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   a complete Nix binary cache in one flat list: `nix-cache-info`,
   `<hash>.narinfo`, `<filehash>.nar.zst` (the narinfo `URL:` lines point at
   the flat name; the signature covers the content, not the location).
-- **What goes in** (`select.py`): closure paths that cache.nixos.org lacks
-  AND are heavy (≥ 64 KiB): nvidia (open and legacy), Seam, the dock,
-  patched Hyprland, the kernel modules and drivers, firmware… Left out:
-  the small rest (each machine builds it in seconds), the **per-machine**
-  pieces (a fixture's initrd, system-path, unit lists, hwdb, toplevel:
-  every real machine builds its own, so the fixtures' copies would never be
-  used), and **fixed-output downloads** (third-party files fetched
-  verbatim: each machine fetches them from their source, and we do not
-  re-host other people's files). The first version (2026-10-27): 2675
-  closure paths, 591 not on cache.nixos.org, 66 uploaded (3.5 GiB before
-  compression, 2.8 of it nvidia). If a set ever needs more than 990 files,
-  the threshold doubles until it fits.
+- **What goes in** (`select.py`): every closure path cache.nixos.org
+  lacks whose derivation nix would *substitute* (`allowSubstitutes`, the
+  default). That is exactly what a machine would otherwise build: nvidia,
+  Seam, the dock, patched Hyprland **with all its outputs**, the Golem
+  scripts, the drivers… Not a size threshold: the first MacBook update
+  compiled Hyprland because its 20 KiB `man` output was below the old
+  64 KiB rule, and nix builds the whole derivation when one output it needs
+  is in no cache. Left out: trivial builds (`allowSubstitutes = false`:
+  nix builds those locally anyway), **per-machine** pieces (a fixture's
+  initrd, system-path, unit lists, hwdb, toplevel: every real machine
+  builds its own), **fixed-output downloads** (third-party files: each
+  machine fetches them from their source, we do not re-host them), and
+  eval-time sources. First version: 2675 closure paths, 591 not on
+  cache.nixos.org, 128 uploaded (3.5 GiB before compression, 2.8 of it
+  nvidia). A set over 990 files fails loudly rather than dropping pieces.
+- **Placeholders**: nix adds a path to a binary cache only if every path it
+  refers to is already listed there. The lane writes a placeholder narinfo
+  for each reference it does not upload, exports, and deletes them before
+  uploading; machines get those references where they always have.
 - **Licence**: only what we may redistribute. nvidia and broadcom-sta are
   `unfreeRedistributable` (allowed). Apple's FaceTime firmware is not and is
   in `never-publish`; each Mac extracts it itself, in seconds.
