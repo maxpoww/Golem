@@ -4101,11 +4101,13 @@ try {
   }
   // A picture, fetched ONCE by Seam from the address the page gave: done(file name) when it is in
   // (failed(), when given, when it is not).
-  function rkPicture(src,pageUrl,done,failed){
+  // (own: kept under a name of its own — a list's picture is its first video's, and the dock
+  // takes a picture two things wear for a site's logo.)
+  function rkPicture(src,pageUrl,done,failed,own){
     var no=function(){ if(failed) try{ failed(); }catch(e){} };
     if(!rkWeb(src)){ no(); return; }
     if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); no(); return; }
-    var name=rkHash(src), w=rkWin(), dir=rkDir(); if(!w || !dir){ no(); return; }
+    var name=rkHash(own ? src+"#"+own : src), w=rkWin(), dir=rkDir(); if(!w || !dir){ no(); return; }
     if(rkFetching[name]){ no(); return; } rkFetching[name]=1;
     var io=w.IOUtils, exts=["jpg","png","webp"];
     var finish=function(){ delete rkFetching[name]; };
@@ -4216,6 +4218,11 @@ try {
   // video is called by its id too (its oEmbed, on its own site, no cookies): its title, with the
   // artist when the video is the artist's own song ("<artist> - Topic"), "Song • Artist", as the
   // dock names what played; kept as the page's title (rk.pages[url].title), once, the same way.
+  // AND THE PLAYLISTS (2026-10-28, "keep going"): a list of the history (playlist?list=<id>)
+  // showed the site's tile too. YouTube's oEmbed says a list by its id as well: its name and its
+  // first video's picture — fetched the same way (the biggest first) and kept under the LIST'S
+  // own name (rkPicture's own: the same file on a song and a list would read to the dock as a
+  // site's logo, on neither).
   // The test asks for a round at once: the topic "golem:recents-backfill".
   var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_NAME=/^youtube music$/i, RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
   var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"], RK_WORDS_MAX=65536;
@@ -4228,6 +4235,12 @@ try {
     }catch(e){ RKLOG("timer:"+e); }
   }
   function rkVideoId(url){ var m=/[?&]v=([A-Za-z0-9_-]{11})(?:[&#]|$)/.exec(String(url||"")); return m ? m[1] : null; }
+  function rkListId(url){
+    var u=String(url||""); if(rkVideoId(u)) return null;
+    var m=/^https:\/\/[^\/?#]+\/playlist\?(?:[^#]*&)?list=([A-Za-z0-9_-]{2,64})(?:[&#]|$)/.exec(u); return m ? m[1] : null;
+  }
+  // What a page of the history is to the round: a song by its video, a list by its own id.
+  function rkBackKey(url){ var id=rkVideoId(url); if(id) return id; var l=rkListId(url); return l ? "list:"+l : null; }
   // A title that says nothing but the site's name ("YouTube Music", "x | YouTube Music" is a name).
   function rkNameless(t){ var n=String(t||"").trim(); return !n || RK_BACK_NAME.test(n); }
   // What a site says of a page, as JSON, fetched the kitchen's way: done(object) or failed().
@@ -4250,27 +4263,29 @@ try {
     var stop=function(why){ rkBackRunning=false; if(why) RKLOG("covers from before: "+why); };
     rkLoad(function(){
       var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000, params={since:since};
-      var like=RK_BACK_HOSTS.map(function(h,i){ params["h"+i]="https://"+h+"/watch?%"; return "url LIKE :h"+i; }).join(" OR ");
+      var like=[];
+      RK_BACK_HOSTS.forEach(function(h,i){ params["h"+i]="https://"+h+"/watch?%"; params["l"+i]="https://"+h+"/playlist?%"; like.push("url LIKE :h"+i,"url LIKE :l"+i); });
+      like=like.join(" OR ");
       w.PlacesUtils.promiseDBConnection().then(function(db){
         return db.executeCached("SELECT url, title, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
       }).then(function(rows){
-        var now=Math.round(Date.now()/1000), pictured={}, named={}, of={}, want=[], pics=0, names=0;
+        var now=Math.round(Date.now()/1000), pictured={}, named={}, of={}, want=[], pics=0, names=0, lists=0;
         // (A song heard since has its cover and its name from the page already.)
         rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) named[id]=1; });
-        Object.keys(rk.pages).forEach(function(u){ var id=rkVideoId(u); if(!id) return; if(rk.pages[u].pic) pictured[id]=1; if(!rkNameless(rk.pages[u].title)) named[id]=1; });
-        rows.forEach(function(r){ var id=rkVideoId(r.getResultByName("url")); if(id && !rkNameless(r.getResultByName("title"))) named[id]=1; });
-        // One fetch a song; what it gets for every address it was at (with a list, without).
+        Object.keys(rk.pages).forEach(function(u){ var id=rkBackKey(u); if(!id) return; if(rk.pages[u].pic) pictured[id]=1; if(!rkNameless(rk.pages[u].title)) named[id]=1; });
+        rows.forEach(function(r){ var id=rkBackKey(r.getResultByName("url")); if(id && !rkNameless(r.getResultByName("title"))) named[id]=1; });
+        // One fetch a song or a list; what it gets for every address it was at (with a list, without).
         for(var i=0;i<rows.length;i++){
-          var url=String(rows[i].getResultByName("url")), id=rkVideoId(url), page=rk.pages[url]||{};
+          var url=String(rows[i].getResultByName("url")), id=rkBackKey(url), page=rk.pages[url]||{};
           if(!id || !rkWeb(url)) continue;
           var pic=!pictured[id] && now-(page.tried||0)>=RK_BACK_AGAIN, name=!named[id] && now-(page.nameTried||0)>=RK_BACK_AGAIN;
           if(!pic && !name) continue;
           var at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
           if(of[id]){ of[id].pages.push(at); continue; }
           if(want.length>=RK_BACK_MAX) continue;
-          of[id]={id:id,pages:[at],pic:pic,name:name}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0;
+          of[id]={id:id,list:id.indexOf("list:")===0,pages:[at],pic:pic,name:name}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0; lists+=of[id].list?1:0;
         }
-        RKLOG("covers from before: "+want.length+" songs, "+pics+" pictures, "+names+" names to fetch");
+        RKLOG("covers from before: "+(want.length-lists)+" songs, "+lists+" playlists, "+pics+" pictures, "+names+" names to fetch");
         // Kept only while a page is still in the history and nothing was cleared meanwhile.
         var keep=function(it,f,then){
           Promise.all(it.pages.map(function(pg){
@@ -4283,25 +4298,41 @@ try {
           if(k>=want.length){ stop(); return; }
           if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
           var it=want[k], on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
-          var size=function(s){
+          // The picture of the video vid (a list's: its first's, kept as the list's own).
+          var size=function(vid,s){
             if(!it.pic){ on(); return; }
-            if(s>=RK_BACK_SIZES.length){ keep(it,function(p){ p.tried=Math.round(Date.now()/1000); },on); return; }
-            rkPicture("https://i.ytimg.com/vi/"+it.id+"/"+RK_BACK_SIZES[s]+".jpg",it.pages[0].url,
+            if(!vid || s>=RK_BACK_SIZES.length){ keep(it,function(p){ p.tried=Math.round(Date.now()/1000); },on); return; }
+            rkPicture("https://i.ytimg.com/vi/"+vid+"/"+RK_BACK_SIZES[s]+".jpg",it.pages[0].url,
               function(f){ keep(it,function(p){ p.pic=f; delete p.tried; },on); },
-              function(){ size(s+1); });
+              function(){ size(vid,s+1); }, it.list ? it.id : "");
           };
           var name=function(){
-            if(!it.name){ size(0); return; }
+            if(!it.name){ size(it.id,0); return; }
             rkWords("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/watch?v="+it.id),it.pages[0].url,
               function(j){
                 var song=rkClip(j && j.title,200), by=/^(.+) - Topic$/.exec(rkClip(j && j.author_name,200));
                 var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song;
-                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(0); }); return; }
-                keep(it,function(p){ p.title=t; delete p.nameTried; },function(){ size(0); });
+                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); return; }
+                keep(it,function(p){ p.title=t; delete p.nameTried; },function(){ size(it.id,0); });
               },
-              function(){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(0); }); });
+              function(){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); });
           };
-          name();
+          // A list: its name and its first video, in one answer.
+          var list=function(){
+            rkWords("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/playlist?list="+it.id.slice(5)),it.pages[0].url,
+              function(j){
+                var t=rkClip(j && j.title,200), first=/^https:\/\/i\.ytimg\.com\/vi(?:_webp)?\/([A-Za-z0-9_-]{11})\//.exec(String((j && j.thumbnail_url)||""));
+                var pic=function(){ size(first ? first[1] : null,0); };
+                if(!it.name){ pic(); return; }
+                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },pic); return; }
+                keep(it,function(p){ p.title=t; delete p.nameTried; },pic);
+              },
+              function(){
+                var when=Math.round(Date.now()/1000);
+                keep(it,function(p){ if(it.name) p.nameTried=when; if(it.pic) p.tried=when; },on);
+              });
+          };
+          if(it.list) list(); else name();
         };
         next(0);
       }).catch(function(e){ stop(String(e)); });

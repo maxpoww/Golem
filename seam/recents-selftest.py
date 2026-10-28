@@ -2,8 +2,8 @@
 # recents-selftest.py: the recents' kitchen's COVERS FROM BEFORE (golem-chrome.js), headless,
 # against a real Seam build. Run through `./webapps-selftest.sh recents` (it builds the farm).
 # A throwaway profile and state dir; the history is written through Places; the pictures are
-# YouTube's own (this test goes on the network: i.ytimg.com).
-import json, os, shutil, socket, subprocess, sys, time, tempfile
+# YouTube's own (this test goes on the network: i.ytimg.com, YouTube's oEmbed).
+import json, os, shutil, socket, subprocess, sys, time, tempfile, urllib.parse, urllib.request
 FARM = os.environ["FARM"]; LDP = os.environ["LDP"]
 MPORT = 28291
 PROF = tempfile.mkdtemp(prefix="rk-prof-"); RUN = tempfile.mkdtemp(prefix="rk-run-")
@@ -61,11 +61,19 @@ NOWHERE = MU + "zzzzzzzzzz0"                           # no such video: tried, n
 GONE = MU + "V2SVRJ6dcE4"                              # taken out of the history during the round
 VIDEO = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # not a music site's
 OLD = MU + "U1vGosMScjM"                               # visited too long ago
+PL = "https://music.youtube.com/playlist?list="
+LIST, LIST_SHARE = PL + "UU_x5XG1OV2P6uZZ5FSM9Ttw", PL + "UU_x5XG1OV2P6uZZ5FSM9Ttw&feature=share"   # a list at two addresses, nameless
+NOLIST = PL + "PLzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"     # no such list: tried, its name left
+# What YouTube says of the list now (its first video changes with the channel's uploads).
+said = json.load(urllib.request.urlopen("https://www.youtube.com/oembed?format=json&url=" + urllib.parse.quote("https://www.youtube.com/playlist?list=UU_x5XG1OV2P6uZZ5FSM9Ttw", safe=""), timeout=20))
+LIST_NAME, FIRST = said["title"], said["thumbnail_url"].split("/vi/")[1].split("/")[0]
+FIRSTSONG = MU + FIRST                                 # the list's first video, a song of the history too
 DAY = 86400 * 1000
 m = M(); time.sleep(2)
 YTM = "YouTube Music"
 visits = [(ROBOT, 2, "Robot Rock | YouTube Music"), (ROBOT_LIST, 3, YTM), (NOWHERE, 4, YTM), (CHARROS, 5, "Amores Como El Nuestro | YouTube Music"),
-          (TECHNO, 6, "Daft Punk - Technologic | YouTube Music"), (THUNDER, 6.5, YTM), (GONE, 7, YTM), (VIDEO, 2, YTM), (OLD, 200, YTM)]
+          (TECHNO, 6, "Daft Punk - Technologic | YouTube Music"), (THUNDER, 6.5, YTM), (GONE, 7, YTM), (VIDEO, 2, YTM), (OLD, 200, YTM),
+          (LIST, 8, YTM), (LIST_SHARE, 8.5, YTM), (NOLIST, 9, "My list | YouTube Music"), (FIRSTSONG, 9.5, "First | YouTube Music")]
 ins = m.js("""
   const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs");
   await PlacesUtils.history.insertMany(%s.map(([url, days, title]) => ({ url, title, visits: [{ date: new Date(Date.now() - days * %d) }] })));
@@ -77,12 +85,12 @@ m.js("""const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modul
   await PlacesUtils.history.remove(%s); done(1);""" % json.dumps(GONE))
 for _ in range(60):
     k = kitchen()["pages"]
-    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO, THUNDER)) and k.get(THUNDER, {}).get("title") and k.get(NOWHERE, {}).get("tried") and "to fetch" in log(): break
+    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO, THUNDER, LIST, FIRSTSONG)) and k.get(THUNDER, {}).get("title") and k.get(NOWHERE, {}).get("tried") and k.get(NOLIST, {}).get("tried") and "to fetch" in log(): break
     time.sleep(1)
 time.sleep(3)
 k = kitchen(); pages = k["pages"]
-check("the round wanted the window's six songs, three of them nameless (one fetch a song)", "covers from before: 6 songs, 6 pictures, 3 names to fetch" in log(), log()[-400:])
-pics = {u: pages.get(u, {}).get("pic") for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, THUNDER)}
+check("the round wanted the window's seven songs and two lists, four of them nameless (one fetch each)", "covers from before: 7 songs, 2 playlists, 9 pictures, 4 names to fetch" in log(), log()[-400:])
+pics = {u: pages.get(u, {}).get("pic") for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, THUNDER, FIRSTSONG)}
 check("each song of the history gets its picture", all(pics.values()), pics)
 check("a song at two addresses: one picture for both", pics[ROBOT] and pics[ROBOT] == pics[ROBOT_LIST], pics)
 files = {u: f"{KITCHEN}/pics/{f}" for u, f in pics.items() if f}
@@ -91,13 +99,18 @@ sizes = {u[-24:]: jpeg_size(f) for u, f in files.items() if os.path.exists(f)}
 check("the biggest picture there is: 1280×720, else YouTube's 480×360", sizes.get(ROBOT[-24:]) == (1280, 720) and sizes.get(TECHNO[-24:]) == (480, 360), sizes)
 check("the page keeps when it was visited", abs(pages.get(ROBOT, {}).get("at", 0) - (time.time() - 2 * 86400)) < 120, pages.get(ROBOT))
 check("a song the history calls only \"YouTube Music\" gets its name, with its artist", pages.get(THUNDER, {}).get("title") == "Thunder \u2022 Imagine Dragons", pages.get(THUNDER))
-check("a song with a name (at any of its addresses) keeps the history's", all("title" not in pages.get(u, {}) for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO)), {u[-12:]: pages.get(u) for u in pics})
+check("a song with a name (at any of its addresses) keeps the history's", all("title" not in pages.get(u, {}) for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, FIRSTSONG)), {u[-12:]: pages.get(u) for u in pics})
+lp = {u: pages.get(u, {}).get("pic") for u in (LIST, LIST_SHARE, FIRSTSONG)}
+check("a list gets its first video's picture, one for both its addresses, a file of its own (not its song's)",
+      lp[LIST] and lp[LIST] == lp[LIST_SHARE] and lp[LIST] != lp[FIRSTSONG] and all(os.path.exists(f"{KITCHEN}/pics/{f}") for f in lp.values() if f), lp)
+check("a list the history only calls \"YouTube Music\" gets its name", pages.get(LIST, {}).get("title") == LIST_NAME and pages.get(LIST_SHARE, {}).get("title") == LIST_NAME, (LIST_NAME, pages.get(LIST)))
+check("a list that is not there: tried, no picture, its name left", pages.get(NOLIST, {}).get("tried") and not pages.get(NOLIST, {}).get("pic") and "nameTried" not in pages.get(NOLIST, {}) and "title" not in pages.get(NOLIST, {}), pages.get(NOLIST))
 check("a video that is not there: tried, no picture, no name", pages.get(NOWHERE, {}).get("tried") and pages.get(NOWHERE, {}).get("nameTried") and not pages.get(NOWHERE, {}).get("pic") and "title" not in pages.get(NOWHERE, {}), pages.get(NOWHERE))
 check("a page taken out of the history meanwhile is not kept", GONE not in pages, pages.get(GONE))
 check("not another site's, not one visited too long ago", VIDEO not in pages and OLD not in pages, [u for u in pages])
 n = log().count("covers from before:")
 m.js('Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(3)
-check("a second round asks for nothing (pictured and named, or tried this week)", log().count("covers from before: 0 songs, 0 pictures, 0 names to fetch") == 1 and log().count("covers from before:") == n + 1, log()[-200:])
+check("a second round asks for nothing (pictured and named, or tried this week)", log().count("covers from before: 0 songs, 0 playlists, 0 pictures, 0 names to fetch") == 1 and log().count("covers from before:") == n + 1, log()[-200:])
 m.js('Services.prefs.setBoolPref("golem.seam.recents", false); Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(2)
 check("the kill switch: no round", log().count("covers from before:") == n + 1, log()[-200:])
 m.quit(); p.wait(timeout=30)

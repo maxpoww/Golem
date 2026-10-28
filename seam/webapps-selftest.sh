@@ -8,7 +8,8 @@
 #   ./webapps-selftest.sh rows   one site in a Seam tab and as a webapp: each window its own
 #                                colour row (the web's switch + the drop / the apps')
 #   ./webapps-selftest.sh recents the recents' kitchen: covers from before (YouTube Music
-#                                songs of the history get their picture; goes on the network)
+#                                songs and lists of the history get their picture and name;
+#                                goes on the network)
 #
 # Env: SEAM_BUILD (default: newest /nix/store/*-seam-<pinned version>), SEAM_DIR.
 # Exit 0 = every check passed.

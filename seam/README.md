@@ -473,7 +473,10 @@ history; one that cannot be had is asked for again after a week. YouTube pads a 
 bars of its own colour; the dock cuts them (`unbanded`). AND ITS NAME: a song the history only calls
 "YouTube Music" (the dock hides such a page) gets what YouTube's oEmbed says the video is called,
 "Song • Artist" when it is the artist's own ("<artist> - Topic"), kept as the page's title the same
-way. Test: `./webapps-selftest.sh recents` (14 checks, headless, real build; it goes on the network).
+way. AND THE PLAYLISTS: a list of the history (`playlist?list=<id>`) gets its name (when the history
+has none) and its first video's picture from the list's oEmbed, the picture kept under the list's
+own file name (the same file on a song and a list would read to the dock as a site's logo).
+Test: `./webapps-selftest.sh recents` (17 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 
