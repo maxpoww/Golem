@@ -56,16 +56,19 @@ MU = "https://music.youtube.com/watch?v="
 ROBOT, ROBOT_LIST = MU + "sFZjqVnWBhc", MU + "sFZjqVnWBhc&list=RDAMVMsFZjqVnWBhc"   # a song at two addresses
 CHARROS = MU + "J5iFix-1FJw&list=RDAMVM5ZkLJ25zGCA"   # a song with no video: its cover, padded
 TECHNO = MU + "iqmTWg0z9v0"                            # no big picture: the smaller one
+THUNDER = MU + "9ssQKlLxBdQ"                           # the history calls it only "YouTube Music": named
 NOWHERE = MU + "zzzzzzzzzz0"                           # no such video: tried, not asked again
 GONE = MU + "V2SVRJ6dcE4"                              # taken out of the history during the round
 VIDEO = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"  # not a music site's
 OLD = MU + "U1vGosMScjM"                               # visited too long ago
 DAY = 86400 * 1000
 m = M(); time.sleep(2)
-visits = [(ROBOT, 2), (ROBOT_LIST, 3), (NOWHERE, 4), (CHARROS, 5), (TECHNO, 6), (GONE, 7), (VIDEO, 2), (OLD, 200)]
+YTM = "YouTube Music"
+visits = [(ROBOT, 2, "Robot Rock | YouTube Music"), (ROBOT_LIST, 3, YTM), (NOWHERE, 4, YTM), (CHARROS, 5, "Amores Como El Nuestro | YouTube Music"),
+          (TECHNO, 6, "Daft Punk - Technologic | YouTube Music"), (THUNDER, 6.5, YTM), (GONE, 7, YTM), (VIDEO, 2, YTM), (OLD, 200, YTM)]
 ins = m.js("""
   const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs");
-  await PlacesUtils.history.insertMany(%s.map(([url, days]) => ({ url, title: "YouTube Music", visits: [{ date: new Date(Date.now() - days * %d) }] })));
+  await PlacesUtils.history.insertMany(%s.map(([url, days, title]) => ({ url, title, visits: [{ date: new Date(Date.now() - days * %d) }] })));
   done(1);""" % (json.dumps(visits), DAY))
 check("setup: the history written", ins == 1, ins)
 m.js('Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);')
@@ -74,12 +77,12 @@ m.js("""const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modul
   await PlacesUtils.history.remove(%s); done(1);""" % json.dumps(GONE))
 for _ in range(60):
     k = kitchen()["pages"]
-    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO)) and k.get(NOWHERE, {}).get("tried") and "to fetch" in log() and log().count("picture ") >= 3: break
+    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO, THUNDER)) and k.get(THUNDER, {}).get("title") and k.get(NOWHERE, {}).get("tried") and "to fetch" in log(): break
     time.sleep(1)
 time.sleep(3)
 k = kitchen(); pages = k["pages"]
-check("the round wanted the five songs of the window (one fetch a song)", "covers from before: 5 to fetch" in log(), log()[-400:])
-pics = {u: pages.get(u, {}).get("pic") for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO)}
+check("the round wanted the window's six songs, three of them nameless (one fetch a song)", "covers from before: 6 songs, 6 pictures, 3 names to fetch" in log(), log()[-400:])
+pics = {u: pages.get(u, {}).get("pic") for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, THUNDER)}
 check("each song of the history gets its picture", all(pics.values()), pics)
 check("a song at two addresses: one picture for both", pics[ROBOT] and pics[ROBOT] == pics[ROBOT_LIST], pics)
 files = {u: f"{KITCHEN}/pics/{f}" for u, f in pics.items() if f}
@@ -87,13 +90,14 @@ check("the pictures are in the kitchen's pics/", all(os.path.getsize(f) > 2000 f
 sizes = {u[-24:]: jpeg_size(f) for u, f in files.items() if os.path.exists(f)}
 check("the biggest picture there is: 1280×720, else YouTube's 480×360", sizes.get(ROBOT[-24:]) == (1280, 720) and sizes.get(TECHNO[-24:]) == (480, 360), sizes)
 check("the page keeps when it was visited", abs(pages.get(ROBOT, {}).get("at", 0) - (time.time() - 2 * 86400)) < 120, pages.get(ROBOT))
-check("no title is made up (the history's stays)", all("title" not in pages.get(u, {}) for u in pics), {u[-12:]: pages.get(u) for u in pics})
-check("a video that is not there: tried, no picture", pages.get(NOWHERE, {}).get("tried") and not pages.get(NOWHERE, {}).get("pic"), pages.get(NOWHERE))
+check("a song the history calls only \"YouTube Music\" gets its name, with its artist", pages.get(THUNDER, {}).get("title") == "Thunder \u2022 Imagine Dragons", pages.get(THUNDER))
+check("a song with a name (at any of its addresses) keeps the history's", all("title" not in pages.get(u, {}) for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO)), {u[-12:]: pages.get(u) for u in pics})
+check("a video that is not there: tried, no picture, no name", pages.get(NOWHERE, {}).get("tried") and pages.get(NOWHERE, {}).get("nameTried") and not pages.get(NOWHERE, {}).get("pic") and "title" not in pages.get(NOWHERE, {}), pages.get(NOWHERE))
 check("a page taken out of the history meanwhile is not kept", GONE not in pages, pages.get(GONE))
 check("not another site's, not one visited too long ago", VIDEO not in pages and OLD not in pages, [u for u in pages])
 n = log().count("covers from before:")
 m.js('Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(3)
-check("a second round asks for nothing (pictured, or tried this week)", log().count("covers from before: 0 to fetch") == 1 and log().count("covers from before:") == n + 1, log()[-200:])
+check("a second round asks for nothing (pictured and named, or tried this week)", log().count("covers from before: 0 songs, 0 pictures, 0 names to fetch") == 1 and log().count("covers from before:") == n + 1, log()[-200:])
 m.js('Services.prefs.setBoolPref("golem.seam.recents", false); Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(2)
 check("the kill switch: no round", log().count("covers from before:") == n + 1, log()[-200:])
 m.quit(); p.wait(timeout=30)

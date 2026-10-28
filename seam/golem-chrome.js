@@ -4204,15 +4204,21 @@ try {
   // COVERS FROM BEFORE (2026-10-28, Max: "yes, fix the covers too"): a YouTube Music song heard
   // before the kitchen came, or for too short a while to be read, has no cover — the dock showed
   // the site's tile in its place. Its page is a video by its id (watch?v=<id>) and YouTube keeps
-  // that video's picture by the id (a song with no video of its own: its cover, padded with black
-  // — the dock cuts the bands): a while after start, then once a day, the newest such pages of the
-  // history with no picture get theirs, fetched ONCE each the kitchen's way (rkPicture: no
-  // cookies, at most 2 MB), the biggest there is first, one at a time; one that cannot be had is
-  // not asked for again for a week. Kept as the page's picture (rk.pages[url].pic; at = when it
-  // was visited, so the bound keeps the newest) — only while the page is still in the history.
+  // that video's picture by the id (a song with no video of its own: its cover, between two bars
+  // of the cover's colour — the dock cuts them): a while after start, then once a day, the newest
+  // such pages of the history with no picture get theirs, fetched ONCE each the kitchen's way
+  // (rkPicture: no cookies, at most 2 MB), the biggest there is first, one at a time; one that
+  // cannot be had is not asked for again for a week. Kept as the page's picture
+  // (rk.pages[url].pic; at = when it was visited, so the bound keeps the newest) — only while
+  // the page is still in the history.
+  // AND ITS NAME (Max, same day: "do it"): a song the history only calls "YouTube Music" (the
+  // app names the song after the history wrote) is hidden in the dock — YouTube says what the
+  // video is called by its id too (its oEmbed, on its own site, no cookies): its title, with the
+  // artist when the video is the artist's own song ("<artist> - Topic"), "Song • Artist", as the
+  // dock names what played; kept as the page's title (rk.pages[url].title), once, the same way.
   // The test asks for a round at once: the topic "golem:recents-backfill".
-  var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
-  var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"];
+  var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_NAME=/^youtube music$/i, RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
+  var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"], RK_WORDS_MAX=65536;
   var rkBackTimers=[], rkBackRunning=false, rkBackOn=false;
   function rkAfter(ms,f){
     try{
@@ -4222,6 +4228,21 @@ try {
     }catch(e){ RKLOG("timer:"+e); }
   }
   function rkVideoId(url){ var m=/[?&]v=([A-Za-z0-9_-]{11})(?:[&#]|$)/.exec(String(url||"")); return m ? m[1] : null; }
+  // A title that says nothing but the site's name ("YouTube Music", "x | YouTube Music" is a name).
+  function rkNameless(t){ var n=String(t||"").trim(); return !n || RK_BACK_NAME.test(n); }
+  // What a site says of a page, as JSON, fetched the kitchen's way: done(object) or failed().
+  function rkWords(src,pageUrl,done,failed){
+    var w=rkWin();
+    if(!w || !rkWeb(src) || !rkMayFetch(src,pageUrl)){ failed(); return; }
+    w.fetch(src,{credentials:"omit",redirect:"follow"}).then(function(res){
+      var type=String(res.headers.get("content-type")||"").toLowerCase();
+      if(!res.ok || type.indexOf("json")<0) throw "not words ("+res.status+" "+type+")";
+      return res.text();
+    }).then(function(t){
+      if(t.length>RK_WORDS_MAX) throw "size "+t.length;
+      return JSON.parse(t);
+    }).then(function(j){ done(j); },function(e){ RKLOG("words "+src.slice(0,120)+": "+e); failed(); });
+  }
   function rkBackfill(){
     if(!rkOn() || rkBackRunning) return;
     var w=rkWin(); if(!w || !w.PlacesUtils) return;
@@ -4231,23 +4252,25 @@ try {
       var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000, params={since:since};
       var like=RK_BACK_HOSTS.map(function(h,i){ params["h"+i]="https://"+h+"/watch?%"; return "url LIKE :h"+i; }).join(" OR ");
       w.PlacesUtils.promiseDBConnection().then(function(db){
-        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
+        return db.executeCached("SELECT url, title, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
       }).then(function(rows){
-        var now=Math.round(Date.now()/1000), have={}, of={}, want=[];
-        // (A song heard since has its cover from the page already.)
-        rk.plays.forEach(function(p){ var id=p.pic && rkVideoId(p.url); if(id) have[id]=1; });
-        Object.keys(rk.pages).forEach(function(u){ var id=rk.pages[u].pic && rkVideoId(u); if(id) have[id]=1; });
-        // One fetch a song; its picture for every address it was at (with a list, without).
+        var now=Math.round(Date.now()/1000), pictured={}, named={}, of={}, want=[], pics=0, names=0;
+        // (A song heard since has its cover and its name from the page already.)
+        rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) named[id]=1; });
+        Object.keys(rk.pages).forEach(function(u){ var id=rkVideoId(u); if(!id) return; if(rk.pages[u].pic) pictured[id]=1; if(!rkNameless(rk.pages[u].title)) named[id]=1; });
+        rows.forEach(function(r){ var id=rkVideoId(r.getResultByName("url")); if(id && !rkNameless(r.getResultByName("title"))) named[id]=1; });
+        // One fetch a song; what it gets for every address it was at (with a list, without).
         for(var i=0;i<rows.length;i++){
-          var url=String(rows[i].getResultByName("url")), id=rkVideoId(url), page=rk.pages[url];
-          if(!id || !rkWeb(url) || have[id]) continue;
-          if(page && now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var url=String(rows[i].getResultByName("url")), id=rkVideoId(url), page=rk.pages[url]||{};
+          if(!id || !rkWeb(url)) continue;
+          var pic=!pictured[id] && now-(page.tried||0)>=RK_BACK_AGAIN, name=!named[id] && now-(page.nameTried||0)>=RK_BACK_AGAIN;
+          if(!pic && !name) continue;
           var at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
           if(of[id]){ of[id].pages.push(at); continue; }
           if(want.length>=RK_BACK_MAX) continue;
-          of[id]={id:id,pages:[at]}; want.push(of[id]);
+          of[id]={id:id,pages:[at],pic:pic,name:name}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0;
         }
-        RKLOG("covers from before: "+want.length+" to fetch");
+        RKLOG("covers from before: "+want.length+" songs, "+pics+" pictures, "+names+" names to fetch");
         // Kept only while a page is still in the history and nothing was cleared meanwhile.
         var keep=function(it,f,then){
           Promise.all(it.pages.map(function(pg){
@@ -4261,12 +4284,24 @@ try {
           if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
           var it=want[k], on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
           var size=function(s){
+            if(!it.pic){ on(); return; }
             if(s>=RK_BACK_SIZES.length){ keep(it,function(p){ p.tried=Math.round(Date.now()/1000); },on); return; }
             rkPicture("https://i.ytimg.com/vi/"+it.id+"/"+RK_BACK_SIZES[s]+".jpg",it.pages[0].url,
               function(f){ keep(it,function(p){ p.pic=f; delete p.tried; },on); },
               function(){ size(s+1); });
           };
-          size(0);
+          var name=function(){
+            if(!it.name){ size(0); return; }
+            rkWords("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/watch?v="+it.id),it.pages[0].url,
+              function(j){
+                var song=rkClip(j && j.title,200), by=/^(.+) - Topic$/.exec(rkClip(j && j.author_name,200));
+                var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song;
+                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(0); }); return; }
+                keep(it,function(p){ p.title=t; delete p.nameTried; },function(){ size(0); });
+              },
+              function(){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(0); }); });
+          };
+          name();
         };
         next(0);
       }).catch(function(e){ stop(String(e)); });

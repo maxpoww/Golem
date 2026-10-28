@@ -470,8 +470,10 @@ the kitchen came, or too briefly to be read) gets its video's picture by its id 
 90 s after start, then once a day, the newest 48 of the last 120 days, the biggest size first, one
 every 1.5 s, each address of a song the same picture, kept only while the page is still in the
 history; one that cannot be had is asked for again after a week. YouTube pads a song's cover with
-bars of its own colour; the dock cuts them (`unbanded`). Test: `./webapps-selftest.sh recents`
-(13 checks, headless, real build; it goes on the network).
+bars of its own colour; the dock cuts them (`unbanded`). AND ITS NAME: a song the history only calls
+"YouTube Music" (the dock hides such a page) gets what YouTube's oEmbed says the video is called,
+"Song • Artist" when it is the artist's own ("<artist> - Topic"), kept as the page's title the same
+way. Test: `./webapps-selftest.sh recents` (14 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 
