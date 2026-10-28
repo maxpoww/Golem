@@ -79,6 +79,17 @@ echo "lid: HandleLidSwitch=$(grep -hE '^HandleLidSwitch=' /etc/systemd/logind.co
 echo "idle: IdleAction=$(grep -hE '^IdleAction=' /etc/systemd/logind.conf 2>/dev/null | cut -d= -f2)"
 echo "wifi powersave: $(iw dev 2>/dev/null | awk '/Interface/{print $2}' | head -1 | xargs -I{} iw dev {} get power_save 2>/dev/null)"
 have sensors && sensors 2>/dev/null | grep -iE 'Package id 0|Tctl|CPU|Core 0' | head -2
+# The PROCHOT release (power/prochot.nix; the checks of finalizar/checkafterinstall.md,
+# read-only): the unit is there, its udev hook, msr; 0x1FC bit 0 = the CPU obeys the
+# platform's PROCHOT (1 = as from the factory, 0 = released by golem-prochot), 0x19C
+# bit 2 = PROCHOT held right now. Intel only; a VM says ConditionResult=no.
+echo "prochot: unit=$(systemctl is-enabled golem-prochot 2>/dev/null) condition=$(systemctl show golem-prochot -p ConditionResult --value 2>/dev/null) exit=$(systemctl show golem-prochot -p ExecMainStatus --value 2>/dev/null) udev=$(grep -c golem-prochot /etc/udev/rules.d/99-local.rules 2>/dev/null || echo 0) msr=$(lsmod 2>/dev/null | grep -cw '^msr')"
+if grep -q GenuineIntel /proc/cpuinfo && modprobe msr 2>/dev/null; then
+  msr() { dd if=/dev/cpu/0/msr bs=8 count=1 skip=$(($1)) iflag=skip_bytes 2>/dev/null | od -An -tx8 | tr -d ' '; }
+  v=$(msr 0x1FC); t=$(msr 0x19C)
+  [ -n "$v" ] && [ -n "$t" ] && echo "prochot: obeys-platform=$(( 0x$v & 1 )) held-now=$(( (0x$t >> 2) & 1 ))"
+fi
+journalctl -u golem-prochot -b -o cat --no-pager 2>/dev/null | tail -2 | sed 's/^/prochot: /'
 
 section security
 echo "sshd: $(systemctl is-active sshd 2>/dev/null) PasswordAuth=$(sshd -T 2>/dev/null | grep -i '^passwordauthentication' | awk '{print $2}') PermitRootLogin=$(sshd -T 2>/dev/null | grep -i '^permitrootlogin' | awk '{print $2}')"
