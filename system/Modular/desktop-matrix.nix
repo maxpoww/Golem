@@ -126,7 +126,8 @@ let
         ({ config, pkgs, ... }: {
           # As hosts/target/apps.nix does for what the dock installed.
           home-manager.users.${config.golem.owner}.home.packages =
-            map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing ];
+            map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing
+                              pkgs.kdePackages.kdeconnect-kde pkgs.teamviewer pkgs.noisetorch pkgs.retroarch ];
         })
       ]).config;
       groups = cfg: cfg.users.users.${cfg.golem.owner}.extraGroups;
@@ -148,6 +149,13 @@ let
           (lib.elem 53317 c.networking.firewall.allowedTCPPorts && lib.elem 22000 c.networking.firewall.allowedTCPPorts
            && lib.elem 21027 c.networking.firewall.allowedUDPPorts))
         (ex "app-setup: Ollama installed → its service" c.services.ollama.enable)
+        (ex "app-setup: KDE Connect installed → 1714–1764 open, both ways; a clean machine keeps them shut"
+          (lib.elem { from = 1714; to = 1764; } c.networking.firewall.allowedTCPPortRanges
+           && lib.elem { from = 1714; to = 1764; } c.networking.firewall.allowedUDPPortRanges
+           && clean.networking.firewall.allowedTCPPortRanges == [ ]))
+        (ex "app-setup: TeamViewer → its daemon; NoiseTorch → its capability wrapper; an emulator → the controllers' rules"
+          (c.services.teamviewer.enable && c.programs.noisetorch.enable && c.hardware.steam-hardware.enable
+           && !clean.services.teamviewer.enable && !clean.programs.noisetorch.enable))
         (ex "app-setup: the base groups are still there (merged, not replaced)"
           (lib.elem "wheel" (groups c) && lib.elem "uinput" (groups c)))
       ];
