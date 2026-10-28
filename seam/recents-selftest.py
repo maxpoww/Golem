@@ -5,7 +5,7 @@
 # YouTube's own (this test goes on the network: i.ytimg.com, YouTube's oEmbed).
 import json, os, shutil, socket, subprocess, sys, time, tempfile, urllib.parse, urllib.request
 FARM = os.environ["FARM"]; LDP = os.environ["LDP"]
-MPORT = 28291
+MPORT = 28293   # its own (webapps 28290, rows 28291, dwfirst 28292): two tests at once must not meet
 PROF = tempfile.mkdtemp(prefix="rk-prof-"); RUN = tempfile.mkdtemp(prefix="rk-run-")
 STATE = f"{PROF}/state"; KITCHEN = f"{STATE}/golem/seam/recents"; LOG = f"{RUN}/recents.log"
 open(f"{PROF}/user.js", "w").write("\n".join([
