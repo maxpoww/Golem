@@ -33,6 +33,35 @@ let
   machines = [ "virt-manager" "gnome-boxes" ];
 in
 {
+  # ── OBS Studio ───────────────────────────────────────────────────────────
+  # NVENC. OBS decides whether NVENC exists by running its own helper,
+  # obs-nvenc-test, which dlopens libnvidia-encode.so.1. nixpkgs gives the
+  # driver's library directory to OBS's plugins (addDriverRunpath) but not to
+  # that helper, so on every NixOS machine with the NVIDIA driver the test
+  # fails ("Cannot load libnvidia-encode.so.1"), OBS logs "NVENC not
+  # supported" and encodes on the CPU (the dev box, 2026-10-28: an RTX 4050
+  # idle while x264 took 2.2 cores). The wrapper hands the running `obs`
+  # (and so the helper it spawns) the driver directory, at the END of its
+  # library path: OBS's own libraries still come first. No rebuild of OBS —
+  # the package is joined, only bin/obs is replaced. Its name stays
+  # obs-studio-<version>: the fit and this leaf look packages up by name.
+  # Harmless without NVIDIA (Mesa's libraries live in the same directory).
+  nixpkgs.overlays = [
+    (final: prev: {
+      obs-studio = prev.symlinkJoin {
+        name = "obs-studio-${prev.obs-studio.version}";
+        paths = [ prev.obs-studio ];
+        nativeBuildInputs = [ prev.makeWrapper ];
+        postBuild = ''
+          rm "$out/bin/obs"
+          makeWrapper "${prev.obs-studio}/bin/obs" "$out/bin/obs" \
+            --suffix LD_LIBRARY_PATH : /run/opengl-driver/lib
+        '';
+        inherit (prev.obs-studio) version meta passthru;
+      };
+    })
+  ];
+
   # ── Games ────────────────────────────────────────────────────────────────
   # Steam is a system program on NixOS: its 32-bit runtime, its udev rules
   # and (for Remote Play / local transfers) its ports come with the module.

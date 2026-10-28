@@ -41,6 +41,24 @@
 # scene collection named Untitled with nothing in it — kept beside the seed
 # as Untitled.json.before-golem). Never while OBS is running: it writes its
 # scene on exit.
+#
+# THE ENCODER. OBS's own default is x264 — the video is compressed on the
+# CPU — and its first-run wizard, which would have picked the hardware
+# encoder, is the one the fit marks as done. Measured on the dev box
+# (i9-13905H + Iris Xe + RTX 4050, 3200x2000, 2026-10-28, golem-stress):
+# x264 at 1920x1200/60 costs 2.2 cores and OBS's own log showed 7 % of the
+# frames lagged and 4.6 % skipped in a 6-minute recording; VAAPI on the
+# iGPU's media block costs 0.1 core, and the desktop stayed at 160 fps while
+# recording. So the fit picks the encoder the machine has, once, where the
+# owner has not chosen one:
+# - an Intel or AMD render node → Advanced output, "FFmpeg VAAPI H.264"
+#   (OBS's Simple mode has no VAAPI entry) on that node, CQP 20. On a hybrid
+#   laptop this is the iGPU: the NVIDIA stays asleep, the battery lasts.
+# - NVIDIA only → Simple output, NVENC (needs the driver's libnvidia-encode
+#   on OBS's library path — see the obs-studio wrapper in
+#   system/Modular/desktop/app-setup.nix; without it OBS's NVENC self-test
+#   fails and it silently falls back to x264).
+# - neither → x264 stays.
 { config, lib, pkgs, ... }:
 
 let
@@ -84,6 +102,32 @@ in
           $DRY_RUN_CMD cp -p "$scene" "$scene.before-golem"
           $DRY_RUN_CMD install -m644 ${obs}/Untitled.json "$scene"
         fi
+        # The encoder this machine has (see the header). Keys are set only
+        # where the owner has not set them.
+        prof_dir=$(${pkgs.gawk}/bin/awk -F= '/^ProfileDir=/ { print $2; exit }' "$obs_dir/user.ini" 2>/dev/null)
+        prof="$obs_dir/basic/profiles/''${prof_dir:-Untitled}"
+        enc=x264 node=
+        for r in /dev/dri/renderD*; do
+          [ -e "$r" ] || continue
+          case "$(cat "/sys/class/drm/$(basename "$r")/device/vendor" 2>/dev/null)" in
+            0x8086|0x1002) enc=vaapi node=$r; break ;;
+          esac
+        done
+        [ "$enc" = x264 ] && [ -d /sys/module/nvidia ] && enc=nvenc
+        case $enc in
+          vaapi)
+            ${iniSet} "$prof/basic.ini" Output Mode Advanced
+            ${iniSet} "$prof/basic.ini" AdvOut RecType Standard
+            ${iniSet} "$prof/basic.ini" AdvOut RecEncoder ffmpeg_vaapi_tex
+            ${iniSet} "$prof/basic.ini" AdvOut RecFormat2 hybrid_mp4
+            if [ -z "''${DRY_RUN:-}" ] && [ ! -e "$prof/recordEncoder.json" ]; then
+              printf '{ "vaapi_device": "%s", "rate_control": "CQP", "qp": 20, "keyint_sec": 2 }\n' "$node" \
+                > "$prof/recordEncoder.json.golem-tmp" && mv -f "$prof/recordEncoder.json.golem-tmp" "$prof/recordEncoder.json"
+            fi ;;
+          nvenc)
+            ${iniSet} "$prof/basic.ini" SimpleOutput RecEncoder nvenc
+            ${iniSet} "$prof/basic.ini" SimpleOutput StreamEncoder nvenc ;;
+        esac
         # Either way this was the one time: from here the config is the owner's.
         $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
       fi
