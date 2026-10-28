@@ -222,6 +222,34 @@ let
         })
       ]).config;
       devHome = cDev.home-manager.users.${cDev.golem.owner};
+      # THE DEFAULT APPS name apps that are there (2026-10-28): after the
+      # debloat four defaults still named GNOME Disks, Calendar, Contacts and
+      # Maps. Every desktop file the home layer's table names is shipped by a
+      # package this desktop installs (below), and is looked for IN that
+      # package when the matrix builds (an upstream rename fails too). A new
+      # default needs its app here. The dock writes golem-files.desktop
+      # itself, at its first start.
+      hm = c.home-manager.users.${owner};
+      shippedBy = {
+        "org.gnome.Nautilus.desktop" = "nautilus";
+        "org.gnome.TextEditor.desktop" = "gnome-text-editor";
+        "org.gnome.Loupe.desktop" = "loupe";
+        "org.gnome.Papers.desktop" = "papers";
+        "org.gnome.FileRoller.desktop" = "file-roller";
+        "mpv.desktop" = "mpv";
+        "seam.desktop" = "seam";
+      };
+      writtenByTheDock = [ "golem-files.desktop" ];
+      installed = c.environment.systemPackages ++ hm.home.packages;
+      # (By its name; else the one whose name it begins — mpv with its scripts.)
+      installedNamed = n:
+        let exact = lib.findFirst (p: lib.getName p == n) null installed; in
+        if exact != null then exact else lib.findFirst (p: lib.hasPrefix "${n}-" (lib.getName p)) null installed;
+      defaultIds = lib.subtractLists writtenByTheDock
+        (lib.unique (lib.concatMap lib.toList (lib.attrValues hm.xdg.mimeApps.defaultApplications)));
+      unshipped = builtins.filter (id: !(shippedBy ? ${id}) || installedNamed shippedBy.${id} == null) defaultIds;
+      defaultFiles = lib.optionalString (unshipped == [ ])
+        (lib.concatMapStringsSep "\n" (id: "desktop-file ${id} ${installedNamed shippedBy.${id}}/share/applications/${id}") defaultIds);
       luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;
@@ -305,6 +333,8 @@ let
         (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
           (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)
            && c.home-manager.users.${owner}.xdg.dataFile ? "applications/mimeapps.list"))
+        (ex "every default app is an app this desktop installs (not installed: ${lib.concatStringsSep ", " unshipped})"
+          (unshipped == [ ]))
         (ex "an Intel iGPU can report its load (perf_event_paranoid 0 on intel leaves)"
           ((cLight.boot.kernel.sysctl."kernel.perf_event_paranoid" or null) == 0))
         (ex "trusted Bluetooth devices reconnect after hibernate"
@@ -456,7 +486,7 @@ let
       failed = builtins.filter (e: !e.ok) checks;
     in
     if failed == [ ]
-    then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
+    then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}\n${defaultFiles}"
     else throw "desktop-matrix real-desktop failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
   report = (map runRow rows) ++ [ testChrome appSetup realDesktop ];
@@ -464,6 +494,12 @@ in
 pkgs.runCommand "golem-desktop-matrix"
   { passAsFile = [ "report" ]; report = lib.concatStringsSep "\n" report; }
   ''
+    # Each default app's desktop file, in the package that ships it.
+    missing=0
+    while read -r _ id file; do
+      [ -e "$file" ] || { echo "desktop-matrix: the default app $id is not in its package ($file)" >&2; missing=1; }
+    done < <(grep '^desktop-file ' "$reportPath")
+    [ "$missing" = 0 ]
     cp "$reportPath" $out
     echo "desktop-matrix: ${toString (builtins.length rows)} desktop stages composed & asserted" >&2
   ''
