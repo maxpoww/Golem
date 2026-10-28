@@ -10,6 +10,8 @@
 #   ./webapps-selftest.sh recents the recents' kitchen: covers from before (YouTube Music
 #                                songs and lists of the history get their picture and name;
 #                                goes on the network)
+#   ./webapps-selftest.sh dwfirst  Dark Reader on 20 first starts (new profiles): our palette
+#                                gets in every time (DWN = how many)
 #
 # Env: SEAM_BUILD (default: newest /nix/store/*-seam-<pinned version>), SEAM_DIR.
 # Exit 0 = every check passed.

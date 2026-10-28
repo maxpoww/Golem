@@ -3741,12 +3741,16 @@ try {
   }
   // WebExtensionPolicy is a window global, not this script's.
   function dwPolicy(id){ try{ var w=Services.wm.getMostRecentWindow("navigator:browser"); return w && w.WebExtensionPolicy ? w.WebExtensionPolicy.getByID(id) : null; }catch(e){ return null; } }
-  function dwPause(ms){ return new Promise(function(r){ var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer); t.initWithCallback({notify:function(){ r(); }},ms,Components.interfaces.nsITimer.TYPE_ONE_SHOT); }); }
+  // (A timer nothing holds can be collected before it fires, and the await never ends: Dark
+  // Reader kept its own defaults for the whole session after a first start, 2026-10-28.
+  // Each is held until it has fired.)
+  var dwPauses=[];
+  function dwPause(ms){ return new Promise(function(r){ var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer); dwPauses.push(t); t.initWithCallback({notify:function(){ dwPauses.splice(dwPauses.indexOf(t),1); r(); }},ms,Components.interfaces.nsITimer.TYPE_ONE_SHOT); }); }
   // Write the palette and the sites into Dark Reader's storage. True when something changed (it must restart to read it).
   async function dwWriteTheme(cfg){
     var pol=null;
     for(var i=0;i<30;i++){ pol=dwPolicy(DW_ID); if(pol && pol.active && pol.extension) break; await dwPause(100); }
-    if(!pol || !pol.extension) return false;
+    if(!pol || !pol.extension) throw new Error("Dark Reader is not running");   // (a slow start: dwApplyNow tries again)
     var SI=ChromeUtils.importESModule("resource://gre/modules/ExtensionStorageIDB.sys.mjs").ExtensionStorageIDB;
     var db=await SI.open(SI.getStoragePrincipal(pol.extension), pol.extension.hasPermission("unlimitedStorage"));
     try{
