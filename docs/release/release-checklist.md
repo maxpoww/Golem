@@ -44,7 +44,7 @@ itself as NixOS everywhere a person can see:
 | Surface | Today | Fed by |
 |---|---|---|
 | `/etc/os-release` `NAME`/`PRETTY_NAME` | NixOS | `system.nixos.distroName` (default) |
-| systemd-boot entry titles | NixOS | same |
+| Boot menu entries (GRUB) | **Golem**: "Start Golem", "Previous Versions" | `boot/grub-patched.nix` (Max, 2026-09-15) |
 | Generation label in the boot menu | the nixpkgs version string | `system.nixos.label` (default) |
 | ISO filename / volume | **already Golem** | `hosts/iso.nix:85-86` |
 
@@ -55,8 +55,8 @@ belongs to the installed system too, not just here."* It belongs in
 
 - [x] `system.nixos.distroName = "Golem"` in `system/configuration.nix`
       (2026-09-03). Eval-confirmed on all three configs: os-release reads
-      `NAME=Golem`, `PRETTY_NAME="Golem 26.05 (Yarara)"` (systemd-boot titles
-      derive from the same option). The codename/version half of the string is
+      `NAME=Golem`, `PRETTY_NAME="Golem 26.05 (Yarara)"`. (The boot menu is
+      GRUB everywhere now, its entries Golem's own words — see the table.) The codename/version half of the string is
       the §1.2 version-string DECIDE below — untouched.
 - [ ] A Golem generation label (`system.nixos.label`, or `system.nixos.tags`
       if the nixpkgs revision should stay in the string for diagnostics).
@@ -100,25 +100,40 @@ them, not by component.
 
 ### 2.1 Blocks the Arc-1 exit — there is no alpha until these move
 
-- **The ISO has never been built or booted.** `hosts/iso.nix` +
+*(Re-read 2026-10-28 against the tree: every item below has moved. Each
+keeps its old words for the record, struck, with what replaced it.)*
+
+- ~~**The ISO has never been built or booted.**~~ — **DONE.** The installer
+  medium (`Installer/preinstall`, its own flake) has been cut and booted on
+  the lab's laptops round after round since 2026-09, and installed in a VM
+  on 2026-10-28 (plain and encrypted). Old words: `hosts/iso.nix` +
   `packages.iso` exist and are unexercised (`todo/todo9.md:14-17`, which also
   names the two things to suspect first: systemd initrd on an overlay store,
   and the quiet-boot black screen).
-- **No installer.** Which surface does the guided install is undecided
+- ~~**No installer.**~~ — **DONE.** `golem-setup` (the guided surface:
+  language, time zone, keyboard, you, disk, confirm) and `golem-install`
+  behind it. Old words: Which surface does the guided install is undecided
   (`todo/todo9.md:18`); the disk flow behind it is parked on that decision
   (`:20`). Today the way out of the live session is `nixos-install` in a
   terminal — which is the one thing the roadmap's exit criterion forbids
   (`roadmap.md:44`, "no terminal, no Max in the room").
-- **No host for a machine that isn't Max's.** `nixosConfigurations.golem`
+- ~~**No host for a machine that isn't Max's.**~~ — **DONE.** The install
+  writes the machine's own layer (`hosts/target`: `machine.nix`, its measured
+  `hardware-configuration.nix`) and copies a baked toplevel for its hardware
+  class. Old words: `nixosConfigurations.golem`
   carries `hosts/golem/hardware-configuration.nix` (his disk UUIDs) and
   `nvidia.nix`; `golem-vm` is a VM. A stranger's install needs a generic host
   whose `hardware-configuration.nix` is generated at install time
   (`NOTES.md`, todo9 item 3).
-- **Nvidia machines land on nouveau.** nvidia is a host choice, not a core
+- ~~**Nvidia machines land on nouveau.**~~ — **DONE.** The chooser picks a
+  GPU leaf from the census (`system/Modular/gpu/`: nvidia-turing,
+  nvidia-preturing, nouveau only as the floor). Old words: nvidia is a host choice, not a core
   one (`system/configuration.nix:145-151`) — deliberate, and it means a
   tester with an nvidia GPU gets the open driver until the generic host
   exists.
-- **No polished scan-and-join wifi GUI in Golem** — but no longer a brick
+- ~~**No polished scan-and-join wifi GUI in Golem**~~ — **DONE.** The gear
+  box's Wi-Fi page lists, joins, forgets and makes a hotspot (2026-10-06).
+  Old words: **No polished scan-and-join wifi GUI in Golem** — but no longer a brick
   (re-checked 2026-09-03): when NO interface is up, the OPTIONS bar
   surfaces an amber "No network" warning plus a "Network settings" control
   that opens `nmtui` (options-catalog §38) — and nmtui, verified present in
@@ -131,8 +146,10 @@ them, not by component.
 
 ### 2.2 Ships broken, on purpose — say so on the download page
 
-- **Every Golem user is named `max` — now ONE option, not five files
-  (2026-09-03).** `golem.owner` (default `max`) feeds every owner-shaped
+- ~~**Every Golem user is named `max`**~~ — **DONE.** The installer asks for
+  the owner and writes `golem.owner` into the machine's layer
+  (`install.nix`). Old words: **Every Golem user is named `max` — now ONE
+  option, not five files (2026-09-03).** `golem.owner` (default `max`) feeds every owner-shaped
   site: the user account, greetd's autologin, the sudo rule, the home
   layer's username/homeDirectory, the ISO's live-user password, the VM
   host's seed/ssh/flakeDir, and — the one with teeth — waverunner-apply's
@@ -143,14 +160,21 @@ them, not by component.
   setting this option (plus the GECOS full name, left as `"Max"`
   deliberately). Until the installer exists, every image still SHIPS as
   `max` — the download page must still say so.
-- **Max's locale and timezone are everyone's.** `time.timeZone =
+- ~~**Max's locale and timezone are everyone's.**~~ — **DONE.** The
+  installer asks for both (and the keyboard) and they are baked into the
+  copied toplevel and seeded as live settings for the first session. Old
+  words: `time.timeZone =
   "America/La_Paz"` and nine `LC_*` settings pinned to `es_BO`
   (`system/configuration.nix:98-110`) apply to every Golem machine including
   the ISO. A tester in another country gets the wrong clock on first boot.
 - **In the live session, dragging an app into Install does nothing.** No
   flake checkout on a read-only medium, by design and documented
   (`hosts/iso.nix:64-70`). It works on an *installed* machine.
-- **No i18n, no keyboard-only path, no accessibility work.** That is S11
+- **No i18n, no keyboard-only path, no accessibility work.** — **PARTLY
+  (2026-10-28):** the shell is whole in Spanish and changes language live
+  (2026-10-13); Files has a keyboard mode; reduce-motion and
+  reduce-transparency exist but only in `config.toml`; no screen reader, no
+  on-screen keyboard, no magnifier. Old words: That is S11
   (`roadmap.md:81-82`) and it has not opened.
 
 ### 2.3 Fixed in code, never verified by eye
