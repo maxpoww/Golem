@@ -79,6 +79,14 @@ echo "lid: HandleLidSwitch=$(grep -hE '^HandleLidSwitch=' /etc/systemd/logind.co
 echo "idle: IdleAction=$(grep -hE '^IdleAction=' /etc/systemd/logind.conf 2>/dev/null | cut -d= -f2)"
 echo "wifi powersave: $(iw dev 2>/dev/null | awk '/Interface/{print $2}' | head -1 | xargs -I{} iw dev {} get power_save 2>/dev/null)"
 have sensors && sensors 2>/dev/null | grep -iE 'Package id 0|Tctl|CPU|Core 0' | head -2
+# Intel turbo. The dev box (Lenovo Slim Pro 9 16IRP8, 2026-10-28) booted with
+# turbo OFF — intel_pstate no_turbo=1, every core capped at its base 2.6 GHz
+# for days — until the platform profile was written once (any value; power-
+# profiles-daemon does that at boot, and that machine was not running it).
+# max is the CPU's reported top speed; at base = turbo off, a finding.
+if [ -e /sys/devices/system/cpu/intel_pstate/no_turbo ]; then
+  echo "turbo: no_turbo=$(cat /sys/devices/system/cpu/intel_pstate/no_turbo) max=$(( $(cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq 2>/dev/null || echo 0) / 1000 ))MHz base=$(( $(cat /sys/devices/system/cpu/cpu0/cpufreq/base_frequency 2>/dev/null || echo 0) / 1000 ))MHz"
+fi
 # The PROCHOT release (power/prochot.nix; the checks of finalizar/checkafterinstall.md,
 # read-only): the unit is there, its udev hook, msr; 0x1FC bit 0 = the CPU obeys the
 # platform's PROCHOT (1 = as from the factory, 0 = released by golem-prochot), 0x19C
