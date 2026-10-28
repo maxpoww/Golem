@@ -5,6 +5,8 @@
 #   ./webapps-selftest.sh        cold start through the flag, relaunch, a link into a
 #                                webapp, a second webapp, a plain launch, the kill switch,
 #                                a permission prompt, restart + restore, no tab ever lost
+#   ./webapps-selftest.sh rows   one site in a Seam tab and as a webapp: each window its own
+#                                colour row (the web's switch + the drop / the apps')
 #
 # Env: SEAM_BUILD (default: newest /nix/store/*-seam-<pinned version>), SEAM_DIR.
 # Exit 0 = every check passed.
@@ -28,6 +30,11 @@ rm -f "$T/firefox" "$T/firefox-bin" "$T/mozilla.cfg"
 cp -L "$L/firefox" "$L/firefox-bin" "$T/"; chmod +x "$T/firefox" "$T/firefox-bin"
 first=$(grep -n -m1 'GOLEM chrome script' "$L/mozilla.cfg" | cut -d: -f1)
 head -n $((first-2)) "$L/mozilla.cfg" > "$T/mozilla.cfg"; cat "$here/golem-chrome.js" >> "$T/mozilla.cfg"
+# (Seam 158: the DisableDeveloperTools policy keeps Marionette off too; the throwaway farm
+# drops that one policy so the test can drive it. The installed Seam keeps it.)
+chmod u+w "$T/distribution"; rm -f "$T/distribution/policies.json"
+python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); p["policies"].pop("DisableDeveloperTools",None); json.dump(p,open(sys.argv[2],"w"))' "$L/distribution/policies.json" "$T/distribution/policies.json"
 LDP=$(strings "$BUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')
 echo "Seam $ver  build=$BUILD"
-FARM="$T" LDP="$LDP" CHROMEDIR="$here" timeout 600 python3 "$here/webapps-selftest.py"
+# ./webapps-selftest.sh rows: the same farm for rows-selftest.py (each window its own colour row)
+FARM="$T" LDP="$LDP" CHROMEDIR="$here" timeout 600 python3 "$here/${1:-webapps}-selftest.py"

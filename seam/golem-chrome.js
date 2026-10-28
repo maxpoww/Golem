@@ -2932,7 +2932,8 @@ try {
       var both=dwSites(dwConfig(Object.assign({web:true,apps:true},base)),dk), webOnly=dwSites(dwConfig(Object.assign({web:true,apps:false},base)),dk);
       var appsOnly=dwConfig(Object.assign({web:false,apps:true},base)), none=dwConfig(Object.assign({web:false,apps:false},base));
       step("web-both-on", both.enabledByDefault && both.enabledFor.join()==="open.spotify.com,x.dark,mail.google.com" && both.disabledFor.length===0);
-      step("web-on-apps-off", webOnly.enabledByDefault && webOnly.enabledFor.join()==="x.dark" && webOnly.disabledFor.join()===hs.join());
+      // (The web on, the apps off: Seam keeps every site; the webapps' windows get the lock.)
+      step("web-on-apps-off", webOnly.enabledByDefault && webOnly.enabledFor.join()==="open.spotify.com,x.dark" && webOnly.disabledFor.length===0);
       step("web-off-apps-on", appsOnly.on && !dwSites(appsOnly,dk).enabledByDefault && dwSites(appsOnly,dk).enabledFor.join()===hs.join());
       step("web-both-off", none.on===false);
       var lightPair={dark:false,base01:"#eeeeee",base05:"#111111"};
@@ -2955,8 +2956,25 @@ try {
       // A webapp with a look of its own (the Apps page): its scheme and its own theme, first.
       var mine=dwConfig(Object.assign({web:true,apps:true},base,{app_looks:{"mail.google.com":{dark:false,bg:"#eeeeee",ink:"#111111"},"open.spotify.com":{dark:true}}}));
       var cm=dwCustom(mine,dk);
-      step("web-webapp-own-look", dwSchemeOf(mine,"mail.google.com",true)==="light" && dwSchemeOf(mine,"mail.google.com",false)==="light" && dwSchemeOf(mine,"open.spotify.com",true)==="dark" && cm[DW_BUILT_IN_SITES.length].url.join()==="mail.google.com" && cm[DW_BUILT_IN_SITES.length].theme.mode===0 && cm.filter(function(c){ return c.url.indexOf("mail.google.com")>=0; }).length===1);
-      step("web-scheme-per-site", dwSchemeOf(split,"mail.google.com",true)==="dark" && dwSchemeOf(split,"en.wikipedia.org",true)==="light" && dwSchemeOf(split,"en.wikipedia.org",false)==="none" && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),"en.wikipedia.org",true)==="none");
+      step("web-webapp-own-look", dwSchemeOf(mine,"mail.google.com",true,"app")==="light" && dwSchemeOf(mine,"mail.google.com",false,"app")==="light" && dwSchemeOf(mine,"open.spotify.com",true,"app")==="dark" && cm[DW_BUILT_IN_SITES.length].url.join()==="mail.google.com" && cm[DW_BUILT_IN_SITES.length].theme.mode===0 && cm.filter(function(c){ return c.url.indexOf("mail.google.com")>=0; }).length===1);
+      step("web-scheme-per-site", dwSchemeOf(split,"mail.google.com",true,"app")==="dark" && dwSchemeOf(split,"en.wikipedia.org",true,"web")==="light" && dwSchemeOf(split,"en.wikipedia.org",false,"web")==="none" && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),"en.wikipedia.org",true,"web")==="none");
+      // EACH WINDOW ITS OWN ROW (Max, 2026-10-28): YouTube in Seam is the web's, YouTube the app is the apps'.
+      var R=function(c, st){ return dwRules(dwConfig(Object.assign({}, base, c), st||{off:[],on:[]})); }, sp="open.spotify.com";
+      var rOffOn=R({web:false,apps:true});
+      step("rows-web-off-apps-on", dwLockOf(rOffOn,"web",sp) && !dwLockOf(rOffOn,"app",sp) && !dwLockOf(rOffOn,"web","en.wikipedia.org") && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),sp,true,"web")==="none" && dwSchemeOf(dwConfig(Object.assign({web:false,apps:true},base)),sp,true,"app")==="dark");
+      var rOnOff=R({web:true,apps:false});
+      step("rows-web-on-apps-off", !dwLockOf(rOnOff,"web",sp) && dwLockOf(rOnOff,"app",sp) && dwLockOf(rOnOff,"app","accounts.google.com"));
+      var rDrop=R({web:true,apps:true},{off:[sp],on:[]});
+      step("rows-drop-off-in-seam-keeps-the-app", dwLockOf(rDrop,"web",sp) && !dwLockOf(rDrop,"app",sp) && dwSites(dwConfig(Object.assign({web:true,apps:true},base),{off:[sp],on:[]}),dk).enabledFor.indexOf(sp)>=0);
+      var rIn=R({web:false,apps:true},{off:[],on:[sp]});
+      step("rows-drop-on-in-seam-with-the-web-off", !dwLockOf(rIn,"web",sp) && !dwLockOf(rIn,"app",sp));
+      var rSkip=R({web:true,apps:true,web_skip:[sp]});
+      step("rows-apps-page-keeps-only-the-app", !dwLockOf(rSkip,"web",sp) && dwLockOf(rSkip,"app",sp) && dwSites(dwConfig(Object.assign({web:true,apps:true,web_skip:[sp]},base)),dk).enabledFor.indexOf(sp)>=0);
+      var rBoth=R({web:true,apps:true}), rNone=R({web:false,apps:false});
+      step("rows-nothing-locked-when-both-agree", !dwLockOf(rBoth,"web",sp) && !dwLockOf(rBoth,"app",sp) && !dwLockOf(rBoth,"app","accounts.google.com") && !dwLockOf(rNone,"web",sp) && !dwLockOf(rNone,"app",sp) && !dwLockOf(rBoth,"web",null) && !dwLockOf(null,"web",sp));
+      // The pages' side carries the same rules (a source-less build would leave it empty).
+      var fs=decodeURIComponent(dwLockFS().replace(/^data:[^,]*,/,""));
+      step("rows-frame-script-has-the-rules", fs.indexOf("function dwWantOf(")>=0 && fs.indexOf("function dwLockOf(")>=0 && fs.indexOf("function dwLockFrame(")>=0 && fs.indexOf('"golem:dw-rules"')>=0);
       step("web-old-dock", dwConfig({base01:"#111111",base05:"#eeeeee",dark:true,dark_websites:true}).web===true && dwConfig({base01:"#111111",base05:"#eeeeee",dark:false,dark_websites:true}).on===false);
       // THE DROP (pure): a site taken out while the web is on, one put in while it is off,
       // the dock's own list honoured, and the turn each click makes.
@@ -2965,14 +2983,14 @@ try {
       step("drop-site-off-while-web-on", wOff.enabledByDefault && wOff.enabledFor.indexOf("x.dark")<0 && wOff.disabledFor.join()==="x.dark");
       var wOn=dwConfig(Object.assign({web:false,apps:false},base),sites);
       step("drop-site-on-while-web-off", wOn.on===true && dwSites(wOn,dk).enabledFor.join()==="news.ycombinator.com");
-      var sk=dwSites(dwConfig(Object.assign({web:true,apps:true,web_skip:["open.spotify.com"]},base),none2),dk);
-      step("drop-dock-skip-honoured", sk.enabledFor.indexOf("open.spotify.com")<0 && sk.disabledFor.join()==="open.spotify.com");
+      var sk=dwSites(dwConfig(Object.assign({web:true,apps:false,web_skip:["open.spotify.com"]},base),none2),dk);
+      step("drop-dock-skip-is-the-apps", sk.enabledFor.indexOf("open.spotify.com")>=0 && sk.disabledFor.length===0);
       var cOn=dwConfig(Object.assign({web:true,apps:true},base),sites), cOffW=dwConfig(Object.assign({web:false,apps:true},base),sites);
-      step("drop-state", dwSiteStateOf(cOn,"x.dark").on===false && dwSiteStateOf(cOn,"en.wikipedia.org").on===true && dwSiteStateOf(cOffW,"open.spotify.com").on===true && dwSiteStateOf(cOffW,"en.wikipedia.org").on===false);
+      step("drop-state", dwSiteStateOf(cOn,"x.dark").on===false && dwSiteStateOf(cOn,"en.wikipedia.org").on===true && dwSiteStateOf(cOffW,"open.spotify.com").on===false && dwSiteStateOf(cOffW,"news.ycombinator.com").on===true && dwSiteStateOf(cOffW,"en.wikipedia.org").on===false);
       var t1=dwToggleOf(cOn,sites,"en.wikipedia.org"), t2=dwToggleOf(cOn,sites,"x.dark"), t3=dwToggleOf(cOffW,sites,"en.wikipedia.org"), t4=dwToggleOf(cOffW,sites,"open.spotify.com");
-      step("drop-turns", t1.off.join()==="x.dark,en.wikipedia.org" && t2.off.length===0 && t3.on.join()==="news.ycombinator.com,en.wikipedia.org" && t4.off.join()==="x.dark,open.spotify.com");
+      step("drop-turns", t1.off.join()==="x.dark,en.wikipedia.org" && t2.off.length===0 && t3.on.join()==="news.ycombinator.com,en.wikipedia.org" && t4.on.join()==="news.ycombinator.com,open.spotify.com" && t4.off.join()==="x.dark");
       var dockSk=dwConfig(Object.assign({web:true,apps:true,web_skip:["open.spotify.com"]},base),none2);
-      step("drop-dock-skip-not-ours-to-turn", dwSiteStateOf(dockSk,"open.spotify.com").dock===true && dwToggleOf(dockSk,none2,"open.spotify.com").off.length===0);
+      step("drop-turns-an-app-kept-site-in-seam", dwSiteStateOf(dockSk,"open.spotify.com").on===true && dwToggleOf(dockSk,none2,"open.spotify.com").off.join()==="open.spotify.com");
       step("drop-junk-hosts-refused", dwHosts(["Good.Host","bad host","",42,"x".repeat(300)]).join()==="good.host");
       r.palette={now:OV_BACKDROP};
       step("nv-fallback-sticks", b.mode==="software (fallback)" && !b.clear);
@@ -3515,7 +3533,16 @@ try {
 // own (golem.seam.sites = {"off":[hosts],"on":[hosts]}): "off" = sites
 // taken out while the web is on, "on" = sites put in while it is off. The
 // dock's own list of webapps kept in their own colours ("web_skip" in the
-// theme file, Colours → Apps) is honoured too and is the dock's to turn.
+// theme file, Colours → Apps) is honoured too, in the webapps' windows.
+// EACH WINDOW ITS OWN ROW (Max, 2026-10-28: "si el usuario desactiva webs pero
+// tiene apps activadas, youtube en seam no tiene que tener color"): Seam's own
+// windows follow the web's switch and the drop; a webapp's window follows the
+// apps' switch and its row on the Apps page. Dark Reader decides by SITE, the
+// same in every window: it is given every site either row colours, and a page
+// in a window whose row says no gets Dark Reader's own lock (a meta
+// "darkreader-lock", what a site puts to be left alone) from a frame script in
+// every browser (dwLockFrame). One site has one theme: a site both rows colour
+// wears the app's colours in Seam too.
 // ===================================================================
 try {
   var DW_ID="addon@darkreader.org", DW_HELP="https://darkreader.org/help", DW_PREF="golem.seam.darkWebsites", DW_SITES_PREF="golem.seam.sites";
@@ -3594,43 +3621,56 @@ try {
   // row it belongs to deciding; "none" (the system's) otherwise. Told to the tab, so a
   // site that follows the system's look sends the page of OUR look — Google sent its
   // dark page to a Light web and Dark Reader made it dark text on dark.
-  function dwSchemeOf(cfg, host, want){
-    var mine=cfg && host && cfg.looks ? cfg.looks[host] : null;
-    if(mine) return mine.dark ? "dark" : "light";
-    if(!want || !cfg || !host || !dwSiteStateOf(cfg, host).on) return "none";
-    var row=(cfg.apps && cfg.hosts.indexOf(host)>=0 && cfg.app) ? cfg.app : cfg;
+  // kind: the window's ("web" = Seam's, "app" = a webapp's).
+  function dwSchemeOf(cfg, host, want, kind){
+    if(!cfg || !host) return "none";
+    var r=dwRules(cfg), mine=cfg.looks ? cfg.looks[host] : null, app=r.appHosts.indexOf(host)>=0;
+    if(kind==="app" && mine) return mine.dark ? "dark" : "light";
+    if(!want || !dwWantOf(r, kind, host) || !(app || dwWantOf(r, "web", host))) return "none";
+    // (The theme Dark Reader gives the site: an app's site wears the app's, in Seam too.)
+    var row=app ? (mine || cfg.app || cfg) : cfg;
     return row.dark ? "dark" : "light";
   }
+  // The two rows as both sides read them (pure; the pages get them in the shared data):
+  // Seam's (web, the drop's off/on) and the webapps' (apps, the sites they colour = their
+  // hosts less the ones the Apps page keeps in their own colours).
+  function dwRules(cfg){
+    if(!cfg) return null;
+    var skip=cfg.skip||[];
+    return {web:!!cfg.web, apps:!!cfg.apps, off:cfg.off||[], on:cfg.onSites||[], skip:skip,
+      appHosts: cfg.apps ? cfg.hosts.filter(function(h){ return skip.indexOf(h)<0; }) : []};
+  }
+  // Whether a window of that kind wants the site in the palette (pure).
+  function dwWantOf(r, kind, host){
+    if(!r || !host) return false;
+    if(kind==="app") return r.apps && r.skip.indexOf(host)<0;
+    return r.web ? r.off.indexOf(host)<0 : r.on.indexOf(host)>=0;
+  }
+  // Whether its page gets the lock (pure): Dark Reader colours the site (dwSites) and the
+  // window does not want it. (Its source runs in the pages too: it names only dwWantOf.)
+  function dwLockOf(r, kind, host){
+    if(!r || !host) return false;
+    return (dwWantOf(r, "web", host) || r.appHosts.indexOf(host)>=0) && !dwWantOf(r, kind, host);
+  }
   // Dark Reader's site settings for a config (pure). dark: its list of already-dark sites.
-  // A site the owner took out (the drop) or the dock keeps in its own colours (web_skip)
-  // is never on; a site the owner put in (the drop, with the web off) is on.
+  // Every site either row colours: Seam's (the web on but the sites the drop took out, or
+  // the web off and the sites it put in) and the webapps'.
   function dwSites(cfg, dark){
-    var hosts=cfg.hosts, isApp={}, out={}; hosts.forEach(function(h){ isApp[h]=true; });
-    (cfg.skip||[]).concat(cfg.off||[]).forEach(function(h){ out[h]=true; });
-    var keep=function(h){ return !out[h]; };
-    if(cfg.web) return {enabledByDefault:true,
-      enabledFor: (cfg.apps ? dark.concat(hosts.filter(function(h){ return dark.indexOf(h)<0; })) : dark.filter(function(h){ return !isApp[h]; })).filter(keep),
-      disabledFor: dwHosts((cfg.apps ? [] : hosts.slice()).concat(cfg.skip||[], cfg.off||[]))};
-    return {enabledByDefault:false, enabledFor: dwHosts((cfg.apps ? hosts.slice() : []).concat(cfg.onSites||[])).filter(keep), disabledFor:[]};
+    var r=dwRules(cfg), isApp={}; r.appHosts.forEach(function(h){ isApp[h]=true; });
+    if(r.web) return {enabledByDefault:true,
+      enabledFor: dark.concat(r.appHosts.filter(function(h){ return dark.indexOf(h)<0; })).filter(function(h){ return isApp[h] || r.off.indexOf(h)<0; }),
+      disabledFor: r.off.filter(function(h){ return !isApp[h]; })};
+    return {enabledByDefault:false, enabledFor: dwHosts(r.appHosts.concat(r.on)), disabledFor:[]};
   }
-  // Whether `host` wears the palette under `cfg` (pure), and whose choice keeps it out:
-  // {on, dock} — dock: the dock's list has it (Colours → Apps), not the drop's to turn.
-  function dwSiteStateOf(cfg, host){
-    if(!cfg || !host) return {on:false, dock:false};
-    var has=function(a){ return (a||[]).indexOf(host)>=0; };
-    if(has(cfg.skip)) return {on:false, dock:true};
-    if(cfg.web) return {on: !has(cfg.off), dock:false};
-    return {on: (cfg.apps && has(cfg.hosts)) || has(cfg.onSites), dock:false};
-  }
+  // Whether the site wears the palette in Seam's windows (pure): the drop's state.
+  function dwSiteStateOf(cfg, host){ return {on: dwWantOf(dwRules(cfg), "web", host)}; }
   // The per-site choices with `host` turned (pure): what the drop writes.
   function dwToggleOf(cfg, sites, host){
-    var st=dwSiteStateOf(cfg, host), without=function(a){ return a.filter(function(h){ return h!==host; }); };
-    var off=without(sites.off), on=without(sites.on);
-    if(st.dock) return {off:off, on:on};
-    if(cfg.web){ if(st.on) off.push(host); }
-    else if(!st.on) on.push(host);
-    else if(cfg.apps && cfg.hosts.indexOf(host)>=0) off.push(host);
-    return {off:dwHosts(off), on:dwHosts(on)};
+    var on=dwSiteStateOf(cfg, host).on, without=function(a){ return a.filter(function(h){ return h!==host; }); };
+    var off=without(sites.off), put=without(sites.on);
+    if(cfg.web){ if(on) off.push(host); }
+    else if(!on) put.push(host);
+    return {off:dwHosts(off), on:dwHosts(put)};
   }
   function dwSiteState(host){ return dwSiteStateOf(dwCfg, host); }
   function dwToggleSite(host){
@@ -3679,7 +3719,7 @@ try {
   function dwCustom(cfg, dark){
     // (Dark Reader takes the FIRST theme whose sites match: the webapps' come before the web's,
     // and a webapp with a look of its own before the other webapps.)
-    var apps=(cfg.apps && cfg.app) ? cfg.hosts : [], isApp={};
+    var apps=(cfg.apps && cfg.app) ? dwRules(cfg).appHosts : [], isApp={};
     apps.forEach(function(h){ isApp[h]=true; });
     var looks=cfg.looks||{}, ownLook=function(h){ return !!(looks[h] && looks[h].bg); };
     var out=DW_BUILT_IN_SITES.map(function(u){ var t=dwTheme(isApp[u] ? cfg.app : cfg); t.engine="cssFilter"; return {url:[u], theme:t, builtIn:true}; });
@@ -3747,7 +3787,9 @@ try {
     // cannot open its storage — look again, a few times.
     for(var i=0;i<6;i++){
       try{
-        if(await dwWriteTheme(dwWant ? dwCfg : Object.assign({}, dwCfg, {web:false, apps:false}))){ await a.disable(); await a.enable(); DWLOG("palette "+dwCfg.bg+" / "+dwCfg.ink+(dwCfg.dark?" dark":" light")+" web="+dwCfg.web+" apps="+dwCfg.apps+" hosts="+dwCfg.hosts.length); }
+        var wrote=await dwWriteTheme(dwWant ? dwCfg : Object.assign({}, dwCfg, {web:false, apps:false}));
+        // (A page a row unlocked is coloured only by a new instance: the one there saw the lock and stopped.)
+        if(wrote || dwUnlocked){ dwUnlocked=false; dwRestarting(); await a.disable(); await a.enable(); DWLOG((wrote?"palette ":"unlocked, ")+dwCfg.bg+" / "+dwCfg.ink+(dwCfg.dark?" dark":" light")+" web="+dwCfg.web+" apps="+dwCfg.apps+" hosts="+dwCfg.hosts.length); }
         return;
       }catch(e){ DWLOG("write:"+e); await dwPause(1000); }
     }
@@ -3762,22 +3804,116 @@ try {
     var w=dwRead(); if(w===undefined) return;
     var key=w+"|"+(w && dwCfg ? JSON.stringify(dwCfg) : "");
     if(w===dwWant && key===dwKey) return;
-    dwWant=w; dwKey=key; dwApply(); dpPaintAll(); dwSchemeAll();
+    dwWant=w; dwKey=key; dwShare(); dwApply(); dpPaintAll(); dwSchemeAll();
+  }
+  // ---- THE LOCK: the rows' rules to the pages (shared data), and the pages' side.
+  var DW_SHARED="golem:dw-rules", dwShared=null, dwGen=0, dwUnlocked=false;
+  // (A browser's window: its ownerDocument's. ownerGlobal reads undefined from this script on Seam 158.)
+  function dwKindOf(w){ try{ return w.document.documentElement.hasAttribute("taskbartab") ? "app" : "web"; }catch(e){ return "web"; } }
+  function dwHostOf(b){ try{ var u=b.currentURI; return (u && /^https?$/.test(u.scheme)) ? u.host.toLowerCase() : null; }catch(e){ return null; } }
+  function dwPublish(){ try{ Services.ppmm.sharedData.set(DW_SHARED, {rules:dwShared, gen:dwGen}); Services.ppmm.sharedData.flush(); }catch(e){ DWLOG("share:"+e); } }
+  // The rules now (none while Dark Reader is off); an open page they unlock asks for a restart.
+  function dwShare(){
+    var r=(dwWant && dwCfg) ? dwRules(dwCfg) : null, was=dwShared;
+    if(was && r) gsEachWindow(function(w){ var k=dwKindOf(w); try{ w.gBrowser.browsers.forEach(function(b){ var h=dwHostOf(b); if(dwLockOf(was, k, h) && !dwLockOf(r, k, h)) dwUnlocked=true; }); }catch(e){} });
+    dwShared=r; dwPublish();
+  }
+  // Dark Reader is about to restart (or update): the pages take its instance mark off first.
+  function dwRestarting(){ dwGen++; dwPublish(); }
+  // The pages' side, a frame script in every browser (its source is sent, with dwWantOf and
+  // dwLockOf). Each new page asks once which window it is in (a webapp's window is marked
+  // before its first page is made), keeps the lock in itself and in its frames of the same
+  // process while its window's row says no (put as soon as the page has a head, before
+  // Dark Reader's answer arrives; Dark Reader's own dark stand-in taken out with it), and
+  // follows the rules when they change. A lock put on a page Dark Reader coloured makes it
+  // take its colours out at once — but only an instance that found no older one's mark
+  // watches for the lock, so before a restart every page takes the mark off.
+  // And a page Dark Reader takes its colours out of (the lock, or its own clean-up when a row
+  // turns off) is not restyled by Firefox while it is shown: it kept the palette's ground with
+  // none of Dark Reader's sheets left (Seam 158, measured: a restyle does not help, a style
+  // rules lookup does) — so after the rules change, a few looks while Dark Reader cleans.
+  function dwLockFrame(KEY, lockOf){
+    var kind="", gen=0, waiting=new WeakMap(), SD=Services.cpmm.sharedData, timers=[];
+    function shared(){ try{ return SD.get(KEY)||null; }catch(e){ return null; } }
+    function host(){ try{ var u=content.document.documentURIObject; return (u && /^https?$/.test(u.scheme)) ? u.host.toLowerCase() : null; }catch(e){ return null; } }
+    function docs(){ var out=[]; (function walk(w){ try{ out.push(w.document); for(var i=0;i<w.frames.length;i++) walk(w.frames[i]); }catch(e){} })(content); return out; }
+    function lock(d, on){
+      try{
+        var mo=waiting.get(d); if(mo){ mo.disconnect(); waiting.delete(d); }
+        var m=d.querySelector('meta[name="darkreader-lock"][data-golem]');
+        if(!on){ if(m) m.remove(); return; }
+        if(m) return;
+        var put=function(){
+          if(!d.head) return false;
+          var x=d.createElement("meta"); x.setAttribute("name","darkreader-lock"); x.setAttribute("data-golem",""); d.head.appendChild(x);
+          var f=d.querySelector(".darkreader--fallback"); if(f) f.remove();
+          return true;
+        };
+        if(put()) return;
+        mo=new d.defaultView.MutationObserver(function(){ if(put()){ mo.disconnect(); waiting.delete(d); } });
+        mo.observe(d,{childList:true,subtree:true}); waiting.set(d,mo);
+      }catch(e){}
+    }
+    function locked(){ var s=shared(); return !!(kind && s && s.rules && lockOf(s.rules, kind, host())); }
+    function apply(strip){
+      var on=locked();
+      docs().forEach(function(d){
+        lock(d, on);
+        if(strip){ try{ var ms=d.querySelectorAll('meta[name="darkreader"]'); for(var i=0;i<ms.length;i++) ms[i].remove(); }catch(e){} }
+      });
+    }
+    function ask(){ try{ kind=sendSyncMessage("golem:dw-kind")[0]||""; }catch(e){ kind=""; } }
+    // Every new page of this tab (and its frames here), as its root goes in: a document that
+    // takes over its first blank one's window (a frame, or a tab a site opens on its own site)
+    // makes no new window, and DOMWindowCreated missed it.
+    var made={observe:function(d){
+      try{
+        var mine=content && content.browsingContext; if(!mine) throw 0;
+        var w=d && d.defaultView, bc=w && w.browsingContext; if(!bc || bc.top.id!==mine.id) return;
+        if(!bc.parent) ask();
+        lock(d, locked());
+      }catch(x){ if(!alive()) gone(); }
+    }};
+    function alive(){ try{ return !!content; }catch(e){ return false; } }
+    function gone(){ try{ Services.obs.removeObserver(made,"document-element-inserted"); }catch(e){} try{ SD.removeEventListener("change",changed); }catch(e){} }
+    Services.obs.addObserver(made,"document-element-inserted");
+    function restyle(){ docs().forEach(function(d){ try{ if(d.documentElement) InspectorUtils.getMatchingCSSRules(d.documentElement); }catch(e){} }); }
+    function later(ms){
+      var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+      t.initWithCallback({notify:function(){ timers.splice(timers.indexOf(t),1); restyle(); }}, ms, Components.interfaces.nsITimer.TYPE_ONE_SHOT); timers.push(t);
+    }
+    function changed(e){
+      if(!alive()){ gone(); return; }
+      if(!e.changedKeys || Array.prototype.indexOf.call(e.changedKeys, KEY)<0) return;
+      var s=shared(), g=s ? s.gen : 0;
+      apply(g!==gen); gen=g;
+      [150, 800, 2000, 5000].forEach(later);
+    }
+    SD.addEventListener("change",changed);
+    // (Loaded into a browser whose page is already up — the first ones at Seam's start: locked now, looked at while Dark Reader cleans.)
+    ask(); var s0=shared(); gen=s0 ? s0.gen : 0; apply(false);
+    if(locked()) [150, 800, 2000, 5000].forEach(later);
+  }
+  function dwLockFS(){
+    return "data:application/javascript;charset=utf-8,"+encodeURIComponent("(function(){"+dwWantOf.toString()+"\n"+dwLockOf.toString()+"\n("+dwLockFrame.toString()+")("+JSON.stringify(DW_SHARED)+",dwLockOf);})();");
   }
   function dwScheme(b){
     try{
-      var u=b.currentURI, host=(u && /^https?$/.test(u.scheme)) ? u.host.toLowerCase() : null;
-      var v=dwSchemeOf(dwCfg, host, dwWant), bc=b.browsingContext;
+      var v=dwSchemeOf(dwCfg, dwHostOf(b), dwWant, dwKindOf(b.ownerDocument.defaultView)), bc=b.browsingContext;
       if(bc && bc.top===bc && bc.prefersColorSchemeOverride!==v) bc.prefersColorSchemeOverride=v;
     }catch(e){}
   }
   function dwSchemeAll(){ gsEachWindow(function(w){ try{ w.gBrowser.browsers.forEach(dwScheme); }catch(e){} }); }
   function dwStart(){
     if(dwTimer) return;
+    try{ Services.mm.addMessageListener("golem:dw-kind",{receiveMessage:function(m){
+      try{ var w=m.target.ownerDocument.defaultView; return w.document.documentElement.getAttribute("windowtype")==="navigator:browser" ? dwKindOf(w) : ""; }catch(e){ return ""; }
+    }}); Services.mm.loadFrameScript(dwLockFS(), true); }catch(e){ DWLOG("lock:"+e); }
     try{ Services.prefs.addObserver(DW_PREF,{observe:function(){ dwSeen=-1; dwTick(); }}); }catch(e){}
     // (The drop's choices live in a pref: a change is a change of the config.)
     try{ Services.prefs.addObserver(DW_SITES_PREF,{observe:function(){ dwSeen=-1; dwTick(); dpPaintAll(); }}); }catch(e){}
     try{ dwAM().addAddonListener({
+      onInstalling:function(a){ if(a && a.id===DW_ID) dwRestarting(); },
       onInstalled:function(a){ if(a && a.id===DW_ID){ dwInstalledAt=Date.now(); dwApply(); } },
       onEnabled:function(a){ if(a && a.id===DW_ID && dwWant===false && !dwBusy) dwApply(); }
     }); }catch(e){}
@@ -3823,12 +3959,12 @@ try {
     try{
       var b=w.document.getElementById("golem-drop-btn"); if(!b) return;
       var h=dpHost(w);
-      if(!h || !dwCfg){ b.style.display="none"; return; }
+      if(!h || !dwCfg || dwKindOf(w)==="app"){ b.style.display="none"; return; }
       b.style.display="flex";
       var st=dwSiteState(h), acc=GS_ACCENT||"var(--lwt-accent-color, #4d9fff)";
       b.style.color = st.on ? acc : "var(--toolbarbutton-icon-fill, currentColor)";
       b.style.opacity = st.on ? "1" : "0.55";
-      b.setAttribute("title", st.dock ? "Kept in its own colours (Colours \u2192 Apps)" : st.on ? "Your colours on this site" : "This site keeps its own colours");
+      b.setAttribute("title", st.on ? "Your colours on this site" : "This site keeps its own colours");
     }catch(e){}
   }
   function dpPaintAll(){ gsEachWindow(function(w){ dpPaint(w); }); }
