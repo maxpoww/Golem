@@ -465,6 +465,13 @@ keeps the first page's tags); a song stays where it was first heard (a mini play
 YouTube video's is its own page, told by its picture's address.
 Kill switch `golem.seam.recents`; log `SEAM_RECENTS_LOG=<file>`. The dock reads it as data a page
 had a hand in (size limits, http(s) only, pictures only of Seam's naming in `pics/`, no links).
+COVERS FROM BEFORE (2026-10-28): a YouTube Music song of the history with no picture (heard before
+the kitchen came, or too briefly to be read) gets its video's picture by its id from i.ytimg.com —
+90 s after start, then once a day, the newest 48 of the last 120 days, the biggest size first, one
+every 1.5 s, each address of a song the same picture, kept only while the page is still in the
+history; one that cannot be had is asked for again after a week. YouTube pads a song's cover with
+bars of its own colour; the dock cuts them (`unbanded`). Test: `./webapps-selftest.sh recents`
+(13 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 

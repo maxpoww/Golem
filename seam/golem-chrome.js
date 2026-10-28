@@ -4099,12 +4099,14 @@ try {
       kids.forEach(function(k){ var n=k.split("/").pop(); if(!keep[n] && !rkFetching[n.split(".")[0]]) io.remove(k).catch(function(){}); });
     }).catch(function(){});
   }
-  // A picture, fetched ONCE by Seam from the address the page gave: done(file name) when it is in.
-  function rkPicture(src,pageUrl,done){
-    if(!rkWeb(src)) return;
-    if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); return; }
-    var name=rkHash(src), w=rkWin(), dir=rkDir(); if(!w || !dir) return;
-    if(rkFetching[name]) return; rkFetching[name]=1;
+  // A picture, fetched ONCE by Seam from the address the page gave: done(file name) when it is in
+  // (failed(), when given, when it is not).
+  function rkPicture(src,pageUrl,done,failed){
+    var no=function(){ if(failed) try{ failed(); }catch(e){} };
+    if(!rkWeb(src)){ no(); return; }
+    if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); no(); return; }
+    var name=rkHash(src), w=rkWin(), dir=rkDir(); if(!w || !dir){ no(); return; }
+    if(rkFetching[name]){ no(); return; } rkFetching[name]=1;
     var io=w.IOUtils, exts=["jpg","png","webp"];
     var finish=function(){ delete rkFetching[name]; };
     // Already here from an earlier page?
@@ -4122,7 +4124,7 @@ try {
             .then(function(){ finish(); done(file); });
         });
       });
-    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); });
+    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); no(); });
   }
   // What a page told: kept as the page's, and what it plays as a play.
   function rkHeard(m){
@@ -4199,9 +4201,86 @@ try {
     }catch(e){ RKLOG("places:"+e); }
   }
   try{ Services.obs.addObserver({observe:function(){ rkWipe(); }},"browser:purge-session-history"); }catch(e){}
+  // COVERS FROM BEFORE (2026-10-28, Max: "yes, fix the covers too"): a YouTube Music song heard
+  // before the kitchen came, or for too short a while to be read, has no cover — the dock showed
+  // the site's tile in its place. Its page is a video by its id (watch?v=<id>) and YouTube keeps
+  // that video's picture by the id (a song with no video of its own: its cover, padded with black
+  // — the dock cuts the bands): a while after start, then once a day, the newest such pages of the
+  // history with no picture get theirs, fetched ONCE each the kitchen's way (rkPicture: no
+  // cookies, at most 2 MB), the biggest there is first, one at a time; one that cannot be had is
+  // not asked for again for a week. Kept as the page's picture (rk.pages[url].pic; at = when it
+  // was visited, so the bound keeps the newest) — only while the page is still in the history.
+  // The test asks for a round at once: the topic "golem:recents-backfill".
+  var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
+  var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"];
+  var rkBackTimers=[], rkBackRunning=false, rkBackOn=false;
+  function rkAfter(ms,f){
+    try{
+      var t=Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+      rkBackTimers.push(t);
+      t.initWithCallback({ notify:function(){ rkBackTimers.splice(rkBackTimers.indexOf(t),1); try{ f(); }catch(e){ RKLOG("after:"+e); } } },ms,Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+    }catch(e){ RKLOG("timer:"+e); }
+  }
+  function rkVideoId(url){ var m=/[?&]v=([A-Za-z0-9_-]{11})(?:[&#]|$)/.exec(String(url||"")); return m ? m[1] : null; }
+  function rkBackfill(){
+    if(!rkOn() || rkBackRunning) return;
+    var w=rkWin(); if(!w || !w.PlacesUtils) return;
+    rkBackRunning=true;
+    var stop=function(why){ rkBackRunning=false; if(why) RKLOG("covers from before: "+why); };
+    rkLoad(function(){
+      var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000, params={since:since};
+      var like=RK_BACK_HOSTS.map(function(h,i){ params["h"+i]="https://"+h+"/watch?%"; return "url LIKE :h"+i; }).join(" OR ");
+      w.PlacesUtils.promiseDBConnection().then(function(db){
+        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
+      }).then(function(rows){
+        var now=Math.round(Date.now()/1000), have={}, of={}, want=[];
+        // (A song heard since has its cover from the page already.)
+        rk.plays.forEach(function(p){ var id=p.pic && rkVideoId(p.url); if(id) have[id]=1; });
+        Object.keys(rk.pages).forEach(function(u){ var id=rk.pages[u].pic && rkVideoId(u); if(id) have[id]=1; });
+        // One fetch a song; its picture for every address it was at (with a list, without).
+        for(var i=0;i<rows.length;i++){
+          var url=String(rows[i].getResultByName("url")), id=rkVideoId(url), page=rk.pages[url];
+          if(!id || !rkWeb(url) || have[id]) continue;
+          if(page && now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
+          if(of[id]){ of[id].pages.push(at); continue; }
+          if(want.length>=RK_BACK_MAX) continue;
+          of[id]={id:id,pages:[at]}; want.push(of[id]);
+        }
+        RKLOG("covers from before: "+want.length+" to fetch");
+        // Kept only while a page is still in the history and nothing was cleared meanwhile.
+        var keep=function(it,f,then){
+          Promise.all(it.pages.map(function(pg){
+            return w.PlacesUtils.history.hasVisits(pg.url).then(function(yes){
+              if(yes && rk===gen && rkOn()) f(rk.pages[pg.url]||(rk.pages[pg.url]={at:pg.at}));
+            }).catch(function(){});
+          })).then(function(){ rkSave(); }).then(then);
+        };
+        var next=function(k){
+          if(k>=want.length){ stop(); return; }
+          if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
+          var it=want[k], on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
+          var size=function(s){
+            if(s>=RK_BACK_SIZES.length){ keep(it,function(p){ p.tried=Math.round(Date.now()/1000); },on); return; }
+            rkPicture("https://i.ytimg.com/vi/"+it.id+"/"+RK_BACK_SIZES[s]+".jpg",it.pages[0].url,
+              function(f){ keep(it,function(p){ p.pic=f; delete p.tried; },on); },
+              function(){ size(s+1); });
+          };
+          size(0);
+        };
+        next(0);
+      }).catch(function(e){ stop(String(e)); });
+    });
+  }
+  function rkBackStart(){
+    if(rkBackOn) return; rkBackOn=true;
+    var round=function(){ rkBackfill(); rkAfter(RK_BACK_EVERY,round); };
+    rkAfter(RK_BACK_FIRST,round);
+    try{ Services.obs.addObserver({observe:function(){ rkBackfill(); }},"golem:recents-backfill"); }catch(e){}
+  }
   function rkWindow(w){
     if(w.__golemRkInit) return; w.__golemRkInit=true;
-    rkPlaces(w);
+    rkPlaces(w); rkBackStart();
     try{ w.messageManager.addMessageListener("golem:recent",rkHeard); }catch(e){ RKLOG("listen:"+e); }
     try{ w.messageManager.loadFrameScript(RK_FS,true); }catch(e){ RKLOG("framescript:"+e); }
   }
