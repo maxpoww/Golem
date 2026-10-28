@@ -51,9 +51,15 @@ class M:
         s.cmd("Marionette:SetContext", {"value": "chrome"})
     def recv(s):
         b = b""
-        while b":" not in b: b += s.k.recv(1)
+        while b":" not in b:   # (a closed socket reads empty: fail, never spin to the timeout)
+            c = s.k.recv(1)
+            if not c: raise RuntimeError("marionette socket closed")
+            b += c
         n, d = b.split(b":", 1); n = int(n)
-        while len(d) < n: d += s.k.recv(n - len(d))
+        while len(d) < n:
+            c = s.k.recv(n - len(d))
+            if not c: raise RuntimeError("marionette socket closed")
+            d += c
         return json.loads(d)
     def cmd(s, name, params=None):
         s.i += 1; m = json.dumps([0, s.i, name, params or {}]).encode(); s.k.sendall(str(len(m)).encode() + b":" + m); r = s.recv()
