@@ -134,7 +134,7 @@ def _gone():   # every process on this profile goes (Firefox may have restarted 
         try:
             if PROF.encode() in open(f"/proc/{pid}/cmdline", "rb").read(): os.kill(int(pid), 15)
         except Exception: pass
-p = subprocess.Popen([f"{FARM}/firefox", *([] if WL else ["--headless"]), "--name", "seamrows", "--profile", PROF, "--marionette", "-remote-allow-system-access", "about:blank"],
+p = subprocess.Popen([f"{FARM}/firefox", *([] if WL else ["--headless"]), "--name", "seamrows", "--profile", PROF, "--marionette", "about:blank"],
                      env=ENV, stdout=subprocess.DEVNULL, stderr=open(f"{RUN}/ff.log", "a"))
 m = M(); DM = m
 # Dark Reader installs at a fresh profile's first start and colours with its own defaults until

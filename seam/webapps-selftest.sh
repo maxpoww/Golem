@@ -37,4 +37,5 @@ python3 -c 'import json,sys; p=json.load(open(sys.argv[1])); p["policies"].pop("
 LDP=$(strings "$BUILD/bin/firefox" | grep -oE "^LD_LIBRARY_PATH='[^']+'" | sed -E "s/^LD_LIBRARY_PATH='(.*)'/\1/" | sort -u | tr '\n' ':')
 echo "Seam $ver  build=$BUILD"
 # ./webapps-selftest.sh rows: the same farm for rows-selftest.py (each window its own colour row)
-FARM="$T" LDP="$LDP" CHROMEDIR="$here" timeout 600 python3 "$here/${1:-webapps}-selftest.py"
+# (Seam 159: Marionette reaches the chrome only with this variable; the flag no longer does it)
+FARM="$T" LDP="$LDP" CHROMEDIR="$here" MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1 timeout 600 python3 "$here/${1:-webapps}-selftest.py"

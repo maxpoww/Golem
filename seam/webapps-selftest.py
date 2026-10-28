@@ -40,7 +40,15 @@ class M:
         for _ in range(80):
             try: s.k = socket.create_connection(("127.0.0.1", MPORT), timeout=60); break
             except OSError: time.sleep(0.25)
-        s.i = 0; s.recv(); s.cmd("WebDriver:NewSession", {"capabilities": {}}); s.cmd("Marionette:SetContext", {"value": "chrome"})
+        s.i = 0; s.recv()
+        for t in range(40):   # (the port opens before the first window has its browser)
+            try: s.cmd("WebDriver:NewSession", {"capabilities": {}}); break
+            except RuntimeError:
+                if t == 39: raise
+                try: s.cmd("WebDriver:DeleteSession")   # (a failed start may still count as a session)
+                except RuntimeError: pass
+                time.sleep(0.5)
+        s.cmd("Marionette:SetContext", {"value": "chrome"})
     def recv(s):
         b = b""
         while b":" not in b: b += s.k.recv(1)
@@ -83,13 +91,24 @@ def navfile():
     except Exception as e: return f"(none: {e.__class__.__name__})"
 def check(name, ok, detail): R[name] = ("PASS" if ok else "FAIL", detail); print(f"{'PASS' if ok else 'FAIL'}  {name}: {json.dumps(detail)[:300]}", flush=True)
 
-MF = ["--marionette", "-remote-allow-system-access"]
+# (Seam 159: chrome access comes from MOZ_REMOTE_ALLOW_SYSTEM_ACCESS, set by the .sh; the old
+# -remote-allow-system-access flag now stays on the command line, where -golem-app took it
+# for its page and opened about:blank)
+MF = ["--marionette"]
 def remote(m, *args):
     return m.js("""
   let cl = Cu.createCommandLine(%s, null, Ci.nsICommandLine.STATE_REMOTE_EXPLICIT);
   let ents = [...Services.catMan.enumerateCategory("command-line-handler")].sort((a, b) => a.entry < b.entry ? -1 : 1);
   for (let e of ents) { try { Cc[e.value].getService(Ci.nsICommandLineHandler).handle(cl); } catch (x) {} }
   done(ents.map(e => e.entry).slice(0, 4));""" % json.dumps(list(args)))
+
+import atexit
+@atexit.register
+def _gone():   # every process on this profile goes, also when a step dies (a Firefox left behind kept the port)
+    for pid in [d for d in os.listdir("/proc") if d.isdigit()]:
+        try:
+            if PROF.encode() in open(f"/proc/{pid}/cmdline", "rb").read(): os.kill(int(pid), 15)
+        except Exception: pass
 
 # 0) a browser session to defer: one normal window with the plain page
 p = ff(*MF, U("plain")); m = M(); time.sleep(3)
