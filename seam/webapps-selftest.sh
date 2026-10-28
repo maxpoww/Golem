@@ -7,6 +7,8 @@
 #                                a permission prompt, restart + restore, no tab ever lost
 #   ./webapps-selftest.sh rows   one site in a Seam tab and as a webapp: each window its own
 #                                colour row (the web's switch + the drop / the apps')
+#   ./webapps-selftest.sh dwfirst  Dark Reader on 20 first starts (new profiles): our palette
+#                                gets in every time (DWN = how many)
 #
 # Env: SEAM_BUILD (default: newest /nix/store/*-seam-<pinned version>), SEAM_DIR.
 # Exit 0 = every check passed.
