@@ -34,12 +34,14 @@ NIXF=(--extra-experimental-features "nix-command flakes")
 GIT_PUSH=(git -C "$TREE" -c credential.helper= -c "credential.helper=!gh auth git-credential")
 
 mkdir -p "$STATE/logs" "$STATE/gcroots"
+PHASE=prepare OK=true LOG=
 
 say() { printf '%s golem-lane: %s\n' "$(date '+%F %T')" "$*" >&2; }
 
 # One status file, rewritten whole at each phase: what the last run did.
 status() {  # status <phase> <ok:true|false> <message> [extra json object]
   local tmp=$STATUS.tmp extra=${4:-}
+  PHASE=$1 OK=$2
   [ -n "$extra" ] || extra='{}'
   jq -n --arg phase "$1" --argjson ok "$2" --arg msg "$3" --arg at "$(date -Is)" \
         --argjson extra "$extra" \
@@ -59,6 +61,28 @@ fail() {  # fail <phase> <message>
   status "$1" false "$2"
   notify "Golem update lane: $1 failed" "$2 — nothing was published. Log: $LOG"
   exit 1
+}
+
+# A command that dies under set -e never reaches fail(): without this the
+# status went on reading ok at the phase the run died in (2026-10-28).
+stopped() {  # the EXIT trap of a run: stopped <exit code>
+  [ "$1" = 0 ] || [ "$OK" = false ] || {
+    status "$PHASE" false "stopped (exit $1); journalctl -u golem-lane, log: $LOG"
+    notify "Golem update lane: $PHASE stopped" "Exit $1. journalctl -u golem-lane, log: $LOG"
+  }
+}
+
+# After a wake the timer starts a missed run at once, before the network is
+# back (2026-10-28: "Could not resolve host: github.com"). Wait for the
+# repository, up to 15 minutes, as golem-wait-online does for the installs.
+online() {
+  local i
+  for i in $(seq 1 90); do
+    GIT_TERMINAL_PROMPT=0 git ls-remote "$REPO_URL" HEAD >/dev/null 2>&1 && return 0
+    if [ "$i" = 1 ]; then say "no network yet; waiting for $REPO_URL"; status prepare true "waiting for the network"; fi
+    sleep 10
+  done
+  return 1
 }
 
 prepare_tree() {  # a clean checkout of $1 (default origin/main), detached
@@ -330,7 +354,10 @@ cmd_run() {
   find "$STATE/logs" -name '*.log' -mtime +30 -delete 2>/dev/null || true
   exec 7>"$STATE/lock"
   flock -n 7 || { say "another run is going on"; exit 0; }
+  trap 'stopped $?' EXIT
+  trap 'exit 143' TERM INT   # a stop or a shutdown mid-run goes through stopped() too
 
+  online || fail prepare "no network for 15 minutes ($REPO_URL unreachable)"
   status prepare true "fetching"
   prepare_tree "${base:-origin/main}"
   [ -n "$base" ] && say "base: $base ($(git -C "$TREE" rev-parse --short=12 HEAD))"

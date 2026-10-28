@@ -34,7 +34,7 @@ in
     at = lib.mkOption {
       type = lib.types.str;
       default = "*-*-* 05:00:00";
-      description = "When the daily run starts (systemd OnCalendar). A run missed while the machine slept starts at the next boot or wake.";
+      description = "When the daily run starts (systemd OnCalendar). A run missed while the machine slept starts at the next boot or wake, once the network is back.";
     };
   };
 
