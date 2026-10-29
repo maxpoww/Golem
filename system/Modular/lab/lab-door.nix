@@ -14,7 +14,7 @@
 # This DELIBERATELY overrides base/ssh.nix's "no lab keys on shipped images"
 # (GolemSecurity phase 3) for the lab period — Max's explicit call. DELETE this
 # file and its composition.nix import at the finish line to restore that rule.
-{ config, lib, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   # The dev box's keys. dev-lab is THIS box's ~/.ssh/id_ed25519 (what an ssh from
@@ -36,8 +36,29 @@ in
   # HERE (not via --lab-wifi → machine.nix) because the direct-copied gen-1 runs
   # the baked toplevel, not machine.nix. retries=0 (infinite) so a slow dongle/AP
   # at boot can't exhaust NM's default 4 and strand the machine (#63).
+  # No Wi-Fi power save on a lab machine (powersave = 2: off): after a reboot
+  # the 2013 MacBook Air (broadcom wl) answered no ARP from the dev box for
+  # ~20 min although it had associated and had its address at 24 s — a
+  # dozing client that said nothing (2026-10-29). And a heartbeat below.
   networking.networkmanager.ensureProfiles.profiles.golem-lab = {
     connection = { id = "golem-lab"; type = "wifi"; autoconnect = true; "autoconnect-retries" = 0; };
-    wifi = { mode = "infrastructure"; ssid = "HOLA"; };
+    wifi = { mode = "infrastructure"; ssid = "HOLA"; powersave = 2; };
+  };
+
+  # THE HEARTBEAT: a ping to the gateway every 20 s keeps the lab machine
+  # known to the access point (its tables learn from frames the client sends).
+  systemd.services.golem-lab-heartbeat = {
+    description = "Keep the lab machine known on the Wi-Fi (a ping to the gateway)";
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "golem-lab-heartbeat" ''
+        gw=$(${pkgs.iproute2}/bin/ip route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{ print $3; exit }')
+        [ -n "$gw" ] && ${pkgs.iputils}/bin/ping -c 1 -W 1 "$gw" >/dev/null 2>&1 || true
+      '';
+    };
+  };
+  systemd.timers.golem-lab-heartbeat = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "15s"; OnUnitActiveSec = "20s"; AccuracySec = "5s"; };
   };
 }

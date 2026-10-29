@@ -29,6 +29,9 @@
 # switch) nor a virtual machine; there it does nothing.
 #
 # Proven on the MacBook Air 6,2 (i5-4250U): 800 → 2300 MHz under load.
+# The line is read as held NOW or SINCE the CPU's sticky log was last
+# cleared: that machine holds it only while the CPU draws current, so an
+# idle look finds it clear.
 { pkgs, lib, ... }:
 
 let
@@ -70,13 +73,19 @@ let
       # 0 = the platform holds PROCHOT on a cool CPU that runs on the charger
       # (sets $temp, °C, for the log); 2 = the same but the CPU is hot — it
       # may cool (a pinned CPU does, fast); 1 = nothing to do.
+      #
+      # "Holds" = now, or since the CPU last cleared its log (bit 3, sticky):
+      # the dead-battery MacBook Air holds the line only while the CPU draws
+      # current — idle, the line is clear, and the second look five seconds
+      # after the first fell on an idle moment and gave up: a whole boot at
+      # 800 MHz with nothing in the log (2026-10-29).
       held() {
         local ctl therm margin target tj=100
         on_mains || return 1
         ctl=$(msr 0x1fc) || return 1
         (( ctl & 1 )) || return 1               # already released
         therm=$(msr 0x19c) || return 1
-        (( therm >> 2 & 1 )) || return 1        # nobody outside holds the line
+        (( (therm >> 2 & 1) || (therm >> 3 & 1) )) || return 1   # nobody outside held the line
         (( therm >> 31 & 1 )) || return 1       # no valid reading: hands off
         (( therm & 1 )) && return 2             # at its own throttle point
         margin=$(( therm >> 16 & 0x7f ))        # degrees under the throttle point
