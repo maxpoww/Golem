@@ -54,7 +54,7 @@ def jpeg_size(path):  # (w, h) from a JPEG's frame header
 
 MU = "https://music.youtube.com/watch?v="
 ROBOT, ROBOT_LIST = MU + "sFZjqVnWBhc", MU + "sFZjqVnWBhc&list=RDAMVMsFZjqVnWBhc"   # a song at two addresses
-CHARROS = MU + "J5iFix-1FJw&list=RDAMVM5ZkLJ25zGCA"   # a song with no video: its cover, padded
+CHARROS = MU + "J5iFix-1FJw&list=RDAMVM5ZkLJ25zGCA"   # a song with no video: its cover, padded; named without its artist
 TECHNO = MU + "iqmTWg0z9v0"                            # no big picture: the smaller one
 THUNDER = MU + "9ssQKlLxBdQ"                           # the history calls it only "YouTube Music": named
 NOWHERE = MU + "zzzzzzzzzz0"                           # no such video: tried, not asked again
@@ -85,11 +85,11 @@ m.js("""const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modul
   await PlacesUtils.history.remove(%s); done(1);""" % json.dumps(GONE))
 for _ in range(60):
     k = kitchen()["pages"]
-    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO, THUNDER, LIST, FIRSTSONG)) and k.get(THUNDER, {}).get("title") and k.get(NOWHERE, {}).get("tried") and k.get(NOLIST, {}).get("tried") and "to fetch" in log(): break
+    if all(k.get(u, {}).get("pic") for u in (ROBOT, CHARROS, TECHNO, THUNDER, LIST, FIRSTSONG)) and k.get(THUNDER, {}).get("title") and k.get(CHARROS, {}).get("title") and k.get(NOWHERE, {}).get("tried") and k.get(NOLIST, {}).get("tried") and "to fetch" in log(): break
     time.sleep(1)
 time.sleep(3)
 k = kitchen(); pages = k["pages"]
-check("the round wanted the window's seven songs and two lists, four of them nameless (one fetch each)", "covers from before: 7 songs, 2 playlists, 9 pictures, 4 names to fetch" in log(), log()[-400:])
+check("the round wanted the window's seven songs and two lists: every song (none says who sings it) and the nameless list named (one fetch each)", "covers from before: 7 songs, 2 playlists, 9 pictures, 8 names to fetch" in log(), log()[-400:])
 pics = {u: pages.get(u, {}).get("pic") for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, THUNDER, FIRSTSONG)}
 check("each song of the history gets its picture", all(pics.values()), pics)
 check("a song at two addresses: one picture for both", pics[ROBOT] and pics[ROBOT] == pics[ROBOT_LIST], pics)
@@ -99,7 +99,8 @@ sizes = {u[-24:]: jpeg_size(f) for u, f in files.items() if os.path.exists(f)}
 check("the biggest picture there is: 1280×720, else YouTube's 480×360", sizes.get(ROBOT[-24:]) == (1280, 720) and sizes.get(TECHNO[-24:]) == (480, 360), sizes)
 check("the page keeps when it was visited", abs(pages.get(ROBOT, {}).get("at", 0) - (time.time() - 2 * 86400)) < 120, pages.get(ROBOT))
 check("a song the history calls only \"YouTube Music\" gets its name, with its artist", pages.get(THUNDER, {}).get("title") == "Thunder \u2022 Imagine Dragons", pages.get(THUNDER))
-check("a song with a name (at any of its addresses) keeps the history's", all("title" not in pages.get(u, {}) for u in (ROBOT, ROBOT_LIST, CHARROS, TECHNO, FIRSTSONG)), {u[-12:]: pages.get(u) for u in pics})
+check("a song the history names without who sings it gets its artist (the video is the artist's own)", pages.get(CHARROS, {}).get("title") == "Amores Como El Nuestro \u2022 Los Charros", pages.get(CHARROS))
+check("a song with a name YouTube gives no artist for keeps the history's, and is not asked again", all("title" not in pages.get(u, {}) and pages.get(u, {}).get("noArtist") for u in (ROBOT, ROBOT_LIST, TECHNO, FIRSTSONG)), {u[-12:]: pages.get(u) for u in pics})
 lp = {u: pages.get(u, {}).get("pic") for u in (LIST, LIST_SHARE, FIRSTSONG)}
 check("a list gets its first video's picture, one for both its addresses, a file of its own (not its song's)",
       lp[LIST] and lp[LIST] == lp[LIST_SHARE] and lp[LIST] != lp[FIRSTSONG] and all(os.path.exists(f"{KITCHEN}/pics/{f}") for f in lp.values() if f), lp)

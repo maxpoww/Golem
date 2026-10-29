@@ -478,7 +478,11 @@ bars of its own colour; the dock cuts them (`unbanded`). AND ITS NAME: a song th
 way. AND THE PLAYLISTS: a list of the history (`playlist?list=<id>`) gets its name (when the history
 has none) and its first video's picture from the list's oEmbed, the picture kept under the list's
 own file name (the same file on a song and a list would read to the dock as a site's logo).
-Test: `./webapps-selftest.sh recents` (18 checks, headless, real build; it goes on the network).
+AND WHO SINGS IT (2026-10-29): a song the history names by its title alone ("Mentirosa") is asked
+the same way and named "Song • Artist" when the video is the artist's own; when YouTube names no
+artist for it (a channel's upload) the history's name stays and it is not asked again
+(`noArtist`). A play with its artist is whole already; the dock lends a play's name to its page.
+Test: `./webapps-selftest.sh recents` (19 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 

@@ -4228,6 +4228,9 @@ try {
   // first video's picture — fetched the same way (the biggest first) and kept under the LIST'S
   // own name (rkPicture's own: the same file on a song and a list would read to the dock as a
   // site's logo, on neither).
+  // AND WHO SINGS IT (2026-10-29): a song the history names by its title alone ("Mentirosa") is
+  // asked for the same way, and named "Song \u2022 Artist" when the video is the artist's own; else
+  // left as it was and asked again in a week (rkWhole: a play with its artist is whole already).
   // The test asks for a round at once: the topic "golem:recents-backfill".
   var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_NAME=/^youtube music$/i, RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
   var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"], RK_WORDS_MAX=65536;
@@ -4248,6 +4251,9 @@ try {
   function rkBackKey(url){ var id=rkVideoId(url); if(id) return id; var l=rkListId(url); return l ? "list:"+l : null; }
   // A title that says nothing but the site's name ("YouTube Music", "x | YouTube Music" is a name).
   function rkNameless(t){ var n=String(t||"").trim(); return !n || RK_BACK_NAME.test(n); }
+  // A song's name says who sings it ("Mentirosa \u2022 R\u00e1faga"), a list's is whole as it is:
+  // the history names a song by its title alone ("Mentirosa"), and that is asked for again.
+  function rkWhole(t,list){ return !rkNameless(t) && (list || String(t).indexOf(" \u2022 ")>0); }
   // What a site says of a page, as JSON, fetched the kitchen's way: done(object) or failed().
   function rkWords(src,pageUrl,done,failed){
     var w=rkWin();
@@ -4274,11 +4280,12 @@ try {
       w.PlacesUtils.promiseDBConnection().then(function(db){
         return db.executeCached("SELECT url, title, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
       }).then(function(rows){
-        var now=Math.round(Date.now()/1000), pictured={}, named={}, of={}, want=[], pics=0, names=0, lists=0;
+        var now=Math.round(Date.now()/1000), pictured={}, named={}, titled={}, of={}, want=[], pics=0, names=0, lists=0;
         // (A song heard since has its cover and its name from the page already.)
-        rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) named[id]=1; });
-        Object.keys(rk.pages).forEach(function(u){ var id=rkBackKey(u); if(!id) return; if(rk.pages[u].pic) pictured[id]=1; if(!rkNameless(rk.pages[u].title)) named[id]=1; });
-        rows.forEach(function(r){ var id=rkBackKey(r.getResultByName("url")); if(id && !rkNameless(r.getResultByName("title"))) named[id]=1; });
+        // (Named: whole, or YouTube said once it names no one for it. Titled: any name at all.)
+        rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) titled[id]=1; if(titled[id] && String(p.artist||"").trim()) named[id]=1; });
+        Object.keys(rk.pages).forEach(function(u){ var pg=rk.pages[u], id=rkBackKey(u); if(!id) return; if(pg.pic) pictured[id]=1; if(!rkNameless(pg.title)) titled[id]=1; if(rkWhole(pg.title,!rkVideoId(u)) || pg.noArtist) named[id]=1; });
+        rows.forEach(function(r){ var u=r.getResultByName("url"), t=r.getResultByName("title"), id=rkBackKey(u); if(!id) return; if(!rkNameless(t)) titled[id]=1; if(rkWhole(t,!rkVideoId(u))) named[id]=1; });
         // One fetch a song or a list; what it gets for every address it was at (with a list, without).
         for(var i=0;i<rows.length;i++){
           var url=String(rows[i].getResultByName("url")), id=rkBackKey(url), page=rk.pages[url]||{};
@@ -4288,7 +4295,7 @@ try {
           var at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
           if(of[id]){ of[id].pages.push(at); continue; }
           if(want.length>=RK_BACK_MAX) continue;
-          of[id]={id:id,list:id.indexOf("list:")===0,pages:[at],pic:pic,name:name}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0; lists+=of[id].list?1:0;
+          of[id]={id:id,list:id.indexOf("list:")===0,pages:[at],pic:pic,name:name,titled:!!titled[id]}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0; lists+=of[id].list?1:0;
         }
         RKLOG("covers from before: "+(want.length-lists)+" songs, "+lists+" playlists, "+pics+" pictures, "+names+" names to fetch");
         // Kept only while a page is still in the history and nothing was cleared meanwhile.
@@ -4316,9 +4323,15 @@ try {
             rkWords("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/watch?v="+it.id),it.pages[0].url,
               function(j){
                 var song=rkClip(j && j.title,200), by=/^(.+) - Topic$/.exec(rkClip(j && j.author_name,200));
-                var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song;
-                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); return; }
-                keep(it,function(p){ p.title=t; delete p.nameTried; },function(){ size(it.id,0); });
+                var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song, when=Math.round(Date.now()/1000);
+                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=when; },function(){ size(it.id,0); }); return; }
+                // (Without who sings it: a name for a song that had none — else the history's
+                // stays —, and YouTube is not asked again.)
+                keep(it,function(p){
+                  if(by || !it.titled) p.title=t;
+                  delete p.nameTried;
+                  if(by) delete p.noArtist; else p.noArtist=1;
+                },function(){ size(it.id,0); });
               },
               function(){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); });
           };
