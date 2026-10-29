@@ -3328,7 +3328,7 @@ try {
     try{
       var pn=w.PopupNotifications, root=w.document.documentElement; if(!pn || pn.__golemApp) return; pn.__golemApp=true;
       var orig=pn.show;
-      var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
+      var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen && !waDownloadsOpen(w)) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
       pn.show=function(b,id,msg,anchor,main,secondary,options){
         try{ if(!(options && options.dismissed)) root.setAttribute("golem-app-prompt","true"); }catch(e){}
         try{ options=options||{}; var cb=options.eventCallback;
@@ -3336,6 +3336,45 @@ try {
         return orig.call(this,b,id,msg,anchor,main,secondary,options); };
       pn.panel.addEventListener("popuphidden",clear);
     }catch(e){ WALOG("prompts:"+e); }
+  }
+
+  // A DOWNLOAD in a webapp said nothing (found 2026-10-29 from the eBay links): Firefox
+  // tells of it in the most recent NORMAL window (DownloadsCommon skips taskbartab windows)
+  // and, there or in the webapp, on a downloads button of a toolbar the webapp hides — the
+  // file came into Downloads unseen. While a webapp is the window in use, a download it
+  // starts opens the downloads panel IN it, the address strip showing as for a prompt (the
+  // panel hangs from the downloads button), and both go when the panel closes. Taught once,
+  // on the downloads list's own class (its _notifyDownloadEvent), at the first webapp.
+  function waDownloadsOpen(w){ try{ return !!(w.DownloadsPanel && w.DownloadsPanel.isPanelShowing); }catch(e){ return false; } }
+  function waDownloadsIn(w){
+    try{
+      var root=w.document.documentElement; root.setAttribute("golem-app-prompt","true");
+      if(!w.__golemDownloads){
+        w.__golemDownloads=true;
+        w.addEventListener("popuphidden",function(ev){
+          try{ if(!ev.target || ev.target.id!=="downloadsPanel") return;
+            if(!(w.PopupNotifications && w.PopupNotifications.isPanelOpen)) root.removeAttribute("golem-app-prompt"); }catch(e){} },true);
+      }
+      // (a frame for the strip to be laid out: the panel anchors to its button)
+      w.setTimeout(function(){ try{ w.DownloadsPanel.showPanel(); }catch(e){ WALOG("downloads:"+e); root.removeAttribute("golem-app-prompt"); } },60);
+      WALOG("download shown in "+waSlugOf(w));
+    }catch(e){ WALOG("downloads:"+e); }
+  }
+  function waDownloads(w){
+    try{
+      var DC; try{ DC=ChromeUtils.importESModule("moz-src:///browser/components/downloads/DownloadsCommon.sys.mjs").DownloadsCommon; }
+              catch(e){ DC=ChromeUtils.importESModule("resource:///modules/DownloadsCommon.sys.mjs").DownloadsCommon; }   // (before 159)
+      var proto=Object.getPrototypeOf(DC.getData(w)), base=proto && proto._notifyDownloadEvent;
+      if(!base || proto.__golemApp) return;
+      proto._notifyDownloadEvent=function(aType,opts){
+        var aw=null; try{ aw=Services.focus.activeWindow; }catch(e){}
+        if(aType==="start" && aw && !aw.closed && waSlugOf(aw) && !this._isPrivate && !(opts && opts.openDownloadsListOnStart===false)){
+          waDownloadsIn(aw); return;
+        }
+        return base.apply(this,arguments);
+      };
+      Object.defineProperty(proto,"__golemApp",{value:true});
+    }catch(e){ WALOG("downloads:"+e); }
   }
 
   // The focus-to-visibility bridge (see the header). A frame script in the webapp
@@ -3376,26 +3415,51 @@ try {
   // A webapp's links stay in its window (Max, 2026-10-29: "on ebay, when im on the webapp, and
   // click an article, it opens on a new tab on seam... webapps should never go out of their
   // windows"). Firefox sends every new tab of a web-app window to a normal window
-  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank:
-  // openURIInFrame, the opener left out, as a link is by default) to the app's OWN site (the
-  // page's, or where the app starts; its other countries too: ebay.es from ebay.com) opens in
-  // the window itself, where the title bar's back arrow returns. Another site's still goes to
-  // Seam, as a link out of the app; so does what was asked for as a tab (a middle click,
-  // Ctrl+click, the menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a
-  // window.open the page keeps a hand on (no address to judge yet) and a link from another
-  // program. The load is the page's own (its principal and referrer), http and https only.
+  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank,
+  // the opener left out, as a link is by default) to the app's OWN site (the page's, or where
+  // the app starts; its other countries too: ebay.es from ebay.com) opens in the window
+  // itself, where the title bar's back arrow returns. Another site's still goes to Seam, as a
+  // link out of the app; so does what was asked for as a tab (a middle click, Ctrl+click, the
+  // menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a window.open whose
+  // page keeps a handle on what it opens (a sign-in may talk back through it: it gets its tab
+  // as ever) and a link from another program. The load is the page's own (its principal and
+  // referrer), http and https only.
   function waSite(uri){
     try{ var b=Services.eTLD.getBaseDomain(uri), s=Services.eTLD.getPublicSuffix(uri);
       return b.slice(0,b.length-s.length-1)||b; }catch(e){}
     try{ return uri.host; }catch(e){ return ""; }
   }
-  function waOwnLink(w,uri){
+  // A site's own REDIRECTOR is not its own page: Gmail's links go through google.com/url?q=,
+  // Facebook's l.facebook.com/l.php?u=, YouTube's /redirect?q=, Instagram's, Reddit's,
+  // LinkedIn's… — a link is judged by the address it carries in a parameter (an http(s)
+  // address of another site), so a news link in a mail still goes to Seam.
+  function waCarried(uri){
     try{
-      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
-      var site=waSite(uri); if(!site) return false;
+      var q=String(uri.query||""); if(!q) return null;
+      var parts=q.split("&");
+      for(var i=0;i<parts.length;i++){
+        var eq=parts[i].indexOf("="); if(eq<0) continue;
+        var v=""; try{ v=decodeURIComponent(parts[i].slice(eq+1).replace(/\+/g," ")); }catch(e){ continue; }
+        if(!/^https?:\/\//i.test(v)) continue;
+        var to=null; try{ to=Services.io.newURI(v); }catch(e){ continue; }
+        if(waSite(to)!==waSite(uri)) return to;
+      }
+    }catch(e){}
+    return null;
+  }
+  function waAppSite(w,site){   // the site of the page shown, or of where the app starts
+    try{
       if(site===waSite(w.gBrowser.currentURI)) return true;
       var start=w.__golemAppStart||"";
       return /^https?:/.test(start) && site===waSite(Services.io.newURI(start));
+    }catch(e){ return false; }
+  }
+  function waOwnLink(w,uri){
+    try{
+      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
+      var site=waSite(uri); if(!site || !waAppSite(w,site)) return false;
+      var to=waCarried(uri);
+      return !to || waAppSite(w,waSite(to));
     }catch(e){ return false; }
   }
   // Firefox's own BrowserDOMWindow decides where a page's new tab goes, and a page holds the
@@ -3411,9 +3475,12 @@ try {
       if(proto.__golemApp) return;
       var kept=function(self,uri,params,where,flags){
         var w=self.win, keep=false;
-        try{ keep=!!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
+        // (a page with a handle on what it opens: openWindowInfo.forceNoOpener false)
+        var free=true; try{ var oi=params && params.openWindowInfo; if(oi && oi.forceNoOpener===false) free=false; }catch(e){}
+        try{ keep=free && !!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
                   (where===B.OPEN_NEWTAB || where===B.OPEN_NEWTAB_FOREGROUND || where===B.OPEN_NEWTAB_BACKGROUND); }catch(e){}
         if(!keep) return false;
+        w.__golemKept={ site:waSite(uri), at:Date.now() };   // (its first stop is looked at: waLanded)
         w.gBrowser.selectedBrowser.loadURI(uri,{ triggeringPrincipal:params.triggeringPrincipal, policyContainer:params.policyContainer, referrerInfo:params.referrerInfo });
         WALOG("link kept in "+waSlugOf(w)+": "+uri.spec);
         return true;
@@ -3432,12 +3499,85 @@ try {
   }
   waLinks();
 
+  // SEAM'S WINDOW COMES BACK WHOLE (2026-10-29, found from the eBay links: what Firefox does
+  // around a web-app window is made for Windows). A webapp keeps Seam running, so closing
+  // Seam's last window while one is open does not quit it, and the next Seam window (the
+  // dock's tile) opened BLANK: the tabs were left in "recently closed windows" and came back
+  // only at a restart. Firefox's own answer (the session waits for the next normal window) is
+  // behind Mozilla's switch for its Windows web apps, and puts the tabs behind the blank one,
+  // which it keeps selected. Here: when the last normal window closes while a webapp stays,
+  // and Seam restores its session at start (browser.startup.page 3), the next normal window
+  // takes that window back (in place of its start page, or beside the link it opened for),
+  // and it leaves "recently closed".
+  var waWindowWaits=false;
+  function waNormal(w){
+    try{ var r=w.document.documentElement;
+      return r.getAttribute("windowtype")==="navigator:browser" && !r.hasAttribute("taskbartab") && w.toolbar.visible &&
+             !ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(w);
+    }catch(e){ return false; }
+  }
+  function waOthers(w){   // what else is open: a normal window, a webapp
+    var e=Services.wm.getEnumerator("navigator:browser"), o={normal:false, app:false};
+    while(e.hasMoreElements()){ var x=e.getNext(); if(x===w || x.closed) continue; if(waNormal(x)) o.normal=true; else if(waSlugOf(x)) o.app=true; }
+    return o;
+  }
+  function waTakeBack(w){
+    try{
+      var SS; try{ SS=ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs").SessionStore; }
+              catch(e){ SS=ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs").SessionStore; }   // (before 159)
+      var closed=SS.getClosedWindowData(), i=-1;
+      for(var k=0;k<closed.length;k++){ if(!closed[k].isPopup && closed[k].tabs && closed[k].tabs.length){ i=k; break; } }
+      if(i<0) return;
+      var start=false;
+      try{
+        var a=w.arguments && w.arguments[0]; a=a ? String(a instanceof Components.interfaces.nsISupportsString ? a.data : a) : "";
+        var d=Components.classes["@mozilla.org/browser/clh;1"].getService(Components.interfaces.nsIBrowserHandler).defaultArgs;
+        start=w.gBrowser.tabs.length===1 && (!a || a===d || /^about:(home|newtab|blank)/.test(a));
+      }catch(e){}
+      var id=closed[i].closedId, n=closed[i].tabs.length;
+      SS.setWindowState(w,JSON.stringify({windows:[closed[i]]}),start);
+      try{ SS.forgetClosedWindowById(id); }catch(e){ try{ SS.forgetClosedWindow(i); }catch(e2){} }
+      WALOG("Seam's window took back "+n+" tabs"+(start?"":", beside its link"));
+    }catch(e){ WALOG("take back:"+e); }
+  }
+  try{
+    Services.ww.registerNotification({ observe:function(sub,topic){
+      if(topic!=="domwindowclosed" || !waNormal(sub)) return;
+      var o=waOthers(sub); if(o.normal) return;
+      var restores=false; try{ restores=Services.prefs.getIntPref("browser.startup.page",1)===3; }catch(e){}
+      waWindowWaits=o.app && restores;
+      if(waWindowWaits) WALOG("Seam's last window closed while a webapp runs: its tabs wait");
+    } });
+    Services.obs.addObserver(function(w){
+      if(!waWindowWaits || !waNormal(w) || waOthers(w).normal) return;
+      waWindowWaits=false;
+      waTakeBack(w);
+    },"browser-delayed-startup-finished");
+  }catch(e){ WALOG("session:"+e); }
+
+  // A link kept in the window that the server sends on to ANOTHER site (a redirect no
+  // parameter told of) lands there: that page goes to Seam, and the webapp back to the
+  // page it was on (a redirect leaves no entry of its own to go back through).
+  function waLanded(w,loc){
+    try{
+      var k=w.__golemKept; w.__golemKept=null;
+      if(!k || Date.now()-k.at>15000 || !loc || !(loc.schemeIs("https")||loc.schemeIs("http"))) return;
+      var site=waSite(loc), start=w.__golemAppStart||"";
+      if(site===k.site || (/^https?:/.test(start) && site===waSite(Services.io.newURI(start)))) return;
+      WALOG("kept link went on to "+loc.spec+": to Seam");
+      if(w.gBrowser.canGoBack) w.gBrowser.goBack();
+      w.openTrustedLinkIn(loc.spec,"tab");
+    }catch(e){ WALOG("landed:"+e); }
+  }
+
   function waWatch(w){
     try{ w.gBrowser.tabs.forEach(function(t){ try{ w.gBrowser.getBrowserForTab(t).browsingContext.displayMode="minimal-ui"; }catch(e){} }); }catch(e){}
-    try{ w.gBrowser.addProgressListener({ onLocationChange:function(){ waReport(); } }); }catch(e){ WALOG("watch:"+e); }
+    try{ w.gBrowser.addProgressListener({ onLocationChange:function(wp,req,loc,flags){
+      try{ if(wp && wp.isTopLevel && !(flags & Components.interfaces.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) && w.__golemKept) waLanded(w,loc); }catch(e){}
+      waReport(); } }); }catch(e){ WALOG("watch:"+e); }
     try{ w.addEventListener("pagetitlechanged",function(){ waReport(); },true); }catch(e){}
     w.addEventListener("unload",function(){ waReport(); },{once:true});
-    waPrompts(w); waVisibility(w); waReport();
+    waPrompts(w); waVisibility(w); waDownloads(w); waReport();
   }
 
   // A webapp's name, from the dock's catalog (~/.config/webapps.list, "Name | URL | icon")

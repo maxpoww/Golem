@@ -4,7 +4,9 @@
 #
 #   ./webapps-selftest.sh        cold start through the flag, relaunch, a link into a
 #                                webapp, a second webapp, a plain launch, the kill switch,
-#                                a permission prompt, restart + restore, no tab ever lost
+#                                a permission prompt, restart + restore, no tab ever lost,
+#                                its links kept in it, its downloads told in it, Seam's
+#                                window back whole while a webapp runs
 #   ./webapps-selftest.sh rows   one site in a Seam tab and as a webapp: each window its own
 #                                colour row (the web's switch + the drop / the apps')
 #   ./webapps-selftest.sh recents the recents' kitchen: covers from before (YouTube Music
