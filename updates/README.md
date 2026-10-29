@@ -189,7 +189,12 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   timers; the effect matrix asserts both settings.
 - **The wave** (`client.nix`): a new version waits `wave` days, counted
   from the run that first found the machine behind (so a late-wave machine
-  still updates when versions come faster than its wave). The wave is
+  still updates when versions come faster than its wave), or from when the
+  version was published if that is earlier: a machine installed from an
+  older ISO, or back after weeks off, does not wait its whole wave again
+  for a version the others have run for days. The publication time is the
+  upload time of the version's cache, which GitHub serves as
+  `Last-Modified` (`golem-update-published`). The wave is
   `machine-id mod 7` unless set. The lab is 0. Nothing is reported or
   asked. `/run/golem-update-now` skips the wait on one machine.
 

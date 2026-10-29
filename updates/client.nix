@@ -20,7 +20,9 @@
 # THE WAVE. Each machine takes a new version a fixed number of days after it
 # first sees it (0 … waves-1), computed here from /etc/machine-id, so the
 # machines spread over a week and a bad version meets a few of them first.
-# Nothing leaves the machine to decide this: Golem has no telemetry.
+# Nothing leaves the machine to decide this: Golem has no telemetry. A
+# version out before the machine first saw it counts from when it was
+# published (its cache's upload time, read from GitHub like the cache).
 { config, lib, pkgs, ... }:
 
 let
@@ -63,6 +65,23 @@ let
         sleep 2
       done
       echo "golem-cache-args: no published cache for ''${rev:0:12} — this build compiles what it needs" >&2
+    '';
+  };
+
+  # When the lane published a version: the upload time of its cache, which
+  # GitHub serves as Last-Modified. Nothing when that is unknown (offline, a
+  # commit the lane never published). Nothing is sent but the request.
+  published = pkgs.writeShellApplication {
+    name = "golem-update-published";
+    runtimeInputs = [ pkgs.curl pkgs.coreutils pkgs.gnugrep pkgs.gnused ];
+    text = ''
+      # golem-update-published <commit>  →  seconds since the epoch, or nothing
+      rev=''${1:-}
+      [[ "$rev" =~ ^[0-9a-f]{40}$ ]] || exit 0
+      lm=$(curl -fsIL --max-time 15 "https://github.com/${cfg.cache.repo}/releases/download/g-''${rev:0:12}/nix-cache-info" 2>/dev/null \
+        | grep -i '^last-modified:' | tail -1 | sed 's/^[^:]*: *//; s/\r$//' || true)
+      [ -n "$lm" ] || exit 0
+      date -d "$lm" +%s 2>/dev/null || true
     '';
   };
 
@@ -117,6 +136,11 @@ in
       readOnly = true;
       description = "golem-update-wave: prints this machine's wave.";
     };
+    publishedCommand = lib.mkOption {
+      type = lib.types.package;
+      readOnly = true;
+      description = "golem-update-published: when the lane published a commit (its cache's upload time).";
+    };
   };
 
   config = {
@@ -126,6 +150,7 @@ in
     }];
     golem.update.cacheArgs = cacheArgs;
     golem.update.waveCommand = waveOf;
+    golem.update.publishedCommand = published;
     nix.settings.trusted-public-keys = cfg.cache.publicKeys;
 
     # An update must never freeze the machine. The Acer's first update

@@ -238,6 +238,11 @@ lib.mkIf (config.golem.flakeDir != null) {
       # but never built is finished below. /run/golem-update-now skips it.
       # The clock is cleared when the machine is current, or after a
       # successful rebuild of what it pulled.
+      # A version that was out before the machine first saw it counts from
+      # its publication (when the lane uploaded its cache): a machine
+      # installed from an older ISO, or back after weeks off, meets a
+      # version the other machines have run for days, and waiting its whole
+      # wave again only kept it behind (audit, 2026-10-29).
       wave=$(${config.golem.update.waveCommand}/bin/golem-update-wave)
       since=/var/lib/golem/update-behind-since
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
@@ -248,7 +253,10 @@ lib.mkIf (config.golem.flakeDir != null) {
         rm -f "$since"
       else
         [ -s "$since" ] || date +%s > "$since"
-        age=$(( $(date +%s) - $(cat "$since") ))
+        from=$(cat "$since")
+        published=$(${config.golem.update.publishedCommand}/bin/golem-update-published "$upstream" || true)
+        if [[ "$published" =~ ^[0-9]+$ ]] && [ "$published" -lt "$from" ]; then from=$published; fi
+        age=$(( $(date +%s) - from ))
         if [ "$age" -lt $(( wave * 86400 )) ] && [ ! -e /run/golem-update-now ]; then
           echo "golem-autoupdate: a new version is out; this machine is in wave $wave and takes it in about $(( (wave * 86400 - age + 3599) / 3600 )) h."
           pull=0
