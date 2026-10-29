@@ -17,10 +17,15 @@ pkgs.testers.runNixOSTest {
 
   nodes.machine = { lib, ... }: {
     imports = modules;
-    # Headless: no GTK window, no GL. Mesa renders in software, as on a
-    # machine without a working GPU driver.
-    virtualisation.qemu.options = lib.mkForce [ "-vga none" "-device virtio-gpu-pci" ];
+    # Headless: no window, no GL (hosts/vm.nix adds its GTK display only
+    # with graphics). Mesa renders in software, as on a machine without a
+    # working GPU driver. Never mkForce qemu.options: qemu-vm puts the
+    # kernel, initrd and command line there (it booted nothing, 2026-10-29).
+    virtualisation.graphics = false;
+    virtualisation.qemu.options = [ "-vga none" "-device virtio-gpu-pci" ];
     virtualisation.forwardPorts = lib.mkForce [ ];
+    networking.hostName = lib.mkForce "machine";   # the test network's name for it
+    boot.consoleLogLevel = lib.mkForce 7;           # the test driver reads the console
   };
 
   testScript = { nodes, ... }:
@@ -30,9 +35,15 @@ pkgs.testers.runNixOSTest {
       # The owner's desktop, up and still up a while later: a crash loop
       # would roll the machine back, a dead desktop would leave Golem's
       # last-resort screen (desktop/crash-recovery.nix).
-      machine.wait_until_succeeds("pgrep -u ${owner} -x Hyprland", timeout=300)
+      # By its command line: nixpkgs wraps the binary, so the process is
+      # named .Hyprland-wrapped. Its IPC socket says it is really serving.
+      hyprland = "pgrep -u ${owner} -f '/bin/Hyprland( |$)'"
+      socket = "ls /run/user/$(id -u ${owner})/hypr/*/.socket.sock"
+      machine.wait_until_succeeds(hyprland, timeout=300)
+      machine.wait_until_succeeds(socket, timeout=120)
       machine.sleep(30)
-      machine.succeed("pgrep -u ${owner} -x Hyprland")
+      machine.succeed(hyprland)
+      machine.succeed(socket)
       machine.fail("test -e /run/golem/rollback-pending")
       print(machine.succeed("systemctl --failed --no-legend --plain || true"))
     '';

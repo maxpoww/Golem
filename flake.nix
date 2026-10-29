@@ -307,6 +307,33 @@
           inherit (e) name firmware isFloor leaves locale;
           toplevel = "${e.toplevel}";
         }) bakedRaw));
+
+      # The desktop stage on hosts/vm.nix's machine: golem-desktop-vm, and the
+      # update lane's boot test (updates/boot-test.nix), which boots it.
+      desktopVmModules = [
+        {
+          system.configurationRevision =
+            self.rev or self.dirtyRev or "unknown";
+        }
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+        }
+        ./system/Modular/composition.nix
+        ./system/Modular/desktop/default.nix
+        waverunner.nixosModules.notification-service
+        ({ config, ... }: {
+          services.options-notify.enable = true;
+          home-manager.backupFileExtension = "before-golem";
+          home-manager.users.${config.golem.owner} = {
+            imports = [ ./system/home/home.nix ];
+          };
+          home-manager.extraSpecialArgs = { inherit waverunner waveview; };
+        })
+        ./hosts/vm.nix
+        ./hosts/vm-desktop.nix
+      ];
     in
     {
       packages.${system} = {
@@ -408,6 +435,15 @@
         # hardware modules on source): compose each machine's chosen
         # leaves via mkMinimal and assert the evaluated config. A leaf
         # whose values drift fails here, before metal.
+        # A version must boot, not only build: the desktop stage in a VM, up
+        # to the owner's desktop (updates/boot-test.nix). The lane runs every
+        # check before it publishes.
+        boot-test = import ./updates/boot-test.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          modules = desktopVmModules;
+          specialArgs = { golemSrc = self; };
+        };
+
         minimal-matrix = import ./system/Modular/effect-matrix.nix {
           lib = nixpkgs.lib;
           inherit pkgs mkMinimal;
@@ -467,30 +503,7 @@
         golem-desktop-vm = nixpkgs.lib.nixosSystem {
           inherit system;
           specialArgs = { golemSrc = self; };
-          modules = [
-            {
-              system.configurationRevision =
-                self.rev or self.dirtyRev or "unknown";
-            }
-            home-manager.nixosModules.home-manager
-            {
-              home-manager.useGlobalPkgs = true;
-              home-manager.useUserPackages = true;
-            }
-            ./system/Modular/composition.nix
-            ./system/Modular/desktop/default.nix
-            waverunner.nixosModules.notification-service
-            ({ config, ... }: {
-              services.options-notify.enable = true;
-              home-manager.backupFileExtension = "before-golem";
-              home-manager.users.${config.golem.owner} = {
-                imports = [ ./system/home/home.nix ];
-              };
-              home-manager.extraSpecialArgs = { inherit waverunner waveview; };
-            })
-            ./hosts/vm.nix
-            ./hosts/vm-desktop.nix
-          ];
+          modules = desktopVmModules;
         };
 
         golem-iso = nixpkgs.lib.nixosSystem {

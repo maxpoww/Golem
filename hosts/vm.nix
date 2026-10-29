@@ -120,7 +120,9 @@ in
     # venus=true wgpu cannot create a surface at all → daemon dead → no
     # shell. Without it wgpu falls back to llvmpipe (CPU) — dock renders
     # softly, video can stutter. VM-only cosmetics; real hw is unaffected.
-    qemu.options = [
+    # Only with a display: the update lane's boot test (updates/boot-test.nix)
+    # runs this machine headless.
+    qemu.options = lib.optionals config.virtualisation.graphics [
       "-device virtio-vga-gl"
       "-display gtk,gl=on"
     ];

@@ -19,10 +19,14 @@
 #    wait on a link / DHCP / a slow wifi dongle (that wait was ~10 s on the
 #    comodore's rtl8187). Standard NixOS boot-speed hygiene; the auto-upgrade uses
 #    its own `golem-wait-online` gate, unaffected.
-{ lib, ... }:
+{ config, lib, ... }:
 
 {
-  boot.kernelParams = lib.mkAfter [ "8250.nr_uarts=0" ];
+  # Not in a virtual machine: there the serial port is the console that
+  # tells what happened, and the update lane's boot test (updates/
+  # boot-test.nix) talks to the machine through it. With it off the test VM
+  # booted in silence and timed out (2026-10-29).
+  boot.kernelParams = lib.mkIf (config.golem.hardware.vmGuest == "none") (lib.mkAfter [ "8250.nr_uarts=0" ]);
 
   systemd.services.NetworkManager-wait-online.enable = lib.mkForce false;
 }
