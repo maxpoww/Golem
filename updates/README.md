@@ -11,7 +11,8 @@ instead of compiling them for an hour) and **safe** (nothing reaches a
 machine before it was built for every kind of Golem machine).
 
 ```
- MAINTAINER          BUILD MACHINE — the lane, daily           EVERY GOLEM MACHINE — nightly, its own moment
+ MAINTAINER          BUILD MACHINE — the lane, daily           EVERY GOLEM MACHINE — daily: its own moment of
+                                                               the night, or minutes after it is turned on
  ──────────          ───────────────────────────────           ─────────────────────────────────────────────
  push to main  ──▶  1. take main (+ weekly NixOS fixes)   ──▶  1. a new version on stable? wait for my wave
                     2. build every Golem system (the gate)      2. git pull: the new configuration files
@@ -34,7 +35,7 @@ telemetry.
 | `gate.nix` | What must build before a version is published (flake output `packages.x86_64-linux.update-gate`) |
 | `builder.nix` | On the build machine: the `golem-lane` command + its daily timer |
 | `client.nix` | On every install: the cache key, the per-version cache, the wave |
-| `../system/Modular/base/autoupdate.nix` | The nightly update: own moment, wave, `stable`, pull, rebuild `boot` |
+| `../system/Modular/base/autoupdate.nix` | The daily update: own moment (or right after power-on), wave, `stable`, pull, rebuild `boot` |
 | `../system/golem-seal.nix` (`golem-rebuild`) | Hands every rebuild its version's cache (nightly update, first boot, dock installs, `rebuild-golem`) |
 | `../system/Modular/base/seed.nix` | `golem.upstream.branch = "stable"` |
 | `../system/Modular/lab/lab-door.nix` | The lab is wave 0 |
@@ -150,11 +151,20 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
 
 ## The moment and the wave
 
-- **The moment**: the nightly update's timer has `RandomizedDelaySec=6h`
-  and `FixedRandomDelay=true`. systemd derives the delay from the machine's
-  machine-id and the timer's name, on the machine, so each machine asks at
-  its own fixed time between 00:00 and 06:00, every night the same. A
-  machine that was off or asleep runs at the next boot or wake.
+- **The moment**: the update's timer has `RandomizedOffsetSec=6h`.
+  systemd derives the offset from the machine's machine-id and the timer's
+  name, on the machine, so each machine asks at its own fixed time between
+  00:00 and 06:00, every night the same.
+- **Off at its moment** (most machines are, at night): `Persistent=true`
+  runs the missed update within 10 minutes of turning the machine on
+  (`RandomizedDelaySec=10min`, fixed per machine too); a machine that slept
+  runs it as it wakes. So a machine checks once a day: at its moment if it
+  is on, otherwise right after it is turned on.
+- **Why not `RandomizedDelaySec=6h`** (the first version, until
+  2026-10-28): systemd counts a missed run's delay from the boot, so a
+  machine turned on in the morning waited its 0-6 h again, and one used for
+  less than that a day never updated. Proven on systemd 260 with real
+  timers; the effect matrix asserts both settings.
 - **The wave** (`client.nix`): a new version waits `wave` days, counted
   from the run that first found the machine behind (so a late-wave machine
   still updates when versions come faster than its wave). The wave is

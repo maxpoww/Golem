@@ -295,12 +295,20 @@ lib.mkIf (config.golem.flakeDir != null) {
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
-      Persistent = true;        # catch up a missed run (laptop asleep at the hour)
       # Each machine its own moment between midnight and 6:00, the same every
       # night: systemd derives it from this machine's machine-id and the
       # timer's name, on the machine, so the machines never all ask at once.
-      RandomizedDelaySec = "6h";
+      RandomizedOffsetSec = "6h";
+      # A machine that was off at its moment (most are, at night) runs a few
+      # minutes after it is turned on; one that slept, as it wakes.
+      Persistent = true;
+      RandomizedDelaySec = "10min";
       FixedRandomDelay = true;
+      # Not RandomizedDelaySec=6h for the moment, as until 2026-10-28: systemd
+      # counts a missed run's delay from the BOOT (timer.c, "rebase after boot
+      # time"), so a machine turned on in the morning waited its 0-6 h again,
+      # and one used for less than that a day never updated at all. Proven on
+      # systemd 260 with real timers.
     };
   };
 }
