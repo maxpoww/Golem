@@ -139,6 +139,15 @@ lin = m.js(APPWIN + 'let w = appw("spikeapp"); done(!!w && w.document.documentEl
 check("the class comes from Firefox's own Linux branch (browser-init)", lin is True, lin)
 top0 = m.js(APPWIN + 'let w = appw("spikeapp"); done(w.gBrowser.selectedBrowser.getBoundingClientRect().top);')
 check("webapp: the page starts at the window's very top (no 1px separator under the title bar)", top0 == 0, top0)
+# (Firefox 159 keeps the page's and the window's notification bars inside the toolbox a
+# webapp hides: a blocked sign-in pop-up's bar never showed)
+nb = m.js(APPWIN + 'let w = appw("spikeapp"); let out = {};'
+          ' for (let [k, box] of [["page", w.gBrowser.getNotificationBox()], ["window", w.gNotificationBox]]) {'
+          '   let n = await box.appendNotification("golem-test-" + k, { label: "Seam prevented this site from opening a pop-up window.", priority: box.PRIORITY_WARNING_MEDIUM }, []);'
+          '   await new Promise(z => setTimeout(z, 1200)); out[k] = { h: Math.round(n.getBoundingClientRect().height), pageTop: Math.round(w.gBrowser.selectedBrowser.getBoundingClientRect().top) };'
+          '   box.removeNotification(n, true); await new Promise(z => setTimeout(z, 600)); }'
+          ' out.after = w.gBrowser.selectedBrowser.getBoundingClientRect().top; done(out);')
+check("webapp: notification bars show (the page's and the window's), the page back at the top after", isinstance(nb, dict) and nb["page"]["h"] > 0 and nb["page"]["pageTop"] > 0 and nb["window"]["h"] > 0 and nb["after"] == 0, nb)
 check("webapp: page title, no toolbox, no tab strip, minimal-ui", a.get("title") == "Spike App" and a.get("toolboxShown") is False and a.get("tabstripShown") is False and a.get("mode") == "minimal-ui", a)
 time.sleep(1); check("apps.json reports the webapp url", isinstance(appsjson(), dict) and appsjson().get("spikeapp", {}).get("url") == U("app"), appsjson())
 check("nav: a freshly opened webapp can go nowhere", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "0"], navfile())
