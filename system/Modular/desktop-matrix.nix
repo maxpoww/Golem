@@ -69,6 +69,7 @@ let
             && lib.hasPrefix "auth requisite " (lib.elemAt auth 0) && lib.hasInfix "/pam_unix.so" (lib.elemAt auth 0)
             && lib.hasPrefix "auth optional " (lib.elemAt auth 1) && lib.hasInfix "pam_gnome_keyring.so auto_start" (lib.elemAt auth 1))
         && !c.security.pam.services.greetd.enableGnomeKeyring
+        && !c.services.gnome.gcr-ssh-agent.enable
         # (nothing starts it before that password: its autostart entries hidden)
         && lib.all (f: lib.hasInfix "Hidden=true" (c.environment.etc."xdg/autostart/${f}".text or ""))
              [ "gnome-keyring-pkcs11.desktop" "gnome-keyring-secrets.desktop" ]))

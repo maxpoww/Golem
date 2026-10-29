@@ -57,6 +57,10 @@ in
     };
   };
   security.pam.services.greetd.enableGnomeKeyring = false;
+  # Not its SSH agent (NixOS turns gcr's on with the keyring): it would put
+  # SSH_AUTH_SOCK in the session and answer every ssh — a change of its own,
+  # not part of keeping passwords.
+  services.gnome.gcr-ssh-agent.enable = false;
   environment.etc = lib.genAttrs
     [ "xdg/autostart/gnome-keyring-pkcs11.desktop" "xdg/autostart/gnome-keyring-secrets.desktop" ]
     (f: { text = hidden "GNOME Keyring (started by golem-lock-screen)"; });
