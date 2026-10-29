@@ -4,20 +4,33 @@
 # channel-based /etc/nixos (the dev box) can take the SAME policy: the dev box
 # still ran the old `--delete-older-than 7d` and sat on 68 system generations
 # at 99 % full — a busy week of rebuilds is all "younger than 7 days".
-{ config, ... }:
+{ config, pkgs, ... }:
 
-{
-  # Count-based rollback depth: keep the newest 15 system generations
-  # (matching the boot menu limit, so every entry stays bootable), then
+let
+  # Count-based rollback depth: keep the newest 15 system generations, then
   # collect. Age-based deletion once silently evaporated rollback on a
-  # machine not rebuilt for 8 days. `-`: don't fail on a system without
-  # the profile.
+  # machine not rebuilt for 8 days. On a disk with under 15 GiB free, only
+  # the newest 3: a Golem system is 10-12 GiB, a weekly NixOS update changes
+  # a good part of it, and 15 versions nothing may collect would fill a
+  # small disk (audit, 2026-10-29). 3 is also the UEFI boot menu's depth
+  # (boot/grub-efi.nix).
+  trim = pkgs.writeShellScript "golem-store-trim" ''
+    keep=15
+    avail=$(${pkgs.coreutils}/bin/df --output=avail -B1G /nix/store | ${pkgs.coreutils}/bin/tail -1 | ${pkgs.coreutils}/bin/tr -d ' ')
+    if [ "''${avail:-99}" -lt 15 ]; then
+      keep=3
+      echo "golem-store-trim: only ''${avail} GiB free, keeping the newest 3 system versions"
+    fi
+    exec ${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations "+$keep"
+  '';
+in
+{
   nix.gc = {
     automatic = true;
     dates = "daily";
   };
   systemd.services.nix-gc.serviceConfig.ExecStartPre = [
-    "-${config.nix.package}/bin/nix-env --profile /nix/var/nix/profiles/system --delete-generations +15"
+    "-${trim}"   # `-`: don't fail on a system without the profile
   ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
   # A switch never restarts a long background oneshot: switch-to-configuration
   # waits for a restarted oneshot to FINISH, so a dock install (which

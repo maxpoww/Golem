@@ -65,6 +65,9 @@ let
       exit 1
     '';
   };
+  # A system without one (the VMs boot their kernel directly) has no boot
+  # entry to check.
+  bootMenu = config.boot.loader.grub.enable || config.boot.loader.systemd-boot.enable;
 in
 lib.mkIf (config.golem.flakeDir != null) {
   # golem-wait-online on the system PATH: this root service and any future
@@ -84,6 +87,45 @@ lib.mkIf (config.golem.flakeDir != null) {
       dir=${lib.escapeShellArg config.golem.flakeDir}
       attr=${lib.escapeShellArg config.golem.flakeAttr}
       owner=${lib.escapeShellArg config.golem.owner}
+
+      # What the owner's desktop reads to say "Golem could not update"
+      # (desktop/update-notice.nix): when a run last worked, and when one last
+      # failed. Nobody else could ever know (no telemetry); these files never
+      # leave the machine. Waiting for the wave is a run that worked.
+      notes=/var/lib/golem-notices
+      finish() {
+        local rc=$?
+        install -d -m 755 "$notes"
+        if [ "$rc" = 0 ]; then
+          date +%s > "$notes/update-ok"; rm -f "$notes/update-failed"
+        else
+          date +%s > "$notes/update-failed"
+        fi
+        chmod 644 "$notes"/update-* 2>/dev/null || true
+      }
+      trap finish EXIT
+
+      # The newest system must be what the machine boots next. A rebuild whose
+      # boot-menu step failed (a full /boot) leaves the profile on the new
+      # system and the menu on the old one: the machine then looked up to date
+      # while every restart booted the old version, forever (audit,
+      # 2026-10-29: the ESP held 4 of the 15 entries GRUB wanted). Write the
+      # entry again; a menu that still lacks it fails the run loudly.
+      in_boot_menu() {
+        local sys
+        sys=$(readlink -f /nix/var/nix/profiles/system)
+        grep -rqsF "init=$sys/init" /boot/grub/grub.cfg /boot/loader/entries 2>/dev/null
+      }
+      ensure_boot_entry() {
+        ${lib.optionalString (!bootMenu) "return 0   # no boot menu here (a VM booted directly)"}
+        in_boot_menu && return 0
+        echo "golem-autoupdate: the newest system is not in the boot menu, writing it again" >&2
+        /nix/var/nix/profiles/system/bin/switch-to-configuration boot || true
+        in_boot_menu && return 0
+        df -h /boot >&2 || true
+        echo "golem-autoupdate: the boot menu still lacks the newest system (is /boot full?)" >&2
+        return 1
+      }
 
       # 1) real connectivity or a loud give-up (never a stale-cache no-op).
       ${golemWaitOnline}/bin/golem-wait-online || exit 1
@@ -263,6 +305,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         else
           echo "golem-autoupdate: already up to date ($after)."
         fi
+        ensure_boot_entry || exit 1
         exit 0
       fi
       if [ "$before" = "$after" ] && [ "$built" != "$after" ]; then
@@ -286,6 +329,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       # that failed (a download that broke) is tried again the next night,
       # not a whole wave later.
       if [ "$pull" = 1 ]; then rm -f "$since"; fi
+      ensure_boot_entry || exit 1
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
     '';
   };
