@@ -15,7 +15,7 @@ open(f"{W}/slow.html", "w").write("<html><head><title>Slow Site Title</title></h
 open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function s(){document.title='vis:'+document.visibilityState}document.addEventListener('visibilitychange',s);s()</script></head><body>vis</body></html>")
 # a page with a link to its own site and one to another site, both asking for a new tab
 # (127.0.0.1 and localhost are two sites to Firefox)
-open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button><br><a id="redir" href="/url?q=http://localhost:{PORT}/elsewhere.html%3Fq&amp;sa=D" target="_blank">a mail link</a><br><a id="hop" href="/hop" target="_blank">a hop</a></body></html>')
+open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button><button id="jsfree" onclick="window.open(\'/item.html?free\', \'_blank\', \'noopener\')">open free</button><br><a id="redir" href="/url?q=http://localhost:{PORT}/elsewhere.html%3Fq&amp;sa=D" target="_blank">a mail link</a><br><a id="hop" href="/hop" target="_blank">a hop</a></body></html>')
 open(f"{W}/item.html", "w").write("<html><head><title>An Article</title></head><body>article</body></html>")
 open(f"{W}/report.zip", "wb").write(b"PK" + bytes(200))   # a file the browser downloads
 open(f"{W}/dl.html", "w").write('<html><head><title>DL</title></head><body><a id="dl" href="/report.zip">report</a></body></html>')
@@ -320,7 +320,10 @@ check("links: another site's link goes to a Seam tab, the webapp keeps its page"
 m.js(APPWIN + 'appw("linkapp").gBrowser.selectedBrowser.reload(); done(1);'); time.sleep(1.5)
 r = click_in(m, U("links"), "#js"); time.sleep(3)
 after3 = [t for t in tabs(m) if t["app"] is None]; w7f = [w for w in wins(m) if w["app"] == "linkapp"]
-check("links: a page's own window.open of its site stays in the window too", r == "clicked" and [w["url"] for w in w7f] == [U("item") + "?js"] and len(after3) == len(after2), {"click": r, "app": w7f, "seam": after3})
+check("links: a window.open the page keeps a handle on gets its tab as ever (a sign-in talks back through it)", r == "clicked" and [w["url"] for w in w7f] == [U("links")] and any(t["url"] == U("item") + "?js" for t in after3), {"click": r, "app": w7f, "seam": after3[-2:]})
+r = click_in(m, U("links"), "#jsfree"); time.sleep(3)
+after3b = [t for t in tabs(m) if t["app"] is None]; w7f = [w for w in wins(m) if w["app"] == "linkapp"]
+check("links: a window.open with no handle kept (noopener) of its own site stays in the window", r == "clicked" and [w["url"] for w in w7f] == [U("item") + "?free"] and len(after3b) == len(after3), {"click": r, "app": w7f})
 # a site's own redirector carrying another site's address (Gmail's google.com/url?q=, Facebook's
 # l.php?u=…) is that other site's link; an own-site link the server sends elsewhere lands in Seam
 m.js(APPWIN + 'appw("linkapp").openTrustedLinkIn("%s", "current"); done(1);' % U("links")); time.sleep(2)

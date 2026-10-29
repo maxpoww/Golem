@@ -3415,14 +3415,15 @@ try {
   // A webapp's links stay in its window (Max, 2026-10-29: "on ebay, when im on the webapp, and
   // click an article, it opens on a new tab on seam... webapps should never go out of their
   // windows"). Firefox sends every new tab of a web-app window to a normal window
-  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank:
-  // openURIInFrame, the opener left out, as a link is by default) to the app's OWN site (the
-  // page's, or where the app starts; its other countries too: ebay.es from ebay.com) opens in
-  // the window itself, where the title bar's back arrow returns. Another site's still goes to
-  // Seam, as a link out of the app; so does what was asked for as a tab (a middle click,
-  // Ctrl+click, the menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a
-  // window.open the page keeps a hand on (no address to judge yet) and a link from another
-  // program. The load is the page's own (its principal and referrer), http and https only.
+  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank,
+  // the opener left out, as a link is by default) to the app's OWN site (the page's, or where
+  // the app starts; its other countries too: ebay.es from ebay.com) opens in the window
+  // itself, where the title bar's back arrow returns. Another site's still goes to Seam, as a
+  // link out of the app; so does what was asked for as a tab (a middle click, Ctrl+click, the
+  // menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a window.open whose
+  // page keeps a handle on what it opens (a sign-in may talk back through it: it gets its tab
+  // as ever) and a link from another program. The load is the page's own (its principal and
+  // referrer), http and https only.
   function waSite(uri){
     try{ var b=Services.eTLD.getBaseDomain(uri), s=Services.eTLD.getPublicSuffix(uri);
       return b.slice(0,b.length-s.length-1)||b; }catch(e){}
@@ -3474,7 +3475,9 @@ try {
       if(proto.__golemApp) return;
       var kept=function(self,uri,params,where,flags){
         var w=self.win, keep=false;
-        try{ keep=!!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
+        // (a page with a handle on what it opens: openWindowInfo.forceNoOpener false)
+        var free=true; try{ var oi=params && params.openWindowInfo; if(oi && oi.forceNoOpener===false) free=false; }catch(e){}
+        try{ keep=free && !!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
                   (where===B.OPEN_NEWTAB || where===B.OPEN_NEWTAB_FOREGROUND || where===B.OPEN_NEWTAB_BACKGROUND); }catch(e){}
         if(!keep) return false;
         w.__golemKept={ site:waSite(uri), at:Date.now() };   // (its first stop is looked at: waLanded)
