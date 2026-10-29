@@ -31,6 +31,17 @@
       '';
     };
 
+    loginLock.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        The lock screen is the desktop's first screen at every start: the
+        login (greetd starts the desktop with no password typed). The
+        owner's password opens the desktop and the keyring. Off: the
+        desktop opens at once and the keyring at the first unlock.
+      '';
+    };
+
     menubox.hidePlumbing = lib.mkOption {
       type = lib.types.bool;
       default = true;

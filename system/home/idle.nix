@@ -34,6 +34,12 @@
 # golem.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
+#
+# THE LOGIN (Max, 2026-10-28: "tenemos que poner una pantalla de login … ¿se
+# puede usar la misma que la pantalla de bloqueo?"): the same lock screen is
+# the desktop's first screen (golem-lock-screen --login, the first thing
+# hyprland.lua starts). golem.home.loginLock.enable = false opens the desktop
+# at once, as before.
 { config, lib, pkgs, ... }:
 
 let
@@ -73,9 +79,28 @@ let
   # input could unlock them (2026-09-30). Super+L launches it the same way.
   golemLock = pkgs.writeShellScript "golem-lock" ''
     pidof hyprlock >/dev/null && exit 0
-    exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
+    exec hyprctl dispatch 'hl.dsp.exec_cmd("${golemLockScreen}/bin/golem-lock-screen")'
   '';
   lock = "${golemLock}";
+  # THE LOCK SCREEN, as the compositor runs it (every lock: the idle one
+  # above, Super+L, and the login at the desktop's start). After the unlock
+  # it completes the keyring's start: hyprlock's PAM started GNOME Keyring
+  # with the password just typed (desktop/keyring.nix) and `--start` puts its
+  # Secret Service on the bus, and its certificates (pkcs11) where apps look;
+  # one started that way that hears nothing for two minutes exits. Already
+  # running: a no-op.
+  # THE LOGIN (`--login`): greetd starts the owner's desktop with no
+  # password typed (desktop/greeter.nix), so the lock screen comes first.
+  # It also closes a hole: a desktop that ended while locked came back OPEN
+  # through the session keeper.
+  golemLockScreen = pkgs.writeShellScriptBin "golem-lock-screen" ''
+    ${lib.optionalString (!config.golem.home.loginLock.enable) ''[ "''${1:-}" = --login ] && exit 0''}
+    pidof hyprlock >/dev/null && exit 0
+    hyprlock
+    if command -v gnome-keyring-daemon >/dev/null; then
+      exec gnome-keyring-daemon --start --components=pkcs11,secrets >/dev/null 2>&1
+    fi
+  '';
   # The idle suspend waits for a running install or system update: an app
   # from the dock can take longer than the 15 minutes (DaVinci Resolve, 25
   # min on the ThinkPad), and a suspend in the middle stalls the download or
@@ -110,7 +135,7 @@ let
   '';
 in
 {
-  home.packages = [ golemCaffeine ];
+  home.packages = [ golemCaffeine golemLockScreen ];
   systemd.user.services.golem-caffeine = {
     Unit = {
       Description = "Golem caffeine: stay awake (golem-caffeine on|off)";
