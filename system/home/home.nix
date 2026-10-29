@@ -85,6 +85,14 @@ in
   };
 
   programs.waverunner.enable = !dev;
+  # THE SMALL TIER (2026-10-29): a weak machine (light effects, or under
+  # 6 GB) runs the dock built with 128² icon tiles — a quarter of every tile
+  # on disk, in RAM, on the GPU and in every upload (the 2013 MacBook Air's
+  # first frame was 460 ms of icon uploads on GL). Picked here, at install
+  # time, like the rest of the tier; the dev box keeps the full tiles.
+  programs.waverunner.smallIcons =
+    let ram = osConfig.golem.hardware.ramMB or 0;
+    in (osConfig.golem.desktop.effects or "full") == "light" || (ram > 0 && ram < 6144);
   # The Install section offers Golem's checked package list, never the
   # launcher's raw one: only packages that can actually install on this
   # nixpkgs (617 of ~23,700 could not, 2026-10-01), and no laptop ever runs
