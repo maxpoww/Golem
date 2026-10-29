@@ -484,7 +484,17 @@ AND WHO SINGS IT (2026-10-29): a song the history names by its title alone ("Men
 the same way and named "Song • Artist" when the video is the artist's own; when YouTube names no
 artist for it (a channel's upload) the history's name stays and it is not asked again
 (`noArtist`). A play with its artist is whole already; the dock lends a play's name to its page.
-Test: `./webapps-selftest.sh recents` (19 checks, headless, real build; it goes on the network).
+PICTURES, THE CLUE (2026-10-29, Max: "give [Wikipedia] thumbnails (only one have thumbnail)… use that
+issue as a clue"): (1) a page's og:image was taken only while its address was the one it loaded
+with — a wiki's redirect ("The_strokes" → "The_Strokes"), a "?wprov=" taken off, any address tidied in
+place lost its picture; now the same history entry counts as the same page, and after an app moved
+to another page without loading its tags count when it renewed them (an og:image other than the
+one it loaded with). (2) FROM BEFORE, like the covers: a Wikipedia article of the history with none
+asks the wiki's REST summary for its lead picture (960 px when bigger; `rkWikiBackfill`), a GitHub
+repository wears its card (opengraph.githubassets.com, a name of its own: "1" is everyone's and
+rationed; `rkGithubBackfill`) — each on ONE address of its page (the clean one; a redirect's, a
+file's page none), or the dock reads one picture on two pages as the site's logo.
+Test: `./webapps-selftest.sh recents` (26 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 

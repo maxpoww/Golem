@@ -4051,17 +4051,23 @@ try {
   function rkClip(s,n){ return String(s==null?"":s).replace(/[\u0000-\u001f]/g," ").trim().slice(0,n); }
 
   // The content side: a moment after the title changes or the page shows, what the page is.
+  // Its picture (og:image) is the page's while the document is the one that loaded: the same
+  // address, or the same history entry (the address only TIDIED in place: a wiki's redirect
+  // "The_strokes" -> "The_Strokes", "?wprov=" taken off — 2026-10-29, those pages had none). After
+  // an app moved to another page without loading, its tags are the first page's unless it renewed
+  // them (an og:image other than the one it loaded with is the new page's).
   var RK_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
-    "(function(){var t=0,poll=0,lastPlay='',loaded='';"+
+    "(function(){var t=0,poll=0,lastPlay='',loaded='',loadedLen=-1,loadedOg=null;"+
     "function waive(o){try{return Components.utils.waiveXrays(o);}catch(e){return o;}}"+
     "function art(md){try{var a=waive(md).artwork||md.artwork;var best=null,bw=-1;for(var i=0;i<a.length;i++){var it=waive(a[i]);var s=String(it.src||'');var w=parseInt(String(it.sizes||'').split(/[xX]/)[0],10)||0;if(/^https?:/i.test(s)&&w>=bw){best=s;bw=w;}}return best;}catch(e){return null;}}"+
     "function og(d){try{var m=d.querySelector('meta[property=\"og:image\"],meta[name=\"og:image\"],meta[name=\"twitter:image\"],meta[property=\"twitter:image\"]');if(!m)return null;var v=m.getAttribute('content');if(!v)return null;var u=new content.URL(v,d.baseURI);return /^https?:$/.test(u.protocol)?u.href:null;}catch(e){return null;}}"+
     "function media(){try{var md=content.navigator.mediaSession.metadata;if(!md||!md.title)return null;return {title:String(md.title),artist:String(md.artist||''),album:String(md.album||''),art:art(md)};}catch(e){return null;}}"+
     "function send(){t=0;try{var d=content.document,l=content.location;if(!/^https?:$/.test(l.protocol))return;var m=media();if(m)lastPlay=m.title+'|'+m.artist;"+
-    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:(String(l.href)===loaded?og(d):null),media:m});"+
+    "var o=og(d),same=String(l.href)===loaded||content.history.length===loadedLen;"+
+    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:(same||o!==loadedOg)?o:null,media:m});"+
     "if(m&&!poll)poll=content.setInterval(function(){var n=media();if(!n){content.clearInterval(poll);poll=0;return;}if(n.title+'|'+n.artist!==lastPlay)soon();},20000);}catch(e){}}"+
     "function soon(){try{if(t)content.clearTimeout(t);t=content.setTimeout(send,1500);}catch(e){}}"+
-    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;try{loaded=String(content.location.href);}catch(e){}soon();},false);})();");
+    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;try{loaded=String(content.location.href);loadedLen=content.history.length;loadedOg=og(content.document);}catch(e){}soon();},false);})();");
 
   var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0, rkLater=false, rkSavedAt=0;
   // What an earlier run kept, read once before the first change is written over it.
@@ -4360,11 +4366,141 @@ try {
       }).catch(function(e){ stop(String(e)); });
     });
   }
+  // AND WIKIPEDIA'S (2026-10-29, Max: "give it thumbnails (only one have thumbnail)"): an article of
+  // the history with no picture (read before the kitchen came, or before a redirect kept its picture
+  // — the frame script above) asks the wiki's own summary of it (its REST API, on its own site, no
+  // cookies) for its lead picture, 960 px when the original is bigger, and keeps it on ONE address:
+  // the article's own (the summary's canonical title, the address without a query first). A
+  // redirect's address, a "?wprov=" one, is only marked tried: the dock reads one picture on two
+  // pages as the site's logo. The file is named for its page (the same lead picture in two
+  // languages is two pages'). The wiki's own pages (searches, the front page) are none of its
+  // articles (the dock's WIKI_OWN). Same rhythm as the covers: 48 a round, one every 1.5 s.
+  var RK_WIKI_OWN=["Special:","Especial:","Spezial:","Sp%C3%A9cial:","Speciale:","Wikipedia:","Portal:","Main_Page","Portada","Accueil_principal"];
+  var rkWikiRunning=false;
+  function rkWikiArticle(url){
+    var m=/^https:\/\/([a-z0-9-]+\.(?:m\.)?wikipedia\.org)\/wiki\/([^?#]+)/i.exec(String(url||""));
+    if(!m || RK_WIKI_OWN.some(function(w){ return m[2].indexOf(w)===0; })) return null;
+    var title; try{ title=decodeURIComponent(m[2]).replace(/ /g,"_"); }catch(e){ return null; }
+    return {host:m[1].toLowerCase(), title:title};
+  }
+  function rkWikiBackfill(){
+    if(!rkOn() || rkWikiRunning) return;
+    var w=rkWin(); if(!w || !w.PlacesUtils) return;
+    rkWikiRunning=true;
+    var stop=function(why){ rkWikiRunning=false; if(why) RKLOG("wikipedia from before: "+why); };
+    rkLoad(function(){
+      var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000;
+      w.PlacesUtils.promiseDBConnection().then(function(db){
+        // (Sqlite.sys.mjs takes a LIKE's pattern only as a binding.)
+        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE url LIKE :wiki AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",{since:since,wiki:"https://%wikipedia.org/wiki/%"});
+      }).then(function(rows){
+        var now=Math.round(Date.now()/1000), of={}, want=[];
+        for(var i=0;i<rows.length;i++){
+          var url=String(rows[i].getResultByName("url")), a=rkWikiArticle(url), page=rk.pages[url]||{};
+          if(!a || page.pic || now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var key=a.host+"/"+a.title, at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
+          if(of[key]){ of[key].pages.push(at); continue; }
+          if(want.length>=RK_BACK_MAX) continue;
+          of[key]={host:a.host,title:a.title,pages:[at]}; want.push(of[key]);
+        }
+        RKLOG("wikipedia from before: "+want.length+" articles to ask");
+        var keep=function(it,f,then){
+          Promise.all(it.pages.map(function(pg){
+            return w.PlacesUtils.history.hasVisits(pg.url).then(function(yes){
+              if(yes && rk===gen && rkOn()) f(rk.pages[pg.url]||(rk.pages[pg.url]={at:pg.at}),pg);
+            }).catch(function(){});
+          })).then(function(){ rkSave(); }).then(then);
+        };
+        var next=function(k){
+          if(k>=want.length){ stop(); return; }
+          if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
+          var it=want[k], when=Math.round(Date.now()/1000), on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
+          var tried=function(){ keep(it,function(p){ p.tried=when; },on); };
+          rkWords("https://"+it.host+"/api/rest_v1/page/summary/"+encodeURIComponent(it.title),it.pages[0].url,function(j){
+            var canon=String((j && j.titles && j.titles.canonical)||"").replace(/ /g,"_"), th=j && j.thumbnail, orig=j && j.originalimage, srcs=[];
+            if(th && rkWeb(th.source)){
+              if(orig && orig.width>960 && th.width<960) srcs.push(String(th.source).replace(/\/[0-9]+px-([^\/]+)$/,function(all,file){ return "/960px-"+file; }));
+              else if(orig && rkWeb(orig.source) && orig.width<=1280 && /\.(jpe?g|png|webp)$/i.test(orig.source)) srcs.push(String(orig.source));
+              srcs.push(String(th.source));
+            }
+            if(it.title!==canon || !srcs.length){ tried(); return; }
+            var best=null;
+            for(var q=0;q<it.pages.length && !best;q++){ if(!/[?#]/.test(it.pages[q].url)) best=it.pages[q]; }
+            best=best||it.pages[0];
+            var pic=function(s){
+              if(s>=srcs.length){ tried(); return; }
+              rkPicture(srcs[s],best.url,function(f){
+                keep(it,function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; },on);
+              },function(){ pic(s+1); },best.url);
+            };
+            pic(0);
+          },tried);
+        };
+        next(0);
+      }).catch(function(e){ stop(String(e)); });
+    });
+  }
+  // AND GITHUB'S (same day, the same clue: GitHub 0 previews of 10): a repository of the history with
+  // no picture wears its card — GitHub's own picture of it, at an address made from the repository's
+  // (opengraph.githubassets.com/<a name of its own>/<owner>/<repo>), nothing asked of its page. On ONE address of a
+  // repository (the one without a query first), never on its files' pages: they wear the same card,
+  // and the dock reads one picture on two pages as the site's logo.
+  var RK_GH_NOT=["about","apps","codespaces","collections","contact","customer-stories","dashboard","enterprise","explore","features",
+    "issues","join","login","marketplace","new","notifications","organizations","orgs","pricing","pulls","readme","search","security",
+    "sessions","settings","signup","site","sponsors","team","topics","trending"];
+  var rkGhRunning=false;
+  function rkGhRepo(url){
+    var m=/^https:\/\/github\.com\/([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})\/?(?:[?#]|$)/.exec(String(url||""));
+    return m && RK_GH_NOT.indexOf(m[1].toLowerCase())<0 ? m[1]+"/"+m[2] : null;
+  }
+  function rkGithubBackfill(){
+    if(!rkOn() || rkGhRunning) return;
+    var w=rkWin(); if(!w || !w.PlacesUtils) return;
+    rkGhRunning=true;
+    var stop=function(why){ rkGhRunning=false; if(why) RKLOG("github from before: "+why); };
+    rkLoad(function(){
+      var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000;
+      w.PlacesUtils.promiseDBConnection().then(function(db){
+        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE url LIKE :gh AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",{since:since,gh:"https://github.com/%"});
+      }).then(function(rows){
+        var now=Math.round(Date.now()/1000), of={}, want=[];
+        for(var i=0;i<rows.length;i++){
+          var url=String(rows[i].getResultByName("url")), repo=rkGhRepo(url), page=rk.pages[url]||{};
+          if(!repo || page.pic || now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var key=repo.toLowerCase(), at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
+          if(of[key]){ of[key].pages.push(at); continue; }
+          if(want.length>=RK_BACK_MAX) continue;
+          of[key]={repo:repo,pages:[at]}; want.push(of[key]);
+        }
+        RKLOG("github from before: "+want.length+" repositories to ask");
+        var next=function(k){
+          if(k>=want.length){ stop(); return; }
+          if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
+          var it=want[k], when=Math.round(Date.now()/1000), on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
+          var best=null;
+          for(var q=0;q<it.pages.length && !best;q++){ if(!/[?#]/.test(it.pages[q].url)) best=it.pages[q]; }
+          best=best||it.pages[0];
+          var keep=function(f){
+            Promise.all(it.pages.map(function(pg){
+              return w.PlacesUtils.history.hasVisits(pg.url).then(function(yes){
+                if(yes && rk===gen && rkOn()) f(rk.pages[pg.url]||(rk.pages[pg.url]={at:pg.at}),pg);
+              }).catch(function(){});
+            })).then(function(){ rkSave(); }).then(on);
+          };
+          // (The first part only names the card for the server's cache: "1", everyone's, is rationed — 429.)
+          rkPicture("https://opengraph.githubassets.com/"+rkHash(it.repo.toLowerCase())+"/"+it.repo,best.url,function(f){
+            keep(function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; });
+          },function(){ keep(function(p){ p.tried=when; }); },best.url);
+        };
+        next(0);
+      }).catch(function(e){ stop(String(e)); });
+    });
+  }
   function rkBackStart(){
     if(rkBackOn) return; rkBackOn=true;
-    var round=function(){ rkBackfill(); rkAfter(RK_BACK_EVERY,round); };
+    var round=function(){ rkBackfill(); rkWikiBackfill(); rkGithubBackfill(); rkAfter(RK_BACK_EVERY,round); };
     rkAfter(RK_BACK_FIRST,round);
-    try{ Services.obs.addObserver({observe:function(){ rkBackfill(); }},"golem:recents-backfill"); }catch(e){}
+    try{ Services.obs.addObserver({observe:function(){ rkBackfill(); rkWikiBackfill(); rkGithubBackfill(); }},"golem:recents-backfill"); }catch(e){}
   }
   function rkWindow(w){
     if(w.__golemRkInit) return; w.__golemRkInit=true;
