@@ -264,6 +264,8 @@ of that gone"):**
   framerate) — YouTube then serves the 30 fps rendition (MacBook: 480p30, 5 dropped frames
   instead of 350–650). Learned, not assumed: the 2-core Acer plays 720p60 with 0.3 % dropped and
   must not be capped. `…fps60.force` = a machine's explicit yes/no; the codec kill switch covers it.
+  (The watch itself never ran until 2026-10-29: the frame script called a bare `setInterval`, which
+  a frame script does not have — it is an nsITimer now; selftest step `codecs-frame-script-runs-whole`.)
   Not a lever: `media.mediacapabilities.from-database=true` changed nothing. WebRender in Seam's
   parent ≈ Chrome's GPU process (≈7 s / 20 s each) on the HD 5000 — the hardware.
   **On the Acer with tonight's build (one browser at a time, Chrome without an ad blocker):**

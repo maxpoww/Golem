@@ -1589,6 +1589,9 @@ try {
     return cbState;
   }
   // content side: patch MediaSource.isTypeSupported in every new DOCUMENT, per the persisted list.
+  // (The dropped-frames watch is an nsITimer held by the frame script's global: a frame script
+  // has no setInterval of its own — the bare one threw "setInterval is not defined", so the
+  // 60 fps cap never learned anything until 2026-10-29 — and content's dies with each page.)
   // (Keyed by document, not window: a browser's outer window object is reused across page
   // loads, so a per-window "done" mark patched only the first page — measured.)
   var CB_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
@@ -1603,9 +1606,9 @@ try {
     "Components.utils.exportFunction(function(cfg){var pr=di.call(mc,cfg);if(!(rate(cfg)>31))return pr;return new u.Promise(Components.utils.exportFunction(function(res,rej){pr.then(function(r){res(Components.utils.cloneInto({supported:!!r.supported,smooth:false,powerEfficient:!!r.powerEfficient},u));},function(e){rej(e);});},u));},mc,{defineAs:'decodingInfo'});}}"+
     "dbg('patched',parts.join(',')+(cap?' fps60':''));}catch(e){dbg('patch',e);}}"+
     "addEventListener('DOMWindowCreated',function(e){try{patch(e.target);}catch(x){dbg('event',x);}},true);try{patch(content.document);}catch(e){dbg('initial',e);}"+
-    "var seen=new WeakMap(),strikes=0,reported=false;setInterval(function(){try{if(reported)return;var d=content&&content.document;if(!d)return;var vs=d.querySelectorAll('video');for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||!v.getVideoPlaybackQuality)continue;var q=v.getVideoPlaybackQuality(),now=Date.now(),p=seen.get(v);seen.set(v,{f:q.totalVideoFrames,d:q.droppedVideoFrames,t:now});if(!p)continue;"+
+    "var seen=new WeakMap(),strikes=0,reported=false,drops=Components.classes['@mozilla.org/timer;1'].createInstance(Components.interfaces.nsITimer);this.__golemDrops=drops;drops.initWithCallback({notify:function(){try{if(reported)return;var d=content&&content.document;if(!d)return;var vs=d.querySelectorAll('video');for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||!v.getVideoPlaybackQuality)continue;var q=v.getVideoPlaybackQuality(),now=Date.now(),p=seen.get(v);seen.set(v,{f:q.totalVideoFrames,d:q.droppedVideoFrames,t:now});if(!p)continue;"+
     "var df=q.totalVideoFrames-p.f,dd=q.droppedVideoFrames-p.d,dt=(now-p.t)/1000;if(dt<=0||df<100)continue;var fps=df/dt,ratio=dd/df;if(fps>45&&ratio>0.10){strikes++;}else{strikes=0;}"+
-    "if(strikes>=3){reported=true;sendAsyncMessage('golem:fps60drops',{fps:Math.round(fps),ratio:Math.round(ratio*100)/100,frames:df});}}}catch(e){dbg('drops',e);}},3000);"+
+    "if(strikes>=3){reported=true;sendAsyncMessage('golem:fps60drops',{fps:Math.round(fps),ratio:Math.round(ratio*100)/100,frames:df});}}}catch(e){dbg('drops',e);}}},3000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);"+
     "}catch(e){dbg('load',e);}})();");
   function cbInit(win){
     if(win.__golemCbInit) return; win.__golemCbInit=true;
@@ -2886,6 +2889,7 @@ try {
         step("codecs-decision-matches-report", !!caps.vp9 && caps.vp9.known && (st.block.indexOf("vp9")!==-1)===(!caps.vp9.hw));   // headless: no hardware → blocked; real hardware → untouched
         see(function(t1){ r.codecs.page=t1; r.codecs.expect=expect; r.codecs.dbg=win.__golemCbDbg||null;
           step("codecs-page-follows-policy", t1===expect);
+          step("codecs-frame-script-runs-whole", !(win.__golemCbDbg||[]).some(function(s){ return /^(load|drops):/.test(s); }));   // the drops watch armed, never thrown
           var fpsWas=Services.prefs.getBoolPref(FC_PREF,false); Services.prefs.setBoolPref(FC_PREF,true);
           b.loadURI(Services.io.newURI(FPSPAGE),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});
           win.setTimeout(function(){ var tf=String(b.contentTitle||""); r.codecs.fpsPage=tf; Services.prefs.setBoolPref(FC_PREF,fpsWas);
