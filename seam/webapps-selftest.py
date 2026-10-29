@@ -18,6 +18,7 @@ open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function
 open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button><button id="jsfree" onclick="window.open(\'/item.html?free\', \'_blank\', \'noopener\')">open free</button><br><a id="redir" href="/url?q=http://localhost:{PORT}/elsewhere.html%3Fq&amp;sa=D" target="_blank">a mail link</a><br><a id="hop" href="/hop" target="_blank">a hop</a></body></html>')
 open(f"{W}/item.html", "w").write("<html><head><title>An Article</title></head><body>article</body></html>")
 open(f"{W}/report.zip", "wb").write(b"PK" + bytes(200))   # a file the browser downloads
+open(f"{W}/de.html", "w", encoding="utf-8").write('<html lang="de"><head><meta charset="utf-8"><title>Nachrichten</title></head><body>' + "<p>Die Bundesregierung hat heute neue Regeln für den Verkehr in den Städten beschlossen.</p>" * 6 + "</body></html>")
 open(f"{W}/dl.html", "w").write('<html><head><title>DL</title></head><body><a id="dl" href="/report.zip">report</a></body></html>')
 open(f"{W}/elsewhere.html", "w").write("<html><head><title>Elsewhere</title></head><body>elsewhere</body></html>")
 class Q(http.server.SimpleHTTPRequestHandler):
@@ -150,7 +151,7 @@ nb = m.js(APPWIN + 'let w = appw("spikeapp"); let out = {};'
 check("webapp: notification bars show (the page's and the window's), the page back at the top after", isinstance(nb, dict) and nb["page"]["h"] > 0 and nb["page"]["pageTop"] > 0 and nb["window"]["h"] > 0 and nb["after"] == 0, nb)
 check("webapp: page title, no toolbox, no tab strip, minimal-ui", a.get("title") == "Spike App" and a.get("toolboxShown") is False and a.get("tabstripShown") is False and a.get("mode") == "minimal-ui", a)
 time.sleep(1); check("apps.json reports the webapp url", isinstance(appsjson(), dict) and appsjson().get("spikeapp", {}).get("url") == U("app"), appsjson())
-check("nav: a freshly opened webapp can go nowhere", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "0"], navfile())
+check("nav: a freshly opened webapp can go nowhere", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "0", "0"], navfile())
 
 # 2) relaunch, and a link into the webapp
 remote(m, "-golem-app", "spikeapp", U("app")); time.sleep(2)
@@ -158,11 +159,11 @@ w2 = wins(m); check("relaunch at its start URL: one window, its page kept", [w["
 remote(m, "-golem-app", "spikeapp", U("other")); time.sleep(2)
 w2b = wins(m); check("a link opened in the webapp loads in its window", [w["url"] for w in w2b if w["app"] == "spikeapp"] == [U("other")], w2b)
 # the title bar's arrows: nothing to go to at first, back after a page, forward after going back
-check("nav: a second page can go back, not forward", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0"] and appsjson().get("spikeapp", {}).get("back") is True, navfile())
+check("nav: a second page can go back, not forward", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0", "0"] and appsjson().get("spikeapp", {}).get("back") is True, navfile())
 m.js(APPWIN + 'appw("spikeapp").gBrowser.goBack(); done(1);'); time.sleep(2)
-check("nav: after going back it can go forward, not back", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "1"], navfile())
+check("nav: after going back it can go forward, not back", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["0", "1", "0"], navfile())
 m.js(APPWIN + 'appw("spikeapp").gBrowser.goForward(); done(1);'); time.sleep(2)
-check("nav: forward again restores back only", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0"], navfile())
+check("nav: forward again restores back only", isinstance(navfile(), dict) and navfile().get("spikeapp") == ["1", "0", "0"], navfile())
 # the dock's "new instance" (a box launch, a right-click): another window of the webapp
 # (the dock appends the flag AFTER the url: a Seam predating it read the first
 # argument after the slug as the page, and loaded "-golem-new" into the window)
@@ -406,6 +407,27 @@ remote(m, U("item")); time.sleep(5)
 t11b = [t["url"] for t in tabs(m) if t["app"] is None]
 sel = m.js('let w = [...Services.wm.getEnumerator("navigator:browser")].find(x => !x.document.documentElement.hasAttribute("taskbartab")); done(w.gBrowser.selectedBrowser.currentURI.spec);')
 check("Seam opened again for a LINK: its tabs come back beside it, the link in front", sorted(t11b) == sorted([U("plain"), U("other"), U("two"), U("item")]) and sel == U("item"), {"tabs": t11b, "selected": sel})
+m.quit(); p.wait(timeout=30)
+
+# 12) TRANSLATE from the title bar (Max, 2026-10-29): seam/nav's fourth number says the page can
+#     be translated (1) or is (2); Ctrl+Alt+Shift+T (the bar's button) translates it and back
+p = ff(*MF, "-golem-app", "trapp", U("de")); m = M(); time.sleep(8)
+for h in m.cmd("WebDriver:GetWindowHandles"):
+    m.cmd("WebDriver:SwitchToWindow", {"handle": h})
+    if m.js('done(document.documentElement.hasAttribute("taskbartab"));') is True: break
+def trkey(m):
+    m.js('window.focus(); done(1);')
+    ks = [{"type": "keyDown", "value": v} for v in ("\ue009", "\ue00a", "\ue008", "T")] + [{"type": "keyUp", "value": v} for v in ("T", "\ue008", "\ue00a", "\ue009")]
+    m.cmd("WebDriver:PerformActions", {"actions": [{"type": "key", "id": "kb", "actions": ks}]}); m.cmd("WebDriver:ReleaseActions")
+def trline():
+    try: return [l for l in open(f"{RUN}/seam/nav").read().splitlines() if l.startswith("trapp ")]
+    except Exception as e: return f"(none: {e.__class__.__name__})"
+l0 = trline()
+check("translate: a page in another language is said in seam/nav (… 1)", l0 == ["trapp 0 0 1"], l0)
+trkey(m); time.sleep(3); l1 = trline()
+check("translate: the bar's key translates it (… 2)", l1 == ["trapp 0 0 2"], l1)
+trkey(m); time.sleep(3); l2 = trline()
+check("translate: the key again shows it as it was (… 1)", l2 == ["trapp 0 0 1"], l2)
 m.quit(); p.wait(timeout=30)
 
 fails = [k for k, v in R.items() if v[0] != "PASS"]
