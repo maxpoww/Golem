@@ -33,6 +33,7 @@ telemetry.
 | `lane/select.py` | Which store paths go into a version's cache |
 | `lane/never-publish` | What is never uploaded (licence) |
 | `gate.nix` | What must build before a version is published (flake output `packages.x86_64-linux.update-gate`) |
+| `boot-test.nix` | What must BOOT before a version is published: the desktop stage in a VM (flake check `boot-test`) |
 | `builder.nix` | On the build machine: the `golem-lane` command + its daily timer |
 | `client.nix` | On every install: the cache key, the per-version cache, the wave |
 | `../system/Modular/base/autoupdate.nix` | The daily update: own moment (or right after power-on), wave, `stable`, pull, rebuild `boot` |
@@ -58,29 +59,44 @@ A seed that was installed when machines followed `main` is moved to
 
 ## The lane, step by step (`golem-lane run`)
 
+**Once a week it publishes** (`PUBLISH_DAYS`, 7): one update a week per
+machine, with the week's NixOS fixes and whatever landed on `main`. One
+download, one boot entry and one store version a week instead of one a
+day. Every other day it only **tests**: if `main` moved, it builds and
+boots it (step 4) and notifies on a failure, so a break is known before
+the publish needs it, and publishes nothing. `golem-lane run --now`
+publishes today (an urgent fix). A publish that fails is tried again the
+next day.
+
 1. **Prepare**: its own clean clone of Golem, at `origin/main` (or `--base`).
-2. **Weekly bump**: every `BUMP_DAYS` (7), `nix flake update nixpkgs
+2. **The NixOS release jump, when due** (see "NixOS releases" below):
+   both inputs to the next release, the package index with them, then the
+   gate. If it fails, the maintainer is told what broke and the run goes on
+   with the current release.
+3. **Weekly bump**: every `BUMP_DAYS` (7), `nix flake update nixpkgs
    home-manager`. Both follow their release branch: `nixos-YY.MM` is NixOS's
    channel branch, so the commit is one Hydra already built and tested.
    When nixpkgs moved, the dock's package index (the Install list, made for
    one nixpkgs: `tools/package-index/refresh.sh`) is regenerated with it.
    The bump is one commit, "flake.lock: weekly upstream".
-3. **Nothing new?** If that commit is already `stable`, stop.
-4. **The gate**: build `update-gate`, then every flake check. Any failure
-   stops the run and notifies the maintainer. `stable` does not move.
-5. **The cache**: from the gate's closure, the paths cache.nixos.org does
+4. **Nothing new?** If that commit is already `stable`, stop.
+5. **The gate**: build `update-gate`, then every flake check, the boot test
+   among them. Any failure stops the run and notifies the maintainer.
+   `stable` does not move.
+6. **The cache**: from the gate's closure, the paths cache.nixos.org does
    not have, that are heavy, and that we may share go into release
    `g-<first 12 of the commit>` of golem-cache, signed. Uploaded as a draft,
    made public when complete, then every file is read back until GitHub
    serves it, and one piece is proven against the key.
-6. **Publish**: push the commit to `main` if it is not there yet, then to
+7. **Publish**: push the commit to `main` if it is not there yet, then to
    `stable`. If `main` moved meanwhile, nothing is pushed: tomorrow's run
    builds the new `main`.
-7. **Prune**: keep the newest `KEEP` (6) caches, plus the one `stable` uses.
-8. **Calendar**: once a week, say so if the next NixOS release is out or
-   the current one ends within a month.
+8. **Prune**: keep the newest `KEEP` (6) caches, plus the one `stable` uses.
 
-`--no-publish` stops after step 5. `--base REF` starts from another ref,
+Every run also keeps **the calendar**: the day it first sees the next
+NixOS release branch, and once a week a note of where things are.
+
+`--no-publish` stops after step 6. `--base REF` starts from another ref,
 `local/<branch>` with `GOLEM_LANE_LOCAL=<repo>` for a branch that is not on
 GitHub yet. The state of the last run: `golem-lane status`.
 
@@ -95,8 +111,14 @@ desktops (open Turing+ driver and legacy pre-Turing driver).
   composes, and the kernel, out-of-tree drivers and initrd go together.
   The flake checks prove the semantic assertions (facts, chooser, effect,
   desktop matrices, keyboards, time zones).
-- **It does not prove** that a system boots to a working desktop. That is
-  what the lab is for: lab machines are wave 0 and take every version the
+- **The boot test** (`boot-test.nix`, a flake check) boots Golem's desktop
+  stage in a VM (`golem-desktop-vm`: the composition and desktop every
+  install runs) and waits for the owner's desktop to come up and stay up.
+  It catches a kernel that panics, an initrd that cannot find its disk,
+  a desktop that never starts. Added 2026-10-29: before it, nothing booted
+  a version before users unless the lab laptops happened to be on.
+- **It does not prove** that every machine's own hardware works: that is
+  what the lab is for. Lab machines are wave 0 and take every version the
   night it is published, before anyone else's turn.
 
 Why build and not only evaluate: on 2026-10-27, kernel 7.3 *evaluated*
@@ -181,6 +203,30 @@ on the Acer (2026-10-27): its first update through the cache compiled
 nothing, yet unpacking 8.7 GiB onto its HDD froze the desktop at 98% I/O
 pressure while BFQ split the disk fairly.
 
+## The machine looks after itself
+
+What keeps an install updating for years with nobody looking, and what
+tells its owner when it cannot (audit, 2026-10-29):
+
+- **The boot menu fits**: `/boot` is the 512 MiB ESP and every entry's
+  kernel + initrd is copied onto it (~100 MB). The UEFI menu keeps 3
+  entries (`boot/grub-efi.nix`). 15 filled it in about a month of weekly
+  kernels, after which the entry for the new system was never written and
+  the machine silently stayed on its old system. Every update run also
+  checks that the newest system IS in the boot menu, writes it again if
+  not, and fails loudly if it still is not.
+- **The store fits**: 15 system versions are kept; with under 15 GiB free,
+  only 3 (`base/store-gc.nix`). Nix also collects during a build when free
+  space drops under 5 GiB.
+- **The owner is told, and only then**:
+  - "Golem has an update ready" when one has waited 2 days for a restart;
+  - "Golem could not update for N days" after 7 days without a run that
+    worked, and a failure since. Each run marks when it worked or failed in
+    `/var/lib/golem-notices/update-{ok,failed}`
+    (`desktop/update-notice.nix`).
+  Both stay on the machine: there is no telemetry, so without them nobody
+  would ever know.
+
 ## NixOS releases and the kernel
 
 - Golem follows a NixOS release branch (`nixos-YY.MM` + home-manager
@@ -196,8 +242,19 @@ pressure while BFQ split the disk fairly.
   expected with 27.05.
 - **The calendar**: YY.05 is supported until 31 December, YY.11 until
   30 June of the next year. 26.05 ends **2026-12-31**; 26.11 is expected at
-  the end of November 2026. The lane notifies; the jump is
-  `golem-lane release` (RUNBOOK.md). Never change `system.stateVersion`.
+  the end of November 2026.
+- **The jump happens by itself** (Max, 2026-10-29: NixOS makes the new
+  release, but moving to it is each system's owner's job, and for Golem
+  that is the lane). NixOS creates `nixos-YY.MM` about two weeks before it
+  announces the release. The lane jumps on the first weekly publish
+  `RELEASE_WAIT_DAYS` (28) after it first saw that branch, so the release
+  has had its first fixes, or at once when the current release ends within
+  14 days. The gate decides, boot test included; if Golem does not build or
+  boot on it yet, that week's update goes out on the current release, the
+  maintainer is told what broke, and the lane tries again the next week.
+  The fix (renamed or removed options, in NixOS's release notes) lands on
+  `main`; `golem-lane release` prepares and tests a jump by hand on a
+  branch. The jump never changes `system.stateVersion`.
 
 ## Growing
 
