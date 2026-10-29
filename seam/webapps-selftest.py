@@ -17,6 +17,8 @@ open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function
 # (127.0.0.1 and localhost are two sites to Firefox)
 open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button></body></html>')
 open(f"{W}/item.html", "w").write("<html><head><title>An Article</title></head><body>article</body></html>")
+open(f"{W}/report.zip", "wb").write(b"PK" + bytes(200))   # a file the browser downloads
+open(f"{W}/dl.html", "w").write('<html><head><title>DL</title></head><body><a id="dl" href="/report.zip">report</a></body></html>')
 open(f"{W}/elsewhere.html", "w").write("<html><head><title>Elsewhere</title></head><body>elsewhere</body></html>")
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
@@ -329,6 +331,60 @@ remote(m, "-golem-app", "spikeapp", U("app"), "-golem-new"); remote(m, "-golem-a
 w9b = wins(m)
 check("two quick new-instance launches: two more windows, all at the page", [w["url"] for w in w9b if w["app"] == "spikeapp"] == [U("app")] * 3, w9b)
 m.quit(); p.wait(timeout=30)
+# 10) a webapp's DOWNLOAD is told in the webapp (Firefox tells it in the most recent NORMAL
+#     window, on a toolbar the webapp hides: the file came in unseen)
+p = ff(*MF, U("plain")); m = M(); time.sleep(4)
+remote(m, "-golem-app", "dlapp", U("dl")); time.sleep(3)
+m.js(APPWIN + 'appw("dlapp").focus(); done(1);'); time.sleep(1)
+r = click_in(m, U("dl"), "#dl"); time.sleep(4)
+DLS = """
+  let out = {};
+  for (let w of Services.wm.getEnumerator("navigator:browser")) {
+    let r = w.document.documentElement, pn = w.document.getElementById("downloadsPanel");
+    out[(r.getAttribute("taskbartab") || "").slice(6) || "seam"] = { panel: pn ? pn.state : "none", strip: r.hasAttribute("golem-app-prompt") };
+  }
+  const { Downloads } = ChromeUtils.importESModule("resource://gre/modules/Downloads.sys.mjs");
+  out.files = (await (await Downloads.getList(Downloads.ALL)).getAll()).filter(d => d.succeeded).map(d => d.target.path.split("/").slice(-2).join("/"));
+"""
+d10 = m.js(DLS + "done(out);")
+check("download: the file comes into Downloads", isinstance(d10, dict) and d10.get("files") == ["Downloads/report.zip"], d10)
+check("download: the panel opens in the webapp, its strip showing; Seam's window stays as it was", isinstance(d10, dict) and d10.get("dlapp") == {"panel": "open", "strip": True} and d10.get("seam", {}).get("panel") != "open", d10)
+d10b = m.js(APPWIN + 'let w = appw("dlapp"); w.DownloadsPanel.hidePanel(); await new Promise(z => setTimeout(z, 800)); done({ strip: w.document.documentElement.hasAttribute("golem-app-prompt"), panel: w.document.getElementById("downloadsPanel").state });')
+check("download: the strip goes with the panel", d10b == {"strip": False, "panel": "closed"}, d10b)
+m.quit(); p.wait(timeout=30); time.sleep(1)
+
+# 11) Seam's window comes back WHOLE: closed while a webapp keeps Seam running, the next Seam
+#     window (the dock's tile) opened blank, the tabs left in "recently closed windows"
+p = ff(*MF, U("plain")); m = M(); time.sleep(4)
+# (a session of its own: one window, the plain page and then the other page, the plain one in front)
+m.js('let ws = [...Services.wm.getEnumerator("navigator:browser")].filter(x => !x.document.documentElement.hasAttribute("taskbartab"));'
+     ' for (let x of ws) if (x !== window) x.close();'
+     ' let t = gBrowser.addTab("%s", { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() }); gBrowser.removeAllTabsBut(t);'
+     ' await new Promise(r => setTimeout(r, 1500)); done(1);' % U("plain"))
+ADD = 'let w = [...Services.wm.getEnumerator("navigator:browser")].find(x => !x.document.documentElement.hasAttribute("taskbartab")); w.gBrowser.addTab("%s", { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() }); await new Promise(r => setTimeout(r, 1500)); done(1);'
+m.js(ADD % U("other"))
+remote(m, "-golem-app", "keepapp", U("app")); time.sleep(3)
+def close_seam(m):   # (Marionette goes to the webapp's window first: the closed one takes the session's window with it)
+    for h in m.cmd("WebDriver:GetWindowHandles"):
+        m.cmd("WebDriver:SwitchToWindow", {"handle": h})
+        if m.js('done(document.documentElement.hasAttribute("taskbartab"));') is True: break
+    m.js('for (let w of Services.wm.getEnumerator("navigator:browser")) if (!w.document.documentElement.hasAttribute("taskbartab")) w.close(); await new Promise(r => setTimeout(r, 2500)); done(1);')
+SS = 'const { SessionStore } = ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs");'
+kept = m.js(SS + 'done(SessionStore.getClosedWindowData().length);')
+close_seam(m)
+remote(m); time.sleep(5)
+t11 = [t["url"] for t in tabs(m) if t["app"] is None]
+sel = m.js('let w = [...Services.wm.getEnumerator("navigator:browser")].find(x => !x.document.documentElement.hasAttribute("taskbartab")); done(w.gBrowser.selectedBrowser.currentURI.spec);')
+gone = m.js(SS + 'done(SessionStore.getClosedWindowData().length);')
+check("Seam opened again while a webapp runs: its tabs come back, no blank tab", t11 == [U("plain"), U("other")] and sel == U("plain"), {"tabs": t11, "selected": sel})
+check("…and they leave 'recently closed windows'", gone == kept, {"before": kept, "after": gone})
+m.js(ADD % U("two")); close_seam(m)
+remote(m, U("item")); time.sleep(5)
+t11b = [t["url"] for t in tabs(m) if t["app"] is None]
+sel = m.js('let w = [...Services.wm.getEnumerator("navigator:browser")].find(x => !x.document.documentElement.hasAttribute("taskbartab")); done(w.gBrowser.selectedBrowser.currentURI.spec);')
+check("Seam opened again for a LINK: its tabs come back beside it, the link in front", sorted(t11b) == sorted([U("plain"), U("other"), U("two"), U("item")]) and sel == U("item"), {"tabs": t11b, "selected": sel})
+m.quit(); p.wait(timeout=30)
+
 fails = [k for k, v in R.items() if v[0] != "PASS"]
 print("\nRESULT:", "ALL PASS" if not fails else f"{len(fails)} FAIL: {fails}")
 sys.exit(1 if fails else 0)
