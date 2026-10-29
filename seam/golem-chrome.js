@@ -3428,13 +3428,37 @@ try {
       return b.slice(0,b.length-s.length-1)||b; }catch(e){}
     try{ return uri.host; }catch(e){ return ""; }
   }
-  function waOwnLink(w,uri){
+  // A site's own REDIRECTOR is not its own page: Gmail's links go through google.com/url?q=,
+  // Facebook's l.facebook.com/l.php?u=, YouTube's /redirect?q=, Instagram's, Reddit's,
+  // LinkedIn's… — a link is judged by the address it carries in a parameter (an http(s)
+  // address of another site), so a news link in a mail still goes to Seam.
+  function waCarried(uri){
     try{
-      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
-      var site=waSite(uri); if(!site) return false;
+      var q=String(uri.query||""); if(!q) return null;
+      var parts=q.split("&");
+      for(var i=0;i<parts.length;i++){
+        var eq=parts[i].indexOf("="); if(eq<0) continue;
+        var v=""; try{ v=decodeURIComponent(parts[i].slice(eq+1).replace(/\+/g," ")); }catch(e){ continue; }
+        if(!/^https?:\/\//i.test(v)) continue;
+        var to=null; try{ to=Services.io.newURI(v); }catch(e){ continue; }
+        if(waSite(to)!==waSite(uri)) return to;
+      }
+    }catch(e){}
+    return null;
+  }
+  function waAppSite(w,site){   // the site of the page shown, or of where the app starts
+    try{
       if(site===waSite(w.gBrowser.currentURI)) return true;
       var start=w.__golemAppStart||"";
       return /^https?:/.test(start) && site===waSite(Services.io.newURI(start));
+    }catch(e){ return false; }
+  }
+  function waOwnLink(w,uri){
+    try{
+      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
+      var site=waSite(uri); if(!site || !waAppSite(w,site)) return false;
+      var to=waCarried(uri);
+      return !to || waAppSite(w,waSite(to));
     }catch(e){ return false; }
   }
   // Firefox's own BrowserDOMWindow decides where a page's new tab goes, and a page holds the
@@ -3453,6 +3477,7 @@ try {
         try{ keep=!!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
                   (where===B.OPEN_NEWTAB || where===B.OPEN_NEWTAB_FOREGROUND || where===B.OPEN_NEWTAB_BACKGROUND); }catch(e){}
         if(!keep) return false;
+        w.__golemKept={ site:waSite(uri), at:Date.now() };   // (its first stop is looked at: waLanded)
         w.gBrowser.selectedBrowser.loadURI(uri,{ triggeringPrincipal:params.triggeringPrincipal, policyContainer:params.policyContainer, referrerInfo:params.referrerInfo });
         WALOG("link kept in "+waSlugOf(w)+": "+uri.spec);
         return true;
@@ -3527,9 +3552,26 @@ try {
     },"browser-delayed-startup-finished");
   }catch(e){ WALOG("session:"+e); }
 
+  // A link kept in the window that the server sends on to ANOTHER site (a redirect no
+  // parameter told of) lands there: that page goes to Seam, and the webapp back to the
+  // page it was on (a redirect leaves no entry of its own to go back through).
+  function waLanded(w,loc){
+    try{
+      var k=w.__golemKept; w.__golemKept=null;
+      if(!k || Date.now()-k.at>15000 || !loc || !(loc.schemeIs("https")||loc.schemeIs("http"))) return;
+      var site=waSite(loc), start=w.__golemAppStart||"";
+      if(site===k.site || (/^https?:/.test(start) && site===waSite(Services.io.newURI(start)))) return;
+      WALOG("kept link went on to "+loc.spec+": to Seam");
+      if(w.gBrowser.canGoBack) w.gBrowser.goBack();
+      w.openTrustedLinkIn(loc.spec,"tab");
+    }catch(e){ WALOG("landed:"+e); }
+  }
+
   function waWatch(w){
     try{ w.gBrowser.tabs.forEach(function(t){ try{ w.gBrowser.getBrowserForTab(t).browsingContext.displayMode="minimal-ui"; }catch(e){} }); }catch(e){}
-    try{ w.gBrowser.addProgressListener({ onLocationChange:function(){ waReport(); } }); }catch(e){ WALOG("watch:"+e); }
+    try{ w.gBrowser.addProgressListener({ onLocationChange:function(wp,req,loc,flags){
+      try{ if(wp && wp.isTopLevel && !(flags & Components.interfaces.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) && w.__golemKept) waLanded(w,loc); }catch(e){}
+      waReport(); } }); }catch(e){ WALOG("watch:"+e); }
     try{ w.addEventListener("pagetitlechanged",function(){ waReport(); },true); }catch(e){}
     w.addEventListener("unload",function(){ waReport(); },{once:true});
     waPrompts(w); waVisibility(w); waDownloads(w); waReport();

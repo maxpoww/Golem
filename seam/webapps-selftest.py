@@ -15,7 +15,7 @@ open(f"{W}/slow.html", "w").write("<html><head><title>Slow Site Title</title></h
 open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function s(){document.title='vis:'+document.visibilityState}document.addEventListener('visibilitychange',s);s()</script></head><body>vis</body></html>")
 # a page with a link to its own site and one to another site, both asking for a new tab
 # (127.0.0.1 and localhost are two sites to Firefox)
-open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button></body></html>')
+open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button><br><a id="redir" href="/url?q=http://localhost:{PORT}/elsewhere.html%3Fq&amp;sa=D" target="_blank">a mail link</a><br><a id="hop" href="/hop" target="_blank">a hop</a></body></html>')
 open(f"{W}/item.html", "w").write("<html><head><title>An Article</title></head><body>article</body></html>")
 open(f"{W}/report.zip", "wb").write(b"PK" + bytes(200))   # a file the browser downloads
 open(f"{W}/dl.html", "w").write('<html><head><title>DL</title></head><body><a id="dl" href="/report.zip">report</a></body></html>')
@@ -24,6 +24,8 @@ class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_GET(self):   # /slow*: a site that takes its time (the window must be named before it answers)
         if self.path.startswith("/slow"): time.sleep(3)
+        if self.path.startswith("/hop"):   # /hop: an own-site address the server sends on to another site
+            self.send_response(302); self.send_header("Location", f"http://localhost:{PORT}/elsewhere.html?hop"); self.end_headers(); return
         return super().do_GET()
 threading.Thread(target=http.server.ThreadingHTTPServer(("127.0.0.1", PORT), functools.partial(Q, directory=W)).serve_forever, daemon=True).start()
 U = lambda n: f"http://127.0.0.1:{PORT}/{n}.html"
@@ -310,6 +312,15 @@ m.js(APPWIN + 'appw("linkapp").gBrowser.selectedBrowser.reload(); done(1);'); ti
 r = click_in(m, U("links"), "#js"); time.sleep(3)
 after3 = [t for t in tabs(m) if t["app"] is None]; w7f = [w for w in wins(m) if w["app"] == "linkapp"]
 check("links: a page's own window.open of its site stays in the window too", r == "clicked" and [w["url"] for w in w7f] == [U("item") + "?js"] and len(after3) == len(after2), {"click": r, "app": w7f, "seam": after3})
+# a site's own redirector carrying another site's address (Gmail's google.com/url?q=, Facebook's
+# l.php?u=…) is that other site's link; an own-site link the server sends elsewhere lands in Seam
+m.js(APPWIN + 'appw("linkapp").openTrustedLinkIn("%s", "current"); done(1);' % U("links")); time.sleep(2)
+r = click_in(m, U("links"), "#redir"); time.sleep(3)
+after4 = [t for t in tabs(m) if t["app"] is None]; w7g = [w for w in wins(m) if w["app"] == "linkapp"]
+check("links: a redirector's link to another site goes to Seam", r == "clicked" and any("/url?q=" in t["url"] for t in after4) and [w["url"] for w in w7g] == [U("links")], {"click": r, "app": w7g, "seam": after4[-2:]})
+r = click_in(m, U("links"), "#hop"); time.sleep(4)
+after5 = [t for t in tabs(m) if t["app"] is None]; w7h = [w for w in wins(m) if w["app"] == "linkapp"]
+check("links: an own-site link sent on to another site lands in Seam, the webapp back on its page", r == "clicked" and any(t["url"] == f"http://localhost:{PORT}/elsewhere.html?hop" for t in after5) and [w["url"] for w in w7h] == [U("links")], {"click": r, "app": w7h, "seam": after5[-2:]})
 m.js(APPWIN + 'appw("linkapp").close(); done(1);')
 
 # 8) restart: webapps do not reopen (Firefox never saves a webapp window; Chrome's app
