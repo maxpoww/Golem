@@ -79,6 +79,16 @@ lib.mkIf (config.golem.flakeDir != null) {
     description = "Golem self-update: gate on network, fast-forward the trusted seed, rebuild boot";
     # No wantedBy — the timer drives it. Serialized by Type=oneshot.
     serviceConfig.Type = "oneshot";
+    # Behind the owner: the pull, the eval and the bless at Nice 19 in the
+    # idle I/O class (the nix daemon's own builds carry their own weights,
+    # updates/client.nix), and not during a login — the quiet-login gate,
+    # which on a weak machine also waits for a calm minute. On the 2013
+    # MacBook Air the morning's update rebuilt the system an hour after
+    # boot, 5 min of both cores while its owner worked (2026-10-29).
+    serviceConfig.Nice = 19;
+    serviceConfig.IOSchedulingClass = "idle";
+    serviceConfig.CPUWeight = 20;
+    serviceConfig.ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
     restartIfChanged = false;   # a switch never waits on it (base/nix.nix, nix-gc)
     # git (+ ssh/https transports), nix for the rebuild, coreutils for the flow.
     path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];

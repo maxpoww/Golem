@@ -32,6 +32,12 @@ in
   systemd.services.nix-gc.serviceConfig.ExecStartPre = [
     "-${trim}"   # `-`: don't fail on a system without the profile
   ];  # after base/quiet-login's gate (mkBefore): no collecting during a login
+  # Behind everything the owner does: the collection walks the whole store
+  # (1.5 min on the 2013 MacBook Air) and ran at Nice 0 in the best-effort
+  # I/O class right after a login (2026-10-29).
+  systemd.services.nix-gc.serviceConfig.Nice = 19;
+  systemd.services.nix-gc.serviceConfig.IOSchedulingClass = "idle";
+  systemd.services.nix-gc.serviceConfig.CPUWeight = 20;
   # A switch never restarts a long background oneshot: switch-to-configuration
   # waits for a restarted oneshot to FINISH, so a dock install (which
   # switches) sat behind a store check running on the Acer's spinning disk

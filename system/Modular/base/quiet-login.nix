@@ -19,6 +19,15 @@
 
 let
   hasDesktop = config.services.greetd.enable or false;
+  # A WEAK MACHINE (the memory tier under 6 GB, or a GPU on the light
+  # effects): its two cores and its disk are the owner's for the first
+  # quarter of an hour, and the heavy work waits for a calm minute besides.
+  # On the 2013 MacBook Air the store's collection ran 60 s after the dock
+  # was up (Nice 0, best-effort I/O) while the apps were still indexing, and
+  # the update's rebuild an hour in, 5 min of both cores (2026-10-29).
+  weak = ((config.golem.hardware.ramMB or 0) > 0 && (config.golem.hardware.ramMB or 0) < 6144)
+    || (config.golem.desktop.effects or "full") == "light";
+  afterShell = if weak then 900 else 60;
   gate = pkgs.writeShellApplication {
     name = "golem-quiet-login";
     runtimeInputs = [ pkgs.procps pkgs.coreutils pkgs.gawk pkgs.getconf ];
@@ -41,8 +50,15 @@ let
       }
       for _ in $(seq 1 720); do
         shell_age=$(shell_age)
-        if [ -n "$shell_age" ] && [ "$shell_age" -ge 60 ]; then
-          exit 0
+        if [ -n "$shell_age" ] && [ "$shell_age" -ge ${toString afterShell} ]; then
+          ${if weak then ''
+          # A weak machine goes ahead only in a calm minute: the load of the
+          # last minute under half its processors.
+          load=$(cut -d' ' -f1 /proc/loadavg); cpus=$(getconf _NPROCESSORS_ONLN)
+          if awk -v l="$load" -v c="$cpus" 'BEGIN { exit !(l * 2 < c) }'; then
+            exit 0
+          fi
+          '' else "exit 0"}
         fi
         up=$(cut -d. -f1 /proc/uptime)
         if [ -z "$shell_age" ] && [ "$up" -ge 300 ]; then

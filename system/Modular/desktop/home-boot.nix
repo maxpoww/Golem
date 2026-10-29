@@ -94,6 +94,9 @@ lib.mkIf (hm != null) {
   systemd.user.timers.golem-home-heal = {
     unitConfig.ConditionUser = owner;
     wantedBy = [ "timers.target" ];
-    timerConfig = { OnStartupSec = "2min"; OnUnitActiveSec = "1min"; };
+    # Every five minutes, not every minute: a check that finds everything in
+    # place is still a shell and a walk of the links, sixty times an hour on
+    # a laptop on its battery (2026-10-29).
+    timerConfig = { OnStartupSec = "2min"; OnUnitActiveSec = "5min"; };
   };
 }
