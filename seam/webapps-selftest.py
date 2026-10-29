@@ -13,6 +13,11 @@ for n, t in [("app", "Spike App"), ("other", "Other Page"), ("two", "Second App"
 # a page that shows its own visibility in its title (the focus-to-visibility bridge test)
 open(f"{W}/slow.html", "w").write("<html><head><title>Slow Site Title</title></head><body>slow</body></html>")
 open(f"{W}/vis.html", "w").write("<html><head><title>vis</title><script>function s(){document.title='vis:'+document.visibilityState}document.addEventListener('visibilitychange',s);s()</script></head><body>vis</body></html>")
+# a page with a link to its own site and one to another site, both asking for a new tab
+# (127.0.0.1 and localhost are two sites to Firefox)
+open(f"{W}/links.html", "w").write(f'<html><head><title>Links</title></head><body><a id="same" href="/item.html" target="_blank">an article</a><br><a id="other" href="http://localhost:{PORT}/elsewhere.html" target="_blank">elsewhere</a><br><button id="js" onclick="window.open(\'/item.html?js\')">open</button></body></html>')
+open(f"{W}/item.html", "w").write("<html><head><title>An Article</title></head><body>article</body></html>")
+open(f"{W}/elsewhere.html", "w").write("<html><head><title>Elsewhere</title></head><body>elsewhere</body></html>")
 class Q(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_GET(self):   # /slow*: a site that takes its time (the window must be named before it answers)
@@ -271,6 +276,39 @@ plainT = m.js("""
 """)
 pt = [t for _, t in (plainT or {}).get("seen", [])] if isinstance(plainT, dict) else []
 check("a normal window says Seam from its first painted frame, never Firefox", bool(pt) and not any("Firefox" in t for t in pt) and "Seam" in pt[0], plainT)
+
+# 7d) a webapp's links stay in its window (Max, 2026-10-29: an eBay article opened in a Seam
+#     tab): a new-tab link to its own site opens in the window, back returns; another site's
+#     goes to a normal window, as a link out of the app
+def click_in(m, url, css):   # a real (trusted) click on the page that shows url
+    m.cmd("Marionette:SetContext", {"value": "content"})
+    try:
+        for h in m.cmd("WebDriver:GetWindowHandles"):
+            m.cmd("WebDriver:SwitchToWindow", {"handle": h, "focus": False})
+            if m.cmd("WebDriver:GetCurrentURL")["value"] == url: break
+        else: return "no tab shows " + url
+        el = m.cmd("WebDriver:FindElement", {"using": "css selector", "value": css})["value"]
+        m.cmd("WebDriver:ElementClick", {"id": list(el.values())[0]}); return "clicked"
+    finally: m.cmd("Marionette:SetContext", {"value": "chrome"})
+remote(m, "-golem-app", "linkapp", U("links")); time.sleep(3)
+ours = m.js('done(ChromeUtils.importESModule("resource:///modules/BrowserDOMWindow.sys.mjs").BrowserDOMWindow.prototype.__golemApp === true);')
+check("links: Firefox's new-tab chooser knows webapps", ours is True, ours)
+before = [t for t in tabs(m) if t["app"] is None]
+r = click_in(m, U("links"), "#same"); time.sleep(3)
+after = [t for t in tabs(m) if t["app"] is None]; w7d = [w for w in wins(m) if w["app"] == "linkapp"]
+check("links: an article of its own site opens in the webapp's window", r == "clicked" and [w["url"] for w in w7d] == [U("item")] and w7d[0]["tabs"] == 1, {"click": r, "app": w7d})
+check("links: no Seam tab opened for it", len(after) == len(before) and not any(t["url"] == U("item") for t in after), after)
+back = m.js(APPWIN + 'let w = appw("linkapp"); let b = w.gBrowser.canGoBack; w.gBrowser.goBack(); await new Promise(r => setTimeout(r, 1500)); done({ canGoBack: b, url: w.gBrowser.currentURI.spec });')
+check("links: back returns to the page it came from", isinstance(back, dict) and back.get("canGoBack") is True and back.get("url") == U("links"), back)
+r = click_in(m, U("links"), "#other"); time.sleep(3)
+after2 = [t for t in tabs(m) if t["app"] is None]; w7e = [w for w in wins(m) if w["app"] == "linkapp"]
+out = f"http://localhost:{PORT}/elsewhere.html"
+check("links: another site's link goes to a Seam tab, the webapp keeps its page", r == "clicked" and any(t["url"] == out for t in after2) and [w["url"] for w in w7e] == [U("links")], {"click": r, "seam": after2, "app": w7e})
+m.js(APPWIN + 'appw("linkapp").gBrowser.selectedBrowser.reload(); done(1);'); time.sleep(1.5)
+r = click_in(m, U("links"), "#js"); time.sleep(3)
+after3 = [t for t in tabs(m) if t["app"] is None]; w7f = [w for w in wins(m) if w["app"] == "linkapp"]
+check("links: a page's own window.open of its site stays in the window too", r == "clicked" and [w["url"] for w in w7f] == [U("item") + "?js"] and len(after3) == len(after2), {"click": r, "app": w7f, "seam": after3})
+m.js(APPWIN + 'appw("linkapp").close(); done(1);')
 
 # 8) restart: webapps do not reopen (Firefox never saves a webapp window; Chrome's app
 #    windows were not restored either); the browser's windows and tabs all come back

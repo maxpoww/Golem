@@ -3243,7 +3243,8 @@ try {
 //     webapps do not reopen when Seam restarts, as Chrome's app windows did not;
 //   * no tab strip (tab-bar-visibility: a single-tab window), and links and
 //     new tabs go to a normal window (BrowserWindowTracker, URILoadingHelper
-//     and BrowserDOMWindow skip taskbartab windows);
+//     and BrowserDOMWindow skip taskbartab windows) — but a page's new-tab link
+//     to its app's own site stays in the window (waLinks, below);
 //   * display-mode minimal-ui, so sites with a manifest show their app layout.
 // Mozilla gates the feature to Windows (TaskbarTabsUtils.isEnabled) but the
 // window path never asks; webapps-selftest guards the Linux branch, and if a
@@ -3371,6 +3372,65 @@ try {
       send(Services.focus.activeWindow===w);
     }catch(e){ WALOG("visibility:"+e); }
   }
+
+  // A webapp's links stay in its window (Max, 2026-10-29: "on ebay, when im on the webapp, and
+  // click an article, it opens on a new tab on seam... webapps should never go out of their
+  // windows"). Firefox sends every new tab of a web-app window to a normal window
+  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank:
+  // openURIInFrame, the opener left out, as a link is by default) to the app's OWN site (the
+  // page's, or where the app starts; its other countries too: ebay.es from ebay.com) opens in
+  // the window itself, where the title bar's back arrow returns. Another site's still goes to
+  // Seam, as a link out of the app; so does what was asked for as a tab (a middle click,
+  // Ctrl+click, the menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a
+  // window.open the page keeps a hand on (no address to judge yet) and a link from another
+  // program. The load is the page's own (its principal and referrer), http and https only.
+  function waSite(uri){
+    try{ var b=Services.eTLD.getBaseDomain(uri), s=Services.eTLD.getPublicSuffix(uri);
+      return b.slice(0,b.length-s.length-1)||b; }catch(e){}
+    try{ return uri.host; }catch(e){ return ""; }
+  }
+  function waOwnLink(w,uri){
+    try{
+      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
+      var site=waSite(uri); if(!site) return false;
+      if(site===waSite(w.gBrowser.currentURI)) return true;
+      var start=w.__golemAppStart||"";
+      return /^https?:/.test(start) && site===waSite(Services.io.newURI(start));
+    }catch(e){ return false; }
+  }
+  // Firefox's own BrowserDOMWindow decides where a page's new tab goes, and a page holds the
+  // one its window had when the page was made (replacing the window's later reaches no page
+  // already open): so it is the class itself that is taught, once. A link's click comes as
+  // createContentWindowInFrame with its address (openURIInFrame when it opens no window of
+  // its own); without an address (a window.open the page fills in itself) nothing can be
+  // judged and Firefox does as ever.
+  function waLinks(){
+    try{
+      var proto=ChromeUtils.importESModule("resource:///modules/BrowserDOMWindow.sys.mjs").BrowserDOMWindow.prototype;
+      var B=Components.interfaces.nsIBrowserDOMWindow;
+      if(proto.__golemApp) return;
+      var kept=function(self,uri,params,where,flags){
+        var w=self.win, keep=false;
+        try{ keep=!!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
+                  (where===B.OPEN_NEWTAB || where===B.OPEN_NEWTAB_FOREGROUND || where===B.OPEN_NEWTAB_BACKGROUND); }catch(e){}
+        if(!keep) return false;
+        w.gBrowser.selectedBrowser.loadURI(uri,{ triggeringPrincipal:params.triggeringPrincipal, policyContainer:params.policyContainer, referrerInfo:params.referrerInfo });
+        WALOG("link kept in "+waSlugOf(w)+": "+uri.spec);
+        return true;
+      };
+      ["createContentWindowInFrame","openURIInFrame"].forEach(function(n){
+        var base=proto[n]; if(!base) return;
+        proto[n]=function(uri,params,where,flags,name){
+          // (Failing is what keeps Firefox from opening it anywhere else: no element back
+          // would make it open a whole new window.)
+          if(kept(this,uri,params,where,flags)) throw Components.Exception("kept in the webapp's window",Components.results.NS_ERROR_ABORT);
+          return base.call(this,uri,params,where,flags,name);
+        };
+      });
+      Object.defineProperty(proto,"__golemApp",{value:true});
+    }catch(e){ WALOG("links:"+e); }
+  }
+  waLinks();
 
   function waWatch(w){
     try{ w.gBrowser.tabs.forEach(function(t){ try{ w.gBrowser.getBrowserForTab(t).browsingContext.displayMode="minimal-ui"; }catch(e){} }); }catch(e){}
