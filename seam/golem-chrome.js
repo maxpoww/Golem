@@ -4118,7 +4118,7 @@ try {
   // (own: kept under a name of its own — a list's picture is its first video's, and the dock
   // takes a picture two things wear for a site's logo.)
   function rkPicture(src,pageUrl,done,failed,own){
-    var no=function(){ if(failed) try{ failed(); }catch(e){} };
+    var no=function(why){ if(failed) try{ failed(why||""); }catch(e){} };
     if(!rkWeb(src)){ no(); return; }
     if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); no(); return; }
     var name=rkHash(own ? src+"#"+own : src), w=rkWin(), dir=rkDir(); if(!w || !dir){ no(); return; }
@@ -4140,7 +4140,7 @@ try {
             .then(function(){ finish(); done(file); });
         });
       });
-    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); no(); });
+    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); no(String(e)); });
   }
   // What a page told: kept as the page's, and what it plays as a play.
   function rkHeard(m){
@@ -4275,7 +4275,7 @@ try {
     }).then(function(t){
       if(t.length>RK_WORDS_MAX) throw "size "+t.length;
       return JSON.parse(t);
-    }).then(function(j){ done(j); },function(e){ RKLOG("words "+src.slice(0,120)+": "+e); failed(); });
+    }).then(function(j){ done(j); },function(e){ RKLOG("words "+src.slice(0,120)+": "+e); failed(String(e)); });
   }
   function rkBackfill(){
     if(!rkOn() || rkBackRunning) return;
@@ -4375,6 +4375,8 @@ try {
   // pages as the site's logo. The file is named for its page (the same lead picture in two
   // languages is two pages'). The wiki's own pages (searches, the front page) are none of its
   // articles (the dock's WIKI_OWN). Same rhythm as the covers: 48 a round, one every 1.5 s.
+  // (A server rationing its answers — 429 — is asked again the next round, not in a week.)
+  function rkRationed(why){ return /\(429 /.test(String(why||"")); }
   var RK_WIKI_OWN=["Special:","Especial:","Spezial:","Sp%C3%A9cial:","Speciale:","Wikipedia:","Portal:","Main_Page","Portada","Accueil_principal"];
   var rkWikiRunning=false;
   function rkWikiArticle(url){
@@ -4431,10 +4433,10 @@ try {
               if(s>=srcs.length){ tried(); return; }
               rkPicture(srcs[s],best.url,function(f){
                 keep(it,function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; },on);
-              },function(){ pic(s+1); },best.url);
+              },function(why){ if(rkRationed(why)) on(); else pic(s+1); },best.url);
             };
             pic(0);
-          },tried);
+          },function(why){ if(rkRationed(why)) on(); else tried(); });
         };
         next(0);
       }).catch(function(e){ stop(String(e)); });
@@ -4490,7 +4492,7 @@ try {
           // (The first part only names the card for the server's cache: "1", everyone's, is rationed — 429.)
           rkPicture("https://opengraph.githubassets.com/"+rkHash(it.repo.toLowerCase())+"/"+it.repo,best.url,function(f){
             keep(function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; });
-          },function(){ keep(function(p){ p.tried=when; }); },best.url);
+          },function(why){ if(rkRationed(why)) on(); else keep(function(p){ p.tried=when; }); },best.url);
         };
         next(0);
       }).catch(function(e){ stop(String(e)); });

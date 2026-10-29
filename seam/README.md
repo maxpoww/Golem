@@ -493,7 +493,10 @@ one it loaded with). (2) FROM BEFORE, like the covers: a Wikipedia article of th
 asks the wiki's REST summary for its lead picture (960 px when bigger; `rkWikiBackfill`), a GitHub
 repository wears its card (opengraph.githubassets.com, a name of its own: "1" is everyone's and
 rationed; `rkGithubBackfill`) — each on ONE address of its page (the clean one; a redirect's, a
-file's page none), or the dock reads one picture on two pages as the site's logo.
+file's page none), or the dock reads one picture on two pages as the site's logo. A server
+rationing its answers (429: GitHub's cards after ~100 in 15 min) is asked again the next round,
+not in a week. On a copy of the owner's history and kitchen: Wikipedia's recents 16 previews of 19
+(1 before; the rest a talk page, a GIF, an article with none).
 Test: `./webapps-selftest.sh recents` (26 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
