@@ -111,6 +111,11 @@ check("not another site's, not one visited too long ago", VIDEO not in pages and
 n = log().count("covers from before:")
 m.js('Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(3)
 check("a second round asks for nothing (pictured and named, or tried this week)", log().count("covers from before: 0 songs, 0 playlists, 0 pictures, 0 names to fetch") == 1 and log().count("covers from before:") == n + 1, log()[-200:])
+m.js("""const { PlacesUtils } = ChromeUtils.importESModule("resource://gre/modules/PlacesUtils.sys.mjs");
+  await PlacesUtils.history.clear(); done(1);"""); time.sleep(3)
+k = kitchen(); left = os.listdir(f"{KITCHEN}/pics") if os.path.isdir(f"{KITCHEN}/pics") else []
+check("the history cleared whole: nothing kept, and when it was (the dock forgets its own then)",
+      k.get("pages") == {} and k.get("plays") == [] and abs(k.get("cleared", 0) - time.time()) < 60 and not left, {"cleared": k.get("cleared"), "pages": len(k.get("pages", {})), "pics": left[:3]})
 m.js('Services.prefs.setBoolPref("golem.seam.recents", false); Services.obs.notifyObservers(null, "golem:recents-backfill"); done(1);'); time.sleep(2)
 check("the kill switch: no round", log().count("covers from before:") == n + 1, log()[-200:])
 m.quit(); p.wait(timeout=30)

@@ -457,7 +457,9 @@ each picture is fetched ONCE by Seam itself from the address the page gave (an i
 2 MB, no cookies) — only from the page's own site or a known picture server of the sites the dock
 knows (`RK_CDN`), never from this computer or its network (a page must not make Seam call the
 router) —, and pictures nothing names any more are removed. Private windows: nothing. Clearing the
-history clears it (whole, or the pages taken out: Forget About This Site, a range). Written only
+history clears it (whole, or the pages taken out: Forget About This Site, a range); whole, it keeps
+when (`cleared`, unix seconds) and the dock forgets what it kept of every page too (its picks, the
+pictures it made). Written only
 when something changed (times alone at most every five minutes). Test: the headless run with
 `SEAM_RECENTS_TEST_CLEAR=<ms>` clears the history that long after start. A page's preview picture is
 taken only while it is still at the address it loaded at (an app that changes page without loading
@@ -476,7 +478,7 @@ bars of its own colour; the dock cuts them (`unbanded`). AND ITS NAME: a song th
 way. AND THE PLAYLISTS: a list of the history (`playlist?list=<id>`) gets its name (when the history
 has none) and its first video's picture from the list's oEmbed, the picture kept under the list's
 own file name (the same file on a song and a list would read to the dock as a site's logo).
-Test: `./webapps-selftest.sh recents` (17 checks, headless, real build; it goes on the network).
+Test: `./webapps-selftest.sh recents` (18 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 

@@ -4067,7 +4067,7 @@ try {
     var w=rkWin(), dir=rkDir(), done=function(){ rkReady=true; var q=rkWaiting; rkWaiting=[]; q.forEach(function(f){ try{ f(); }catch(e){ RKLOG("then:"+e); } }); };
     if(!w || !dir){ done(); return; }
     w.IOUtils.readJSON(dir+"/recents.json").then(function(j){
-      if(j && j.v===1 && j.pages && typeof j.pages==="object" && Array.isArray(j.plays)){ rk.pages=j.pages; rk.plays=j.plays; }
+      if(j && j.v===1 && j.pages && typeof j.pages==="object" && Array.isArray(j.plays)){ rk.pages=j.pages; rk.plays=j.plays; if(typeof j.cleared==="number") rk.cleared=j.cleared; }
       done();
     }).catch(function(){ done(); });
   }
@@ -4177,9 +4177,10 @@ try {
   }
   // The history cleared, whole or a page at a time (Forget About This Site, a range of
   // it): what was kept of those pages goes with them — the dock must not show a song
-  // the owner wiped.
+  // the owner wiped. Whole: when, kept as "cleared" (unix seconds) — the dock forgets
+  // what it kept of every page too (the owner's picks, the pictures it made).
   function rkWipe(){
-    rk={v:1,pages:{},plays:[]}; rkReady=true; RKLOG("history cleared: all forgotten");
+    rk={v:1,pages:{},plays:[],cleared:Math.floor(Date.now()/1000)}; rkReady=true; RKLOG("history cleared: all forgotten");
     var w=rkWin(), dir=rkDir(); rkWrite();
     if(w && dir) w.IOUtils.getChildren(dir+"/pics").then(function(kids){ kids.forEach(function(k){ w.IOUtils.remove(k).catch(function(){}); }); }).catch(function(){});
   }
