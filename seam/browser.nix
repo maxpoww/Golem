@@ -309,6 +309,18 @@
           # Seam — Golem's browser. Its own profile; --name sets the window class.
           p="''${XDG_DATA_HOME:-$HOME/.local/share}/seam"
           mkdir -p "$p"
+          # ONE-TIME REPAIR (2026-10-30): a profile whose uBlock Origin storage had gone stale
+          # looped on YouTube — the player armed and dropped its MediaSource every 1.5 s,
+          # "Experiencing interruptions?", minutes to start (the 2013 MacBook Air, Max's lab
+          # profile; a copy of it with uBO's storage reset played, every other piece of the
+          # profile cleared alone did not). uBO's stored state goes once; the lists bundled in
+          # the pinned xpi load and update from there. Golem writes every uBO setting itself at
+          # each start (managed storage, My filters), so nothing of the owner's is lost.
+          if [ ! -e "$p/golem-ubo-reset-2026-10-30" ]; then
+            u=$(grep -oE '\\"uBlock0@raymondhill.net\\":\\"[0-9a-f-]+' "$p/prefs.js" 2>/dev/null | grep -oE '[0-9a-f-]{36}' | head -1)
+            if [ -n "$u" ]; then rm -rf "$p/storage/default/moz-extension+++$u"* "$p/browser-extension-data/uBlock0@raymondhill.net"; fi
+            touch "$p/golem-ubo-reset-2026-10-30"
+          fi
           # no crash-report helper process beside the browser: reports are never sent
           # (a crash still restores the session; that is the session store's job)
           export MOZ_CRASHREPORTER_DISABLE=1
