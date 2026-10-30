@@ -343,6 +343,9 @@ hl.config({
 hl.config({
   debug = {
     vfr = true,
+    -- The log with times: a start's 3.5 s on the 2013 MacBook Air is
+    -- silent without them (2026-10-29). The log lives in /run, tmpfs.
+    disable_time = false,
   }
 })
 
