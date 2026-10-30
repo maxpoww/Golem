@@ -41,6 +41,8 @@
     ./base/first-boot.nix
     ./base/quiet-login.nix
     ./base/recover.nix      # golem-recover: the source back to what built a working system
+    ./base/freeze.nix       # a frozen machine reboots itself (kernel.panic, softlockup_panic)
+    ./base/weak.nix         # the weak tier's boot: nftables (1.5 s of iptables on the Air)
     ./base/autoupdate.nix
     ./base/seed.nix         # the seed's upstream + golem-seed-adopt (P10)
     # A CPU the platform pins at its slowest while cool and on the charger (a

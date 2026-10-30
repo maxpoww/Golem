@@ -28,6 +28,7 @@ let
       facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
       expect = c: [
         (ex "UEFI → GRUB-EFI on, no systemd-boot (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport && !c.boot.loader.systemd-boot.enable))
+        (ex "a frozen machine reboots itself: kernel.panic=10, softlockup_panic=1 (the Air on the progress bar, 2026-10-29)" (c.boot.kernel.sysctl."kernel.panic" == 10 && c.boot.kernel.sysctl."kernel.softlockup_panic" == 1))
         (ex "autoupdate: an owner's edit to Golem's files is set aside (~/Golem-local-edits) instead of freezing updates, and a seed that still cannot fast-forward FAILS the unit (ASUS 2026-10-02)" (lib.hasInfix "Golem-local-edits" c.systemd.services.golem-autoupdate.script && lib.hasInfix "FAILED, not success" c.systemd.services.golem-autoupdate.script))
         (ex "autoupdate: a run that pulled and died in the rebuild is finished by the next run (compares the newest BUILT system's revision, not only before/after)" (lib.hasInfix "nixos-version --configuration-revision" c.systemd.services.golem-autoupdate.script))
         (ex "updates: installs follow stable, the branch the update lane publishes (updates/README.md)" (c.golem.upstream.branch == "stable"))
