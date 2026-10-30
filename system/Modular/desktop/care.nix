@@ -75,7 +75,9 @@ in
   # for names (NetworkManager runs dnsmasq on the shared interface). The
   # firewall let neither in. Nothing listens on these ports unless a hotspot
   # is on. ("wl+" = any wireless interface, whatever its name.)
-  networking.firewall.interfaces."wl+" = {
+  # ("wl+" is iptables' wildcard, "wl*" nftables' — the weak tier's
+  # firewall, base/weak.nix; nft would not parse the plus.)
+  networking.firewall.interfaces.${if config.networking.nftables.enable then "wl*" else "wl+"} = {
     allowedUDPPorts = [ 53 67 ];
     allowedTCPPorts = [ 53 ];
   };
