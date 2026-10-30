@@ -199,7 +199,8 @@
                   [ "selfieDelayInSeconds" "20" ]
                   [ "differentialUpdate" "false" ]
                 ];
-                # YOUTUBE INPUT LAG (2026-10-06, MacBook Air 6,2 and Acer E5-573): uBO's quick-fixes
+                # YOUTUBE INPUT LAG (2026-10-06, MacBook Air 6,2 and Acer E5-573; the exception
+                # below was TAKEN BACK 2026-10-30, see there): uBO's quick-fixes
                 # list carries six `trusted-edit-inbound-object, JSON.stringify, …` filters for
                 # www.youtube.com. Each wraps JSON.stringify and deep-clones the argument
                 # (JSON.parse(JSON.stringify(obj))) on EVERY call before testing whether it
@@ -215,13 +216,16 @@
                 # real fix is upstream (a cheap pre-check before the clone). Kill: remove toOverwrite.
                 toOverwrite = {
                   filters = [
-                    "! Golem (2026-10-06): the quick-fixes JSON.stringify hooks cost a quarter of YouTube's main thread on weak hardware"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"channel\"].context.client[?.clientName==\"WEB\"]+={\"clientScreen\":\"CHANNEL\"})"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"lactmilli\"]+={\"params\":\"8AUB\"})"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"yahi\"]+={\"params\":\"YAHI\"})"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent*=\"instream\"].playbackContext[?.contentPlaybackContext]+={\"adPlaybackContext\":{\"adType\":\"AD_TYPE_INSTREAM\"}})"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/channel|lactmilli|instream/].playbackContext.contentPlaybackContext.lactMilliseconds=\"\${now}\")"
-                    "www.youtube.com#@#+js(trusted-edit-inbound-object, JSON.stringify, 0, [?.attestationRequest][?.context.client.userAgent=/adunit|channel|lactmilli|instream|inline|yahi|eafg/].playbackContext.contentPlaybackContext.referer=repl({\"regex\":\"(?:#reloadxhr)?$\"\\,\"replacement\":\"#reloadxhr\"}))"
+                    # (2026-10-06 → 2026-10-30: six `trusted-edit-inbound-object, JSON.stringify`
+                    # quick-fixes filters for www.youtube.com were EXCEPTED here — a quarter of
+                    # YouTube's main thread on weak hardware. They are the attestationRequest
+                    # tweaks: YouTube's anti-adblock handshake. On a signed-in profile on the
+                    # MacBook Air the player then armed and dropped its MediaSource every 1.5 s,
+                    # "Experiencing interruptions?", two minutes to start (Max, 2026-10-30;
+                    # reproduced with the lab rig on a copy of his profile: endless with the
+                    # exceptions, ~10 s and six retries without them, instant with ads with no
+                    # uBO; a fresh, signed-out profile never showed it). The exceptions are
+                    # gone; the input-lag cost is back until uBO pre-checks before cloning.)
                     # YOUTUBE'S SERVICE WORKER (2026-10-07, dev box): youtube.com's front page is
                     # served through YouTube's service worker, and in Firefox that fetch path costs
                     # 150–520 ms on a fresh profile and 570–830 ms on an aged one before the request
