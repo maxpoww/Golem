@@ -3304,12 +3304,13 @@ try {
       var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
       dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
       while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
-        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||""), back:!!w.gBrowser.canGoBack, fwd:!!w.gBrowser.canGoForward}; }catch(e2){} }
+        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||""), back:!!w.gBrowser.canGoBack, fwd:!!w.gBrowser.canGoForward, tr:waTrState(w)}; }catch(e2){} }
       var io=(w0||{}).IOUtils; if(!io) return;   // no window left: nothing is open to copy from
       // The title bar's back and forward arrows show only while there is somewhere to go
       // (waveview, golemBar.cpp `navMask`): the same facts as lines it can read without a
-      // JSON parser, "<slug> <back 0|1> <forward 0|1>".
-      var nav=Object.keys(out).map(function(k){ return k+" "+(out[k].back?1:0)+" "+(out[k].fwd?1:0)+"\n"; }).join("");
+      // JSON parser, "<slug> <back 0|1> <forward 0|1> <translate 0|1|2>" (waTrState; a
+      // bar from before the fourth reads the first three).
+      var nav=Object.keys(out).map(function(k){ return k+" "+(out[k].back?1:0)+" "+(out[k].fwd?1:0)+" "+(out[k].tr||0)+"\n"; }).join("");
       io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); })
         .then(function(){ return io.writeUTF8(dir+"/nav",nav,{tmpPath:dir+"/nav.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
     }catch(e4){ WALOG("report:"+e4); }
@@ -3555,6 +3556,53 @@ try {
     },"browser-delayed-startup-finished");
   }catch(e){ WALOG("session:"+e); }
 
+  // TRANSLATE A WEBAPP'S PAGE FROM ITS TITLE BAR (Max, 2026-10-29: "i want it, maybe on the
+  // title bar?"). Seam's own windows offer a page in another language by a button in the
+  // address bar, which a webapp hides; its title bar (waveview) has the button instead.
+  // Seam says per webapp, in seam/nav's fourth number, whether its page can be translated
+  // (1: in a language other than the owner's, one the translations read) or IS (2); the
+  // button sends Ctrl+Alt+Shift+T, which here translates the page into the owner's
+  // language, or shows it as it was (Firefox's own translations, on the device).
+  var WA_TR_KEY="T", WA_TR_MODS="accel,alt,shift";
+  function waTrActor(w){
+    try{ return ChromeUtils.importESModule("resource://gre/actors/TranslationsParent.sys.mjs").TranslationsParent.getTranslationsActor(w.gBrowser.selectedBrowser); }
+    catch(e){ return null; }
+  }
+  function waTrState(w){
+    try{
+      var ls=(waTrActor(w)||{}).languageState; if(!ls) return 0;
+      if(ls.requestedLanguagePair) return 2;
+      var d=ls.detectedLanguages;
+      if(!d || !d.docLangTag || !d.userLangTag || !d.isDocLangTagSupported) return 0;
+      return String(d.docLangTag).split("-")[0].toLowerCase()===String(d.userLangTag).split("-")[0].toLowerCase() ? 0 : 1;
+    }catch(e){ return 0; }
+  }
+  function waTranslate(w){
+    try{
+      var a=waTrActor(w), ls=a && a.languageState; if(!ls) return;
+      if(ls.requestedLanguagePair){ a.restorePage(); WALOG("translate: "+waSlugOf(w)+" as it was"); return; }
+      if(waTrState(w)!==1) return;
+      var d=ls.detectedLanguages;
+      a.translate({ sourceLanguage:d.docLangTag, targetLanguage:d.userLangTag },false);
+      WALOG("translate: "+waSlugOf(w)+" "+d.docLangTag+" > "+d.userLangTag);
+    }catch(e){ WALOG("translate:"+e); }
+  }
+  function waTrKeys(w){
+    try{
+      var d=w.document; if(d.getElementById("golem-cmd-translate")) return;
+      var cs=d.createXULElement("commandset"), c=d.createXULElement("command");
+      c.id="golem-cmd-translate"; c.addEventListener("command",function(){ waTranslate(w); });
+      cs.appendChild(c); d.documentElement.appendChild(cs);
+      // (a keyset of its own: one put in after the window's load is read when it is inserted)
+      var ks=d.createXULElement("keyset"), k=d.createXULElement("key");
+      k.id="golem-key-translate"; k.setAttribute("key",WA_TR_KEY); k.setAttribute("modifiers",WA_TR_MODS);
+      k.setAttribute("command","golem-cmd-translate"); k.setAttribute("reserved","true");
+      ks.appendChild(k); d.documentElement.appendChild(ks);
+      // what the translations say comes on the page's browser (bubbling)
+      w.addEventListener("TranslationsParent:LanguageState",function(){ waReport(); },true);
+    }catch(e){ WALOG("translate keys:"+e); }
+  }
+
   // A link kept in the window that the server sends on to ANOTHER site (a redirect no
   // parameter told of) lands there: that page goes to Seam, and the webapp back to the
   // page it was on (a redirect leaves no entry of its own to go back through).
@@ -3577,7 +3625,7 @@ try {
       waReport(); } }); }catch(e){ WALOG("watch:"+e); }
     try{ w.addEventListener("pagetitlechanged",function(){ waReport(); },true); }catch(e){}
     w.addEventListener("unload",function(){ waReport(); },{once:true});
-    waPrompts(w); waVisibility(w); waDownloads(w); waReport();
+    waPrompts(w); waVisibility(w); waDownloads(w); waTrKeys(w); waReport();
   }
 
   // A webapp's name, from the dock's catalog (~/.config/webapps.list, "Name | URL | icon")
