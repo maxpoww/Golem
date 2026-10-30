@@ -264,6 +264,8 @@ of that gone"):**
   framerate) — YouTube then serves the 30 fps rendition (MacBook: 480p30, 5 dropped frames
   instead of 350–650). Learned, not assumed: the 2-core Acer plays 720p60 with 0.3 % dropped and
   must not be capped. `…fps60.force` = a machine's explicit yes/no; the codec kill switch covers it.
+  (The watch itself never ran until 2026-10-29: the frame script called a bare `setInterval`, which
+  a frame script does not have — it is an nsITimer now; selftest step `codecs-frame-script-runs-whole`.)
   Not a lever: `media.mediacapabilities.from-database=true` changed nothing. WebRender in Seam's
   parent ≈ Chrome's GPU process (≈7 s / 20 s each) on the HD 5000 — the hardware.
   **On the Acer with tonight's build (one browser at a time, Chrome without an ad blocker):**
@@ -478,7 +480,24 @@ bars of its own colour; the dock cuts them (`unbanded`). AND ITS NAME: a song th
 way. AND THE PLAYLISTS: a list of the history (`playlist?list=<id>`) gets its name (when the history
 has none) and its first video's picture from the list's oEmbed, the picture kept under the list's
 own file name (the same file on a song and a list would read to the dock as a site's logo).
-Test: `./webapps-selftest.sh recents` (18 checks, headless, real build; it goes on the network).
+AND WHO SINGS IT (2026-10-29): a song the history names by its title alone ("Mentirosa") is asked
+the same way and named "Song • Artist" when the video is the artist's own; when YouTube names no
+artist for it (a channel's upload) the history's name stays and it is not asked again
+(`noArtist`). A play with its artist is whole already; the dock lends a play's name to its page.
+PICTURES, THE CLUE (2026-10-29, Max: "give [Wikipedia] thumbnails (only one have thumbnail)… use that
+issue as a clue"): (1) a page's og:image was taken only while its address was the one it loaded
+with — a wiki's redirect ("The_strokes" → "The_Strokes"), a "?wprov=" taken off, any address tidied in
+place lost its picture; now the same history entry counts as the same page, and after an app moved
+to another page without loading its tags count when it renewed them (an og:image other than the
+one it loaded with). (2) FROM BEFORE, like the covers: a Wikipedia article of the history with none
+asks the wiki's REST summary for its lead picture (960 px when bigger; `rkWikiBackfill`), a GitHub
+repository wears its card (opengraph.githubassets.com, a name of its own: "1" is everyone's and
+rationed; `rkGithubBackfill`) — each on ONE address of its page (the clean one; a redirect's, a
+file's page none), or the dock reads one picture on two pages as the site's logo. A server
+rationing its answers (429: GitHub's cards after ~100 in 15 min) is asked again the next round,
+not in a week. On a copy of the owner's history and kitchen: Wikipedia's recents 16 previews of 19
+(1 before; the rest a talk page, a GIF, an article with none).
+Test: `./webapps-selftest.sh recents` (26 checks, headless, real build; it goes on the network).
 
 ## The palette and dark websites (2026-10-14/15)
 

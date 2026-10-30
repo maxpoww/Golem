@@ -65,6 +65,9 @@ let
       exit 1
     '';
   };
+  # A system without one (the VMs boot their kernel directly) has no boot
+  # entry to check.
+  bootMenu = config.boot.loader.grub.enable || config.boot.loader.systemd-boot.enable;
 in
 lib.mkIf (config.golem.flakeDir != null) {
   # golem-wait-online on the system PATH: this root service and any future
@@ -76,6 +79,16 @@ lib.mkIf (config.golem.flakeDir != null) {
     description = "Golem self-update: gate on network, fast-forward the trusted seed, rebuild boot";
     # No wantedBy — the timer drives it. Serialized by Type=oneshot.
     serviceConfig.Type = "oneshot";
+    # Behind the owner: the pull, the eval and the bless at Nice 19 in the
+    # idle I/O class (the nix daemon's own builds carry their own weights,
+    # updates/client.nix), and not during a login — the quiet-login gate,
+    # which on a weak machine also waits for a calm minute. On the 2013
+    # MacBook Air the morning's update rebuilt the system an hour after
+    # boot, 5 min of both cores while its owner worked (2026-10-29).
+    serviceConfig.Nice = 19;
+    serviceConfig.IOSchedulingClass = "idle";
+    serviceConfig.CPUWeight = 20;
+    serviceConfig.ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
     restartIfChanged = false;   # a switch never waits on it (base/nix.nix, nix-gc)
     # git (+ ssh/https transports), nix for the rebuild, coreutils for the flow.
     path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];
@@ -84,6 +97,45 @@ lib.mkIf (config.golem.flakeDir != null) {
       dir=${lib.escapeShellArg config.golem.flakeDir}
       attr=${lib.escapeShellArg config.golem.flakeAttr}
       owner=${lib.escapeShellArg config.golem.owner}
+
+      # What the owner's desktop reads to say "Golem could not update"
+      # (desktop/update-notice.nix): when a run last worked, and when one last
+      # failed. Nobody else could ever know (no telemetry); these files never
+      # leave the machine. Waiting for the wave is a run that worked.
+      notes=/var/lib/golem-notices
+      finish() {
+        local rc=$?
+        install -d -m 755 "$notes"
+        if [ "$rc" = 0 ]; then
+          date +%s > "$notes/update-ok"; rm -f "$notes/update-failed"
+        else
+          date +%s > "$notes/update-failed"
+        fi
+        chmod 644 "$notes"/update-* 2>/dev/null || true
+      }
+      trap finish EXIT
+
+      # The newest system must be what the machine boots next. A rebuild whose
+      # boot-menu step failed (a full /boot) leaves the profile on the new
+      # system and the menu on the old one: the machine then looked up to date
+      # while every restart booted the old version, forever (audit,
+      # 2026-10-29: the ESP held 4 of the 15 entries GRUB wanted). Write the
+      # entry again; a menu that still lacks it fails the run loudly.
+      in_boot_menu() {
+        local sys
+        sys=$(readlink -f /nix/var/nix/profiles/system)
+        grep -rqsF "init=$sys/init" /boot/grub/grub.cfg /boot/loader/entries 2>/dev/null
+      }
+      ensure_boot_entry() {
+        ${lib.optionalString (!bootMenu) "return 0   # no boot menu here (a VM booted directly)"}
+        in_boot_menu && return 0
+        echo "golem-autoupdate: the newest system is not in the boot menu, writing it again" >&2
+        /nix/var/nix/profiles/system/bin/switch-to-configuration boot || true
+        in_boot_menu && return 0
+        df -h /boot >&2 || true
+        echo "golem-autoupdate: the boot menu still lacks the newest system (is /boot full?)" >&2
+        return 1
+      }
 
       # 1) real connectivity or a loud give-up (never a stale-cache no-op).
       ${golemWaitOnline}/bin/golem-wait-online || exit 1
@@ -196,6 +248,11 @@ lib.mkIf (config.golem.flakeDir != null) {
       # but never built is finished below. /run/golem-update-now skips it.
       # The clock is cleared when the machine is current, or after a
       # successful rebuild of what it pulled.
+      # A version that was out before the machine first saw it counts from
+      # its publication (when the lane uploaded its cache): a machine
+      # installed from an older ISO, or back after weeks off, meets a
+      # version the other machines have run for days, and waiting its whole
+      # wave again only kept it behind (audit, 2026-10-29).
       wave=$(${config.golem.update.waveCommand}/bin/golem-update-wave)
       since=/var/lib/golem/update-behind-since
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
@@ -206,7 +263,10 @@ lib.mkIf (config.golem.flakeDir != null) {
         rm -f "$since"
       else
         [ -s "$since" ] || date +%s > "$since"
-        age=$(( $(date +%s) - $(cat "$since") ))
+        from=$(cat "$since")
+        published=$(${config.golem.update.publishedCommand}/bin/golem-update-published "$upstream" || true)
+        if [[ "$published" =~ ^[0-9]+$ ]] && [ "$published" -lt "$from" ]; then from=$published; fi
+        age=$(( $(date +%s) - from ))
         if [ "$age" -lt $(( wave * 86400 )) ] && [ ! -e /run/golem-update-now ]; then
           echo "golem-autoupdate: a new version is out; this machine is in wave $wave and takes it in about $(( (wave * 86400 - age + 3599) / 3600 )) h."
           pull=0
@@ -263,6 +323,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         else
           echo "golem-autoupdate: already up to date ($after)."
         fi
+        ensure_boot_entry || exit 1
         exit 0
       fi
       if [ "$before" = "$after" ] && [ "$built" != "$after" ]; then
@@ -286,6 +347,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       # that failed (a download that broke) is tried again the next night,
       # not a whole wave later.
       if [ "$pull" = 1 ]; then rm -f "$since"; fi
+      ensure_boot_entry || exit 1
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
     '';
   };
@@ -295,12 +357,20 @@ lib.mkIf (config.golem.flakeDir != null) {
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";
-      Persistent = true;        # catch up a missed run (laptop asleep at the hour)
       # Each machine its own moment between midnight and 6:00, the same every
       # night: systemd derives it from this machine's machine-id and the
       # timer's name, on the machine, so the machines never all ask at once.
-      RandomizedDelaySec = "6h";
+      RandomizedOffsetSec = "6h";
+      # A machine that was off at its moment (most are, at night) runs a few
+      # minutes after it is turned on; one that slept, as it wakes.
+      Persistent = true;
+      RandomizedDelaySec = "10min";
       FixedRandomDelay = true;
+      # Not RandomizedDelaySec=6h for the moment, as until 2026-10-28: systemd
+      # counts a missed run's delay from the BOOT (timer.c, "rebase after boot
+      # time"), so a machine turned on in the morning waited its 0-6 h again,
+      # and one used for less than that a day never updated at all. Proven on
+      # systemd 260 with real timers.
     };
   };
 }

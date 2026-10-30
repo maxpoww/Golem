@@ -5,8 +5,9 @@ What to do, situation by situation. How it works: [README.md](README.md).
 
 ## Every day: nothing
 
-The lane runs at 05:00 (or at the next wake) and notifies when it publishes
-or fails. To look:
+The lane runs at 05:00 (or at the next wake). Once a week it publishes;
+the other days it only builds and boots `main` when `main` moved. It
+notifies when it publishes or fails. To look:
 
 ```sh
 golem-lane status                 # the last run, as JSON
@@ -14,11 +15,12 @@ ls ~/.local/state/golem-lane/logs # one log per run, kept 30 days
 systemctl status golem-lane       # the service and its timer
 ```
 
-## Publish now (don't wait for 05:00)
+## Publish now (an urgent fix: don't wait for the week)
 
 ```sh
-sudo systemctl start golem-lane          # or, in a terminal: golem-lane run
+golem-lane run --now                     # publish main today
 golem-lane run --bump                    # also take this week's NixOS fixes now
+sudo systemctl start golem-lane          # the scheduled run, now (publishes only if the week is up)
 ```
 
 ## The lane says the gate failed
@@ -72,8 +74,14 @@ golem-update-wave                                                            # i
 
 ## The next NixOS release (twice a year)
 
-The lane notifies when it is out, and a month before the current one ends
-(26.05 ends 2026-12-31).
+Nothing to do when it goes well: the lane makes the jump by itself on the
+first weekly publish 28 days after the release branch appeared (or sooner
+when the current release ends within 14 days; 26.05 ends 2026-12-31), if
+every system builds and boots on it, and notifies "Golem moved to NixOS
+YY.MM". Watch the lab laptops that night.
+
+When it says **"NixOS YY.MM not ready yet"**, Golem stays on the current
+release and the lane tries again every week. To fix:
 
 1. `golem-lane release 26.11 --push`: branch `release-26.11` with both
    inputs moved, the gate built, the errors listed, the branch on GitHub.
@@ -82,7 +90,8 @@ The lane notifies when it is out, and a month before the current one ends
    Never touch `system.stateVersion`.
 3. Lab round: `GOLEM_LAB_BRANCH=release-26.11` lab-pull on the lab laptops,
    reboot, golem-parity, use them.
-4. Merge into `main`. The lane publishes it like any version; installs take
+4. Merge into `main` (or land just the fixes on `main` when they work on
+   both releases). The lane publishes it like any version; installs take
    it over a week.
 
 The May release usually brings a new LTS kernel series. Check the

@@ -1589,6 +1589,9 @@ try {
     return cbState;
   }
   // content side: patch MediaSource.isTypeSupported in every new DOCUMENT, per the persisted list.
+  // (The dropped-frames watch is an nsITimer held by the frame script's global: a frame script
+  // has no setInterval of its own — the bare one threw "setInterval is not defined", so the
+  // 60 fps cap never learned anything until 2026-10-29 — and content's dies with each page.)
   // (Keyed by document, not window: a browser's outer window object is reused across page
   // loads, so a per-window "done" mark patched only the first page — measured.)
   var CB_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
@@ -1603,9 +1606,9 @@ try {
     "Components.utils.exportFunction(function(cfg){var pr=di.call(mc,cfg);if(!(rate(cfg)>31))return pr;return new u.Promise(Components.utils.exportFunction(function(res,rej){pr.then(function(r){res(Components.utils.cloneInto({supported:!!r.supported,smooth:false,powerEfficient:!!r.powerEfficient},u));},function(e){rej(e);});},u));},mc,{defineAs:'decodingInfo'});}}"+
     "dbg('patched',parts.join(',')+(cap?' fps60':''));}catch(e){dbg('patch',e);}}"+
     "addEventListener('DOMWindowCreated',function(e){try{patch(e.target);}catch(x){dbg('event',x);}},true);try{patch(content.document);}catch(e){dbg('initial',e);}"+
-    "var seen=new WeakMap(),strikes=0,reported=false;setInterval(function(){try{if(reported)return;var d=content&&content.document;if(!d)return;var vs=d.querySelectorAll('video');for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||!v.getVideoPlaybackQuality)continue;var q=v.getVideoPlaybackQuality(),now=Date.now(),p=seen.get(v);seen.set(v,{f:q.totalVideoFrames,d:q.droppedVideoFrames,t:now});if(!p)continue;"+
+    "var seen=new WeakMap(),strikes=0,reported=false,drops=Components.classes['@mozilla.org/timer;1'].createInstance(Components.interfaces.nsITimer);this.__golemDrops=drops;drops.initWithCallback({notify:function(){try{if(reported)return;var d=content&&content.document;if(!d)return;var vs=d.querySelectorAll('video');for(var i=0;i<vs.length;i++){var v=vs[i];if(v.paused||!v.getVideoPlaybackQuality)continue;var q=v.getVideoPlaybackQuality(),now=Date.now(),p=seen.get(v);seen.set(v,{f:q.totalVideoFrames,d:q.droppedVideoFrames,t:now});if(!p)continue;"+
     "var df=q.totalVideoFrames-p.f,dd=q.droppedVideoFrames-p.d,dt=(now-p.t)/1000;if(dt<=0||df<100)continue;var fps=df/dt,ratio=dd/df;if(fps>45&&ratio>0.10){strikes++;}else{strikes=0;}"+
-    "if(strikes>=3){reported=true;sendAsyncMessage('golem:fps60drops',{fps:Math.round(fps),ratio:Math.round(ratio*100)/100,frames:df});}}}catch(e){dbg('drops',e);}},3000);"+
+    "if(strikes>=3){reported=true;sendAsyncMessage('golem:fps60drops',{fps:Math.round(fps),ratio:Math.round(ratio*100)/100,frames:df});}}}catch(e){dbg('drops',e);}}},3000,Components.interfaces.nsITimer.TYPE_REPEATING_SLACK);"+
     "}catch(e){dbg('load',e);}})();");
   function cbInit(win){
     if(win.__golemCbInit) return; win.__golemCbInit=true;
@@ -2886,6 +2889,7 @@ try {
         step("codecs-decision-matches-report", !!caps.vp9 && caps.vp9.known && (st.block.indexOf("vp9")!==-1)===(!caps.vp9.hw));   // headless: no hardware → blocked; real hardware → untouched
         see(function(t1){ r.codecs.page=t1; r.codecs.expect=expect; r.codecs.dbg=win.__golemCbDbg||null;
           step("codecs-page-follows-policy", t1===expect);
+          step("codecs-frame-script-runs-whole", !(win.__golemCbDbg||[]).some(function(s){ return /^(load|drops):/.test(s); }));   // the drops watch armed, never thrown
           var fpsWas=Services.prefs.getBoolPref(FC_PREF,false); Services.prefs.setBoolPref(FC_PREF,true);
           b.loadURI(Services.io.newURI(FPSPAGE),{triggeringPrincipal:Services.scriptSecurityManager.getSystemPrincipal()});
           win.setTimeout(function(){ var tf=String(b.contentTitle||""); r.codecs.fpsPage=tf; Services.prefs.setBoolPref(FC_PREF,fpsWas);
@@ -3239,7 +3243,8 @@ try {
 //     webapps do not reopen when Seam restarts, as Chrome's app windows did not;
 //   * no tab strip (tab-bar-visibility: a single-tab window), and links and
 //     new tabs go to a normal window (BrowserWindowTracker, URILoadingHelper
-//     and BrowserDOMWindow skip taskbartab windows);
+//     and BrowserDOMWindow skip taskbartab windows) — but a page's new-tab link
+//     to its app's own site stays in the window (waLinks, below);
 //   * display-mode minimal-ui, so sites with a manifest show their app layout.
 // Mozilla gates the feature to Windows (TaskbarTabsUtils.isEnabled) but the
 // window path never asks; webapps-selftest guards the Linux branch, and if a
@@ -3299,12 +3304,13 @@ try {
       var dir=Services.env.get("XDG_RUNTIME_DIR"); if(!dir) return;
       dir=dir+"/seam"; var out={}, e=Services.wm.getEnumerator("navigator:browser"), w0=null;
       while(e.hasMoreElements()){ var w=e.getNext(); if(w.closed) continue; w0=w0||w; var sl=waSlugOf(w); if(!sl) continue;
-        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||""), back:!!w.gBrowser.canGoBack, fwd:!!w.gBrowser.canGoForward}; }catch(e2){} }
+        try{ out[sl]={url:w.gBrowser.currentURI.spec, title:String(w.gBrowser.selectedBrowser.contentTitle||""), back:!!w.gBrowser.canGoBack, fwd:!!w.gBrowser.canGoForward, tr:waTrState(w)}; }catch(e2){} }
       var io=(w0||{}).IOUtils; if(!io) return;   // no window left: nothing is open to copy from
       // The title bar's back and forward arrows show only while there is somewhere to go
       // (waveview, golemBar.cpp `navMask`): the same facts as lines it can read without a
-      // JSON parser, "<slug> <back 0|1> <forward 0|1>".
-      var nav=Object.keys(out).map(function(k){ return k+" "+(out[k].back?1:0)+" "+(out[k].fwd?1:0)+"\n"; }).join("");
+      // JSON parser, "<slug> <back 0|1> <forward 0|1> <translate 0|1|2>" (waTrState; a
+      // bar from before the fourth reads the first three).
+      var nav=Object.keys(out).map(function(k){ return k+" "+(out[k].back?1:0)+" "+(out[k].fwd?1:0)+" "+(out[k].tr||0)+"\n"; }).join("");
       io.makeDirectory(dir,{ignoreExisting:true}).then(function(){ return io.writeUTF8(dir+"/apps.json",JSON.stringify(out),{tmpPath:dir+"/apps.json.tmp"}); })
         .then(function(){ return io.writeUTF8(dir+"/nav",nav,{tmpPath:dir+"/nav.tmp"}); }).catch(function(e3){ WALOG("report:"+e3); });
     }catch(e4){ WALOG("report:"+e4); }
@@ -3323,7 +3329,7 @@ try {
     try{
       var pn=w.PopupNotifications, root=w.document.documentElement; if(!pn || pn.__golemApp) return; pn.__golemApp=true;
       var orig=pn.show;
-      var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
+      var clear=function(){ w.setTimeout(function(){ try{ if(!pn.isPanelOpen && !waDownloadsOpen(w)) root.removeAttribute("golem-app-prompt"); }catch(e){} },0); };
       pn.show=function(b,id,msg,anchor,main,secondary,options){
         try{ if(!(options && options.dismissed)) root.setAttribute("golem-app-prompt","true"); }catch(e){}
         try{ options=options||{}; var cb=options.eventCallback;
@@ -3331,6 +3337,45 @@ try {
         return orig.call(this,b,id,msg,anchor,main,secondary,options); };
       pn.panel.addEventListener("popuphidden",clear);
     }catch(e){ WALOG("prompts:"+e); }
+  }
+
+  // A DOWNLOAD in a webapp said nothing (found 2026-10-29 from the eBay links): Firefox
+  // tells of it in the most recent NORMAL window (DownloadsCommon skips taskbartab windows)
+  // and, there or in the webapp, on a downloads button of a toolbar the webapp hides — the
+  // file came into Downloads unseen. While a webapp is the window in use, a download it
+  // starts opens the downloads panel IN it, the address strip showing as for a prompt (the
+  // panel hangs from the downloads button), and both go when the panel closes. Taught once,
+  // on the downloads list's own class (its _notifyDownloadEvent), at the first webapp.
+  function waDownloadsOpen(w){ try{ return !!(w.DownloadsPanel && w.DownloadsPanel.isPanelShowing); }catch(e){ return false; } }
+  function waDownloadsIn(w){
+    try{
+      var root=w.document.documentElement; root.setAttribute("golem-app-prompt","true");
+      if(!w.__golemDownloads){
+        w.__golemDownloads=true;
+        w.addEventListener("popuphidden",function(ev){
+          try{ if(!ev.target || ev.target.id!=="downloadsPanel") return;
+            if(!(w.PopupNotifications && w.PopupNotifications.isPanelOpen)) root.removeAttribute("golem-app-prompt"); }catch(e){} },true);
+      }
+      // (a frame for the strip to be laid out: the panel anchors to its button)
+      w.setTimeout(function(){ try{ w.DownloadsPanel.showPanel(); }catch(e){ WALOG("downloads:"+e); root.removeAttribute("golem-app-prompt"); } },60);
+      WALOG("download shown in "+waSlugOf(w));
+    }catch(e){ WALOG("downloads:"+e); }
+  }
+  function waDownloads(w){
+    try{
+      var DC; try{ DC=ChromeUtils.importESModule("moz-src:///browser/components/downloads/DownloadsCommon.sys.mjs").DownloadsCommon; }
+              catch(e){ DC=ChromeUtils.importESModule("resource:///modules/DownloadsCommon.sys.mjs").DownloadsCommon; }   // (before 159)
+      var proto=Object.getPrototypeOf(DC.getData(w)), base=proto && proto._notifyDownloadEvent;
+      if(!base || proto.__golemApp) return;
+      proto._notifyDownloadEvent=function(aType,opts){
+        var aw=null; try{ aw=Services.focus.activeWindow; }catch(e){}
+        if(aType==="start" && aw && !aw.closed && waSlugOf(aw) && !this._isPrivate && !(opts && opts.openDownloadsListOnStart===false)){
+          waDownloadsIn(aw); return;
+        }
+        return base.apply(this,arguments);
+      };
+      Object.defineProperty(proto,"__golemApp",{value:true});
+    }catch(e){ WALOG("downloads:"+e); }
   }
 
   // The focus-to-visibility bridge (see the header). A frame script in the webapp
@@ -3368,12 +3413,219 @@ try {
     }catch(e){ WALOG("visibility:"+e); }
   }
 
+  // A webapp's links stay in its window (Max, 2026-10-29: "on ebay, when im on the webapp, and
+  // click an article, it opens on a new tab on seam... webapps should never go out of their
+  // windows"). Firefox sends every new tab of a web-app window to a normal window
+  // (BrowserDOMWindow skips taskbartab windows). Here a link that asks for one (target=_blank,
+  // the opener left out, as a link is by default) to the app's OWN site (the page's, or where
+  // the app starts; its other countries too: ebay.es from ebay.com) opens in the window
+  // itself, where the title bar's back arrow returns. Another site's still goes to Seam, as a
+  // link out of the app; so does what was asked for as a tab (a middle click, Ctrl+click, the
+  // menu's Open in new tab: Firefox's openLinkIn), a popup (a sign-in), a window.open whose
+  // page keeps a handle on what it opens (a sign-in may talk back through it: it gets its tab
+  // as ever) and a link from another program. The load is the page's own (its principal and
+  // referrer), http and https only.
+  function waSite(uri){
+    try{ var b=Services.eTLD.getBaseDomain(uri), s=Services.eTLD.getPublicSuffix(uri);
+      return b.slice(0,b.length-s.length-1)||b; }catch(e){}
+    try{ return uri.host; }catch(e){ return ""; }
+  }
+  // A site's own REDIRECTOR is not its own page: Gmail's links go through google.com/url?q=,
+  // Facebook's l.facebook.com/l.php?u=, YouTube's /redirect?q=, Instagram's, Reddit's,
+  // LinkedIn's… — a link is judged by the address it carries in a parameter (an http(s)
+  // address of another site), so a news link in a mail still goes to Seam.
+  function waCarried(uri){
+    try{
+      var q=String(uri.query||""); if(!q) return null;
+      var parts=q.split("&");
+      for(var i=0;i<parts.length;i++){
+        var eq=parts[i].indexOf("="); if(eq<0) continue;
+        var v=""; try{ v=decodeURIComponent(parts[i].slice(eq+1).replace(/\+/g," ")); }catch(e){ continue; }
+        if(!/^https?:\/\//i.test(v)) continue;
+        var to=null; try{ to=Services.io.newURI(v); }catch(e){ continue; }
+        if(waSite(to)!==waSite(uri)) return to;
+      }
+    }catch(e){}
+    return null;
+  }
+  function waAppSite(w,site){   // the site of the page shown, or of where the app starts
+    try{
+      if(site===waSite(w.gBrowser.currentURI)) return true;
+      var start=w.__golemAppStart||"";
+      return /^https?:/.test(start) && site===waSite(Services.io.newURI(start));
+    }catch(e){ return false; }
+  }
+  function waOwnLink(w,uri){
+    try{
+      if(!uri || !(uri.schemeIs("https")||uri.schemeIs("http"))) return false;
+      var site=waSite(uri); if(!site || !waAppSite(w,site)) return false;
+      var to=waCarried(uri);
+      return !to || waAppSite(w,waSite(to));
+    }catch(e){ return false; }
+  }
+  // Firefox's own BrowserDOMWindow decides where a page's new tab goes, and a page holds the
+  // one its window had when the page was made (replacing the window's later reaches no page
+  // already open): so it is the class itself that is taught, once. A link's click comes as
+  // createContentWindowInFrame with its address (openURIInFrame when it opens no window of
+  // its own); without an address (a window.open the page fills in itself) nothing can be
+  // judged and Firefox does as ever.
+  function waLinks(){
+    try{
+      var proto=ChromeUtils.importESModule("resource:///modules/BrowserDOMWindow.sys.mjs").BrowserDOMWindow.prototype;
+      var B=Components.interfaces.nsIBrowserDOMWindow;
+      if(proto.__golemApp) return;
+      var kept=function(self,uri,params,where,flags){
+        var w=self.win, keep=false;
+        // (a page with a handle on what it opens: openWindowInfo.forceNoOpener false)
+        var free=true; try{ var oi=params && params.openWindowInfo; if(oi && oi.forceNoOpener===false) free=false; }catch(e){}
+        try{ keep=free && !!w && !!waSlugOf(w) && !(flags & B.OPEN_EXTERNAL) && waOwnLink(w,uri) &&
+                  (where===B.OPEN_NEWTAB || where===B.OPEN_NEWTAB_FOREGROUND || where===B.OPEN_NEWTAB_BACKGROUND); }catch(e){}
+        if(!keep) return false;
+        w.__golemKept={ site:waSite(uri), at:Date.now() };   // (its first stop is looked at: waLanded)
+        w.gBrowser.selectedBrowser.loadURI(uri,{ triggeringPrincipal:params.triggeringPrincipal, policyContainer:params.policyContainer, referrerInfo:params.referrerInfo });
+        WALOG("link kept in "+waSlugOf(w)+": "+uri.spec);
+        return true;
+      };
+      ["createContentWindowInFrame","openURIInFrame"].forEach(function(n){
+        var base=proto[n]; if(!base) return;
+        proto[n]=function(uri,params,where,flags,name){
+          // (Failing is what keeps Firefox from opening it anywhere else: no element back
+          // would make it open a whole new window.)
+          if(kept(this,uri,params,where,flags)) throw Components.Exception("kept in the webapp's window",Components.results.NS_ERROR_ABORT);
+          return base.call(this,uri,params,where,flags,name);
+        };
+      });
+      Object.defineProperty(proto,"__golemApp",{value:true});
+    }catch(e){ WALOG("links:"+e); }
+  }
+  waLinks();
+
+  // SEAM'S WINDOW COMES BACK WHOLE (2026-10-29, found from the eBay links: what Firefox does
+  // around a web-app window is made for Windows). A webapp keeps Seam running, so closing
+  // Seam's last window while one is open does not quit it, and the next Seam window (the
+  // dock's tile) opened BLANK: the tabs were left in "recently closed windows" and came back
+  // only at a restart. Firefox's own answer (the session waits for the next normal window) is
+  // behind Mozilla's switch for its Windows web apps, and puts the tabs behind the blank one,
+  // which it keeps selected. Here: when the last normal window closes while a webapp stays,
+  // and Seam restores its session at start (browser.startup.page 3), the next normal window
+  // takes that window back (in place of its start page, or beside the link it opened for),
+  // and it leaves "recently closed".
+  var waWindowWaits=false;
+  function waNormal(w){
+    try{ var r=w.document.documentElement;
+      return r.getAttribute("windowtype")==="navigator:browser" && !r.hasAttribute("taskbartab") && w.toolbar.visible &&
+             !ChromeUtils.importESModule("resource://gre/modules/PrivateBrowsingUtils.sys.mjs").PrivateBrowsingUtils.isWindowPrivate(w);
+    }catch(e){ return false; }
+  }
+  function waOthers(w){   // what else is open: a normal window, a webapp
+    var e=Services.wm.getEnumerator("navigator:browser"), o={normal:false, app:false};
+    while(e.hasMoreElements()){ var x=e.getNext(); if(x===w || x.closed) continue; if(waNormal(x)) o.normal=true; else if(waSlugOf(x)) o.app=true; }
+    return o;
+  }
+  function waTakeBack(w){
+    try{
+      var SS; try{ SS=ChromeUtils.importESModule("moz-src:///browser/components/sessionstore/SessionStore.sys.mjs").SessionStore; }
+              catch(e){ SS=ChromeUtils.importESModule("resource:///modules/sessionstore/SessionStore.sys.mjs").SessionStore; }   // (before 159)
+      var closed=SS.getClosedWindowData(), i=-1;
+      for(var k=0;k<closed.length;k++){ if(!closed[k].isPopup && closed[k].tabs && closed[k].tabs.length){ i=k; break; } }
+      if(i<0) return;
+      var start=false;
+      try{
+        var a=w.arguments && w.arguments[0]; a=a ? String(a instanceof Components.interfaces.nsISupportsString ? a.data : a) : "";
+        var d=Components.classes["@mozilla.org/browser/clh;1"].getService(Components.interfaces.nsIBrowserHandler).defaultArgs;
+        start=w.gBrowser.tabs.length===1 && (!a || a===d || /^about:(home|newtab|blank)/.test(a));
+      }catch(e){}
+      var id=closed[i].closedId, n=closed[i].tabs.length;
+      SS.setWindowState(w,JSON.stringify({windows:[closed[i]]}),start);
+      try{ SS.forgetClosedWindowById(id); }catch(e){ try{ SS.forgetClosedWindow(i); }catch(e2){} }
+      WALOG("Seam's window took back "+n+" tabs"+(start?"":", beside its link"));
+    }catch(e){ WALOG("take back:"+e); }
+  }
+  try{
+    Services.ww.registerNotification({ observe:function(sub,topic){
+      if(topic!=="domwindowclosed" || !waNormal(sub)) return;
+      var o=waOthers(sub); if(o.normal) return;
+      var restores=false; try{ restores=Services.prefs.getIntPref("browser.startup.page",1)===3; }catch(e){}
+      waWindowWaits=o.app && restores;
+      if(waWindowWaits) WALOG("Seam's last window closed while a webapp runs: its tabs wait");
+    } });
+    Services.obs.addObserver(function(w){
+      if(!waWindowWaits || !waNormal(w) || waOthers(w).normal) return;
+      waWindowWaits=false;
+      waTakeBack(w);
+    },"browser-delayed-startup-finished");
+  }catch(e){ WALOG("session:"+e); }
+
+  // TRANSLATE A WEBAPP'S PAGE FROM ITS TITLE BAR (Max, 2026-10-29: "i want it, maybe on the
+  // title bar?"). Seam's own windows offer a page in another language by a button in the
+  // address bar, which a webapp hides; its title bar (waveview) has the button instead.
+  // Seam says per webapp, in seam/nav's fourth number, whether its page can be translated
+  // (1: in a language other than the owner's, one the translations read) or IS (2); the
+  // button sends Ctrl+Alt+Shift+T, which here translates the page into the owner's
+  // language, or shows it as it was (Firefox's own translations, on the device).
+  var WA_TR_KEY="T", WA_TR_MODS="accel,alt,shift";
+  function waTrActor(w){
+    try{ return ChromeUtils.importESModule("resource://gre/actors/TranslationsParent.sys.mjs").TranslationsParent.getTranslationsActor(w.gBrowser.selectedBrowser); }
+    catch(e){ return null; }
+  }
+  function waTrState(w){
+    try{
+      var ls=(waTrActor(w)||{}).languageState; if(!ls) return 0;
+      if(ls.requestedLanguagePair) return 2;
+      var d=ls.detectedLanguages;
+      if(!d || !d.docLangTag || !d.userLangTag || !d.isDocLangTagSupported) return 0;
+      return String(d.docLangTag).split("-")[0].toLowerCase()===String(d.userLangTag).split("-")[0].toLowerCase() ? 0 : 1;
+    }catch(e){ return 0; }
+  }
+  function waTranslate(w){
+    try{
+      var a=waTrActor(w), ls=a && a.languageState; if(!ls) return;
+      if(ls.requestedLanguagePair){ a.restorePage(); WALOG("translate: "+waSlugOf(w)+" as it was"); return; }
+      if(waTrState(w)!==1) return;
+      var d=ls.detectedLanguages;
+      a.translate({ sourceLanguage:d.docLangTag, targetLanguage:d.userLangTag },false);
+      WALOG("translate: "+waSlugOf(w)+" "+d.docLangTag+" > "+d.userLangTag);
+    }catch(e){ WALOG("translate:"+e); }
+  }
+  function waTrKeys(w){
+    try{
+      var d=w.document; if(d.getElementById("golem-cmd-translate")) return;
+      var cs=d.createXULElement("commandset"), c=d.createXULElement("command");
+      c.id="golem-cmd-translate"; c.addEventListener("command",function(){ waTranslate(w); });
+      cs.appendChild(c); d.documentElement.appendChild(cs);
+      // (a keyset of its own: one put in after the window's load is read when it is inserted)
+      var ks=d.createXULElement("keyset"), k=d.createXULElement("key");
+      k.id="golem-key-translate"; k.setAttribute("key",WA_TR_KEY); k.setAttribute("modifiers",WA_TR_MODS);
+      k.setAttribute("command","golem-cmd-translate"); k.setAttribute("reserved","true");
+      ks.appendChild(k); d.documentElement.appendChild(ks);
+      // what the translations say comes on the page's browser (bubbling)
+      w.addEventListener("TranslationsParent:LanguageState",function(){ waReport(); },true);
+    }catch(e){ WALOG("translate keys:"+e); }
+  }
+
+  // A link kept in the window that the server sends on to ANOTHER site (a redirect no
+  // parameter told of) lands there: that page goes to Seam, and the webapp back to the
+  // page it was on (a redirect leaves no entry of its own to go back through).
+  function waLanded(w,loc){
+    try{
+      var k=w.__golemKept; w.__golemKept=null;
+      if(!k || Date.now()-k.at>15000 || !loc || !(loc.schemeIs("https")||loc.schemeIs("http"))) return;
+      var site=waSite(loc), start=w.__golemAppStart||"";
+      if(site===k.site || (/^https?:/.test(start) && site===waSite(Services.io.newURI(start)))) return;
+      WALOG("kept link went on to "+loc.spec+": to Seam");
+      if(w.gBrowser.canGoBack) w.gBrowser.goBack();
+      w.openTrustedLinkIn(loc.spec,"tab");
+    }catch(e){ WALOG("landed:"+e); }
+  }
+
   function waWatch(w){
     try{ w.gBrowser.tabs.forEach(function(t){ try{ w.gBrowser.getBrowserForTab(t).browsingContext.displayMode="minimal-ui"; }catch(e){} }); }catch(e){}
-    try{ w.gBrowser.addProgressListener({ onLocationChange:function(){ waReport(); } }); }catch(e){ WALOG("watch:"+e); }
+    try{ w.gBrowser.addProgressListener({ onLocationChange:function(wp,req,loc,flags){
+      try{ if(wp && wp.isTopLevel && !(flags & Components.interfaces.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT) && w.__golemKept) waLanded(w,loc); }catch(e){}
+      waReport(); } }); }catch(e){ WALOG("watch:"+e); }
     try{ w.addEventListener("pagetitlechanged",function(){ waReport(); },true); }catch(e){}
     w.addEventListener("unload",function(){ waReport(); },{once:true});
-    waPrompts(w); waVisibility(w); waReport();
+    waPrompts(w); waVisibility(w); waDownloads(w); waTrKeys(w); waReport();
   }
 
   // A webapp's name, from the dock's catalog (~/.config/webapps.list, "Name | URL | icon")
@@ -4047,17 +4299,23 @@ try {
   function rkClip(s,n){ return String(s==null?"":s).replace(/[\u0000-\u001f]/g," ").trim().slice(0,n); }
 
   // The content side: a moment after the title changes or the page shows, what the page is.
+  // Its picture (og:image) is the page's while the document is the one that loaded: the same
+  // address, or the same history entry (the address only TIDIED in place: a wiki's redirect
+  // "The_strokes" -> "The_Strokes", "?wprov=" taken off — 2026-10-29, those pages had none). After
+  // an app moved to another page without loading, its tags are the first page's unless it renewed
+  // them (an og:image other than the one it loaded with is the new page's).
   var RK_FS="data:application/javascript;charset=utf-8,"+encodeURIComponent(
-    "(function(){var t=0,poll=0,lastPlay='',loaded='';"+
+    "(function(){var t=0,poll=0,lastPlay='',loaded='',loadedLen=-1,loadedOg=null;"+
     "function waive(o){try{return Components.utils.waiveXrays(o);}catch(e){return o;}}"+
     "function art(md){try{var a=waive(md).artwork||md.artwork;var best=null,bw=-1;for(var i=0;i<a.length;i++){var it=waive(a[i]);var s=String(it.src||'');var w=parseInt(String(it.sizes||'').split(/[xX]/)[0],10)||0;if(/^https?:/i.test(s)&&w>=bw){best=s;bw=w;}}return best;}catch(e){return null;}}"+
     "function og(d){try{var m=d.querySelector('meta[property=\"og:image\"],meta[name=\"og:image\"],meta[name=\"twitter:image\"],meta[property=\"twitter:image\"]');if(!m)return null;var v=m.getAttribute('content');if(!v)return null;var u=new content.URL(v,d.baseURI);return /^https?:$/.test(u.protocol)?u.href:null;}catch(e){return null;}}"+
     "function media(){try{var md=content.navigator.mediaSession.metadata;if(!md||!md.title)return null;return {title:String(md.title),artist:String(md.artist||''),album:String(md.album||''),art:art(md)};}catch(e){return null;}}"+
     "function send(){t=0;try{var d=content.document,l=content.location;if(!/^https?:$/.test(l.protocol))return;var m=media();if(m)lastPlay=m.title+'|'+m.artist;"+
-    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:(String(l.href)===loaded?og(d):null),media:m});"+
+    "var o=og(d),same=String(l.href)===loaded||content.history.length===loadedLen;"+
+    "sendAsyncMessage('golem:recent',{url:String(l.href),title:String(d.title||''),og:(same||o!==loadedOg)?o:null,media:m});"+
     "if(m&&!poll)poll=content.setInterval(function(){var n=media();if(!n){content.clearInterval(poll);poll=0;return;}if(n.title+'|'+n.artist!==lastPlay)soon();},20000);}catch(e){}}"+
     "function soon(){try{if(t)content.clearTimeout(t);t=content.setTimeout(send,1500);}catch(e){}}"+
-    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;try{loaded=String(content.location.href);}catch(e){}soon();},false);})();");
+    "addEventListener('DOMTitleChanged',soon,false);addEventListener('pageshow',function(){poll=0;try{loaded=String(content.location.href);loadedLen=content.history.length;loadedOg=og(content.document);}catch(e){}soon();},false);})();");
 
   var rk={v:1,pages:{},plays:[]}, rkReady=false, rkWaiting=[], rkTimer=null, rkFetching={}, rkSaves=0, rkLater=false, rkSavedAt=0;
   // What an earlier run kept, read once before the first change is written over it.
@@ -4108,7 +4366,7 @@ try {
   // (own: kept under a name of its own — a list's picture is its first video's, and the dock
   // takes a picture two things wear for a site's logo.)
   function rkPicture(src,pageUrl,done,failed,own){
-    var no=function(){ if(failed) try{ failed(); }catch(e){} };
+    var no=function(why){ if(failed) try{ failed(why||""); }catch(e){} };
     if(!rkWeb(src)){ no(); return; }
     if(!rkMayFetch(src,pageUrl)){ RKLOG("picture not fetched (another site's, or a near address): "+src.slice(0,120)); no(); return; }
     var name=rkHash(own ? src+"#"+own : src), w=rkWin(), dir=rkDir(); if(!w || !dir){ no(); return; }
@@ -4130,7 +4388,7 @@ try {
             .then(function(){ finish(); done(file); });
         });
       });
-    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); no(); });
+    }).catch(function(e){ finish(); RKLOG("picture "+src.slice(0,120)+": "+e); no(String(e)); });
   }
   // What a page told: kept as the page's, and what it plays as a play.
   function rkHeard(m){
@@ -4228,6 +4486,9 @@ try {
   // first video's picture — fetched the same way (the biggest first) and kept under the LIST'S
   // own name (rkPicture's own: the same file on a song and a list would read to the dock as a
   // site's logo, on neither).
+  // AND WHO SINGS IT (2026-10-29): a song the history names by its title alone ("Mentirosa") is
+  // asked for the same way, and named "Song \u2022 Artist" when the video is the artist's own; else
+  // left as it was and asked again in a week (rkWhole: a play with its artist is whole already).
   // The test asks for a round at once: the topic "golem:recents-backfill".
   var RK_BACK_HOSTS=["music.youtube.com"], RK_BACK_NAME=/^youtube music$/i, RK_BACK_MAX=48, RK_BACK_DAYS=120, RK_BACK_AGAIN=7*86400, RK_BACK_GAP=1500;
   var RK_BACK_FIRST=90000, RK_BACK_EVERY=86400000, RK_BACK_SIZES=["maxresdefault","hqdefault"], RK_WORDS_MAX=65536;
@@ -4248,6 +4509,9 @@ try {
   function rkBackKey(url){ var id=rkVideoId(url); if(id) return id; var l=rkListId(url); return l ? "list:"+l : null; }
   // A title that says nothing but the site's name ("YouTube Music", "x | YouTube Music" is a name).
   function rkNameless(t){ var n=String(t||"").trim(); return !n || RK_BACK_NAME.test(n); }
+  // A song's name says who sings it ("Mentirosa \u2022 R\u00e1faga"), a list's is whole as it is:
+  // the history names a song by its title alone ("Mentirosa"), and that is asked for again.
+  function rkWhole(t,list){ return !rkNameless(t) && (list || String(t).indexOf(" \u2022 ")>0); }
   // What a site says of a page, as JSON, fetched the kitchen's way: done(object) or failed().
   function rkWords(src,pageUrl,done,failed){
     var w=rkWin();
@@ -4259,7 +4523,7 @@ try {
     }).then(function(t){
       if(t.length>RK_WORDS_MAX) throw "size "+t.length;
       return JSON.parse(t);
-    }).then(function(j){ done(j); },function(e){ RKLOG("words "+src.slice(0,120)+": "+e); failed(); });
+    }).then(function(j){ done(j); },function(e){ RKLOG("words "+src.slice(0,120)+": "+e); failed(String(e)); });
   }
   function rkBackfill(){
     if(!rkOn() || rkBackRunning) return;
@@ -4274,11 +4538,12 @@ try {
       w.PlacesUtils.promiseDBConnection().then(function(db){
         return db.executeCached("SELECT url, title, last_visit_date AS at FROM moz_places WHERE ("+like+") AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",params);
       }).then(function(rows){
-        var now=Math.round(Date.now()/1000), pictured={}, named={}, of={}, want=[], pics=0, names=0, lists=0;
+        var now=Math.round(Date.now()/1000), pictured={}, named={}, titled={}, of={}, want=[], pics=0, names=0, lists=0;
         // (A song heard since has its cover and its name from the page already.)
-        rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) named[id]=1; });
-        Object.keys(rk.pages).forEach(function(u){ var id=rkBackKey(u); if(!id) return; if(rk.pages[u].pic) pictured[id]=1; if(!rkNameless(rk.pages[u].title)) named[id]=1; });
-        rows.forEach(function(r){ var id=rkBackKey(r.getResultByName("url")); if(id && !rkNameless(r.getResultByName("title"))) named[id]=1; });
+        // (Named: whole, or YouTube said once it names no one for it. Titled: any name at all.)
+        rk.plays.forEach(function(p){ var id=rkVideoId(p.url); if(!id) return; if(p.pic) pictured[id]=1; if(!rkNameless(p.title)) titled[id]=1; if(titled[id] && String(p.artist||"").trim()) named[id]=1; });
+        Object.keys(rk.pages).forEach(function(u){ var pg=rk.pages[u], id=rkBackKey(u); if(!id) return; if(pg.pic) pictured[id]=1; if(!rkNameless(pg.title)) titled[id]=1; if(rkWhole(pg.title,!rkVideoId(u)) || pg.noArtist) named[id]=1; });
+        rows.forEach(function(r){ var u=r.getResultByName("url"), t=r.getResultByName("title"), id=rkBackKey(u); if(!id) return; if(!rkNameless(t)) titled[id]=1; if(rkWhole(t,!rkVideoId(u))) named[id]=1; });
         // One fetch a song or a list; what it gets for every address it was at (with a list, without).
         for(var i=0;i<rows.length;i++){
           var url=String(rows[i].getResultByName("url")), id=rkBackKey(url), page=rk.pages[url]||{};
@@ -4288,7 +4553,7 @@ try {
           var at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
           if(of[id]){ of[id].pages.push(at); continue; }
           if(want.length>=RK_BACK_MAX) continue;
-          of[id]={id:id,list:id.indexOf("list:")===0,pages:[at],pic:pic,name:name}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0; lists+=of[id].list?1:0;
+          of[id]={id:id,list:id.indexOf("list:")===0,pages:[at],pic:pic,name:name,titled:!!titled[id]}; want.push(of[id]); pics+=pic?1:0; names+=name?1:0; lists+=of[id].list?1:0;
         }
         RKLOG("covers from before: "+(want.length-lists)+" songs, "+lists+" playlists, "+pics+" pictures, "+names+" names to fetch");
         // Kept only while a page is still in the history and nothing was cleared meanwhile.
@@ -4316,9 +4581,15 @@ try {
             rkWords("https://www.youtube.com/oembed?format=json&url="+encodeURIComponent("https://www.youtube.com/watch?v="+it.id),it.pages[0].url,
               function(j){
                 var song=rkClip(j && j.title,200), by=/^(.+) - Topic$/.exec(rkClip(j && j.author_name,200));
-                var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song;
-                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); return; }
-                keep(it,function(p){ p.title=t; delete p.nameTried; },function(){ size(it.id,0); });
+                var t=song && by ? song+" \u2022 "+rkClip(by[1],120) : song, when=Math.round(Date.now()/1000);
+                if(rkNameless(t)){ keep(it,function(p){ p.nameTried=when; },function(){ size(it.id,0); }); return; }
+                // (Without who sings it: a name for a song that had none — else the history's
+                // stays —, and YouTube is not asked again.)
+                keep(it,function(p){
+                  if(by || !it.titled) p.title=t;
+                  delete p.nameTried;
+                  if(by) delete p.noArtist; else p.noArtist=1;
+                },function(){ size(it.id,0); });
               },
               function(){ keep(it,function(p){ p.nameTried=Math.round(Date.now()/1000); },function(){ size(it.id,0); }); });
           };
@@ -4343,11 +4614,143 @@ try {
       }).catch(function(e){ stop(String(e)); });
     });
   }
+  // AND WIKIPEDIA'S (2026-10-29, Max: "give it thumbnails (only one have thumbnail)"): an article of
+  // the history with no picture (read before the kitchen came, or before a redirect kept its picture
+  // — the frame script above) asks the wiki's own summary of it (its REST API, on its own site, no
+  // cookies) for its lead picture, 960 px when the original is bigger, and keeps it on ONE address:
+  // the article's own (the summary's canonical title, the address without a query first). A
+  // redirect's address, a "?wprov=" one, is only marked tried: the dock reads one picture on two
+  // pages as the site's logo. The file is named for its page (the same lead picture in two
+  // languages is two pages'). The wiki's own pages (searches, the front page) are none of its
+  // articles (the dock's WIKI_OWN). Same rhythm as the covers: 48 a round, one every 1.5 s.
+  // (A server rationing its answers — 429 — is asked again the next round, not in a week.)
+  function rkRationed(why){ return /\(429 /.test(String(why||"")); }
+  var RK_WIKI_OWN=["Special:","Especial:","Spezial:","Sp%C3%A9cial:","Speciale:","Wikipedia:","Portal:","Main_Page","Portada","Accueil_principal"];
+  var rkWikiRunning=false;
+  function rkWikiArticle(url){
+    var m=/^https:\/\/([a-z0-9-]+\.(?:m\.)?wikipedia\.org)\/wiki\/([^?#]+)/i.exec(String(url||""));
+    if(!m || RK_WIKI_OWN.some(function(w){ return m[2].indexOf(w)===0; })) return null;
+    var title; try{ title=decodeURIComponent(m[2]).replace(/ /g,"_"); }catch(e){ return null; }
+    return {host:m[1].toLowerCase(), title:title};
+  }
+  function rkWikiBackfill(){
+    if(!rkOn() || rkWikiRunning) return;
+    var w=rkWin(); if(!w || !w.PlacesUtils) return;
+    rkWikiRunning=true;
+    var stop=function(why){ rkWikiRunning=false; if(why) RKLOG("wikipedia from before: "+why); };
+    rkLoad(function(){
+      var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000;
+      w.PlacesUtils.promiseDBConnection().then(function(db){
+        // (Sqlite.sys.mjs takes a LIKE's pattern only as a binding.)
+        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE url LIKE :wiki AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",{since:since,wiki:"https://%wikipedia.org/wiki/%"});
+      }).then(function(rows){
+        var now=Math.round(Date.now()/1000), of={}, want=[];
+        for(var i=0;i<rows.length;i++){
+          var url=String(rows[i].getResultByName("url")), a=rkWikiArticle(url), page=rk.pages[url]||{};
+          if(!a || page.pic || now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var key=a.host+"/"+a.title, at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
+          if(of[key]){ of[key].pages.push(at); continue; }
+          if(want.length>=RK_BACK_MAX) continue;
+          of[key]={host:a.host,title:a.title,pages:[at]}; want.push(of[key]);
+        }
+        RKLOG("wikipedia from before: "+want.length+" articles to ask");
+        var keep=function(it,f,then){
+          Promise.all(it.pages.map(function(pg){
+            return w.PlacesUtils.history.hasVisits(pg.url).then(function(yes){
+              if(yes && rk===gen && rkOn()) f(rk.pages[pg.url]||(rk.pages[pg.url]={at:pg.at}),pg);
+            }).catch(function(){});
+          })).then(function(){ rkSave(); }).then(then);
+        };
+        var next=function(k){
+          if(k>=want.length){ stop(); return; }
+          if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
+          var it=want[k], when=Math.round(Date.now()/1000), on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
+          var tried=function(){ keep(it,function(p){ p.tried=when; },on); };
+          rkWords("https://"+it.host+"/api/rest_v1/page/summary/"+encodeURIComponent(it.title),it.pages[0].url,function(j){
+            var canon=String((j && j.titles && j.titles.canonical)||"").replace(/ /g,"_"), th=j && j.thumbnail, orig=j && j.originalimage, srcs=[];
+            if(th && rkWeb(th.source)){
+              if(orig && orig.width>960 && th.width<960) srcs.push(String(th.source).replace(/\/[0-9]+px-([^\/]+)$/,function(all,file){ return "/960px-"+file; }));
+              else if(orig && rkWeb(orig.source) && orig.width<=1280 && /\.(jpe?g|png|webp)$/i.test(orig.source)) srcs.push(String(orig.source));
+              srcs.push(String(th.source));
+            }
+            if(it.title!==canon || !srcs.length){ tried(); return; }
+            var best=null;
+            for(var q=0;q<it.pages.length && !best;q++){ if(!/[?#]/.test(it.pages[q].url)) best=it.pages[q]; }
+            best=best||it.pages[0];
+            var pic=function(s){
+              if(s>=srcs.length){ tried(); return; }
+              rkPicture(srcs[s],best.url,function(f){
+                keep(it,function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; },on);
+              },function(why){ if(rkRationed(why)) on(); else pic(s+1); },best.url);
+            };
+            pic(0);
+          },function(why){ if(rkRationed(why)) on(); else tried(); });
+        };
+        next(0);
+      }).catch(function(e){ stop(String(e)); });
+    });
+  }
+  // AND GITHUB'S (same day, the same clue: GitHub 0 previews of 10): a repository of the history with
+  // no picture wears its card — GitHub's own picture of it, at an address made from the repository's
+  // (opengraph.githubassets.com/<a name of its own>/<owner>/<repo>), nothing asked of its page. On ONE address of a
+  // repository (the one without a query first), never on its files' pages: they wear the same card,
+  // and the dock reads one picture on two pages as the site's logo.
+  var RK_GH_NOT=["about","apps","codespaces","collections","contact","customer-stories","dashboard","enterprise","explore","features",
+    "issues","join","login","marketplace","new","notifications","organizations","orgs","pricing","pulls","readme","search","security",
+    "sessions","settings","signup","site","sponsors","team","topics","trending"];
+  var rkGhRunning=false;
+  function rkGhRepo(url){
+    var m=/^https:\/\/github\.com\/([A-Za-z0-9-]{1,39})\/([A-Za-z0-9._-]{1,100})\/?(?:[?#]|$)/.exec(String(url||""));
+    return m && RK_GH_NOT.indexOf(m[1].toLowerCase())<0 ? m[1]+"/"+m[2] : null;
+  }
+  function rkGithubBackfill(){
+    if(!rkOn() || rkGhRunning) return;
+    var w=rkWin(); if(!w || !w.PlacesUtils) return;
+    rkGhRunning=true;
+    var stop=function(why){ rkGhRunning=false; if(why) RKLOG("github from before: "+why); };
+    rkLoad(function(){
+      var gen=rk, since=(Date.now()-RK_BACK_DAYS*86400000)*1000;
+      w.PlacesUtils.promiseDBConnection().then(function(db){
+        return db.executeCached("SELECT url, last_visit_date AS at FROM moz_places WHERE url LIKE :gh AND last_visit_date > :since ORDER BY last_visit_date DESC LIMIT 400",{since:since,gh:"https://github.com/%"});
+      }).then(function(rows){
+        var now=Math.round(Date.now()/1000), of={}, want=[];
+        for(var i=0;i<rows.length;i++){
+          var url=String(rows[i].getResultByName("url")), repo=rkGhRepo(url), page=rk.pages[url]||{};
+          if(!repo || page.pic || now-(page.tried||0)<RK_BACK_AGAIN) continue;
+          var key=repo.toLowerCase(), at={url:url,at:Math.round(Number(rows[i].getResultByName("at"))/1000000)};
+          if(of[key]){ of[key].pages.push(at); continue; }
+          if(want.length>=RK_BACK_MAX) continue;
+          of[key]={repo:repo,pages:[at]}; want.push(of[key]);
+        }
+        RKLOG("github from before: "+want.length+" repositories to ask");
+        var next=function(k){
+          if(k>=want.length){ stop(); return; }
+          if(rk!==gen || !rkOn()){ stop("cleared meanwhile"); return; }
+          var it=want[k], when=Math.round(Date.now()/1000), on=function(){ rkAfter(RK_BACK_GAP,function(){ next(k+1); }); };
+          var best=null;
+          for(var q=0;q<it.pages.length && !best;q++){ if(!/[?#]/.test(it.pages[q].url)) best=it.pages[q]; }
+          best=best||it.pages[0];
+          var keep=function(f){
+            Promise.all(it.pages.map(function(pg){
+              return w.PlacesUtils.history.hasVisits(pg.url).then(function(yes){
+                if(yes && rk===gen && rkOn()) f(rk.pages[pg.url]||(rk.pages[pg.url]={at:pg.at}),pg);
+              }).catch(function(){});
+            })).then(function(){ rkSave(); }).then(on);
+          };
+          // (The first part only names the card for the server's cache: "1", everyone's, is rationed — 429.)
+          rkPicture("https://opengraph.githubassets.com/"+rkHash(it.repo.toLowerCase())+"/"+it.repo,best.url,function(f){
+            keep(function(p,pg){ if(pg===best){ p.pic=f; delete p.tried; } else p.tried=when; });
+          },function(why){ if(rkRationed(why)) on(); else keep(function(p){ p.tried=when; }); },best.url);
+        };
+        next(0);
+      }).catch(function(e){ stop(String(e)); });
+    });
+  }
   function rkBackStart(){
     if(rkBackOn) return; rkBackOn=true;
-    var round=function(){ rkBackfill(); rkAfter(RK_BACK_EVERY,round); };
+    var round=function(){ rkBackfill(); rkWikiBackfill(); rkGithubBackfill(); rkAfter(RK_BACK_EVERY,round); };
     rkAfter(RK_BACK_FIRST,round);
-    try{ Services.obs.addObserver({observe:function(){ rkBackfill(); }},"golem:recents-backfill"); }catch(e){}
+    try{ Services.obs.addObserver({observe:function(){ rkBackfill(); rkWikiBackfill(); rkGithubBackfill(); }},"golem:recents-backfill"); }catch(e){}
   }
   function rkWindow(w){
     if(w.__golemRkInit) return; w.__golemRkInit=true;

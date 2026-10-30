@@ -42,7 +42,15 @@
     efiSupport = true;
     efiInstallAsRemovable = lib.mkDefault true;
     device = "nodev";
-    configurationLimit = 15;
+    # 3, not 15: /boot IS the 512 MiB ESP (Installer/preinstall/install.nix),
+    # so GRUB copies each menu entry's kernel + initrd onto it — about
+    # 100 MB a pair (12 + 71-86 MB, the gate, 2026-10-29), new files BEFORE
+    # the old ones go. 15 entries wanted 1.5 GB; with a new kernel each week
+    # the ESP filled in about a month, the boot entry stopped being written,
+    # and the machine silently stayed on its old system. 3 entries + the one
+    # being added = ~400 MB. Older versions stay in the store
+    # (base/store-gc.nix) for crash recovery, which writes its own entry.
+    configurationLimit = 3;
 
     # THE GOLEM LOOK (#68/#92) — identical numbers to grub-bios.nix.
     theme = pkgs.callPackage ./grub-theme.nix {

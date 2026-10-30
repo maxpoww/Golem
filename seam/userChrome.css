@@ -196,13 +196,25 @@
    *|* on purpose: line 1 makes XUL the default namespace, and a selector without
    a type then matches XUL elements only; the root of browser.xhtml and the
    sidebar are HTML. */
-*|*:root[taskbartab]:not([golem-app-prompt]) *|*#navigator-toolbox,
+*|*:root[taskbartab]:not([golem-app-prompt]) *|*#navigator-toolbox > *|*:not(#notifications-toolbar),
 *|*:root[taskbartab] *|*#TabsToolbar,
 *|*:root[taskbartab] *|*#sidebar-main,
 *|*:root[taskbartab] *|*#sidebar-box,
 *|*:root[taskbartab] *|*#sidebar-splitter,
 *|*:root[taskbartab] *|*#sidebar-launcher-splitter {
   display: none !important;
+}
+/* …but the toolbox's NOTIFICATION BARS stay (2026-10-29): since Firefox 159 the page's
+   and the window's bars ("Seam prevented this site from opening a pop-up" — a sign-in —,
+   "a page is slowing Seam down"…) are #notifications-toolbar, inside the toolbox; with
+   the whole toolbox gone a webapp showed none of them. With no bar up the toolbox is
+   nothing: no border, no padding, no height. */
+*|*:root[taskbartab]:not([golem-app-prompt]) *|*#navigator-toolbox {
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: 0 !important;
+  box-shadow: none !important;
 }
 /* The page starts at the window's very top edge: the content area keeps a 1px
    (transparent) top border, the separator under a toolbar a webapp window does

@@ -1,15 +1,19 @@
 # golem-lane — Golem's update lane (updates/README.md has the whole story).
 #
-#   golem-lane run [--bump] [--base REF] [--no-publish]
-#       The daily job. Take main (or REF), move nixpkgs + home-manager to
-#       their release branch's newest tested commit once a week, BUILD every
-#       Golem system (the gate), put that version's heavy pieces into its
-#       cache (a signed GitHub release of golem-cache), and only then move
-#       `stable` to it — the branch every install follows. Anything that fails
-#       stops the run before stable moves: no install ever gets it.
+#   golem-lane run [--now] [--bump] [--base REF] [--no-publish]
+#       The daily job. Once a week (PUBLISH_DAYS): take main (or REF), jump
+#       to the next NixOS release when it is due, else move nixpkgs +
+#       home-manager to their release branch's newest tested commit, BUILD
+#       and BOOT every Golem system (the gate), put that version's heavy
+#       pieces into its cache (a signed GitHub release of golem-cache), and
+#       only then move `stable` to it — the branch every install follows.
+#       Anything that fails stops the run before stable moves: no install
+#       ever gets it. The other days it only gates main when main moved, so
+#       a break is known before the week's publish. --now publishes today.
 #   golem-lane release YY.MM [--push]
-#       Prepare the jump to the next NixOS release on branch release-YY.MM:
-#       move both inputs, build the gate, write what broke. Never publishes.
+#       Prepare the jump to the next NixOS release by hand, on branch
+#       release-YY.MM: move both inputs, build the gate, write what broke.
+#       Never publishes. (The weekly run makes the jump by itself.)
 #   golem-lane prune      keep the newest $KEEP version caches, delete the rest
 #   golem-lane status     the last run, as JSON
 #
@@ -25,6 +29,8 @@ KEY=${GOLEM_LANE_KEY:-$HOME/.local/share/golem-lane/cache-key.sec}
 STATE=${GOLEM_LANE_STATE:-$HOME/.local/state/golem-lane}
 KEEP=${GOLEM_LANE_KEEP:-6}
 BUMP_DAYS=${GOLEM_LANE_BUMP_DAYS:-7}
+PUBLISH_DAYS=${GOLEM_LANE_PUBLISH_DAYS:-7}
+RELEASE_WAIT_DAYS=${GOLEM_LANE_RELEASE_WAIT_DAYS:-28}
 LIB=${GOLEM_LANE_LIB:-$(dirname "$(readlink -f "$0")")}
 SYSTEM=x86_64-linux
 
@@ -143,23 +149,30 @@ checks() {  # every flake check, as build targets
     | jq -r --arg f "$(flake)" --arg s "$SYSTEM" '.[] | "\($f)#checks.\($s).\(.)"'
 }
 
-# THE GATE: the flake's checks + every Golem system, built. A failure here
-# is the whole point of the lane: it stops before anything is published.
-gate() {
-  local targets
+# THE GATE: the flake's checks (the boot test among them) + every Golem
+# system, built. A failure here is the whole point of the lane: it stops
+# before anything is published. gate_try reports in GATE_ERR instead of
+# stopping the run; its gc root is gcroots/<name> (default gate: the
+# published version's closure, which the next build reuses).
+gate_try() {
+  local targets root=$STATE/gcroots/${1:-gate}
+  GATE_ERR=
   say "gate: building every Golem system"
-  if ! nix "${NIXF[@]}" build --keep-going -L --out-link "$STATE/gcroots/gate" \
+  if ! nix "${NIXF[@]}" build --keep-going -L --out-link "$root" \
         "$(flake)#packages.$SYSTEM.update-gate" >> "$LOG" 2>&1; then
-    fail gate "a Golem system does not build ($(grep -acE '^error: Cannot build' "$LOG" || true) failed builds): $(last_error)"
+    GATE_ERR="a Golem system does not build ($(grep -acE '^error: Cannot build' "$LOG" || true) failed builds): $(last_error)"
+    return 1
   fi
-  GATE_OUT=$(readlink -f "$STATE/gcroots/gate")
-  [ -e "$GATE_OUT/." ] || fail gate "the gate built but its output is missing"
+  GATE_OUT=$(readlink -f "$root")
+  [ -e "$GATE_OUT/." ] || { GATE_ERR="the gate built but its output is missing"; return 1; }
   mapfile -t targets < <(checks)
   say "gate: running ${#targets[@]} checks"
   if ! nix "${NIXF[@]}" build --keep-going -L --no-link "${targets[@]}" >> "$LOG" 2>&1; then
-    fail gate "a check fails: $(last_error)"
+    GATE_ERR="a check fails: $(last_error)"
+    return 1
   fi
 }
+gate() { gate_try "$@" || fail gate "$GATE_ERR"; }
 
 report() {  # one line per system: its kernel
   local d k
@@ -298,6 +311,7 @@ publish() {
   "${GIT_PUSH[@]}" push -q origin "$rev:refs/heads/stable" >> "$LOG" 2>&1 \
     || fail publish "stable could not move to ${rev:0:12} (not a fast-forward?)"
   if [ "${BUMPED:-0}" = 1 ]; then date +%s > "$STATE/last-bump"; fi
+  date +%s > "$STATE/last-publish"
 }
 
 prune() {
@@ -316,20 +330,29 @@ prune() {
 }
 
 # NixOS ships YY.05 (supported to Dec 31) and YY.11 (to Jun 30 of the next
-# year). A month before the end, or as soon as the next release branch
-# exists, the lane says so — the jump itself is `golem-lane release`.
+# year).
+current_release() {  # the release flake.nix follows, e.g. 26.05
+  sed -n 's|.*home-manager/release-\([0-9][0-9]\.[0-9][0-9]\).*|\1|p' "$TREE/flake.nix" | head -1
+}
+next_release() {  # next_release YY.MM: "<next> <end of YY.MM>"
+  case "$1" in
+    *.05) echo "${1%.05}.11 20${1%.05}-12-31" ;;
+    *.11) echo "$(( ${1%.11} + 1 )).05 20$(( ${1%.11} + 1 ))-06-30" ;;
+    *) return 1 ;;
+  esac
+}
+
+# The calendar: the lane notes the day it first sees the next release
+# branch (release_due counts from it) and says once a week where things are.
 calendar() {
   local cur next eol left
-  cur=$(sed -n 's|.*home-manager/release-\([0-9][0-9]\.[0-9][0-9]\).*|\1|p' "$TREE/flake.nix" | head -1)
+  cur=$(current_release)
   [ -n "$cur" ] || return 0
-  case "$cur" in
-    *.05) next=${cur%.05}.11; eol="20${cur%.05}-12-31" ;;
-    *.11) next=$(( ${cur%.11} + 1 )).05; eol="20$(( ${cur%.11} + 1 ))-06-30" ;;
-    *) return 0 ;;
-  esac
+  read -r next eol < <(next_release "$cur") || return 0
   left=$(( ( $(date -d "$eol" +%s) - $(date +%s) ) / 86400 ))
   if git ls-remote --exit-code -q https://github.com/NixOS/nixpkgs "refs/heads/nixos-$next" >/dev/null 2>&1; then
-    CALENDAR="NixOS $next is out; Golem is on $cur, supported $left more days. Prepare the jump: golem-lane release $next"
+    [ -s "$STATE/release-seen-$next" ] || date +%s > "$STATE/release-seen-$next"
+    CALENDAR="NixOS $next is out; Golem is on $cur, supported $left more days. The lane moves Golem to $next by itself on $(date -d "@$(( $(cat "$STATE/release-seen-$next") + RELEASE_WAIT_DAYS * 86400 ))" +%F) or later, if every system builds and boots on it."
   elif [ "$left" -lt 31 ]; then
     CALENDAR="NixOS $cur stops getting fixes in $left days ($eol) and $next is not out yet."
   fi
@@ -339,10 +362,50 @@ calendar() {
   fi
 }
 
+# THE RELEASE JUMP happens by itself (Max, 2026-10-29: Golem's users never
+# think about NixOS versions, and neither should the maintainer). NixOS
+# creates nixos-YY.MM about two weeks before it announces the release; the
+# lane jumps RELEASE_WAIT_DAYS (28) after it first saw that branch, so the
+# release has had its first fixes, or at once when the current release ends
+# within 14 days. The same gate decides: every system builds and boots on
+# it, or the week's update goes out on the current release and the
+# maintainer is told what broke. Prints the release to jump to.
+release_due() {
+  local cur next eol seen
+  cur=$(current_release)
+  [ -n "$cur" ] || return 1
+  read -r next eol < <(next_release "$cur") || return 1
+  [ -s "$STATE/release-seen-$next" ] || return 1
+  seen=$(cat "$STATE/release-seen-$next")
+  if [ $(( $(date +%s) - seen )) -lt $(( RELEASE_WAIT_DAYS * 86400 )) ] \
+     && [ $(( $(date -d "$eol" +%s) - $(date +%s) )) -ge $(( 14 * 86400 )) ]; then
+    return 1
+  fi
+  git ls-remote --exit-code -q https://github.com/nix-community/home-manager "refs/heads/release-$next" >/dev/null 2>&1 || return 1
+  echo "$next"
+}
+
+# Move the tree to NixOS <to> and its home-manager, with the dock's package
+# index made for it, as one commit. Never touches system.stateVersion.
+move_release() {  # move_release <to>
+  local to=$1 from
+  from=$(current_release)
+  sed -i "s|NixOS/nixpkgs/nixos-$from|NixOS/nixpkgs/nixos-$to|; s|home-manager/release-$from|home-manager/release-$to|; s|NixOS's $from channel branch|NixOS's $to channel branch|" "$TREE/flake.nix"
+  nix "${NIXF[@]}" flake update nixpkgs home-manager --flake "$(flake)" >> "$LOG" 2>&1 || return 1
+  (cd "$TREE" && tools/package-index/refresh.sh) >> "$LOG" 2>&1 || return 1
+  git -C "$TREE" add flake.nix flake.lock system/home/package-index.tsv system/home/package-index.rev tools/package-index/dropped.txt
+  git -C "$TREE" -c user.name="Golem update lane" commit -q -m "flake: NixOS $from → $to
+
+Moved by the update lane (updates/README.md, the release jump): NixOS $to
+and home-manager release-$to, with the dock's package index made for it.
+Built and booted for every Golem system before publishing."
+}
+
 cmd_run() {
-  local base="" publish_it=1 force_bump=0 rev stable due last
+  local base="" publish_it=1 force_bump=0 now_flag=0 rev stable due last pub_due next_pub to from
   while [ $# -gt 0 ]; do
     case "$1" in
+      --now) now_flag=1 ;;
       --bump) force_bump=1 ;;
       --base) base=$2; shift ;;
       --no-publish) publish_it=0 ;;
@@ -361,18 +424,53 @@ cmd_run() {
   status prepare true "fetching"
   prepare_tree "${base:-origin/main}"
   [ -n "$base" ] && say "base: $base ($(git -C "$TREE" rev-parse --short=12 HEAD))"
+  calendar || true
 
+  # Once a week, not every day main moves: one update a week per machine
+  # (one download, one boot entry, one store version), and the week's NixOS
+  # fixes in it. Urgent: --now.
+  last=$(cat "$STATE/last-publish" 2>/dev/null || echo 0)
+  pub_due=$(( $(date +%s) - last >= PUBLISH_DAYS * 86400 ))
+  next_pub=$(date -d "@$(( last + PUBLISH_DAYS * 86400 ))" +%F)
+  stable=$(git -C "$TREE" rev-parse -q --verify origin/stable 2>/dev/null || true)
+  if [ "$pub_due" = 0 ] && [ "$now_flag" = 0 ] && [ "$force_bump" = 0 ] && [ -z "$base" ]; then
+    rev=$(git -C "$TREE" rev-parse HEAD)
+    if [ "$rev" = "$stable" ] || [ "$rev" = "$(cat "$STATE/last-gated" 2>/dev/null)" ]; then
+      say "nothing new to test; the next update goes out on $next_pub"
+      status "done" true "nothing new to test; next publish $next_pub"
+      exit 0
+    fi
+    # main moved: build and boot it now, so a break is known days before
+    # the publish needs it.
+    status gate true "testing main ${rev:0:12} (publishes on $next_pub)"
+    gate main
+    echo "$rev" > "$STATE/last-gated"
+    say "main ${rev:0:12} builds and boots; it goes out on $next_pub"
+    status "done" true "main ${rev:0:12} builds and boots; it goes out with the update of $next_pub"
+    exit 0
+  fi
+
+  BUMPED=0 JUMPED='' from=$(current_release)
+  if [ -z "$base" ] && to=$(release_due); then
+    status release true "moving Golem to NixOS $to"
+    say "release: NixOS $to is due — trying it"
+    if move_release "$to" && gate_try; then
+      JUMPED=$to BUMPED=1
+      say "release: every Golem system builds and boots on NixOS $to"
+    else
+      say "release: NixOS $to is not ready for Golem yet: ${GATE_ERR:-moving the inputs failed}"
+      notify "Golem: NixOS $to not ready yet" "${GATE_ERR:-moving the inputs failed}. This week's update goes out on $from; the lane tries $to again next week. Log: $LOG"
+      prepare_tree origin/main
+    fi
+  fi
   last=$(cat "$STATE/last-bump" 2>/dev/null || echo 0)
   due=$(( $(date +%s) - last >= BUMP_DAYS * 86400 ))
-  BUMPED=0
-  if [ "$force_bump" = 1 ] || [ "$due" = 1 ]; then
+  if [ -z "$JUMPED" ] && { [ "$force_bump" = 1 ] || [ "$due" = 1 ]; }; then
     status bump true "moving nixpkgs and home-manager"
     bump
   fi
-  calendar || true
 
   rev=$(git -C "$TREE" rev-parse HEAD)
-  stable=$(git -C "$TREE" rev-parse -q --verify origin/stable 2>/dev/null || true)
   if [ "$rev" = "$stable" ]; then
     say "stable is already ${rev:0:12} — nothing new"
     status "done" true "nothing new: stable is ${rev:0:12}"
@@ -382,8 +480,10 @@ cmd_run() {
     fail prepare "${rev:0:12} does not contain stable ${stable:0:12} — stable only ever moves forward"
   fi
 
-  status gate true "building ${rev:0:12}"
-  gate
+  if [ -z "$JUMPED" ]; then
+    status gate true "building ${rev:0:12}"
+    gate
+  fi
   say "gate: green. Kernels:"; report | sed 's/^/  /' >&2
 
   status cache true "uploading the cache of ${rev:0:12}"
@@ -399,7 +499,11 @@ cmd_run() {
   prune || true
   status "done" true "published ${rev:0:12}: stable moved, installs take it in their wave" \
     "$(report | jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {(.[0]): .[1]}) | add | {kernels: .}')"
-  notify "Golem ${rev:0:12} published" "Built and tested for every Golem system; installs take it over the next ${GOLEM_LANE_WAVES:-7} days."
+  if [ -n "$JUMPED" ]; then
+    notify "Golem moved to NixOS $JUMPED" "${rev:0:12} built and booted for every Golem system; the lab takes it tonight, installs over the next ${GOLEM_LANE_WAVES:-7} days."
+  else
+    notify "Golem ${rev:0:12} published" "Built and booted for every Golem system; installs take it over the next ${GOLEM_LANE_WAVES:-7} days."
+  fi
 }
 
 cmd_release() {
@@ -411,13 +515,9 @@ cmd_release() {
   git ls-remote --exit-code -q https://github.com/NixOS/nixpkgs "refs/heads/nixos-$to" >/dev/null \
     || { say "NixOS $to has no release branch yet"; exit 1; }
   prepare_tree origin/main
-  from=$(sed -n 's|.*home-manager/release-\([0-9][0-9]\.[0-9][0-9]\).*|\1|p' "$TREE/flake.nix" | head -1)
   branch=release-$to
   git -C "$TREE" checkout -q -B "$branch"
-  sed -i "s|NixOS/nixpkgs/nixos-$from|NixOS/nixpkgs/nixos-$to|; s|home-manager/release-$from|home-manager/release-$to|" "$TREE/flake.nix"
-  nix "${NIXF[@]}" flake update nixpkgs home-manager --flake "$(flake)" >> "$LOG" 2>&1
-  git -C "$TREE" add flake.nix flake.lock
-  git -C "$TREE" -c user.name="Golem update lane" commit -q -m "flake: NixOS $from → $to (prepared by golem-lane release)"
+  move_release "$to" || { say "release $to: moving the inputs failed; log: $LOG"; exit 1; }
   say "release $to: building the gate on $branch — this is the slow one"
   if nix "${NIXF[@]}" build --keep-going -L --no-link "$(flake)#packages.$SYSTEM.update-gate" >> "$LOG" 2>&1; then
     say "release $to: every Golem system builds. Next: a lab round on $branch (RUNBOOK.md), then merge to main."
@@ -434,5 +534,5 @@ case "${1:-}" in
   release) shift; cmd_release "$@" ;;
   prune) prepare_tree origin/main; prune ;;
   status) cat "$STATUS" 2>/dev/null || echo '{}' ;;
-  *) echo "usage: golem-lane run [--bump] [--base REF] [--no-publish] | release YY.MM [--push] | prune | status" >&2; exit 2 ;;
+  *) echo "usage: golem-lane run [--now] [--bump] [--base REF] [--no-publish] | release YY.MM [--push] | prune | status" >&2; exit 2 ;;
 esac
