@@ -45,13 +45,13 @@ let
         && c.users.users.${c.golem.owner}.password == null))
     # P16: the desktop is a USER session (initial_session), never the greeter's.
     (ex "greetd autologs the owner's desktop once per boot (initial_session, class user)"
-      (lib.hasInfix "uwsm start hyprland" (c.services.greetd.settings.initial_session.command or "")
+      (lib.hasInfix "uwsm start -g -1 hyprland" (c.services.greetd.settings.initial_session.command or "")
         && (c.services.greetd.settings.initial_session.user or "") == c.golem.owner))
     (ex "greetd: uwsm's start chatter goes to the journal, not the console"
       (lib.hasInfix "systemd-cat -t uwsm uwsm start" c.services.greetd.settings.initial_session.command))
     (ex "greetd shows a real login after a logout (tuigreet), the same session behind it"
       (lib.hasInfix "tuigreet" c.services.greetd.settings.default_session.command
-        && lib.hasInfix "uwsm start hyprland" c.services.greetd.settings.default_session.command
+        && lib.hasInfix "uwsm start -g -1 hyprland" c.services.greetd.settings.default_session.command
         && (c.services.greetd.settings.default_session.user or "greeter") != c.golem.owner))
     (ex "greetd does not restart itself (an initial_session would autologin again)"
       (!c.services.greetd.restart))

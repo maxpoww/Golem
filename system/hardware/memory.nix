@@ -19,9 +19,9 @@
 # conservatism law §4):
 #            zram   swappiness  vfs_cache_pressure  dirty/background
 #   unknown   50%       10             10                10/5
-#   < 6 GB   150%      180             50                 5/2
-#   6-16 GB   50%       60             10                10/5
-#   > 16 GB   25%       10             10                10/5
+#   < 6 GB   150%      180             50                200/64 MiB
+#   6-16 GB   50%       60             10               256/64 MiB
+#   > 16 GB   25%       10             10               256/64 MiB
 #
 # WHY: swappiness 180 on tight RAM because moving cold pages to zram is
 # ~RAM-speed and beats squeezing the working set (kernel docs bless >100
@@ -70,8 +70,12 @@ in
       boot.kernel.sysctl = {
         "vm.swappiness" = tier 180;
         "vm.vfs_cache_pressure" = tier 50;
-        "vm.dirty_ratio" = tier 5;
-        "vm.dirty_background_ratio" = tier 2;
+        # In bytes (Modular/memory/zram-tier*.nix says why): bytes zero the
+        # percentages, which the baseline's are taken out for.
+        "vm.dirty_ratio" = lib.mkForce null;
+        "vm.dirty_background_ratio" = lib.mkForce null;
+        "vm.dirty_bytes" = tier 209715200;
+        "vm.dirty_background_bytes" = tier 67108864;
       };
       # Build parallelism is a memory decision on a tight machine: one
       # nixos-rebuild eval wants 2-3 GB, so two parallel derivations on
@@ -85,6 +89,14 @@ in
     })
     (lib.mkIf high {
       zramSwap.memoryPercent = tier 25;
+    })
+    (lib.mkIf (mid || high) {
+      boot.kernel.sysctl = {
+        "vm.dirty_ratio" = lib.mkForce null;
+        "vm.dirty_background_ratio" = lib.mkForce null;
+        "vm.dirty_bytes" = tier 268435456;
+        "vm.dirty_background_bytes" = tier 67108864;
+      };
     })
 
     # ── Hibernation wiring, when the installer created disk swap ──────

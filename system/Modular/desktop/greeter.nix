@@ -69,7 +69,12 @@ let
   # over (Max, 2026-09-30, on every boot of both laptops). systemd-cat sends
   # it to the journal (tag uwsm): still there for debugging, never on the
   # console. stdin stays the tty.
-  session = "${waitForOldSession} ${config.systemd.package}/bin/systemd-cat -t uwsm uwsm start hyprland-uwsm.desktop";
+  #
+  # -g -1: uwsm does not wait for graphical.target to leave the queue before it
+  # starts the compositor (its default waits up to 60 s). What the session needs
+  # it orders for itself; the desktop should not wait on the end of the boot
+  # (Omarchy's "-g -1", their "about 3 s", measured here in docs/omarchy.md).
+  session = "${waitForOldSession} ${config.systemd.package}/bin/systemd-cat -t uwsm uwsm start -g -1 hyprland-uwsm.desktop";
 
   # The keeper: runs its arguments (the session) again and again. The counter
   # lives in the runtime dir, which logind keeps for as long as the session
@@ -139,7 +144,7 @@ in
     settings = {
       initial_session = {
         # The keeper around the session: the command still reads "… systemd-cat
-        # -t uwsm uwsm start hyprland-uwsm.desktop" (desktop-matrix checks it).
+        # -t uwsm uwsm start -g -1 hyprland-uwsm.desktop" (desktop-matrix checks it).
         command = "${keeper} ${session}";
         user = config.golem.owner;
       };

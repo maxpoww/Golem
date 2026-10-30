@@ -44,6 +44,20 @@
     "net.core.default_qdisc" = "fq";
     "net.ipv4.tcp_congestion_control" = "bbr";
     "kernel.printk" = "0 0 0 0";
+
+    # Taken from Omarchy's sysctl (2026-10-30; docs/omarchy.md says what was
+    # taken, what was not and what each was measured at).
+    # Find the path's real packet size when a link swallows big packets: the
+    # cure for an SSH that hangs on a bad Wi-Fi. It costs nothing elsewhere.
+    "net.ipv4.tcp_mtu_probing" = 1;
+    # Reclaim early and in the background: 1.25 % of memory kept free rather
+    # than 0.1 %, so an allocation does not stall doing it itself, and no bursts
+    # of reclaim because memory fragmented while plenty is free.
+    "vm.watermark_boost_factor" = 0;
+    "vm.watermark_scale_factor" = 125;
+    # With the dirty bytes capped (memory/zram-tier*.nix) there are no big
+    # bursts to catch: the flusher can wake every 15 s, not every 5.
+    "vm.dirty_writeback_centisecs" = 1500;
   };
 
   # The quiet boot — Golem's console is silent until Golem speaks. But
@@ -64,6 +78,10 @@
   boot.initrd.verbose = false;
   boot.initrd.systemd.enable = true;
   boot.kernelParams = [
+    # Preempt fully, as Omarchy's kernel does (ours defaults to lazy): a build of
+    # the dock took 98 s either way, and a sleeper woken while every CPU is busy
+    # is late less often (docs/omarchy.md).
+    "preempt=full"
     "quiet"
     "loglevel=0"
     "rd.systemd.show_status=false"

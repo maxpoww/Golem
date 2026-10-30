@@ -56,7 +56,7 @@ let
         (ex "Broadwell picks iHD" (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
         (ex "4GB tier: zram 150%" (cfg.zramSwap.memoryPercent == 150))
         (ex "4GB tier: zram-first swappiness 180" (cfg.boot.kernel.sysctl."vm.swappiness" == 180))
-        (ex "4GB tier: small writeback bursts" (cfg.boot.kernel.sysctl."vm.dirty_ratio" == 5))
+        (ex "4GB tier: small writeback bursts" (cfg.boot.kernel.sysctl."vm.dirty_bytes" == 209715200 && cfg.boot.kernel.sysctl."vm.dirty_ratio" == null))
         (ex "zram present: page-cluster 0" (cfg.boot.kernel.sysctl."vm.page-cluster" == 0))
         (ex "intel microcode on" cfg.hardware.cpu.intel.updateMicrocode)
         (ex "bluetooth stack on" cfg.services.blueman.enable)

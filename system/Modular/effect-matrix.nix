@@ -51,7 +51,7 @@ let
         (ex "tier1: zram 150%" (c.zramSwap.memoryPercent == 150))
         (ex "tier1: swappiness 180" (c.boot.kernel.sysctl."vm.swappiness" == 180))
         (ex "tier1: cache-pressure 50" (c.boot.kernel.sysctl."vm.vfs_cache_pressure" == 50))
-        (ex "tier1: dirty 5" (c.boot.kernel.sysctl."vm.dirty_ratio" == 5))
+        (ex "tier1: dirty capped in bytes, no percentages beside them" (c.boot.kernel.sysctl."vm.dirty_bytes" == 209715200 && !(c.boot.kernel.sysctl ? "vm.dirty_ratio")))
         (ex "tier1: one build job" (c.nix.settings.max-jobs == 1))
         (ex "zram on → page-cluster 0" (c.boot.kernel.sysctl."vm.page-cluster" == 0))
         (ex "laptop: power-profiles-daemon on" c.services.power-profiles-daemon.enable)
