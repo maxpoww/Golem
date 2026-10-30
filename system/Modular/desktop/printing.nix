@@ -143,6 +143,9 @@ in
 
     services.printing = {
       enable = true;
+      # cups starts on first use (its socket), not at boot: 1.2 s of a weak
+      # machine's login, and Golem's own part below runs three minutes in.
+      startWhenNeeded = true;
       drivers = with pkgs; [
         hplip
         gutenprint
@@ -189,11 +192,15 @@ in
     systemd.services."configure-printer@".serviceConfig.ExecStartPost =
       "${printerBack}/bin/golem-printer-back %i";
 
+    systemd.timers.golem-printers = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = { OnBootSec = "3min"; AccuracySec = "30s"; };
+    };
     systemd.services.golem-printers = {
       description = "Golem: a default printer, and the list the desktop reads";
       after = [ "cups.service" ];
       wants = [ "cups.service" ];
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = [ ];   # its timer, three minutes in
       serviceConfig = { Type = "oneshot"; ExecStart = "${printersSeen}/bin/golem-printers"; };
     };
     systemd.paths.golem-printers = {
