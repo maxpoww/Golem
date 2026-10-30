@@ -65,7 +65,7 @@ hl.exec_cmd("pgrep -f target/release/waverunner$ >/dev/null || /home/max/launche
 -- wallpaper up (controls.rs `reassert`), and whenever none can be shown,
 -- the screen is the compositor's bare grey (misc.background_color below).
 -- waypaper is gone: the wallpaper is chosen in the dock's own box.
-hl.exec_cmd("pgrep -x awww-daemon >/dev/null || prlimit --core=1 awww-daemon --no-cache")
+hl.exec_cmd("pgrep -f bin/awww-daemo[n] >/dev/null || prlimit --core=1 awww-daemon --no-cache")   -- (the binary is wrapped: its comm is .awww-daemon-wr; the bracket keeps pgrep from matching this very line)
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
 end)
