@@ -349,9 +349,15 @@ hl.config({
   }
 })
 
+-- Hyprland's own rule ("auto"), as Omarchy leaves it: the display engine's cursor
+-- plane, except where NVIDIA draws the screen and it is known to misbehave. This was
+-- `true` from the first day with no reason written down, and every move of the
+-- pointer then redrew the screen. Moving it on an empty workspace (dev box, 165 Hz):
+-- the GPU 24 % busy -> 1 %, the compositor 6.7 % of a CPU -> 1.8 %. The panel still
+-- follows each move: 130 refreshes a second at 125 moves a second, VRR on.
 hl.config({
     cursor = {
-        no_hardware_cursors = true,
+        no_hardware_cursors = 2,
     },
 })
 

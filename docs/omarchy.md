@@ -17,6 +17,7 @@ No machine with a spinning disk was available.
 | What | Where | Result on the dev box |
 |---|---|---|
 | Power mode follows the charger, remembered per source | launcher `power_mode.rs` | see the table below: the largest gain of all |
+| The cursor drawn by the display engine (Hyprland's default, which Omarchy keeps; ours was forced off with no reason recorded) | `system/home/hyprland.lua` | moving the pointer: GPU 24 → 1 %, see below |
 | A dock at rest reacts to events, it does not poll | launcher (see below) | 100.7 → 14.7 wake-ups/s, 0.60 → 0.14 % of a CPU |
 | A budget test for rest, in counts | launcher `tools/perf-guard/rest-check.py` | fails on a new timer or poll |
 | Writes capped in bytes, not percent | `Modular/memory/zram-tier{1,2,3}.nix` | worst stall halved, see below |
@@ -42,6 +43,21 @@ No machine with a spinning disk was available.
 The default is performance on the charger, balanced on the battery. What the owner picks
 in Power mode is kept for that source. The cost is heat and possibly fan noise on the
 charger: the owner has the pill.
+
+### The hardware cursor (pointer moved 125 times a second on an empty workspace, three rounds each)
+
+| | software (ours until now) | hardware |
+|---|---|---|
+| GPU render busy | 26, 24, 19 % | 1, 2, 0 % |
+| GPU asleep (RC6) | 31, 27, 27 % | 94, 95, 96 % |
+| Compositor, of one CPU | 7.0, 6.6, 6.5 % | 1.7, 2.2, 1.6 % |
+| Panel refreshes a second (VRR on) | 165 | 130 |
+
+The panel follows each move, so VRR does not make the pointer lag: 130 refreshes for 125
+moves, against 48 at rest (DRM vblank timestamps, `vblank.py`). The display engine's own
+state showed the cursor plane on, 256x256, at the exact pixel asked for. A screenshot
+with the cursor still shows it. A fullscreen video or game no longer loses direct scanout
+when the pointer moves. Not seen with human eyes yet, and not tried on another GPU.
 
 ### The dock at rest (60 s on an empty workspace)
 
@@ -129,6 +145,7 @@ The MacBook was unreachable all day. When it is back, in this order:
    why this one must be looked at), with the benchmark below.
 4. Kyber against its current scheduler, with `ioprobe`.
 5. `rest-check.py` on it, to see the budget on a weak machine.
+6. The hardware cursor on HD 5000: is it there, and what does moving it cost now?
 
 ## How to measure again
 
@@ -138,3 +155,5 @@ The tools are in the launcher's `tools/perf-guard/`:
 - `burst.c`: a job after idling, wake-up lateness, one thread, all threads.
 - `wakeload.c`: wake-up lateness with every CPU busy.
 - `ioprobe.c <dir> <GiB>`: what a big write does to fsync and reads.
+- `vblank.py <secs>`: how often the panel really refreshes (DRM timestamps).
+- `cursor-test.py <secs>`: the pointer driven in a circle, and what the compositor spends.
