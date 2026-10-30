@@ -33,10 +33,23 @@
 # and timestamp to vbuf", issue #315, first in 0.7.0.3); we carry that one
 # commit until nixpkgs moves past 0.7.0.3, so the fix rides whatever
 # kernel set boot.kernelPackages defaults to.
-{ pkgs, lib, ... }:
+#
+# AFTER THE DESKTOP, NOT AT BOOT (2026-10-29): loaded at boot, the module
+# was 1.9 s of systemd-modules-load and the relock 1.8 s more BEFORE
+# graphical.target on the 2013 MacBook Air — the login waited for the
+# camera — and one boot in twelve froze at exactly that probe (a quick warm
+# reboot before it; the Mac has no watchdog, so it sat on the progress bar
+# until the power button). The driver and its firmware are wired as the
+# upstream option does, minus the boot-time load: the module is blacklisted
+# (no udev autoload) and a timer loads it 75 s after boot, then re-binds it
+# as before. The camera appears a minute and a half after boot.
+{ pkgs, lib, config, ... }:
 
 {
-  hardware.facetimehd.enable = true;
+  hardware.facetimehd.enable = false;
+  boot.extraModulePackages = [ config.boot.kernelPackages.facetimehd ];
+  boot.blacklistedKernelModules = [ "bdc_pci" "facetimehd" ];
+  hardware.firmware = [ pkgs.facetimehd-firmware ];
   nixpkgs.overlays = [
     (final: prev: {
       linuxPackages = prev.linuxPackages.extend (lpFinal: lpPrev: {
@@ -54,16 +67,17 @@
   nixpkgs.config.allowUnfreePredicate =
     pkg: lib.getName pkg == "facetimehd-firmware";
 
+  # (The name stays: the effect matrix knows this unit as the relock that
+  # never re-runs on a switch.)
   systemd.services.golem-facetimehd-relock = {
-    description = "Re-bind the FaceTime HD camera so its ISP PLL locks (cold-boot glitch)";
-    wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-udev-settle.service" ];   # after the initial autoload
-    before = [ "graphical.target" ];             # camera ready before any desktop session
-    path = [ pkgs.coreutils ];
+    description = "Load the FaceTime HD camera after the desktop and re-bind it so its ISP PLL locks";
+    path = [ pkgs.coreutils pkgs.kmod ];
     serviceConfig.Type = "oneshot";
     serviceConfig.RemainAfterExit = true;
     restartIfChanged = false;
     script = ''
+      modprobe facetimehd || exit 0
+      sleep 2
       drv=/sys/bus/pci/drivers/facetimehd
       for dev in "$drv"/0000:*; do
         [ -e "$dev" ] || continue
@@ -73,5 +87,9 @@
         echo "$b" > "$drv/bind" 2>/dev/null || true
       done
     '';
+  };
+  systemd.timers.golem-facetimehd-relock = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "75s"; AccuracySec = "5s"; };
   };
 }
