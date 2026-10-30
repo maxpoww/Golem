@@ -18,8 +18,8 @@ No machine with a spinning disk was available.
 |---|---|---|
 | Power mode follows the charger, remembered per source | launcher `power_mode.rs` | see the table below: the largest gain of all |
 | The cursor drawn by the display engine (Hyprland's default, which Omarchy keeps; ours was forced off with no reason recorded) | `system/home/hyprland.lua` | moving the pointer: GPU 24 → 1 %, see below |
-| A dock at rest reacts to events, it does not poll | launcher (see below) | 100.7 → 14.7 wake-ups/s, 0.60 → 0.14 % of a CPU |
-| A budget test for rest, in counts | launcher `tools/perf-guard/rest-check.py` | fails on a new timer or poll |
+| A dock at rest reacts to events, it does not poll | launcher (see below) | 100.7 → 12.6 wake-ups/s, 0.60 → 0.13 % of a CPU |
+| Budget tests in counts, at rest and busy | launcher `tools/perf-guard/rest-check.py`, `churn-check.sh` | fail on a new timer, a poll or a stall |
 | Writes capped in bytes, not percent | `Modular/memory/zram-tier{1,2,3}.nix` | worst stall halved, see below |
 | Reclaim early, in the background (`watermark_boost_factor=0`, `watermark_scale_factor=125`) | `Modular/base/core.nix` | no memory pressure on 32 GB: nothing to see; for small machines, not measured |
 | Flusher every 15 s (`dirty_writeback_centisecs=1500`) | `Modular/base/core.nix` | fewer disk wake-ups; safe because the caps bound the bursts |
@@ -63,8 +63,8 @@ when the pointer moves. Not seen with human eyes yet, and not tried on another G
 
 | | before | after |
 |---|---|---|
-| Wake-ups a second, all threads | 100.7 | 14.7 |
-| CPU | 0.60 % | 0.14 % |
+| Wake-ups a second, all threads | 100.7 | 12.6 |
+| CPU | 0.60 % | 0.13 % |
 | Loop turns a second | 40+ | 3.3 |
 
 Where they went, found with strace (`docs` in the launcher's `CLAUDE.md`, "THE DOCK AT REST"):
@@ -104,6 +104,21 @@ tier's rule says.
 | Worst | 3.3, 3.2, 2.2 ms | 2.4, 0.9, 1.7 ms |
 | Real build | 98.0 s | 98.5, 100.0 s |
 
+### Does anything keep drawing when nothing moves? (real panel refreshes, 7 s after settling)
+
+| State | Refreshes a second | GPU |
+|---|---|---|
+| Empty desktop, box open, quick controls, Files | 48 (the panel's floor) | 0 % |
+| Gear box open | 164 | 2–6 % |
+
+The gear box redraws once a second with its readings, and `vfr_hold_ms` (the anti-flicker
+patch, 2 s) then holds the panel at full speed by design. It lasts only while it is open and
+the dock itself draws 1 frame a second, so it was left alone. The overview read 154 Hz and
+17 % GPU, but my own terminal was animating on a workspace it shows, so that says nothing.
+
+The whole machine at rest starts 3.9 processes a second (the kernel's counter), and the
+sampler found the toolbox's keepalive behind what it could see: nothing of Golem's.
+
 ## Golem already had it
 
 - oomd on memory pressure, 50 %, with the desktop's memory protected and tested with a
@@ -136,6 +151,9 @@ tier's rule says.
 
 ## Still to do
 
+**The dev box has not been rebooted.** `preempt=full`, `uwsm -g -1` and the console parameter
+booted in the VM test only. After its next reboot run `~/.cache/golem-post-reboot-2026-10-30.sh`.
+
 The MacBook was unreachable all day. When it is back, in this order:
 
 1. `GOLEM_LAB_BRANCH=main tools/deploy/lab-pull.sh` to bring it to this version.
@@ -152,6 +170,7 @@ The MacBook was unreachable all day. When it is back, in this order:
 The tools are in the launcher's `tools/perf-guard/`:
 
 - `rest-check.py`: the dock at rest against a budget.
+- `churn-check.sh`: the dock busy against a budget (dev box: 4 stalls over 30 ms in 6 rounds, worst 39.6 ms).
 - `burst.c`: a job after idling, wake-up lateness, one thread, all threads.
 - `wakeload.c`: wake-up lateness with every CPU busy.
 - `ioprobe.c <dir> <GiB>`: what a big write does to fsync and reads.
