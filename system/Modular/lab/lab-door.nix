@@ -45,6 +45,14 @@ in
     wifi = { mode = "infrastructure"; ssid = "HOLA"; powersave = 2; };
   };
 
+  # The lab's Hyprland keeps its full log, with times (Hyprland's default
+  # drops its own lines once the config is in; only aquamarine's remain):
+  # a start's 3.4 s on the 2013 MacBook Air can be read. In /run, tmpfs.
+  home-manager.users.${config.golem.owner}.xdg.configFile."hypr/hyprland.lua".text =
+    lib.mkAfter ''
+      hl.config({ debug = { disable_logs = false } })
+    '';
+
   # THE HEARTBEAT: a ping to the gateway every 20 s keeps the lab machine
   # known to the access point (its tables learn from frames the client sends).
   systemd.services.golem-lab-heartbeat = {
