@@ -561,6 +561,10 @@ in
       -- (shadows, dimming, rounding) costs nothing measurable and stays.
       hl.config({ decoration = { blur = { enabled = false } } })
     ''
+    # A lab machine keeps Hyprland's whole log (Modular/lab/lab-door.nix).
+    + lib.optionalString (osConfig.systemd.services ? golem-lab-heartbeat) ''
+      hl.config({ debug = { disable_logs = false } })
+    ''
     # This machine's own Lua (golem.home.hyprlandExtra), after everything
     # Golem declares.
     + lib.optionalString (config.golem.home.hyprlandExtra != "") (
