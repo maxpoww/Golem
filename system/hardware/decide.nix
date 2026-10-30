@@ -111,7 +111,10 @@ lib.filter (s: s != null) [
       else "off"))
     (row "swappiness" (toString sysctl."vm.swappiness"))
     (row "cache pressure" (toString sysctl."vm.vfs_cache_pressure"))
-    (row "dirty ratio" "${toString sysctl."vm.dirty_ratio"}% / ${toString sysctl."vm.dirty_background_ratio"}% background")
+    (row "dirty writes held" (
+      if (sysctl."vm.dirty_bytes" or null) != null
+      then "${toString (sysctl."vm.dirty_bytes" / 1048576)} MiB / ${toString (sysctl."vm.dirty_background_bytes" / 1048576)} MiB background"
+      else "${toString sysctl."vm.dirty_ratio"}% / ${toString sysctl."vm.dirty_background_ratio"}% background"))
     (row "page cluster" (toString (sysctl."vm.page-cluster" or 3)))
     (rowT "swap" "swap_hib" [ (toString (swapMB / 1024)) ]
       "${toString (swapMB / 1024)} GiB, for hibernation")

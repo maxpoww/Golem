@@ -42,6 +42,7 @@ its documentation and worklog.
 | `docs/installing/` | `GolemInstall.md` (the install spec), `postinstall.md`, `preinstall/` (maintainer docs: ARCHITECTURE, OPERATIONS, DEBUGGING, EXTENDING, TESTING, HISTORY + the six-round lab archive) |
 | `docs/system/` | `GolemModules.md` (the module/app-bundle design) |
 | `docs/security/` | `GolemSecurity.md` |
+| `docs/omarchy.md` | What was taken from Omarchy for speed, what was not, and what each was measured at |
 | `docs/release/` | `release-checklist.md` |
 
 ### The other repos (components pinned by `flake.lock`)

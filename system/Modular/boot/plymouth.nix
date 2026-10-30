@@ -56,7 +56,13 @@ in
   # Plymouth needs `splash` (and only splash — never fbcon=map:1, see the #65
   # note). The bar is just progress now (Max dropped the flying service line),
   # so we no longer re-enable systemd.show_status — base's quiet stays quiet.
-  boot.kernelParams = lib.mkAfter [ "splash" ];
+  #
+  # And the console's terminal type: systemd 257 and later ask the terminal for
+  # its size at "Starting Switch Root", and with Plymouth holding the screen the
+  # answer never comes: black until a key is pressed, about one boot in ten on
+  # Omarchy's machines (their note, 2026-10; taken on their word, the hang we saw
+  # on the MacBook was at a different stage). A dumb terminal is not asked.
+  boot.kernelParams = lib.mkAfter [ "splash" "systemd.tty.term.console=dumb" ];
 
   # #117 — THE GPU DRM MUST BE IN THE INITRD, or the bar never paints on an
   # INSTALLED system (the I2-close VM gate, 2026-09-23: the install booted to
