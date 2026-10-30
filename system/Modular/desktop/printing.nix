@@ -196,6 +196,16 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = { OnBootSec = "3min"; AccuracySec = "30s"; };
     };
+    # The network printer discovery (cups-browsed, on with avahi) starts
+    # ninety seconds after boot, not at it: it is what woke cupsd at every
+    # boot once cups went on its socket (1.1 s of the Air's login, a
+    # resident scheduler; 2026-10-30). A printer found by name is listed a
+    # minute and a half after boot.
+    systemd.services.cups-browsed.wantedBy = lib.mkForce [ ];
+    systemd.timers.cups-browsed = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = { OnBootSec = "90s"; AccuracySec = "10s"; };
+    };
     systemd.services.golem-printers = {
       description = "Golem: a default printer, and the list the desktop reads";
       after = [ "cups.service" ];
