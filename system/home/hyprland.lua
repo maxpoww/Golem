@@ -45,14 +45,9 @@ hl.layer_rule({ match = { namespace = "waverunner-desktop-menu" }, ignore_alpha 
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
--- (ONCE per session, whatever the reloads: hl.exec_cmd runs again at every `hyprctl reload`
--- — home-boot reloads after a new generation's activation — and Hyprland NOTIFIES when a
--- plugin fails to load, "already loaded" included: the 15 s warning at the start of every
--- morning after the nightly upgrade, 2026-10-30. The same guard keeps a reload from
--- starting a second wallpaper daemon or, on the dev box, a second dock.)
-hl.exec_cmd("hyprctl plugin list | grep -q waveview || hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so")
+hl.exec_cmd("hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so")
 hl.exec_cmd("hyprctl setcursor phinger-cursors-light 24")
-hl.exec_cmd("pgrep -f target/release/waverunner$ >/dev/null || /home/max/launcher/waverunner-dev")
+hl.exec_cmd("/home/max/launcher/waverunner-dev")
 -- The wallpaper is a placeholder until it is designed (Max, 2026-09-30: "for
 -- now keep it quiet"). awww-daemon aborts (a Rust panic) the instant the
 -- compositor goes away, so every session that ended by itself left a core
@@ -65,7 +60,7 @@ hl.exec_cmd("pgrep -f target/release/waverunner$ >/dev/null || /home/max/launche
 -- wallpaper up (controls.rs `reassert`), and whenever none can be shown,
 -- the screen is the compositor's bare grey (misc.background_color below).
 -- waypaper is gone: the wallpaper is chosen in the dock's own box.
-hl.exec_cmd("pgrep -f bin/awww-daemo[n] >/dev/null || prlimit --core=1 awww-daemon --no-cache")   -- (the binary is wrapped: its comm is .awww-daemon-wr; the bracket keeps pgrep from matching this very line)
+hl.exec_cmd("prlimit --core=1 awww-daemon --no-cache")
 hl.exec_cmd("bluetoothctl power on")
 hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")
 end)

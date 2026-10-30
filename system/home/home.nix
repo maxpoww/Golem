@@ -513,7 +513,7 @@ in
       # dev eval never forces the waveview input.
       shellNeedles = lib.optionals (!dev) [
         "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
-        ''hl.exec_cmd("pgrep -f target/release/waverunner$ >/dev/null || /home/max/launcher/waverunner-dev")''
+        ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
         "/home/max/launcher/target/debug/waverunner-ctl"
       ];
       shellReplacements = lib.optionals (!dev) [
