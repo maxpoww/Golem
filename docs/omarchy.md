@@ -147,7 +147,7 @@ feels slower under heavy memory use.
 | Worst | 3.3, 3.2, 2.2 ms | 2.4, 0.9, 1.7 ms |
 | Real build | 98.0 s | 98.5, 100.0 s |
 
-On the MacBook Air the two cannot be told apart in ten rounds each: median 56 to 71 µs against
+On the MacBook Air the two cannot be told apart in eight rounds each: median 56 to 71 µs against
 56 to 58 µs, worst 1.2 to 4.6 ms against 0.7 to 9.6 ms. Nothing there asks to take it back.
 
 ### Does anything keep drawing when nothing moves? (real panel refreshes, 7 s after settling)
@@ -184,7 +184,7 @@ sampler found the toolbox's keepalive behind what it could see: nothing of Golem
 |---|---|
 | Their kernel, 7.2 with 187 patches (BORE, ADIOS…) | 7.2 breaks nvidia-open, facetimehd and broadcom-sta here (10-27); no benchmark for it in their repos |
 | Kyber on the NVMe | 8 GiB write test: read median 0.87 ms against 1.05, worst 21–25 ms against 22–27, fsync unchanged. No gain |
-| Kyber on the Air's SATA SSD | 2 GiB write test, six rounds against mq-deadline, its default: read median 13.3 against 13.7 ms, worst reads 33–66 against 29–82 ms, fsync the same. No gain. BFQ was worse there (reads p95 91 against 22 ms) |
+| Kyber on the Air's SATA SSD | 2 GiB write test, six rounds against mq-deadline, its default: read median 13.3 against 13.8 ms, worst reads 33–66 against 29–82 ms, fsync the same. No gain. BFQ was worse there (reads p95 91 against 22 ms) |
 | Kyber on spinning disks | BFQ exists for exactly this; no disk here to compare |
 | `swappiness=150` everywhere | Our RAM tiers are finer (180 on small machines, 10 on big ones) |
 | `DefaultTimeoutStopSec=5s` | 14 days of the dev box's journal: no stop job ever hung |
