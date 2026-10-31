@@ -185,7 +185,7 @@ let
           services.options-notify.enable = true;
           home-manager.users.${config.golem.owner} = {
             imports = [ ../../system/home/home.nix ];
-            home.packages = map lib.lowPrio [ pkgs.obs-studio ];
+            home.packages = map lib.lowPrio [ pkgs.obs-studio pkgs.btop pkgs.mpv ];
           };
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
@@ -385,6 +385,15 @@ let
             && !(lib.hasInfix "require(" tail)
             && !(lib.hasInfix "hl.config(" tail))
             [ c cLight cDev ]))
+        (ex "menubox: what the owner installed is not hidden, what ships with Golem is"
+          (let
+            clean = c.home-manager.users.${owner}.xdg.dataFile;
+            picked = cObs.home-manager.users.${cObs.golem.owner}.xdg.dataFile;
+            on = files: id: files ? "applications/${id}.desktop";
+          in
+            lib.all (on clean) [ "btop" "mpv" "umpv" "xterm" "foot" ]
+            && !lib.any (on picked) [ "btop" "mpv" "umpv" ]
+            && lib.all (on picked) [ "xterm" "foot" ]))
         (ex "P1: the menubox debloat is on for installs and off in the dev shape"
           ((c.home-manager.users.${owner}.xdg.dataFile ? "applications/xterm.desktop")
            && !(devHome.xdg.dataFile ? "applications/xterm.desktop")))
