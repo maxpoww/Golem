@@ -167,14 +167,17 @@ in
       nssmdns4 = true;
       openFirewall = true;
     };
-    # A daemon that died leaves its PID file, owned by its own user, in a place
-    # systemd keeps: the next start (the socket's, at the first client) reads it,
-    # says "Failed to create PID file: File exists" and the service stays failed
-    # for the rest of the boot, printers and scanners undiscovered (ASUS,
-    # 2026-10-31). Clear it first, and come back by itself.
+    # openresolv's hook sends the daemon a SIGHUP at each change of DNS. On a slow
+    # disk that can land before the daemon has its handler, and SIGHUP then ends it:
+    # gone 5 s into the boot with no word, one boot in six (ASUS, 2026-10-31, the hook's
+    # "kill: (682) - No such process" is all that shows). Its PID file stays behind, and
+    # the next start, at the first client, stops at "Failed to create PID file: File
+    # exists": failed for the rest of the boot, printers and scanners undiscovered.
+    # systemd counts a SIGHUP death as clean, so it has to be named for a restart.
     systemd.services.avahi-daemon.serviceConfig = {
       ExecStartPre = "-${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid";
       Restart = "on-failure";
+      RestartForceExitStatus = "SIGHUP";
       RestartSec = "2s";
     };
 
