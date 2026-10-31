@@ -10,6 +10,7 @@
 "decoration:inactive_opacity" = "same decision as decoration:active_opacity"
 "decoration:blur:enabled"     = "golem.desktop.effects = light (gpu/intel-legacy, the 2013 MacBook Air) turns the compositor blur off: the GPU sat at 98% during video with it. desktop-matrix guards the rule; every other machine keeps blur"
 "render:direct_scanout"       = "Golem turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
+"debug:disable_logs"          = "lab machines keep Hyprland's whole log, with times, in /run (Modular/lab/lab-door.nix, read through home.nix): a start's 3.4 s on the 2013 MacBook Air can be read. Goes with the lab door"
 "input:kb_model"              = "the installer's keyboard answer (golem.keyboard.model) — per machine by design"
 "general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
 "general:col.inactive_border" = "the palette's base02 while the shell wears the palette (Controls → Colours, Dynamic colour off), hyprland.lua's otherwise — the owner's choice per machine (2026-10-15)"
