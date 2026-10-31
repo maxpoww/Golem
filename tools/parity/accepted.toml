@@ -35,3 +35,6 @@
 [menubox]
 
 [xdg-default]
+
+[dropin]
+"hypridle.service.d/50-golem-idle.conf" = "the gear's idle times: the owner's numbers, written by the dock (gear_pages.rs apply_idle)"

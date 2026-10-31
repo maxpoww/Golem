@@ -153,6 +153,10 @@ def main():
         if line.startswith("STALE"):
             comp = line.split()[1]
             findings.append((f"stale:{comp}", f"the running session is older than the system: {line[6:]} (restart the session)", None))
+    for line in tgt.get("user_dropins", "").splitlines():
+        if line.strip():
+            reason = acc("dropin", line.strip())
+            (explained if reason else findings).append((f"dropin:{line.strip()}", f"a user unit drop-in nothing declared: {line.strip()} (it outlives every update)", reason))
     nt = tgt.get("notify", "").strip()
     if nt.startswith("MISSING"):
         findings.append(("notify", f"no notification server: {nt[8:]} (notify-send, browser and app alerts are lost)", None))

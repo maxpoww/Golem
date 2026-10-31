@@ -131,7 +131,11 @@ if [[ -n "$wpid" ]]; then
   wrun=$(readlink -f "/proc/$wpid/exe" 2>/dev/null); wrun=${wrun%%/bin/*}
   # The unit starts a wrapper (golem-vulkan-drivers) that execs the daemon:
   # the daemon's own store path is in ExecStart, or inside that wrapper.
-  wexec=$(systemctl --user show waverunner -p ExecStart --value 2>/dev/null)
+  # The unit as the system installed it, not as drop-ins left it: a test's
+  # drop-in that pins an old dock is then the effective ExecStart and the two
+  # agree. The ASUS ran a dock of 2026-10-16 that way for two weeks, unseen.
+  wexec=$(grep '^ExecStart=' "$(readlink -f "$HOME/.config/systemd/user/waverunner.service" 2>/dev/null)" 2>/dev/null)
+  [[ -n "$wexec" ]] || wexec=$(systemctl --user show waverunner -p ExecStart --value 2>/dev/null)
   wwant=$(grep -oE '/nix/store/[^ ;/]+-waverunner-daemon[^ ;/]*' <<<"$wexec" | head -1)
   if [[ -z "$wwant" ]]; then
     wwrap=$(grep -oE '/nix/store/[^ ;]+' <<<"$wexec" | head -1)
@@ -234,6 +238,10 @@ done
 echo "@generations=$(ls -d /nix/var/nix/profiles/system-*-link 2>/dev/null | wc -l)"
 echo "@disk=$(df --output=pcent / 2>/dev/null | tail -1 | tr -dc 0-9)"
 
+# Drop-ins nothing declared: home-manager's are links into the store, so a plain
+# file here came from a hand or a test, and it outlives every update.
+section user_dropins
+find "$HOME/.config/systemd/user" -path '*.d/*' -type f 2>/dev/null | sed "s|^$HOME/.config/systemd/user/||"
 section failed_user;   systemctl --user --failed --plain --no-legend 2>/dev/null
 section failed_system; systemctl --failed --plain --no-legend 2>/dev/null
 
