@@ -628,6 +628,11 @@ in
   # seam/golem-chrome.js). Seeded once and then the owner's to edit: the dock
   # owns the file after that. (Held back 2026-09-29..30 while webapps still
   # launched through Chrome, which Golem does not ship.)
+  # The shader cache of before MESA_DISK_CACHE_DATABASE (session.nix): nothing reads it.
+  home.activation.dropOldShaderCache = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    $DRY_RUN_CMD rm -rf "$HOME/.cache/mesa_shader_cache"
+  '';
+
   home.activation.seedWebappsList = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -e "$HOME/.config/webapps.list" ]; then
       $DRY_RUN_CMD install -Dm644 ${./webapps.list} "$HOME/.config/webapps.list"
