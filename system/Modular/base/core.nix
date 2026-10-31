@@ -117,4 +117,9 @@
   # Firmware for foreign hardware, and keep it current via LVFS.
   hardware.enableAllFirmware = true;
   services.fwupd.enable = lib.mkDefault true;
+  # Firmware news once a day, not once an hour: each run starts the daemon, which
+  # reads its plugins off the disk, for a list that changes a few times a month.
+  # On a spinning disk under load the daemon cannot even answer in time and the
+  # unit fails (ASUS, 2026-10-31).
+  systemd.timers.fwupd-refresh.timerConfig.OnCalendar = lib.mkDefault [ "" "daily" ];
 }

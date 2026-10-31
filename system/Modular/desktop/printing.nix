@@ -167,6 +167,16 @@ in
       nssmdns4 = true;
       openFirewall = true;
     };
+    # A daemon that died leaves its PID file, owned by its own user, in a place
+    # systemd keeps: the next start (the socket's, at the first client) reads it,
+    # says "Failed to create PID file: File exists" and the service stays failed
+    # for the rest of the boot, printers and scanners undiscovered (ASUS,
+    # 2026-10-31). Clear it first, and come back by itself.
+    systemd.services.avahi-daemon.serviceConfig = {
+      ExecStartPre = "-${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid";
+      Restart = "on-failure";
+      RestartSec = "2s";
+    };
 
     # USB printers and scanners that speak IPP over USB: on this machine they
     # become network devices, used with no driver.
