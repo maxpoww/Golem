@@ -50,11 +50,12 @@
     # Find the path's real packet size when a link swallows big packets: the
     # cure for an SSH that hangs on a bad Wi-Fi. It costs nothing elsewhere.
     "net.ipv4.tcp_mtu_probing" = 1;
-    # Reclaim early and in the background: 1.25 % of memory kept free rather
-    # than 0.1 %, so an allocation does not stall doing it itself, and no bursts
-    # of reclaim because memory fragmented while plenty is free.
+    # No bursts of reclaim because memory fragmented while plenty is free. Their
+    # other half, watermark_scale_factor=125, is NOT taken: keeping 1.25 % free
+    # made a program using 90 % of the ASUS's memory swap for nothing, about 10 %
+    # less work done, and a small job beside it noticed nothing either way
+    # (docs/omarchy.md, sixteen rounds, 2026-10-31).
     "vm.watermark_boost_factor" = 0;
-    "vm.watermark_scale_factor" = 125;
     # With the dirty bytes capped (memory/zram-tier*.nix) there are no big
     # bursts to catch: the flusher can wake every 15 s, not every 5.
     "vm.dirty_writeback_centisecs" = 1500;
