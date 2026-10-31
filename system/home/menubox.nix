@@ -7,6 +7,12 @@
 # skips NoDisplay entries, and an entry in ~/.local/share/applications
 # overrides a system one with the same ID — so hiding is an override here,
 # never a patch to the package.
+#
+# Hiding is for what comes WITH Golem. What the owner installed from the dock is
+# theirs to see, and to open: btop ships in every Golem (base/core.nix), so its stub
+# outlived an install of it, and the dock took the app for a command-line tool with no
+# entry: a shell saying "btop is ready" where the dev box opens btop (the ASUS,
+# 2026-10-31). The same went for mpv, Neovim, yazi, lf, foot, xterm and Blueman.
 { config, lib, pkgs, ... }:
 
 let
@@ -28,30 +34,39 @@ let
     name = "applications/${id}.desktop";
     value.text = "[Desktop Entry]\nType=Application\nName=${id}\nNoDisplay=true\n";
   };
+
+  # What the dock installed: the lowPrio home packages (hosts/target/apps.nix, made
+  # by waverunner-apply). Nothing else in the home layer is lowPrio.
+  picked = map lib.getName
+    (lib.filter (p: ((p.meta or { }).priority or 5) > 5) config.home.packages);
+  # These entries, unless the owner installed one of these packages.
+  unlessPicked = packages: entries:
+    lib.optionals (!lib.any (p: builtins.elem p picked) packages) entries;
 in
 {
   # golem.home.menubox.hidePlumbing (./options.nix): on for every install;
   # the dev box keeps its hand-arranged grid (parity P1).
   xdg.dataFile = lib.mkIf config.golem.home.menubox.hidePlumbing (lib.listToAttrs (
-    [
-      (hideCopy "foot" config.programs.foot.package)
-      (hideCopy "nvim" config.programs.neovim.finalPackage)
-      (hideCopy "yazi" config.programs.yazi.package)
-      (hideCopy "lf" pkgs.lf)   # a folder handler: a stub without Exec made "open folder" dead (P9)
+    unlessPicked [ "foot" ] (
+      [ (hideCopy "foot" config.programs.foot.package) ]
+      ++ map hideStub [ "footclient" "foot-server" ]
+    )
+    ++ unlessPicked [ "neovim" ] [ (hideCopy "nvim" config.programs.neovim.finalPackage) ]
+    ++ unlessPicked [ "yazi" ] [ (hideCopy "yazi" config.programs.yazi.package) ]
+    # lf is a folder handler: a stub without Exec made "open folder" dead (P9).
+    ++ unlessPicked [ "lf" ] [ (hideCopy "lf" pkgs.lf) ]
+    ++ unlessPicked [ "mpv" "mpv-with-scripts" ] [
       (hideCopy "mpv" pkgs.mpv)
       (hideCopy "umpv" pkgs.mpv)
     ]
+    ++ unlessPicked [ "btop" ] [ (hideStub "btop") ]
+    ++ unlessPicked [ "xterm" ] [ (hideStub "xterm") ]
+    ++ unlessPicked [ "blueman" ] (map hideStub [ "blueman-adapters" "blueman-manager" ])
     ++ map hideStub [
-      "footclient"
-      "foot-server"
-      "btop"
-      "xterm"
       "nixos-manual"
       "uuctl"
       "org.freedesktop.Xwayland"
       "xdg-desktop-portal-gtk"
-      "blueman-adapters"
-      "blueman-manager"
     ]
   ));
 }
