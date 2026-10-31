@@ -174,8 +174,10 @@ in
     # the next start, at the first client, stops at "Failed to create PID file: File
     # exists": failed for the rest of the boot, printers and scanners undiscovered.
     # systemd counts a SIGHUP death as clean, so it has to be named for a restart.
+    # The rm needs the "+": the unit's capability set leaves root unable to remove a
+    # file from the avahi user's folder ("Permission denied", and it failed on).
     systemd.services.avahi-daemon.serviceConfig = {
-      ExecStartPre = "-${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid";
+      ExecStartPre = "-+${pkgs.coreutils}/bin/rm -f /run/avahi-daemon/pid";
       Restart = "on-failure";
       RestartForceExitStatus = "SIGHUP";
       RestartSec = "2s";

@@ -24,6 +24,18 @@
   # sshguard only sheds the internet's password-spray noise. Lighter than
   # fail2ban (no python), which matters on the minimal.
   services.sshguard.enable = true;
+  # It follows the journal from this boot's start, and finding that in a month of
+  # journal reads most of it: 97 MB and 1400 seeks of a spinning disk, just as the
+  # desktop starts (ASUS, 2026-10-31). On a disk idle otherwise, a minute and a half in;
+  # SSH is key-only, so nothing is at stake meanwhile.
+  systemd.services.sshguard = {
+    wantedBy = lib.mkForce [ ];
+    serviceConfig.IOSchedulingClass = "idle";
+  };
+  systemd.timers.sshguard = {
+    wantedBy = [ "timers.target" ];
+    timerConfig = { OnBootSec = "90s"; AccuracySec = "10s"; };
+  };
 
   # Sudo hygiene (no NOPASSWD anywhere on an install, see users.nix):
   # explain itself once, and don't leave a long-lived unlocked timestamp.

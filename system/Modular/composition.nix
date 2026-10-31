@@ -32,6 +32,7 @@
     ./boot/boot-speed.nix
     # Unit directories as real files: ~10 s off a spinning-disk boot (the file).
     ./boot/flat-units.nix
+    ./boot/flat-dbus.nix
     ./base/shell.nix
     ./base/selfrebuild.nix
     ./base/loop.nix

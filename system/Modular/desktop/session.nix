@@ -94,6 +94,13 @@ in
 
   services.gvfs.enable = true;
   environment.sessionVariables.GIO_EXTRA_MODULES = [ "${pkgs.gvfs}/lib/gio/modules" ];
+  # Mesa's shader cache as one file, not one file a shader in a folder of its own:
+  # the dock's 28 shaders were 28 of them, each seeks of a spinning disk, up to a
+  # second apiece at login. Its GPU opened in 10 to 15 s, now under 1 s (ASUS, 2026-10-31,
+  # docs/omarchy.md). This kind of cache keeps the size limit; the other single-file
+  # kind does not. One part: its fifty by default would be fifty files again.
+  environment.sessionVariables.MESA_DISK_CACHE_DATABASE = "1";
+  environment.sessionVariables.MESA_DISK_CACHE_DATABASE_NUM_PARTS = "1";
   programs.dconf.enable = true;
 
   # Qt apps wear THE PALETTE too (Controls → Colours): qt5ct/qt6ct as the
