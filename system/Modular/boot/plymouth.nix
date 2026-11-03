@@ -106,6 +106,16 @@ in
   # happen"). Plymouth ships shutdown-side units that re-show the splash on
   # poweroff / reboot / halt / kexec; mask them so the bar appears on the way
   # UP and nowhere else. The way DOWN stays the base's quiet black screen.
+  # The splash STAYS until the desktop draws (Max, 2026-11-03: "cuando pasa la barra de
+  # encendido se pone todo negro por como 15s"). Plymouth quits as the login begins (greetd
+  # waits for it) and the compositor draws its first frame 12 to 15 s later on the ASUS's
+  # spinning disk: black in between. `--retain-splash` gives the display up all the same
+  # and leaves its last frame there until Hyprland sets its own mode.
+  systemd.services.plymouth-quit.serviceConfig.ExecStart = [
+    ""
+    "-${config.boot.plymouth.package}/bin/plymouth quit --retain-splash"
+  ];
+
   systemd.suppressedSystemUnits = [
     "plymouth-poweroff.service"
     "plymouth-reboot.service"
