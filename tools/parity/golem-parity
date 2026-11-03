@@ -104,6 +104,37 @@ def lua_motion(snap):
     return out
 
 
+def installed(snap):
+    """attr → (how, entry, icon, terminal), from collect.sh's `installed`."""
+    out = {}
+    for line in snap.get("installed", "").splitlines():
+        f = line.split("\t")
+        if len(f) == 5:
+            out[f[0]] = tuple(f[1:])
+    return out
+
+
+def app_findings(ref, tgt, acc, explained):
+    """What the owner installed must open as it is: an installed app whose entry Golem
+    hides, or the dock's command-line tile over an app that has an entry, is a bug on
+    sight (the btop of 2026-10-31); and a package on both machines must open the same
+    way under the same icon."""
+    out = []
+    mine, theirs = installed(ref), installed(tgt)
+    for attr, (how, entry, icon, term) in sorted(theirs.items()):
+        if "hidden" in how and not acc("app", attr):
+            out.append((f"app-hidden:{attr}", f"installed {attr}: its entry is hidden ({how}), the dock opens no app", None))
+        elif how == "banner(entry)" and not acc("app", attr):
+            out.append((f"app-stale:{attr}", f"installed {attr}: the dock keeps a command-line tile though {entry} is its app", None))
+    for attr in sorted(set(mine) & set(theirs)):
+        if mine[attr] != theirs[attr]:
+            fid, text = f"app:{attr}", (f"app {attr} (how, entry, icon, terminal): reference={'/'.join(mine[attr])}  "
+                                        f"target={'/'.join(theirs[attr])}")
+            reason = acc("app", attr)
+            (explained if reason else out).append((fid, text, reason))
+    return out
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     if len(args) != 1:
@@ -196,6 +227,8 @@ def main():
     for prog, ids in sorted(dead.items()):
         shown = ", ".join(ids[:4]) + (f" … (+{len(ids) - 4})" if len(ids) > 4 else "")
         findings.append((f"menubox-dead:{prog}", f"{len(ids)} menubox launcher(s) run a program that does not exist ({prog}): {shown}", None))
+
+    findings += app_findings(ref, tgt, acc, explained)
 
     meta = dict(l.split("=", 1) for l in tgt.get("meta", "").splitlines() if "=" in l)
     lines = [f"# golem-parity — {meta.get('host','?')} ({meta.get('product','?')}) vs reference",

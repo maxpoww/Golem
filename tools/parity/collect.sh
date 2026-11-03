@@ -264,6 +264,55 @@ done | awk -F'\t' '!seen[$1]++' | while IFS=$'\t' read -r id f; do
   printf '%s\t%s\t%s\n' "$r" "$id" "$prog"
 done
 
+# What each package the owner installed from the dock IS here: how the dock opens
+# it and under which icon (managed.json, as the dock recorded it, against the
+# entries on the XDG path). One package must behave the same on every machine:
+# btop (2026-10-31) opened a shell saying "btop is ready" under the box's icon on
+# the ASUS and btop itself on the dev box, and nothing compared the two.
+#   attr  how  entry  icon  terminal    how = entry | hidden | none, banner(…) = the
+#   dock's command-line tile (gui=false) over what the entries say
+section installed
+# (The dev box is read from its toolbox: the host's /etc and /run are under
+# /run/host there, and their links name the host's paths — followed by hand.)
+hostroot=; [[ -e /run/.toolboxenv ]] && hostroot=/run/host
+hreal() {
+  local rest=$1 out= c t n=0
+  while [[ -n $rest && $n -lt 40 ]]; do
+    rest=${rest#/}; c=${rest%%/*}
+    if [[ $rest == */* ]]; then rest=/${rest#*/}; else rest=; fi
+    [[ -z $c ]] && continue
+    out=$out/$c
+    local real=$out; [[ $out == /nix/* || $out == "$HOME"* ]] || real=$hostroot$out
+    if [[ -L $real ]]; then
+      t=$(readlink "$real"); n=$((n + 1))
+      [[ $t == /* ]] || t=${out%/*}/$t
+      rest=$t$rest; out=
+    fi
+  done
+  [[ $out == /nix/* || $out == "$HOME"* ]] && echo "$out" || echo "$hostroot$out"
+}
+appdirs=$( { echo "$HOME/.local/share"; tr ':' '\n' <<<"${henv[XDG_DATA_DIRS]:-/run/current-system/sw/share}"; } \
+  | while IFS= read -r d; do [[ -n $hostroot ]] && hreal "$d" || echo "$d"; done )
+awk '
+  /"attr":/ { gsub(/[",]/, "", $2); attr = $2; ids = ""; inids = 0; next }
+  /"desktop_ids":/ { inids = 1; next }
+  inids && /\]/ { inids = 0; next }
+  inids { gsub(/[",[:space:]]/, ""); if ($0 != "") ids = ids (ids == "" ? "" : " ") $0; next }
+  /"gui":/ { gsub(/[",]/, "", $2); print attr "\t" $2 "\t" ids }
+' "$HOME/.local/share/waverunner/managed.json" 2>/dev/null | while IFS=$'\t' read -r attr gui ids; do
+  how=none entry=- icon=- term=false
+  for id in $ids; do
+    f=$(while IFS= read -r d; do [[ -e "$d/applications/$id.desktop" ]] && { echo "$d/applications/$id.desktop"; break; }; done <<<"$appdirs")
+    [[ -n "$f" ]] || continue
+    if grep -qiE '^(NoDisplay|Hidden)=true' "$f"; then how=hidden; continue; fi
+    how=entry entry=$id
+    icon=$(grep -m1 '^Icon=' "$f" | cut -d= -f2-); term=$(grep -m1 '^Terminal=' "$f" | cut -d= -f2-)
+    break
+  done
+  [[ "$gui" == false ]] && how="banner($how)"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$attr" "$how" "$entry" "${icon:--}" "${term:-false}"
+done
+
 # The owner's installed-app list (the menubox is Seam + these).
 section apps
 grep -vE '^\s*(#|$)' "$HOME/.config/waverunner/packages.list" 2>/dev/null
