@@ -445,7 +445,10 @@ let
           (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
             lib.hasInfix ''hl.bind("XF86PowerOff", hl.dsp.exec_cmd("waverunner-ctl power")'' lua
             && c.services.logind.settings.Login.HandlePowerKey == "ignore"
-            && c.services.logind.settings.Login.HandlePowerKeyLongPress == "poweroff"))
+            && c.services.logind.settings.Login.HandlePowerKeyLongPress == "poweroff"
+            # the kernel's tiny driver asks for the pills too, never a poweroff
+            && lib.hasInfix "tiny_power_button power_signal=28" c.boot.extraModprobeConfig
+            && lib.elem "golem-power-key.service" c.systemd.targets.kbrequest.wants))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))
