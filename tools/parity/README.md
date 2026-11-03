@@ -17,6 +17,10 @@ tools/parity/golem-parity max@192.168.1.149 --save   # also writes work/parity/<
   - Every `exec_cmd` checked against the session PATH.
   - The session env and `$SHELL`, config errors, failed units.
   - The menubox launchers and whether their program exists.
+  - Each package the owner installed from the dock: how the dock opens it (its own
+    entry, hidden, or the command-line tile) and under which icon. Hidden or a stale
+    command-line tile is a finding on sight, and a package on both machines must open
+    the same way (`app:` ids; btop opened a shell on the ASUS, 2026-10-31).
 - `golem-parity`: the comparison, run on the dev box.
 - `accepted.toml`: the intended differences, each with a reason.
 - `../../work/parity.md`: the ledger of findings (open / fixed).
