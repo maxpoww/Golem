@@ -51,6 +51,7 @@ in
     ./bash.nix            # the owner's bash: prompt, EDITOR, the OPTIONS shell bridge (P12)
     ./idle.nix            # hypridle + hyprlock: lock, screen off, suspend on idle (P11)
     ./fits.nix            # an app the owner installs works the moment it lands (OBS)
+    ./warm-browser.nix    # on a spinning disk, Seam's files read ahead after the login
     ./phone.nix           # a plugged-in Android: mirror its screen, use it as the camera
     waverunner.homeManagerModules.default
   ];
