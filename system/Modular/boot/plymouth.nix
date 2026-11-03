@@ -45,15 +45,6 @@ let
         echo "ScriptFile=$d/golem.script"
       } > "$d/golem.plymouth"
     '';
-  # Plymouth's quit once the compositor is up (its socket), 60 s at most; see THE HAND-OVER.
-  splashHandoff = pkgs.writeShellScript "golem-splash-handoff" ''
-    for _ in $(${pkgs.coreutils}/bin/seq 1 240); do
-      for s in /run/user/*/hypr/*/.socket.sock; do [ -S "$s" ] && break 2; done
-      ${pkgs.coreutils}/bin/sleep 0.25
-    done
-    ${pkgs.coreutils}/bin/sleep 1
-    exec ${config.boot.plymouth.package}/bin/plymouth quit --retain-splash
-  '';
 in
 {
   boot.plymouth = {
@@ -115,22 +106,6 @@ in
   # happen"). Plymouth ships shutdown-side units that re-show the splash on
   # poweroff / reboot / halt / kexec; mask them so the bar appears on the way
   # UP and nowhere else. The way DOWN stays the base's quiet black screen.
-  # THE HAND-OVER: the splash stays until the desktop draws (Max, 2026-11-03: "cuando pasa la
-  # barra de encendido se pone todo negro por como 15s"). Plymouth quit as the login began
-  # (greetd waited for it) and the compositor drew 12 to 15 s later on the ASUS's spinning
-  # disk; `quit --retain-splash` alone did not keep the frame: the console took the screen
-  # back, black, from 32 to past 46 s. GDM's way instead: before the login plymouth only
-  # DEACTIVATES (stops drawing and gives the display up, its frame left on it), the login does
-  # not wait for it, and it quits once the compositor answers on its socket.
-  systemd.services.greetd = {
-    after = lib.mkForce [ "systemd-user-sessions.service" "getty@tty1.service" "plymouth-start.service" ];
-    serviceConfig.ExecStartPre = [ "-${config.boot.plymouth.package}/bin/plymouth deactivate" ];
-  };
-  systemd.services.plymouth-quit.serviceConfig = {
-    ExecStart = [ "" "-${splashHandoff}" ];
-    TimeoutStartSec = 90;
-  };
-
   systemd.suppressedSystemUnits = [
     "plymouth-poweroff.service"
     "plymouth-reboot.service"
