@@ -594,7 +594,12 @@ hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 -- The control keys below all carry `submap_universal = true`: they keep working
 -- inside any submap, which is what keeps volume/brightness/media alive while
 -- Golem's STAGE mode has taken every other bind away (see the "stage" submap).
-hl.bind("XF86PowerOff", hl.dsp.exec_cmd("systemctl hibernate"), { submap_universal = true })
+-- The power key (Max, 2026-11-03): a SHORT press brings the banner's power
+-- pills right of the gear (hibernate, and sleep and restart behind it on
+-- hover); a LONG one is logind's and powers off (desktop/idle.nix). Sent when
+-- the key is let go, so a long press never shows the pills on its way out.
+-- Not while locked: the lock screen covers the banner.
+hl.bind("XF86PowerOff", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl power"), { release = true, submap_universal = true })
 
 -- Laptop multimedia keys for volume and LCD brightness
 hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true, submap_universal = true })
