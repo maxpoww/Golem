@@ -48,7 +48,7 @@ version. For everything else:
 ## One machine, right now
 
 ```sh
-sudo touch /run/golem-update-now && sudo systemctl start golem-autoupdate   # skip its wave
+systemctl start golem-update-now                                             # skip its wave (Controls → Updates → Update now does this)
 journalctl -u golem-autoupdate -n 50                                         # what it did
 golem-update-wave                                                            # its wave
 ```

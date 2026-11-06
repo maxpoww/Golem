@@ -7,6 +7,7 @@
 #   Clean up                  golem-clean-system: old system versions (keeps
 #                             the last two), then the store, then old logs
 #   Updates: check now        start golem-autoupdate.service
+#   Updates: update now       start golem-update-now.service (the wave skipped)
 #   Stop charging at 80%      the battery's charge limit, writable by the owner
 #                             on hardware that has one
 #   Video playback            vainfo, so the page can say what the card decodes
@@ -34,7 +35,7 @@ let
     ${pkgs.systemd}/bin/journalctl --vacuum-time=7d || true
   '';
 
-  startable = [ "fstrim.service" "golem-clean-system.service" "golem-autoupdate.service" ];
+  startable = [ "fstrim.service" "golem-clean-system.service" "golem-autoupdate.service" "golem-update-now.service" ];
 in
 {
   systemd.services.golem-clean-system = {

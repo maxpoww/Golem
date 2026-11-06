@@ -271,6 +271,7 @@ lib.mkIf (config.golem.flakeDir != null) {
           echo "golem-autoupdate: a new version is out; this machine is in wave $wave and takes it in about $(( (wave * 86400 - age + 3599) / 3600 )) h."
           pull=0
         fi
+        rm -f /run/golem-update-now
       fi
 
       # From the pull to the end (build, or recover), the source is in
@@ -349,6 +350,20 @@ lib.mkIf (config.golem.flakeDir != null) {
       if [ "$pull" = 1 ]; then rm -f "$since"; fi
       ensure_boot_entry || exit 1
       echo "golem-autoupdate: new generation staged; it goes live on the next reboot."
+    '';
+  };
+
+  # UPDATE NOW (the Controls page's button, 2026-11-06): one run that skips
+  # this machine's wave — the marker the service honours, then the service.
+  # The owner may start it without a password (desktop/care.nix lists it);
+  # the marker goes with the run, so the next nightly run waits its turn
+  # again.
+  systemd.services.golem-update-now = {
+    description = "Golem self-update now, skipping this machine's wave";
+    serviceConfig.Type = "oneshot";
+    script = ''
+      touch /run/golem-update-now
+      ${pkgs.systemd}/bin/systemctl start --no-block golem-autoupdate.service
     '';
   };
 
