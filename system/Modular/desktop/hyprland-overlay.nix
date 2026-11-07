@@ -219,6 +219,27 @@ final: prev: {
     ];
   });
 
+  #   vscode          VS Code 1.144 moved its bundled ripgrep to
+  #                   @vscode/ripgrep-universal/bin/linux-x64/rg; nixpkgs
+  #                   26.05.13627 still swaps the old @vscode/ripgrep/bin/rg
+  #                   for nixpkgs' ripgrep, its `rm` fails and the whole
+  #                   system build with it (the dev box, 2026-11-07: VS Code
+  #                   was installed from the dock). Same swap at the new
+  #                   path; once nixpkgs follows, the old text is gone and
+  #                   this replaces nothing. Drop it then.
+  vscode = prev.vscode.overrideAttrs (old: {
+    postPatch = builtins.replaceStrings
+      [
+        "rm resources/app/node_modules/@vscode/ripgrep/bin/rg"
+        " resources/app/node_modules/@vscode/ripgrep/bin/rg\n"
+      ]
+      [
+        "mkdir -p resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64\nrm -f resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64/rg"
+        " resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64/rg\n"
+      ]
+      (old.postPatch or "");
+  });
+
   #   uwsm-rewait     A WAIT THAT BREAKS IS NOT THE END OF THE SESSION.
   #                   uwsm holds the session open on `systemctl --user start
   #                   --wait <the compositor's unit>` and ended it the moment
