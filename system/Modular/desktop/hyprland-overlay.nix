@@ -129,6 +129,20 @@
 #   workspace-swipe-one-empty  gestures:workspace_swipe_one_empty (opt-in):
 #                         swipe steps onto ONE empty workspace, then jumps to
 #                         the next occupied one.
+#   monitor-move-floating  a screen unplugged or plugged back keeps its floating
+#                         windows ON a screen. Two upstream misses: (1) a
+#                         workspace moving to another screen shifted each
+#                         window's box but not the floating layout's own copy
+#                         (lastBox), which leaving fullscreen restores, so a
+#                         video made fullscreen on the TV, then the TV
+#                         unplugged, came out of fullscreen where the TV had
+#                         been; (2) a screen with an `auto` position connects
+#                         at the (-1,-1) placeholder, its workspaces come back
+#                         to it then, and the move to its real place skipped
+#                         the windows for that placeholder, leaving them at
+#                         the other screen's coordinates (Max, 2026-11-07:
+#                         "la ventana ... no esta en un WS"). Windows now move
+#                         through the layout, and from the placeholder too.
 #
 # Alphabetical on purpose, like the dev box's list: the same patch list in the
 # same order gives the same Hyprland derivation, so the plugin and the system
@@ -143,6 +157,7 @@ final: prev: {
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-keep-work-buffers.patch
       ./hyprland-patches/hyprland-layer-commit-damage.patch
+      ./hyprland-patches/hyprland-monitor-move-floating.patch
       ./hyprland-patches/hyprland-pseudo-real-box.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-screenshare-region-session.patch

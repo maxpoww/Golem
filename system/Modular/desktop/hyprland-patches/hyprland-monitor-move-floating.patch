@@ -1,0 +1,103 @@
+diff --git a/src/Compositor.cpp b/src/Compositor.cpp
+index d4b436e..170a52d 100644
+--- a/src/Compositor.cpp
++++ b/src/Compositor.cpp
+@@ -54,6 +54,7 @@
+ #include "protocols/core/Subcompositor.hpp"
+ #include "desktop/view/LayerSurface.hpp"
+ #include "layout/space/Space.hpp"
++#include "layout/algorithm/Algorithm.hpp"
+ #include "render/Renderer.hpp"
+ #include "xwayland/XWayland.hpp"
+ #include "helpers/ByteOperations.hpp"
+@@ -1899,6 +1900,25 @@ MONITORID CCompositor::getNextAvailableMonitorID(std::string const& name) {
+     return nextID;
+ }
+ 
++// Shift a floating window by `delta` when its screen moves or its workspace
++// changes screens. Through the layout, not just its box: the floating layout
++// keeps its own copy of the box (`lastBox`), and leaving fullscreen puts the
++// window back there. Shifting only the box left that copy on the old screen,
++// so a window made fullscreen on a screen that was then unplugged came back
++// off-screen when it left fullscreen. (Not for a maximized window: its box is
++// the work area, and remembering that would bring it back screen-sized.)
++static void shiftFloatingWindow(PHLWINDOW w, const Vector2D& delta) {
++    const auto TARGET = w->layoutTarget();
++    if (!TARGET)
++        return;
++    const auto SPACE = TARGET->space();
++    const auto ALGO  = SPACE ? SPACE->algorithm() : nullptr;
++    if (ALGO && TARGET->floating() && !(TARGET->fullscreenMode() & FSMODE_MAXIMIZED))
++        ALGO->moveTarget(delta, TARGET);
++    else
++        TARGET->setPositionGlobal(TARGET->position().translate(delta));
++}
++
+ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitorB) {
+     const auto PWORKSPACEA = pMonitorA->m_activeWorkspace;
+     const auto PWORKSPACEB = pMonitorB->m_activeWorkspace;
+@@ -1917,7 +1937,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
+ 
+             // additionally, move floating and fs windows manually
+             if (w->m_isFloating)
+-                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorA->m_position + pMonitorB->m_position));
++                shiftFloatingWindow(w, -pMonitorA->m_position + pMonitorB->m_position);
+ 
+             if (w->isFullscreen()) {
+                 *w->m_realPosition = pMonitorB->m_position;
+@@ -1942,7 +1962,7 @@ void CCompositor::swapActiveWorkspaces(PHLMONITOR pMonitorA, PHLMONITOR pMonitor
+ 
+             // additionally, move floating and fs windows manually
+             if (w->m_isFloating)
+-                w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-pMonitorB->m_position + pMonitorA->m_position));
++                shiftFloatingWindow(w, -pMonitorB->m_position + pMonitorA->m_position);
+ 
+             if (w->isFullscreen()) {
+                 *w->m_realPosition = pMonitorA->m_position;
+@@ -2132,7 +2152,7 @@ void CCompositor::moveWorkspaceToMonitor(PHLWORKSPACE pWorkspace, PHLMONITOR pMo
+             if (w->m_isMapped && !w->isHidden()) {
+                 if (POLDMON) {
+                     if (w->m_isFloating)
+-                        w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(-POLDMON->m_position + pMonitor->m_position));
++                        shiftFloatingWindow(w, -POLDMON->m_position + pMonitor->m_position);
+ 
+                     if (w->isFullscreen()) {
+                         *w->m_realPosition = pMonitor->m_position;
+diff --git a/src/helpers/Monitor.cpp b/src/helpers/Monitor.cpp
+index 0588f6f..d44c01d 100644
+--- a/src/helpers/Monitor.cpp
++++ b/src/helpers/Monitor.cpp
+@@ -1688,16 +1688,29 @@ void CMonitor::moveTo(const Vector2D& pos) {
+ 
+     m_position = pos;
+ 
+-    if (OLD_POSITION == Vector2D{-1, -1})
+-        return;
+-
++    // (-1, -1) is "not placed yet" (an `auto` position at connect), and it is
++    // a real origin all the same: a workspace coming back to this screen while
++    // it connects brings its floating windows over relative to it (onConnect
++    // moves workspaces before arrangeMonitors places the screen). Returning
++    // here left them at the other screen's coordinates — a TV plugged back in
++    // got its windows outside it.
+     const auto DELTA = pos - OLD_POSITION;
+ 
+     for (const auto& w : g_pCompositor->m_windows) {
+         if (!validMapped(w) || !w->m_isFloating || w->m_monitor != m_self)
+             continue;
+ 
+-        w->layoutTarget()->setPositionGlobal(w->layoutTarget()->position().translate(DELTA));
++        // through the layout, so its remembered box moves too (see
++        // shiftFloatingWindow in Compositor.cpp)
++        const auto TARGET = w->layoutTarget();
++        if (!TARGET)
++            continue;
++        const auto SPACE = TARGET->space();
++        const auto ALGO  = SPACE ? SPACE->algorithm() : nullptr;
++        if (ALGO && TARGET->floating() && !(TARGET->fullscreenMode() & FSMODE_MAXIMIZED))
++            ALGO->moveTarget(DELTA, TARGET);
++        else
++            TARGET->setPositionGlobal(TARGET->position().translate(DELTA));
+     }
+ }
+ 
