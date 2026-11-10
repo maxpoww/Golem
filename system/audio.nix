@@ -1,6 +1,9 @@
 { config, lib, pkgs, ... }:
 {
- 
+  # Per-model speaker tunings, the one model whose amp is kept awake, and the
+  # jack-aware profile choice: the same leaf the modular desktop imports.
+  imports = [ ./Modular/desktop/speakers ];
+
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
 
@@ -12,15 +15,8 @@
     jack.enable = true;
 
     wireplumber.extraConfig = {
-      # Prevent ALSA nodes (like your TAS2781 amp) from suspending
-      "10-no-suspend-tas2781" = {
-        "monitor.alsa.rules" = [{
-          matches = [{ "node.name" = "~alsa_output.*"; }];
-          actions.update-props = {
-            "session.suspend-timeout-seconds" = 0;
-          };
-        }];
-      };
+      # (The old "never suspend any output" rule moved to
+      # Modular/desktop/speakers, scoped to the TAS2781 laptop's analog outputs.)
 
       # Disable automatic profile switching to headset (HFP) when mic is requested
       "51-bluez-no-autoswitch" = {
