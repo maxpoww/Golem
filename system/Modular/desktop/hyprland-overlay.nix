@@ -129,6 +129,13 @@
 #   workspace-swipe-one-empty  gestures:workspace_swipe_one_empty (opt-in):
 #                         swipe steps onto ONE empty workspace, then jumps to
 #                         the next occupied one.
+#   workspace-swipe-screen  gestures:workspace_swipe_bound (opt-in): a swipe
+#                         stays among the workspaces bound by workspace rules
+#                         to the same screen as the one it began on. Golem
+#                         gives every screen its own workspaces (hyprland.lua,
+#                         SCREENS); without this a swipe walked off the end of
+#                         one screen's into the next block, or into another
+#                         screen's. Made on top of workspace-swipe-one-empty.
 #   monitor-move-floating  a screen unplugged or plugged back keeps its floating
 #                         windows ON a screen. Two upstream misses: (1) a
 #                         workspace moving to another screen shifted each
@@ -169,6 +176,7 @@ final: prev: {
       ./hyprland-patches/hyprland-visible-region-damage.patch
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch
+      ./hyprland-patches/hyprland-workspace-swipe-screen.patch
     ];
     # Hyprland's own pictures — three anime wallpapers (48 MB) and the
     # "lock screen died" images — are drawn whenever Golem's config is not in
