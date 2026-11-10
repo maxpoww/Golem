@@ -141,10 +141,12 @@ TAS2781 amp and BlueZ codecs (system/audio.nix:7–51). Volume/mute keys go
 through `wpctl` today (system/home/hyprland.lua:318–321). Stopgap:
 `pavucontrol` (system/configuration.nix:188).
 
-**Gotcha 1.** `audio-keepalive` holds a permanent silent stream on the sink
-to keep the amp awake (system/audio.nix:53–63). Any "is audio playing?"
-heuristic based on active streams is **always true** on this hardware. Sense
-playback from MPRIS, not from PipeWire node state.
+**Gotcha 1.** Until 2026-11-10 `audio-keepalive` held a permanent silent
+stream on the dev box's sink to keep its TAS2781 amp awake, and every output
+of every Golem never suspended. Both are gone (the amp reloads its program at
+every start, system/Modular/desktop/speakers/tas2781.nix), but other apps
+keep streams open too (browsers): sense playback from MPRIS, not from
+PipeWire node state.
 
 **Gotcha 2.** A connected headset exists twice — as a BlueZ `Device1` and as
 a PipeWire node. Two collectors, two truths, one physical object. Deciding

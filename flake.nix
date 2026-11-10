@@ -482,7 +482,6 @@
           modules = golemModules ++ [
             ./hosts/golem/hardware-configuration.nix
             ./hosts/golem/nvidia.nix
-            ./hosts/golem/audio-keepalive.nix
             ./hosts/golem/locale.nix
             { golem.flakeDir = "/home/max/Golem"; }
           ];
