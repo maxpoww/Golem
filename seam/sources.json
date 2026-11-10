@@ -1,5 +1,35 @@
 {
   "version": "158.0.1",
   "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/en-US/firefox-158.0.1.tar.xz",
-  "sha256": "dce45470139242cf294eb6ada3d192a9bb334696842b02b71ade448a139eb41a"
+  "sha256": "dce45470139242cf294eb6ada3d192a9bb334696842b02b71ade448a139eb41a",
+  "langpacks": {
+    "es-ES": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/es-ES.xpi",
+      "sha256": "b11a78585f4c2b9b0eda95eac4bb6d0da5e4a570de39c7d9e7d35d8947adde30"
+    },
+    "es-MX": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/es-MX.xpi",
+      "sha256": "8ce4941e87a545699c8000f65c8a9e2b3614f61dce4d3a44b41b6f1845880b96"
+    },
+    "fr": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/fr.xpi",
+      "sha256": "7781589cab32707cbb70e30e5df289658b15a1d36227c26c2d4170b20a999f8c"
+    },
+    "de": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/de.xpi",
+      "sha256": "11b8d29cf69a774d6008a0d2818e663e6e415dcb4e021b15a0e85a507c5be924"
+    },
+    "it": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/it.xpi",
+      "sha256": "1eeaef62bcd18e94bba67452363b4ab74a9e5fb1165cf3cb016b877112711ceb"
+    },
+    "pt-BR": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/pt-BR.xpi",
+      "sha256": "7643b3cc444476dd1497ce0fa22ef35125f08073d510b59ac544e4f0f1c973b1"
+    },
+    "pt-PT": {
+      "url": "https://archive.mozilla.org/pub/firefox/releases/158.0.1/linux-x86_64/xpi/pt-PT.xpi",
+      "sha256": "69510a4c98ac3d3fb9df8f6ec2918916f1a3b2c3cf095b4e3166d189e28df8b1"
+    }
+  }
 }
