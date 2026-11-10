@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 {
-  # Per-model speaker tunings, the one model whose amp is kept awake, and the
-  # jack-aware profile choice: the same leaf the modular desktop imports.
+  # Per-model speaker tunings, the TAS2781 amp reload, and the jack-aware
+  # profile choice: the same leaf the modular desktop imports.
   imports = [ ./Modular/desktop/speakers ];
 
   services.pulseaudio.enable = false;
@@ -15,8 +15,8 @@
     jack.enable = true;
 
     wireplumber.extraConfig = {
-      # (The old "never suspend any output" rule moved to
-      # Modular/desktop/speakers, scoped to the TAS2781 laptop's analog outputs.)
+      # (The old "never suspend any output" rule is gone: the TAS2781 amp it
+      # was for reloads its program at every start, Modular/desktop/speakers.)
 
       # Disable automatic profile switching to headset (HFP) when mic is requested
       "51-bluez-no-autoswitch" = {

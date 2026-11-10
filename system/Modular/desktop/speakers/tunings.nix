@@ -27,24 +27,23 @@
     # kernel drives through a TAS2781 amp (ALC287_FIXUP_TAS2781_I2C). The
     # 387d sibling ("Quad AAC") has different speakers; it is not matched.
     components = "~.*HDA:10ec0287,17aa387e,.*";
-    # The amp loses the first fraction of a second of every sound that starts
-    # after the analog output went idle, so the analog PCM (speakers and
-    # headphone jack share it) is never suspended on this model. This used to
-    # hold EVERY output of EVERY Golem awake (pipewire ~23 wakeups/s forever
-    # after the first sound, measured on the 2013 MacBook Air, 2026-11-10).
-    # Whether kernel 6.18 still needs it is measured in docs/speakers.md.
-    keepAwake = "~alsa_output.*HiFi__(Speaker|Headphones)__sink";
-    # v0 — NOT MEASURED YET. A 24 dB/octave high-pass (two 2nd-order
-    # sections) so the woofers stop being asked for bass they cannot move.
-    # The corner is set by measurement on the machine (the test-tone sweep in
-    # docs/speakers.md), then confirmed by ear.
+    # Chosen by ear by the owner on the machine, 2026-11-10, with the amp
+    # reload on (tas2781.nix): stock it "sounds beautiful but saturates".
+    #   • below 60 Hz out (12 dB/octave): the woofers cannot move it, and it is
+    #     what drives them into saturation first;
+    #   • a −6 dB shelf from 180 Hz down: "a bit less bass, not much";
+    #   • −1 dB overall: 0 dB still saturated a little, −1.5 dB was "more volume".
+    # The internal-mic sweep (40 Hz–10 kHz, -18 dBFS) agrees on the low end:
+    # below ~300 Hz these speakers give mostly harmonics, not the tone asked.
     graph = {
       nodes = [
-        { type = "builtin"; name = "hp1"; label = "bq_highpass"; control = { Freq = 120.0; Q = 0.707; }; }
-        { type = "builtin"; name = "hp2"; label = "bq_highpass"; control = { Freq = 120.0; Q = 0.707; }; }
+        { type = "builtin"; name = "sub"; label = "bq_highpass"; control = { Freq = 60.0; Q = 0.707; }; }
+        { type = "builtin"; name = "bass"; label = "bq_lowshelf"; control = { Freq = 180.0; Q = 0.707; Gain = -6.0; }; }
+        { type = "builtin"; name = "vol"; label = "linear"; control = { Mult = 0.891; }; }
       ];
       links = [
-        { output = "hp1:Out"; input = "hp2:In"; }
+        { output = "sub:Out"; input = "bass:In"; }
+        { output = "bass:Out"; input = "vol:In"; }
       ];
     };
   }

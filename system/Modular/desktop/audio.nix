@@ -7,8 +7,8 @@
 # The "never suspend" rule that used to sit here held EVERY output of EVERY
 # machine awake once it had played a sound (the 2013 MacBook Air: pipewire at 0
 # wakeups/s before the first sound, 23/s forever after, the codec never powered
-# down; 2026-11-10). It now applies only to the models in speakers/tunings.nix
-# whose amp needs it.
+# down; 2026-11-10). It was there for the Slim Pro 9i's TAS2781 amp, which
+# now reloads its program at every sound start instead (speakers/tas2781.nix).
 { ... }:
 
 {
