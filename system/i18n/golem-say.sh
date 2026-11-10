@@ -6,8 +6,9 @@
 # the shell's catalogues (the waverunner daemon's assets/i18n/): each
 # <tag>.json beside this file is a flat {"English": "translation"}. Holes are
 # {0} {1} …, filled with the values in order: a hole with no value stays as
-# written, a value with no hole is unused. No catalogue, no key, a file that
-# does not parse: the English. It never fails its caller.
+# written, a value with no hole is unused. No catalogue, no key, an empty
+# translation, a file that does not parse: the English. It never fails its
+# caller, and never says an empty line for a message.
 #
 # The language, found as the shell finds it: the owner's choice in
 # settings.json ("language": "es_BO.UTF-8"), then LC_ALL → LC_MESSAGES →
@@ -51,7 +52,9 @@ done
 fill='def fill: gsub("\\{(?<n>[0-9]+)\\}"; $ARGS.named["v" + .n] // "{\(.n)}");'
 
 chosen=
-if [ -r "$settings" ]; then
+# A regular file only: a root caller reads a path its owner can write, and a
+# FIFO there would hang it (waverunner-apply holds the rebuild lock).
+if [ -f "$settings" ] && [ -r "$settings" ]; then
   chosen=$(jq -r 'if type == "object" and (.language | type) == "string" then .language else empty end' \
     "$settings" 2>/dev/null) || chosen=
 fi
@@ -80,9 +83,9 @@ esac
 
 for t in "${tags[@]}"; do
   f=$dir/$t.json
-  [ -r "$f" ] || continue
+  [ -f "$f" ] && [ -r "$f" ] || continue
   if said=$(jq -r --arg k "$template" "${values[@]}" \
-    "$fill"' if type == "object" and (.[$k] | type) == "string" then .[$k] else $k end | fill' \
+    "$fill"' if type == "object" and (.[$k] | type) == "string" and .[$k] != "" then .[$k] else $k end | fill' \
     "$f" 2>/dev/null); then
     printf '%s\n' "$said"
     exit 0

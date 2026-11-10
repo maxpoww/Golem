@@ -92,7 +92,9 @@ let
         --buttons "OK"
     else
       # The dialog prints the label of the button pressed: the owner's word.
+      # Never blank: `*""*` would take closing the dialog for a restart.
       restart=$(${golemSay}/bin/golem-say "Restart")
+      [ -n "$restart" ] || restart=Restart
       choice=$(${dialog} --apptitle Golem --title "Golem" \
         --text "$(${golemSay}/bin/golem-say "Golem can't start the desktop right now. Restart the computer to try again.")" \
         --buttons "$restart")

@@ -60,6 +60,9 @@ for cat in "$here"/*.json; do
     bad "$tag.json: not a flat object of strings"
     continue
   fi
+  while IFS= read -r k; do
+    bad "$tag.json: an empty translation for \"$k\""
+  done < <(jq -r 'to_entries[] | select(.value == "") | .key' "$cat")
   jq -r 'keys_unsorted[]' "$cat" | sort > "$scratch/keys"
   if [ "$(sort -u "$scratch/keys" | wc -l)" != "$(wc -l < "$scratch/keys")" ]; then
     bad "$tag.json: a key written twice"
@@ -149,6 +152,13 @@ cases() {
   expect "an empty language: LANG" "Stampante pronta" LANG=it_IT.UTF-8 -- "Printer ready"
   settings 'not json {'
   expect "a settings file that does not parse: LANG" "Drucker bereit" LANG=de_DE.UTF-8 -- "Printer ready"
+  [ -p "$scratch/fifo" ] || mkfifo "$scratch/fifo"
+  expect "a settings path that is a FIFO is not read (no hang): LANG" "Drucker bereit" \
+    LANG=de_DE.UTF-8 "GOLEM_SETTINGS=$scratch/fifo" -- "Printer ready"
+  mkdir -p "$scratch/empty-cat"
+  printf '{"Restart": ""}\n' > "$scratch/empty-cat/es.json"
+  expect "an empty translation: the English (a dialog button is never blank)" "Restart" \
+    LANG=es_ES.UTF-8 "GOLEM_SAY_DIR=$scratch/empty-cat" -- "Restart"
   settings '{"language": "../../../etc/passwd"}'
   expect "a language that is not a tag names no file: English" "Printer ready" LANG=de_DE.UTF-8 -- "Printer ready"
   rm -f "$home/.config/golem/settings.json"
