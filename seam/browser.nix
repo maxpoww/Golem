@@ -33,10 +33,26 @@
       # installed from it at first start — a fresh Golem gets its blocker and bar colour with
       # no network and no "whatever AMO serves today" (2026-10-07, the ISO cut). Firefox keeps
       # updating them from AMO afterwards, as it does for any installed add-on.
+      # LANGUAGES (2026-11-10): Mozilla's language packs come with the package too, pinned in
+      # ./sources.json "langpacks" BESIDE the tarball (seam-update moves both at once; a pack of
+      # another Firefox version is refused, and Seam would silently speak English). They go in
+      # distribution/extensions/locale-<loc>/, Firefox's own place for them: at first start (and
+      # when the Firefox version changes) it installs, BEFORE the first window, only the pack(s)
+      # matching the requested language — ./language.js sets that from the session (README
+      # "Languages"). Measured on 159.0.1: the first window is already Spanish; installed by
+      # policy instead (like the extensions) it opened English and switched seconds later.
       golem-seam-wrapped = let
         ext = builtins.fromJSON (builtins.readFile ./extensions.json);
         xpi = id: final.fetchurl { inherit (ext.${id}) url sha256; name = ext.${id}.file; };
-      in final.golem-seam-base.override {
+        pin = builtins.fromJSON (builtins.readFile ./sources.json);
+        fxVersion = final.golem-seam-unwrapped.version;
+        langpack = loc: lp:
+          assert final.lib.assertMsg
+            (lp.url == "https://archive.mozilla.org/pub/firefox/releases/${fxVersion}/linux-x86_64/xpi/${loc}.xpi")
+            "seam/sources.json: the ${loc} language pack (${lp.url}) is not Firefox ${fxVersion}'s; Firefox refuses a pack of another version (Seam would fall back to English). seam-update pins both together.";
+          final.fetchurl { inherit (lp) url sha256; name = "firefox-${fxVersion}-langpack-${loc}.xpi"; };
+        langpacks = final.lib.mapAttrs langpack (pin.langpacks or { });
+      in (final.golem-seam-base.override {
         # The Golem chrome script — privileged UI foundation. extraPrefs
         # is appended verbatim into mozilla.cfg (the autoconfig file);
         # the sandbox pref below is what elevates it from pref-setting to
@@ -45,13 +61,17 @@
         extraAutoConfig = ''
           pref("general.config.sandbox_enabled", false);
         '';
-        # Dark Reader's own "already dark" list goes in ahead of the script as
-        # DW_DARK_SITES (DARK WEBSITES enables it on all of them). The first
-        # line stays a comment: autoconfig eats it.
+        # The session's language (./language.js: intl.locale.requested as a DEFAULT pref, at
+        # every start) and Dark Reader's own "already dark" list (DW_DARK_SITES, DARK WEBSITES
+        # enables it on all of them) go in ahead of the script, in that order (selftest.sh keeps
+        # everything above the dark-sites line). The first line stays a comment: autoconfig eats
+        # it. (This text lands in an unquoted shell heredoc in nixpkgs' wrapper: no $, backtick
+        # or backslash in language.js.)
         extraPrefs = let
           darkSites = builtins.filter (l: l != "" && builtins.substring 0 1 l != "#")
             (final.lib.splitString "\n" (builtins.readFile ./dark-sites.txt));
-        in "// Golem: Dark Reader's dark-sites list (seam/dark-sites.txt)\nvar DW_DARK_SITES = ${builtins.toJSON darkSites};\n"
+        in builtins.readFile ./language.js
+          + "// Golem: Dark Reader's dark-sites list (seam/dark-sites.txt)\nvar DW_DARK_SITES = ${builtins.toJSON darkSites};\n"
           + builtins.readFile ./golem-chrome.js;
 
         extraPolicies = {
@@ -292,7 +312,17 @@
           OverrideFirstRunPage = "";
           OverridePostUpdatePage = "";
         };
-      };
+      }).overrideAttrs (old: {
+        # The language packs, as Firefox's distribution expects them: locale-<loc>/<add-on id>.xpi.
+        # Store links are enough: Firefox copies the pack's bytes into the profile (checked
+        # 2026-11-10, a symlinked pack landed as a plain file), so a later GC breaks nothing.
+        buildCommand = old.buildCommand + ''
+          d="$out/lib/${final.golem-seam-unwrapped.libName}/distribution/extensions"
+        '' + final.lib.concatStrings (final.lib.mapAttrsToList (loc: f: ''
+          mkdir -p "$d/locale-${loc}"
+          ln -s ${f} "$d/locale-${loc}/langpack-${loc}@firefox.mozilla.org.xpi"
+        '') langpacks);
+      });
 
       # THE Seam package: the wrapped browser plus (1) a launcher that gives it its OWN
       # profile — ~/.local/share/seam, never ~/.mozilla, so a plain Firefox beside it is
