@@ -163,6 +163,9 @@ in
       "$golem_ink" = "rgb(235, 235, 235)";
       "$golem_accent" = "rgb(255, 190, 152)";
       "$golem_danger" = "rgb(220, 80, 80)";
+      # The field's word, in the owner's language: the dock writes it into
+      # the same file (tr("Password")); English until it has.
+      "$golem_password" = "Password";
       source = [ "${config.home.homeDirectory}/.local/state/golem/theme/hyprlock.conf" ];
       general = {
         hide_cursor = true;
@@ -188,7 +191,7 @@ in
         outline_thickness = 2;
         dots_size = 0.25;
         fade_on_empty = true;
-        placeholder_text = "<i>password</i>";
+        placeholder_text = "<i>$golem_password</i>";
         outer_color = "$golem_accent";
         inner_color = "$golem_surface";
         font_color = "$golem_ink";

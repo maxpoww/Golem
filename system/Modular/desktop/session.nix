@@ -20,6 +20,8 @@
 { pkgs, lib, ... }:
 
 let
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+
   # THE SESSION BUS (user dbus-broker) must survive running out of file
   # descriptors. Stock dbus-broker exits on EMFILE at accept, or at the pidfd
   # it takes per peer; a dead session bus has uwsm tear the whole session down
@@ -40,7 +42,7 @@ let
   # ~/.local/state/golem/bus-guard.log, so a leak can be read off later.
   busGuard = pkgs.writeShellScript "golem-bus-guard" ''
     set -u
-    PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.gawk pkgs.procps pkgs.util-linux pkgs.systemd pkgs.libnotify ]}
+    PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnugrep pkgs.gawk pkgs.procps pkgs.util-linux pkgs.systemd pkgs.libnotify golemSay ]}
     export DBUS_SESSION_BUS_ADDRESS="''${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
     log="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/bus-guard.log"
     mkdir -p "$(dirname "$log")"
@@ -68,9 +70,11 @@ let
     echo "$(date '+%F %T') broker=$broker fds=$fds/$soft ($pct%) top: $top" >> "$log"
     if [ "$raised" = 1 ]; then
       echo "$(date '+%F %T') raised the broker's limit to $hard" >> "$log"
-      notify-send -u critical "El bus de sesión está al $pct %" "Le subí el tope para que no se caiga. Algo fuga conexiones: $top"
+      notify-send -u critical "$(golem-say "The session bus is {0}% full" "$pct")" \
+        "$(golem-say "Golem raised its limit so it doesn't go down. Something is leaking connections: {0}" "$top")"
     elif [ "$pct" -ge 50 ]; then
-      notify-send -u normal "El bus de sesión está al $pct %" "Algo deja conexiones abiertas: $top"
+      notify-send -u normal "$(golem-say "The session bus is {0}% full" "$pct")" \
+        "$(golem-say "Something is leaving connections open: {0}" "$top")"
     fi
   '';
   golemSchemas = pkgs.runCommand "golem-gsettings-schemas" { } ''

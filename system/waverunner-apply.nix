@@ -36,6 +36,7 @@ let
   statusFile = "${userHome}/.config/waverunner/apply-status.json";
   appsFile = config.golem.appsFile;
   generated = "${flakeDir}/${appsFile}";
+  golemSay = pkgs.callPackage ./i18n/golem-say.nix { };
 
   applyScript = pkgs.writeShellApplication {
     name = "waverunner-apply";
@@ -56,6 +57,7 @@ let
       pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
       pkgs.jq
       pkgs.libnotify # notify-send: why an install failed, in plain words
+      golemSay       # … in the owner's language
       pkgs.coreutils
       pkgs.systemd # for the #61 reset-failed; a bare systemctl under a
                    # writeShellApplication's clean PATH would break silently.
@@ -67,6 +69,8 @@ let
       flakedir=${lib.escapeShellArg flakeDir}
       lastgood="$gen.last-good"
       started=$(date +%s.%N)
+      # What the owner is told, in their language (root: their settings, named).
+      say() { GOLEM_SETTINGS=${lib.escapeShellArg "${userHome}/.config/golem/settings.json"} golem-say "$@"; }
 
       # The whole install under the rebuild lock: never read or write the
       # source while a nightly update has it in flux (golem-seal.nix,
@@ -102,8 +106,8 @@ let
           uid=$(id -u ${user})
           if [ -S "/run/user/$uid/bus" ]; then
             runuser -u ${user} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-              notify-send -a Golem "Golem couldn't save the change to your apps" \
-              "The disk may be full. Nothing was removed; free some space and try again." || true
+              notify-send -a Golem "$(say "Golem couldn't save the change to your apps")" \
+              "$(say "The disk may be full. Nothing was removed; free some space and try again.")" || true
           fi
         else
           echo "waverunner-apply: the app list is cut off and there is no earlier one — changing nothing" >&2
@@ -325,16 +329,20 @@ let
         # filled on purpose, 2026-10-03).
         freemb=$(df --output=avail -BM / 2>/dev/null | tail -1 | tr -dc 0-9)
         if grep -qi 'No space left on device' <<< "$err" || [ "''${freemb:-9999}" -lt 400 ]; then
-          why="Your disk is full (only ''${freemb:-a few} MB free). Empty the Trash or remove apps you don't use, then try again."
+          if [ -n "$freemb" ]; then
+            why=$(say "Your disk is full (only {0} MB free). Empty the Trash or remove apps you don't use, then try again." "$freemb")
+          else
+            why=$(say "Your disk is full. Empty the Trash or remove apps you don't use, then try again.")
+          fi
         elif ! getent ahosts cache.nixos.org >/dev/null 2>&1; then
-          why="There is no internet connection. Connect, then try again."
+          why=$(say "There is no internet connection. Connect, then try again.")
         else
-          why="Something went wrong while installing it. Try again later; Golem keeps the details (journalctl -u waverunner-apply)."
+          why=$(say "Something went wrong while installing it. Try again later; Golem keeps the details (journalctl -u waverunner-apply).")
         fi
         uid=$(id -u ${user})
         if [ -S "/run/user/$uid/bus" ]; then
           runuser -u ${user} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-            notify-send -a Golem "Golem couldn't install the app" "$why" || true
+            notify-send -a Golem "$(say "Golem couldn't install the app")" "$why" || true
         fi
         exit 1
       fi
