@@ -1,0 +1,56 @@
+diff --git a/src/config/values/ConfigValues.cpp b/src/config/values/ConfigValues.cpp
+index b64a614..9e45186 100644
+--- a/src/config/values/ConfigValues.cpp
++++ b/src/config/values/ConfigValues.cpp
+@@ -385,6 +385,8 @@ std::vector<SP<IValue>> Values::getConfigValues() {
+         MS<Int>("gestures:workspace_swipe_direction_lock_threshold", "in px, the distance to swipe before direction lock activates.", 10, {.min = 0, .max = 200}),
+         MS<Bool>("gestures:workspace_swipe_forever", "if enabled, swiping will not clamp at the neighboring workspaces but continue to the further ones.", false),
+         MS<Bool>("gestures:workspace_swipe_use_r", "if enabled, swiping will use the r prefix instead of the m prefix for finding workspaces.", false),
++        MS<Bool>("gestures:workspace_swipe_bound",
++                 "if enabled, a swipe stays among the workspaces bound (workspace rules) to the same monitor as the one it started on: with every screen given its own workspaces, a swipe never walks onto another screen's.", false),
+         MS<Bool>("gestures:workspace_swipe_one_empty",
+                  "if enabled, swiping from an occupied workspace steps to the raw neighbor (one empty workspace is reachable), while swiping from an empty workspace jumps to the nearest occupied one. Overrides workspace_swipe_use_r.", false),
+         MS<Int>("gestures:close_max_timeout", "Timeout for closing windows with the close gesture, in ms.", 1000, {.min = 10, .max = 2000}),
+diff --git a/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp b/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
+index 0d29bf5..71be7cb 100644
+--- a/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
++++ b/src/managers/input/UnifiedWorkspaceSwipeGesture.cpp
+@@ -1,6 +1,7 @@
+ #include "UnifiedWorkspaceSwipeGesture.hpp"
+ 
+ #include "../../Compositor.hpp"
++#include "../../config/shared/workspace/WorkspaceRuleManager.hpp"
+ #include "../../desktop/state/FocusState.hpp"
+ #include "../../render/Renderer.hpp"
+ #include "InputManager.hpp"
+@@ -53,6 +54,20 @@ static WORKSPACEID oneEmptySwipeTarget(const PHLWORKSPACE& current, const PHLMON
+     return nearest == WORKSPACE_INVALID ? current->m_id : nearest;
+ }
+ 
++// gestures:workspace_swipe_bound — whether `target` lies outside the screen's
++// own workspaces: those bound by a workspace rule to the same monitor as the
++// workspace the swipe began on (none bound: no limit, as upstream). Golem
++// gives every screen its own block of workspaces (hyprland.lua, SCREENS); the
++// swipe walks that block only, also while a screen that is gone has its
++// workspaces shown on another one.
++static bool outsideSwipeBound(const PHLWORKSPACE& begin, WORKSPACEID target) {
++    static auto PSWIPEBOUND = CConfigValue<Config::INTEGER>("gestures:workspace_swipe_bound");
++    if (!*PSWIPEBOUND || !begin || target == WORKSPACE_INVALID || target == begin->m_id)
++        return false;
++    const auto HERE = Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(begin->m_id));
++    return Config::workspaceRuleMgr()->getBoundMonitorStringForWS(std::to_string(target)) != HERE;
++}
++
+ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
+     if (!isGestureInProgress())
+         return;
+@@ -91,7 +106,8 @@ void CUnifiedWorkspaceSwipeGesture::update(double delta) {
+     m_delta = std::clamp(m_delta, sc<double>(-SWIPEDISTANCE), sc<double>(SWIPEDISTANCE));
+ 
+     if ((m_workspaceBegin->m_id == workspaceIDLeft && *PSWIPENEW && (m_delta < 0)) ||
+-        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft)) {
++        (m_delta > 0 && m_workspaceBegin->getWindows() == 0 && workspaceIDRight <= m_workspaceBegin->m_id) || (m_delta < 0 && m_workspaceBegin->m_id <= workspaceIDLeft) ||
++        (m_delta < 0 && outsideSwipeBound(m_workspaceBegin, workspaceIDLeft)) || (m_delta > 0 && outsideSwipeBound(m_workspaceBegin, workspaceIDRight))) {
+ 
+         m_delta = 0;
+         g_pHyprRenderer->damageMonitor(m_monitor.lock());

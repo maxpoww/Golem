@@ -16,7 +16,7 @@ everspace manual-download
 exodus manual-download
 fladder builds-117
 flashlabel-yxwl manual-download
-grayjay builds-46
+grayjay builds-45
 houdini manual-download
 iaca_2_1 manual-download
 iaca manual-download
@@ -28,7 +28,8 @@ interlude builds-32
 ios-cross-compile manual-download
 isle-portable manual-download
 jai manual-download
-keyguard builds-1046
+jasp-desktop builds-245
+keyguard builds-1034
 kinect-audio-setup manual-download
 lattice-diamond manual-download
 m32edit builds-47
@@ -37,8 +38,7 @@ mathematica-cuda builds-29
 mathematica-cuda manual-download
 mathematica manual-download
 mistral-vibe builds-26
-modrinth-app builds-21
-osu-lazer builds-125
+osu-lazer builds-123
 picoscope builds-21
 pixinsight manual-download
 planetary_annihilation manual-download

@@ -129,6 +129,27 @@
 #   workspace-swipe-one-empty  gestures:workspace_swipe_one_empty (opt-in):
 #                         swipe steps onto ONE empty workspace, then jumps to
 #                         the next occupied one.
+#   workspace-swipe-screen  gestures:workspace_swipe_bound (opt-in): a swipe
+#                         stays among the workspaces bound by workspace rules
+#                         to the same screen as the one it began on. Golem
+#                         gives every screen its own workspaces (hyprland.lua,
+#                         SCREENS); without this a swipe walked off the end of
+#                         one screen's into the next block, or into another
+#                         screen's. Made on top of workspace-swipe-one-empty.
+#   monitor-move-floating  a screen unplugged or plugged back keeps its floating
+#                         windows ON a screen. Two upstream misses: (1) a
+#                         workspace moving to another screen shifted each
+#                         window's box but not the floating layout's own copy
+#                         (lastBox), which leaving fullscreen restores, so a
+#                         video made fullscreen on the TV, then the TV
+#                         unplugged, came out of fullscreen where the TV had
+#                         been; (2) a screen with an `auto` position connects
+#                         at the (-1,-1) placeholder, its workspaces come back
+#                         to it then, and the move to its real place skipped
+#                         the windows for that placeholder, leaving them at
+#                         the other screen's coordinates (Max, 2026-11-07:
+#                         "la ventana ... no esta en un WS"). Windows now move
+#                         through the layout, and from the placeholder too.
 #
 # Alphabetical on purpose, like the dev box's list: the same patch list in the
 # same order gives the same Hyprland derivation, so the plugin and the system
@@ -143,6 +164,7 @@ final: prev: {
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-keep-work-buffers.patch
       ./hyprland-patches/hyprland-layer-commit-damage.patch
+      ./hyprland-patches/hyprland-monitor-move-floating.patch
       ./hyprland-patches/hyprland-pseudo-real-box.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-screenshare-region-session.patch
@@ -154,6 +176,7 @@ final: prev: {
       ./hyprland-patches/hyprland-visible-region-damage.patch
       ./hyprland-patches/hyprland-window-square-top.patch
       ./hyprland-patches/hyprland-workspace-swipe-one-empty.patch
+      ./hyprland-patches/hyprland-workspace-swipe-screen.patch
     ];
     # Hyprland's own pictures — three anime wallpapers (48 MB) and the
     # "lock screen died" images — are drawn whenever Golem's config is not in
@@ -202,6 +225,27 @@ final: prev: {
     patches = (old.patches or [ ]) ++ [
       ./foot-patches/foot-drag-selection.patch
     ];
+  });
+
+  #   vscode          VS Code 1.144 moved its bundled ripgrep to
+  #                   @vscode/ripgrep-universal/bin/linux-x64/rg; nixpkgs
+  #                   26.05.13627 still swaps the old @vscode/ripgrep/bin/rg
+  #                   for nixpkgs' ripgrep, its `rm` fails and the whole
+  #                   system build with it (the dev box, 2026-11-07: VS Code
+  #                   was installed from the dock). Same swap at the new
+  #                   path; once nixpkgs follows, the old text is gone and
+  #                   this replaces nothing. Drop it then.
+  vscode = prev.vscode.overrideAttrs (old: {
+    postPatch = builtins.replaceStrings
+      [
+        "rm resources/app/node_modules/@vscode/ripgrep/bin/rg"
+        " resources/app/node_modules/@vscode/ripgrep/bin/rg\n"
+      ]
+      [
+        "mkdir -p resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64\nrm -f resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64/rg"
+        " resources/app/node_modules/@vscode/ripgrep-universal/bin/linux-x64/rg\n"
+      ]
+      (old.postPatch or "");
   });
 
   #   uwsm-rewait     A WAIT THAT BREAKS IS NOT THE END OF THE SESSION.
