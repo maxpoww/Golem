@@ -118,6 +118,12 @@ cases() {
     "Seu disco está cheio. Esvazie a Lixeira ou remova apps que você não usa e tente de novo." \
     LANG=pt_BR.UTF-8 -- "Your disk is full. Empty the Trash or remove apps you don't use, then try again."
   expect "LANG=de_AT: German" "Drucker bereit" LANG=de_AT -- "Printer ready"
+  expect "LANG=es_BO.UTF-8: Latin America's Spanish, la computadora" \
+    "Golem no puede iniciar el escritorio ahora. Reinicia la computadora para intentarlo de nuevo." \
+    LANG=es_BO.UTF-8 -- "Golem can't start the desktop right now. Restart the computer to try again."
+  expect "LANG=es_ES.UTF-8: Spain's, el computador" \
+    "Golem no puede iniciar el escritorio ahora. Reinicia el computador para intentarlo de nuevo." \
+    LANG=es_ES.UTF-8 -- "Golem can't start the desktop right now. Restart the computer to try again."
   expect "LANG=it_IT.UTF-8@euro: Italian" "Stampante pronta" LANG=it_IT.UTF-8@euro -- "Printer ready"
   expect "LANG=en_US.UTF-8: English" "Printer ready" LANG=en_US.UTF-8 -- "Printer ready"
   expect "LANG=C: English" "Printer ready" LANG=C -- "Printer ready"
