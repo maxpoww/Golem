@@ -2,7 +2,7 @@
 {
   # Per-model speaker tunings, the TAS2781 amp reload, and the jack-aware
   # profile choice: the same leaf the modular desktop imports.
-  imports = [ ./Modular/desktop/speakers ];
+  imports = [ ./Modular/desktop/speakers ./Modular/desktop/equalizer ];
 
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
