@@ -145,6 +145,19 @@
 #                         Stock darkened the TV's window the moment the laptop
 #                         took focus (Max, 2026-11-10). When the focus changes
 #                         screen, or a workspace does, every look is redone.
+#   screen-focus-catch-up  the keyboard follows the pointer onto a screen.
+#                         With click-to-focus (follow_mouse 2) it stayed with
+#                         the other screen's window until something was
+#                         clicked (Max, 2026-11-11: "i dont want to come back
+#                         to my monitor and have to click a window"). Now,
+#                         when the pointer crosses onto another screen, that
+#                         screen's window gets the keyboard, picked as on
+#                         coming back to a workspace: fullscreen, else last
+#                         focused, else the first; none on an empty desk.
+#                         Only on the crossing: a focus given to the other
+#                         screen by a key or an app stays put while the
+#                         pointer does. Never during a drag, a held button,
+#                         a lock, or a shell surface holding the keyboard.
 #   monitor-move-floating  a screen unplugged or plugged back keeps its floating
 #                         windows ON a screen. Two upstream misses: (1) a
 #                         workspace moving to another screen shifted each
@@ -175,6 +188,7 @@ final: prev: {
       ./hyprland-patches/hyprland-layer-commit-damage.patch
       ./hyprland-patches/hyprland-monitor-move-floating.patch
       ./hyprland-patches/hyprland-pseudo-real-box.patch
+      ./hyprland-patches/hyprland-screen-focus-catch-up.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
       ./hyprland-patches/hyprland-screenshare-region-session.patch
       ./hyprland-patches/hyprland-snap-reserved-edge.patch

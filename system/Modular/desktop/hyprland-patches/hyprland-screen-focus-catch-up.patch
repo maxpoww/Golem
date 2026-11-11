@@ -1,0 +1,47 @@
+diff --git a/src/managers/input/InputManager.cpp b/src/managers/input/InputManager.cpp
+index b2301e9..b00d7e0 100644
+--- a/src/managers/input/InputManager.cpp
++++ b/src/managers/input/InputManager.cpp
+@@ -331,6 +331,42 @@ void CInputManager::mouseMoveUnified(uint32_t time, bool refocus, bool mouse, st
+     if (PMONITOR != Desktop::focusState()->monitor() && (*PMOUSEFOCUSMON || refocus) && m_forcedFocus.expired())
+         Desktop::focusState()->rawMonitorFocus(PMONITOR);
+ 
++    // Golem: focus catches up with the screen. When the pointer comes onto
++    // another screen, the keyboard goes back to the window last used there,
++    // the same pick as coming back to a workspace (fullscreen window, else the
++    // last focused, else the first; nothing on an empty desk). Without this,
++    // with click-to-focus, the keyboard stays with the other screen's window
++    // until something here is clicked (Max, 2026-11-11: "i dont want to come
++    // back to my monitor and have to click a window to focus").
++    // Only on the CROSSING: focus a keyboard action or an app put on the other
++    // screen is left alone while the pointer stays where it is. Not during a
++    // drag or with a button held (Golem drags raise nothing), not while an
++    // open menu holds the input (taking the keyboard would close it), not over
++    // a locked session or a shell surface that holds the keyboard.
++    {
++        static PHLMONITORREF s_pointerMon;
++        const auto           PREVMON = s_pointerMon.lock();
++        s_pointerMon                 = PMONITOR;
++
++        const auto           FOCUSED = Desktop::focusState()->window();
++        const auto           FOCUSEDMON =
++            FOCUSED ? (FOCUSED->m_workspace && FOCUSED->m_workspace->m_monitor ? FOCUSED->m_workspace->m_monitor.lock() : FOCUSED->m_monitor.lock()) : nullptr;
++        const auto KBSURF  = Desktop::focusState()->surface();
++        const bool LSFOCUS = KBSURF && g_pCompositor->getLayerSurfaceFromSurface(KBSURF);
++
++        if (PREVMON && PREVMON != PMONITOR && *PMOUSEFOCUSMON && FOLLOWMOUSE != 0 && !refocus && m_forcedFocus.expired() && !isLocked() &&
++            !g_pSessionLockManager->isSessionLocked() && m_exclusiveLSes.empty() && m_currentlyHeldButtons.empty() && !PROTO::data->dndActive() &&
++            !g_layoutManager->dragController()->target() && !g_pSeatManager->m_seatGrab && !LSFOCUS && FOCUSEDMON != PMONITOR) {
++            const auto WS = PMONITOR->m_activeSpecialWorkspace ? PMONITOR->m_activeSpecialWorkspace : PMONITOR->m_activeWorkspace;
++            if (WS) {
++                auto pWindow = WS->m_hasFullscreenWindow ? WS->getFullscreenWindow() : WS->getLastFocusedWindow();
++                if (!pWindow)
++                    pWindow = WS->getFocusCandidate();
++                Desktop::focusState()->fullWindowFocus(pWindow, Desktop::FOCUS_REASON_FFM);
++            }
++        }
++    }
++
+     // check for windows that have focus priority like our permission popups
+     pFoundWindow = g_pCompositor->vectorToWindowUnified(mouseCoords, Desktop::View::FOCUS_PRIORITY);
+     if (pFoundWindow)
