@@ -33,6 +33,8 @@ let
     export SEAM_SEAL_BLESS=${sealBless}/bin/golem-bless
   '');
   src = builtins.fromJSON (builtins.readFile ./sources.json);
+  # "Seam updated": said to each logged-in user in their own language.
+  golemSay = pkgs.callPackage ../system/i18n/golem-say.nix { };
 
   selftest = pkgs.writeShellApplication {
     name = "seam-selftest";
@@ -56,6 +58,7 @@ let
     name = "seam-update";
     runtimeInputs = with pkgs; [
       coreutils curl jq gnugrep gnused util-linux libnotify git
+      glibc.bin golemSay # getent: each user's home, for their language
       config.system.build.nixos-rebuild selftest
     ];
     # syntax-check only: a shellcheck style nit must never fail a SECURITY rebuild

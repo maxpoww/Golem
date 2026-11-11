@@ -29,6 +29,9 @@ let
   # Declared by the desktop's waverunner-apply.nix; a stage-0 base has no such
   # option, hence the fallback to the desktop's path.
   appsFile = config.golem.appsFile or "hosts/target/apps.nix";
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+  # Root, speaking to the owner: in their language, from their settings.
+  ownerSettings = "${config.users.users.${owner}.home}/.config/golem/settings.json";
 
   adopt = pkgs.writeShellApplication {
     name = "golem-seed-adopt";
@@ -54,8 +57,9 @@ let
         uid=$(id -u "$owner")
         if [ -S "/run/user/$uid/bus" ]; then
           runuser -u "$owner" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-            ${pkgs.libnotify}/bin/notify-send -a Golem "Golem restored its system folder" \
-            "The Golem folder in your home is the system's own source; it was missing and has been put back." || true
+            ${pkgs.libnotify}/bin/notify-send -a Golem \
+            "$(GOLEM_SETTINGS=${lib.escapeShellArg ownerSettings} ${golemSay}/bin/golem-say "Golem restored its system folder")" \
+            "$(GOLEM_SETTINGS=${lib.escapeShellArg ownerSettings} ${golemSay}/bin/golem-say "The Golem folder in your home is the system's own source; it was missing and has been put back.")" || true
         fi
       fi
       [ -d "$dir" ] || { echo "golem-seed-adopt: no seed at $dir" >&2; exit 1; }

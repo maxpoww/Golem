@@ -41,6 +41,8 @@
 { config, pkgs, lib, ... }:
 
 let
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+
   # THE CONNECTIVITY GATE — verbatim from the rice (waverunner-apply.nix), so
   # the two systems share one behaviour. 90 x 10s = 15 min ceiling, then a
   # loud non-zero exit rather than a silent cache no-op.
@@ -218,11 +220,17 @@ lib.mkIf (config.golem.flakeDir != null) {
         n=$(printf '%s\n' "$edited" | wc -l)
         echo "golem-autoupdate: $n edited Golem file(s) set aside in $keep and restored, so the update can go on:"
         printf '  %s\n' $edited
+        # In the owner's language (root: their settings, named).
+        say() { GOLEM_SETTINGS="$home/.config/golem/settings.json" ${golemSay}/bin/golem-say "$@"; }
+        if [ "$n" = 1 ]; then
+          body=$(say "A file you changed in ~/Golem was copied to {0} so Golem could update." "$keep")
+        else
+          body=$(say "{0} files you changed in ~/Golem were copied to {1} so Golem could update." "$n" "$keep")
+        fi
         uid=$(id -u "$owner")
         if [ -S "/run/user/$uid/bus" ]; then
           runuser -u "$owner" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
-            ${pkgs.libnotify}/bin/notify-send -a Golem "Golem kept your edits aside" \
-            "$n file(s) you changed in ~/Golem were copied to $keep so Golem could update." || true
+            ${pkgs.libnotify}/bin/notify-send -a Golem "$(say "Golem kept your edits aside")" "$body" || true
         fi
       fi
 

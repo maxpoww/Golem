@@ -16,6 +16,8 @@
 { pkgs, ... }:
 
 let
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+
   clean = pkgs.writeShellApplication {
     name = "golem-disk-care";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gnugrep ];
@@ -78,7 +80,7 @@ let
 
   warn = pkgs.writeShellApplication {
     name = "golem-disk-warn";
-    runtimeInputs = [ pkgs.coreutils pkgs.libnotify ];
+    runtimeInputs = [ pkgs.coreutils pkgs.libnotify golemSay ];
     text = ''
       state="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/disk-warn"
       now=$(date +%s)
@@ -90,8 +92,8 @@ let
         # Under 10 GB left or over 95 % used.
         if [ "$avail" -lt 10 ] || [ "$pct" -ge 95 ]; then
           mkdir -p "$(dirname "$state")"
-          notify-send -a Golem -u critical "The disk is almost full" \
-            "Only $avail GB left. Controls → Clean up frees old system versions; the Trash and big folders are yours to check."
+          notify-send -a Golem -u critical "$(golem-say "The disk is almost full")" \
+            "$(golem-say "Only {0} GB left. Controls → Clean up frees old system versions; the Trash and big folders are yours to check." "$avail")"
           touch "$state"
           exit 0
         fi

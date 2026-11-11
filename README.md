@@ -20,6 +20,7 @@ its documentation and worklog.
 | `system/Modular/` | **The distro**: one leaf per concern (base, boot, cpu, gpu, disk, desktop…), `composition.nix` + the `choose.nix` chooser | ⚠ Path is rendered into installed machines' `modules.nix`. Never rename |
 | `system/` (other files) | The older all-in-one profile (`configuration.nix`, `home/`, `golem-apps.nix`…), ported into `Modular/` leaf by leaf | Port, don't grow |
 | `system/home/` | The home layer (home-manager): hyprland.lua, waverunner, zsh | |
+| `system/i18n/` | Golem's own messages (notifications, the greeter, the last-resort screen) in the owner's language: `golem-say` + one catalogue per language, keyed by the English like the shell's | A message changed in a script is a new key: run `bash system/i18n/check.sh` |
 | `hosts/` | Per-machine instances: `target/` (installed Golem), `golem/`, `vm.nix`, `iso.nix` | |
 | `Installer/preinstall/` | The installer ISO's implementation (the flake the ISO is built from, `fixtures/` for the eval matrix, `run-vm.sh`) | `fixtures/` is read by the build. Don't move it |
 | `Installer/installing/` | The live INSTALLING program: `spec.md`, per-machine ledgers, delivery `tools/` | |

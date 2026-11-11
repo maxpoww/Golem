@@ -136,6 +136,15 @@
 #                         SCREENS); without this a swipe walked off the end of
 #                         one screen's into the next block, or into another
 #                         screen's. Made on top of workspace-swipe-one-empty.
+#   unfocused-look-per-screen  every screen keeps its own focus look. The
+#                         unfocused look (inactive border, and the waveview
+#                         title bar drawn from it; dim_inactive; inactive
+#                         opacity; inactive shadow) is for the windows beside
+#                         the focused one on ITS screen; a window on another
+#                         screen keeps the focused look (CWindow::looksActive).
+#                         Stock darkened the TV's window the moment the laptop
+#                         took focus (Max, 2026-11-10). When the focus changes
+#                         screen, or a workspace does, every look is redone.
 #   monitor-move-floating  a screen unplugged or plugged back keeps its floating
 #                         windows ON a screen. Two upstream misses: (1) a
 #                         workspace moving to another screen shifted each
@@ -171,6 +180,7 @@ final: prev: {
       ./hyprland-patches/hyprland-snap-reserved-edge.patch
       ./hyprland-patches/hyprland-subsurface-orphan.patch
       ./hyprland-patches/hyprland-swipe-end-focus.patch
+      ./hyprland-patches/hyprland-unfocused-look-per-screen.patch
       ./hyprland-patches/hyprland-vfr-hold.patch
       ./hyprland-patches/hyprland-vfr-hold-share.patch
       ./hyprland-patches/hyprland-visible-region-damage.patch

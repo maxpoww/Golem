@@ -33,6 +33,17 @@
 { config, lib, pkgs, ... }:
 
 let
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+  ownerSettings = "${config.users.users.${config.golem.owner}.home}/.config/golem/settings.json";
+
+  # tuigreet's own command line, with its line about why it is there in the
+  # owner's language. The greeter is a user of its own: with the owner's home
+  # closed to it, golem-say goes by the system's language (LANG, the one the
+  # machine was installed in).
+  greet = pkgs.writeShellScript "golem-greet" ''
+    exec "$@" --greeting "$(GOLEM_SETTINGS=${lib.escapeShellArg ownerSettings} ${golemSay}/bin/golem-say "Golem: the desktop closed several times in a row. Sign in and look at the log in Care.")"
+  '';
+
   # A new session must not race the old one's teardown. uwsm refuses to start
   # while the previous session's graphical-session*/wayland-session* targets
   # are still active ("A compositor or graphical-session* target is already
@@ -132,8 +143,8 @@ let
       ${config.systemd.package}/bin/busctl --user status org.freedesktop.Notifications >/dev/null 2>&1 && break
       ${pkgs.coreutils}/bin/sleep 1
     done
-    ${pkgs.libnotify}/bin/notify-send -a Golem "El escritorio volvió solo" \
-      "Algo cerró la sesión sin que lo pidieras. Golem la volvió a abrir y guardó el motivo en el registro."
+    ${pkgs.libnotify}/bin/notify-send -a Golem "$(${golemSay}/bin/golem-say "The desktop came back on its own")" \
+      "$(${golemSay}/bin/golem-say "Something closed the session without you asking. Golem opened it again and kept the reason in the log.")"
     ${pkgs.coreutils}/bin/rm -f "$run/session-returned"
   '';
 in
@@ -152,11 +163,11 @@ in
       # /var/cache/tuigreet); --cmd is what greetd runs for the user once the
       # password checks out — the same wrapped session.
       default_session.command =
-        "${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --greeting ${lib.escapeShellArg "Golem: el escritorio se cerró varias veces seguidas. Entrá y mirá el registro en Cuidado."} --cmd ${lib.escapeShellArg "${keeper} ${session}"}";
+        "${greet} ${pkgs.tuigreet}/bin/tuigreet --time --remember --asterisks --cmd ${lib.escapeShellArg "${keeper} ${session}"}";
     };
   };
 
-  # "El escritorio volvió solo", once the desktop is up again.
+  # "The desktop came back on its own", once the desktop is up again.
   systemd.user.services.golem-return-notice = {
     description = "Golem: say so after the desktop came back on its own";
     wantedBy = [ "graphical-session.target" ];

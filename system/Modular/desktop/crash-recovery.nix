@@ -24,6 +24,7 @@
 
 let
   owner = config.golem.owner;
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
   dir = toString config.golem.flakeDir;
   held = "/var/lib/golem/held-revisions";
   # NOT in /var/lib/golem (root-only: it holds the owner's password hash) —
@@ -87,13 +88,17 @@ let
   lastResort = pkgs.writeShellScript "golem-last-resort" ''
     if [ -e /run/golem/rollback-pending ]; then
       ${dialog} --apptitle Golem --title "Golem" \
-        --text "Golem had a problem starting the desktop. It is going back to the previous version and will restart in a moment." \
+        --text "$(${golemSay}/bin/golem-say "Golem had a problem starting the desktop. It is going back to the previous version and will restart in a moment.")" \
         --buttons "OK"
     else
+      # The dialog prints the label of the button pressed: the owner's word.
+      # Never blank: `*""*` would take closing the dialog for a restart.
+      restart=$(${golemSay}/bin/golem-say "Restart")
+      [ -n "$restart" ] || restart=Restart
       choice=$(${dialog} --apptitle Golem --title "Golem" \
-        --text "Golem can't start the desktop right now. Restart the computer to try again." \
-        --buttons "Restart")
-      case "$choice" in *Restart*) ${pkgs.systemd}/bin/systemctl reboot ;; esac
+        --text "$(${golemSay}/bin/golem-say "Golem can't start the desktop right now. Restart the computer to try again.")" \
+        --buttons "$restart")
+      case "$choice" in *"$restart"*) ${pkgs.systemd}/bin/systemctl reboot ;; esac
     fi
   '';
 
@@ -101,8 +106,8 @@ let
     [ -f ${note} ] || exit 0
     seen="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/rollback-seen"
     if [ -f "$seen" ] && [ "$seen" -nt ${note} ]; then exit 0; fi
-    ${pkgs.libnotify}/bin/notify-send -a Golem "Golem went back to the previous version" \
-      "The desktop kept crashing after an update, so Golem restarted on the version before it. It will update again when a fixed version is out."
+    ${pkgs.libnotify}/bin/notify-send -a Golem "$(${golemSay}/bin/golem-say "Golem went back to the previous version")" \
+      "$(${golemSay}/bin/golem-say "The desktop kept crashing after an update, so Golem restarted on the version before it. It will update again when a fixed version is out.")"
     mkdir -p "$(dirname "$seen")"; touch "$seen"
   '';
 in

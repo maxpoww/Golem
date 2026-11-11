@@ -1,11 +1,19 @@
 # desktop/audio — pipewire, stage 1. Ported verbatim from system/audio.nix:
 # pulseaudio off, rtkit, pipewire (alsa/pulse/jack) + the wireplumber tuning
-# (no-suspend, bluez codecs + no-autoswitch, no pause-on-idle). The per-laptop
+# (bluez codecs + no-autoswitch, no pause-on-idle). The per-laptop
 # TAS2781 keepalive is deliberately NOT here (it lives host-side — see the note
 # in the original file; it bloats every other machine).
+#
+# The "never suspend" rule that used to sit here held EVERY output of EVERY
+# machine awake once it had played a sound (the 2013 MacBook Air: pipewire at 0
+# wakeups/s before the first sound, 23/s forever after, the codec never powered
+# down; 2026-11-10). It was there for the Slim Pro 9i's TAS2781 amp, which
+# now reloads its program at every sound start instead (speakers/tas2781.nix).
 { ... }:
 
 {
+  imports = [ ./speakers ];   # per-model speaker tunings + the jack-aware profile choice
+
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
 
@@ -17,14 +25,6 @@
     jack.enable = true;
 
     wireplumber.extraConfig = {
-      "10-no-suspend-tas2781" = {
-        "monitor.alsa.rules" = [{
-          matches = [{ "node.name" = "~alsa_output.*"; }];
-          actions.update-props = {
-            "session.suspend-timeout-seconds" = 0;
-          };
-        }];
-      };
       "51-bluez-no-autoswitch" = {
         "monitor.bluez.properties" = {
           "bluez5.autoswitch-profile" = false;

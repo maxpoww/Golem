@@ -31,6 +31,7 @@
 
 let
   owner = config.golem.owner;
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
 
   # Root: whenever CUPS' printer list changes. The first printer becomes the
   # default when there is none; the list is written where the owner's side
@@ -112,7 +113,7 @@ let
   # The owner's side: a printer that was not there before is announced once.
   printerNotice = pkgs.writeShellApplication {
     name = "golem-printer-notice";
-    runtimeInputs = [ pkgs.coreutils pkgs.libnotify pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.coreutils pkgs.libnotify pkgs.gnugrep golemSay ];
     text = ''
       list=/run/golem/printers
       [ -f "$list" ] || exit 0
@@ -123,14 +124,11 @@ let
         cut -f1 "$list" > "$state"
         exit 0
       fi
-      case "''${LANG:-}" in
-        es*) title="Impresora lista"; body="se puede imprimir desde cualquier app." ;;
-        *) title="Printer ready"; body="you can print from any app." ;;
-      esac
+      title=$(golem-say "Printer ready")
       while IFS="$(printf '\t')" read -r queue what; do
         [ -n "$queue" ] || continue
         if ! grep -qxF "$queue" "$state"; then
-          notify-send -a Golem -i printer "$title" "$what: $body" || true
+          notify-send -a Golem -i printer "$title" "$(golem-say "{0}: you can print from any app." "$what")" || true
         fi
       done < "$list"
       cut -f1 "$list" > "$state"
