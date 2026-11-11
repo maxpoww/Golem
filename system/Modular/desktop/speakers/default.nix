@@ -28,8 +28,12 @@ in
         type = "script/lua";
         provides = "golem.jack-profile";
       }];
-      # optional: a script that fails to load must not take the sound down
-      "wireplumber.profiles".main."golem.jack-profile" = "optional";
+      # "required": WirePlumber 0.5 does not load an "optional" component that
+      # nothing else wants (measured: the hook never registered, 2026-11-11).
+      # A load error would stop WirePlumber, so the script stays plain Lua
+      # with no dependency beyond common-utils (tests: jack-profile hooks
+      # registered in an isolated WirePlumber 0.5.14).
+      "wireplumber.profiles".main."golem.jack-profile" = "required";
     };
 
     "60-golem-speaker-tunings" = {
