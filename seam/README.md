@@ -27,7 +27,8 @@ Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side
 | `golem-chrome.js` | **the chrome script**: tab overview, tool row, bar pinning, safety net, blank-tab fixes. **Edit HERE.** |
 | `home.nix` | per-user half (home-manager): `user.js` prefs, `userChrome.css`/`userContent.css`, creates the `golem` profile |
 | `userChrome.css`, `userContent.css` | the Seam look (were hand-edited profile files until 2026-09-25) |
-| `sources.json` | **the pin**: Firefox version, Mozilla tarball URL, SHA-256 (from Mozilla's `SHA256SUMS`) |
+| `sources.json` | **the pin**: Firefox version, Mozilla tarball URL, SHA-256 (from Mozilla's `SHA256SUMS`), and that version's language packs (`langpacks`) |
+| `language.js` | which language Seam asks for, from the session (spliced into `mozilla.cfg` ahead of the chrome script) |
 | `lane.nix` | security update lane: overlay from the pin, `seam-update`, `seam-selftest`, `seam-update.timer` |
 | `update.sh`, `selftest.sh` | bodies of `seam-update` / `seam-selftest` |
 | `webapps-selftest.sh` (+ `.py`) | the WEBAPPS module's own headless test (see Webapps below) |
@@ -50,8 +51,8 @@ Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side
 2. It waits for the network (`golem-wait-online`, the same gate as the daily upgrade).
 3. It asks Mozilla for the current release:
    `product-details.mozilla.org/1.0/firefox_versions.json` → `LATEST_FIREFOX_VERSION`.
-4. If the release is newer than the pin, it takes the hash from Mozilla's
-   `releases/<v>/SHA256SUMS` and rewrites `sources.json` atomically. The old pin is kept as `sources.json.prev`.
+4. If the release is newer than the pin, it takes the hashes from Mozilla's
+   `releases/<v>/SHA256SUMS` (the tarball and every language pack) and rewrites `sources.json` atomically. The old pin is kept as `sources.json.prev`.
 5. It runs `nixos-rebuild switch`. **Only Seam changes.** The channel isn't bumped; that stays with the daily `nixos-upgrade`.
    - If the build fails, the old pin is restored and the unit fails (visible in `systemctl status seam-update`). You never end up with a broken pin.
 6. **Notifies you**: "Seam updated to X — restart Seam to apply". A running browser keeps
@@ -517,6 +518,39 @@ whenever it moves (one stat every 2 s):
 - `selftest.sh` runs with its own empty state dir (Golem's dark palette); give it another
   with `SEAM_SELFTEST_STATE=<dir holding golem/theme/colors.json>` — the checks compare
   against whatever the Golem colour is.
+
+## Languages (2026-11-10)
+
+Seam speaks the session's language, like the shell: es, fr, de, it, pt-BR and pt-PT. English stays en-US.
+
+- **The packs.** Mozilla's language packs for the pinned Firefox (`releases/<v>/linux-x86_64/xpi/<loc>.xpi`): es-ES, es-MX,
+  fr, de, it, pt-BR, pt-PT. They are pinned in `sources.json` (`langpacks`: url + sha256) **beside the tarball**, never in a file
+  of their own: `seam-update`, `golem-autoupdate` and `lab-pull` move or hold `sources.json` as one piece, and a pack of another
+  Firefox version is refused by Firefox (`strict_max_version` = `<major>.*`): Seam would fall back to English without a word.
+  `seam-update` writes them from the same `SHA256SUMS` as the tarball; the list is `LANGPACKS` in `update.sh`. A pin without
+  them (written before this, or a machine's own pin kept over upstream's) is completed at the next `seam-update` run, same
+  version, no restart notice. `browser.nix` refuses to build when a pack's URL is not the pinned version's.
+- **Where they go.** `distribution/extensions/locale-<loc>/langpack-<loc>@firefox.mozilla.org.xpi`, Firefox's own place for them
+  (`XPIProvider.installDistributionAddons`): at a profile's first start, and when the Firefox version changes, it installs the
+  pack matching the requested language BEFORE the first window, copied into the profile (about 0.5 MB). Installed by policy
+  like the extensions instead, the first window opened in English and switched seconds later, and every pack would be
+  re-read at every start.
+- **What decides the language.** `intl.locale.requested = ""` = Firefox follows the OS. On Linux that is ONE locale, ICU's
+  default: `setlocale(LC_MESSAGES)`, else `LC_ALL` / `LC_MESSAGES` / `LANG` (Firefox 159 source: `LocaleService.cpp`
+  ReadRequestedLocales, `gtk/OSPreferences_gtk.cpp`, ICU `putil.cpp`). `LANGUAGE` is never read. Firefox negotiates it against
+  the packs: fr_CA to fr, pt_PT to pt-PT, en_GB to en-US, a language without a pack (ru) to en-US. `language.js` sets that
+  pref as a DEFAULT at every start (so the next start follows the shell's Language page) with one refinement: Spanish of a
+  country with no pack of its own (es_BO, es_AR, …) gets **es-MX**, where Firefox alone picks es-ES (CLDR: es means Spain).
+  es-MX over es-AR: Mozilla's es-AR speaks voseo ("Podés", "Elegí"); es-MX is the Latin American tú.
+- **Checked** (2026-11-10, headless farm copy of the installed 159.0.1 build, throwaway profiles; probe + screenshots):
+  first window es-MX for es_BO, pt-PT, pt-BR, fr, de, it, es-ES, es-MX for theirs; en-US for en_US, en_GB, ru_RU, no LANG,
+  and LANG=en_US with every LC_* but LC_MESSAGES in es_BO (the dev box's session); a profile moved es_BO → fr_FR → en_US →
+  es_BO followed each start. pt_PT and fr_FR are not generated on that host: Firefox took them from `LANG` (ICU's fallback).
+  The pinned 160.0 packs on the installed 160.0 build: es_BO es-MX, pt_PT pt-PT, en_US en-US. A 160.0 pack in the 159.0.1
+  build: installed, appDisabled, English. Cost (8 runs, busy host): a profile's FIRST start in Spanish paints ~0.6 s later
+  (median 3.5 s vs 2.9 s; the pack's one-time install, again once per Firefox version); later starts 1.20 vs 1.18 s; an
+  English session pays nothing (no pack is installed). The package grows 3.8 MB (7 packs); a profile ~0.5 MB per language used.
+- Seam's own-pages gate keeps about:preferences away, so the shell's Language page is the one switch.
 
 ## Why Mozilla's build and not nixpkgs'
 
