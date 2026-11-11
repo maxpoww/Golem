@@ -230,7 +230,7 @@ of that gone"):**
   certificate or HTTPS-only warning, captive portal, a crashed tab). Firefox 157 draws these
   inside a `<net-error-card>` shadow tree with a CSP that refuses inline styles, so this is a
   content frame script adopting a constructed stylesheet into the document and the shadow root
-  (`EP_FS`). The gate's page says "Not available — This page is not part of Seam."
+  (`EP_FS`). The gate's page says "Not available — This page is not part of Seam.", in Seam's language (see Languages).
 
 **Speed:**
 - uBlock's list refresh was the biggest recurring cost of the browser on the Acer, and it was
@@ -551,6 +551,13 @@ Seam speaks the session's language, like the shell: es, fr, de, it, pt-BR and pt
   (median 3.5 s vs 2.9 s; the pack's one-time install, again once per Firefox version); later starts 1.20 vs 1.18 s; an
   English session pays nothing (no pack is installed). The package grows 3.8 MB (7 packs); a profile ~0.5 MB per language used.
 - Seam's own-pages gate keeps about:preferences away, so the shell's Language page is the one switch.
+- **Golem's own words in Seam** (2026-11-11): the overview's title and tab count, its "New tab" tile, the tool buttons
+  (sidebar and overview), "Show all tabs", the colours button, the blocked page and the two notices speak the language Firefox
+  came up in (`Services.locale.appLocaleAsBCP47`), from `GW_WORDS` in `golem-chrome.js` — es (every Spanish), fr, de, it, pt
+  (Brazil's), pt_PT; English is the key and the fallback. Each word is Firefox's own in that language (Pestañas, Onglets,
+  Schede, Abas, Separadores; Marcadores/Marque-pages/Lesezeichen for its bookmarks). Asked at each use, never cached: a first
+  start installs its pack while the script runs. A new word goes into all six tables (no `$`, backtick or backslash: the
+  script is a shell heredoc on its way into mozilla.cfg). Checked in the dev box's nested rig, fresh profiles, 2026-11-11.
 
 ## Why Mozilla's build and not nixpkgs'
 

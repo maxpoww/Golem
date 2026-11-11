@@ -39,18 +39,110 @@ try {
   var GLOG="/tmp/golem-chrome.log";
   function L(m){try{var f=Components.classes["@mozilla.org/file/local;1"].createInstance(Components.interfaces.nsIFile);f.initWithPath(GLOG);var os=Components.classes["@mozilla.org/network/file-output-stream;1"].createInstance(Components.interfaces.nsIFileOutputStream);os.init(f,0x02|0x08|0x10,0o666,0);var s=m+"\n";os.write(s,s.length);os.close();}catch(e){}}
 
+  // =================================================================
+  // THE WORDS GOLEM ADDS TO SEAM speak the language Seam's own menus speak (2026-11-11).
+  // Seam's language is the session's (language.js + the language packs pinned with
+  // Firefox), so the overview's words, the tool buttons, the blocked page and the two
+  // notices follow Services.locale.appLocaleAsBCP47: the language Firefox came up in.
+  // Each word is the one Firefox itself uses in that language (Pestañas, Onglets, Schede,
+  // Abas, Separadores); English is the key and the fallback. es serves every Spanish
+  // (Seam's es-MX pack included), pt is Brazil's, pt_PT Portugal's. Asked at each use,
+  // never cached: a profile's first start installs its pack while the script is running.
+  // The text is a shell heredoc on its way into mozilla.cfg: no dollar, backtick or
+  // backslash in these words.
+  // =================================================================
+  var GW_WORDS={
+    es:{"Tabs":"Pestañas","1 tab":"1 pestaña","{0} tabs":"{0} pestañas","New tab":"Nueva pestaña",
+      "Show all tabs":"Mostrar todas las pestañas","Save page":"Guardar página","Downloads":"Descargas",
+      "New private window":"Nueva ventana privada","New window":"Nueva ventana","Favorites":"Favoritos",
+      "Bookmarks":"Marcadores","History":"Historial","Not available":"No disponible",
+      "This page is not part of Seam.":"Esta página no es parte de Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "La decodificación de video por hardware era inestable en este equipo, así que los videos ahora se decodifican por software. Seam volverá a probar el hardware después de la próxima actualización.",
+      "Seam: tab overview paused":"Seam: vista de pestañas en pausa",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "Firefox {0} cambió algo de lo que depende la vista de pestañas. La navegación sigue igual; la vista vuelve con la próxima actualización de Seam.",
+      "Your colours on this site":"Tus colores en este sitio","This site keeps its own colours":"Este sitio mantiene sus propios colores"},
+    fr:{"Tabs":"Onglets","1 tab":"1 onglet","{0} tabs":"{0} onglets","New tab":"Nouvel onglet",
+      "Show all tabs":"Afficher tous les onglets","Save page":"Enregistrer la page","Downloads":"Téléchargements",
+      "New private window":"Nouvelle fenêtre privée","New window":"Nouvelle fenêtre","Favorites":"Favoris",
+      "Bookmarks":"Marque-pages","History":"Historique","Not available":"Non disponible",
+      "This page is not part of Seam.":"Cette page ne fait pas partie de Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "Le décodage vidéo matériel était instable sur cette machine : les vidéos sont désormais décodées par logiciel. Seam réessaiera le matériel après la prochaine mise à jour.",
+      "Seam: tab overview paused":"Seam : vue des onglets en pause",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "Firefox {0} a changé quelque chose dont dépend la vue des onglets. La navigation n’est pas touchée ; la vue revient à la prochaine mise à jour de Seam.",
+      "Your colours on this site":"Vos couleurs sur ce site","This site keeps its own colours":"Ce site garde ses propres couleurs"},
+    de:{"Tabs":"Tabs","1 tab":"1 Tab","{0} tabs":"{0} Tabs","New tab":"Neuer Tab",
+      "Show all tabs":"Alle Tabs anzeigen","Save page":"Seite speichern","Downloads":"Downloads",
+      "New private window":"Neues privates Fenster","New window":"Neues Fenster","Favorites":"Favoriten",
+      "Bookmarks":"Lesezeichen","History":"Chronik","Not available":"Nicht verfügbar",
+      "This page is not part of Seam.":"Diese Seite gehört nicht zu Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "Die Hardware-Videodekodierung war auf diesem Gerät instabil, daher werden Videos jetzt per Software dekodiert. Seam versucht es nach dem nächsten Update wieder mit der Hardware.",
+      "Seam: tab overview paused":"Seam: Tab-Übersicht pausiert",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "Firefox {0} hat etwas geändert, auf das die Tab-Übersicht angewiesen ist. Das Surfen ist nicht betroffen; die Übersicht kommt mit dem nächsten Seam-Update zurück.",
+      "Your colours on this site":"Deine Farben auf dieser Website","This site keeps its own colours":"Diese Website behält ihre eigenen Farben"},
+    it:{"Tabs":"Schede","1 tab":"1 scheda","{0} tabs":"{0} schede","New tab":"Nuova scheda",
+      "Show all tabs":"Mostra tutte le schede","Save page":"Salva pagina","Downloads":"Download",
+      "New private window":"Nuova finestra anonima","New window":"Nuova finestra","Favorites":"Preferiti",
+      "Bookmarks":"Segnalibri","History":"Cronologia","Not available":"Non disponibile",
+      "This page is not part of Seam.":"Questa pagina non fa parte di Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "La decodifica video hardware era instabile su questo computer, quindi ora i video vengono decodificati via software. Seam riproverà l’hardware dopo il prossimo aggiornamento.",
+      "Seam: tab overview paused":"Seam: panoramica delle schede in pausa",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "Firefox {0} ha cambiato qualcosa da cui dipende la panoramica delle schede. La navigazione non cambia; la panoramica torna con il prossimo aggiornamento di Seam.",
+      "Your colours on this site":"I tuoi colori su questo sito","This site keeps its own colours":"Questo sito mantiene i propri colori"},
+    pt:{"Tabs":"Abas","1 tab":"1 aba","{0} tabs":"{0} abas","New tab":"Nova aba",
+      "Show all tabs":"Mostrar todas as abas","Save page":"Salvar página","Downloads":"Downloads",
+      "New private window":"Nova janela privativa","New window":"Nova janela","Favorites":"Favoritos",
+      "Bookmarks":"Favoritos","History":"Histórico","Not available":"Não disponível",
+      "This page is not part of Seam.":"Esta página não faz parte do Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "A decodificação de vídeo por hardware estava instável neste computador, então os vídeos agora são decodificados por software. O Seam tentará o hardware de novo após a próxima atualização.",
+      "Seam: tab overview paused":"Seam: visão geral das abas pausada",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "O Firefox {0} mudou algo de que a visão geral das abas depende. A navegação continua normal; a visão geral volta após a próxima atualização do Seam.",
+      "Your colours on this site":"Suas cores neste site","This site keeps its own colours":"Este site mantém as próprias cores"},
+    pt_PT:{"Tabs":"Separadores","1 tab":"1 separador","{0} tabs":"{0} separadores","New tab":"Novo separador",
+      "Show all tabs":"Mostrar todos os separadores","Save page":"Guardar página","Downloads":"Transferências",
+      "New private window":"Nova janela privada","New window":"Nova janela","Favorites":"Favoritos",
+      "Bookmarks":"Marcadores","History":"Histórico","Not available":"Não disponível",
+      "This page is not part of Seam.":"Esta página não faz parte do Seam.",
+      "Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.":
+        "A descodificação de vídeo por hardware estava instável neste computador, por isso os vídeos são agora descodificados por software. O Seam voltará a tentar o hardware após a próxima atualização.",
+      "Seam: tab overview paused":"Seam: vista geral dos separadores em pausa",
+      "Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.":
+        "O Firefox {0} alterou algo de que a vista geral dos separadores depende. A navegação continua normal; a vista geral regressa após a próxima atualização do Seam.",
+      "Your colours on this site":"As suas cores neste site","This site keeps its own colours":"Este site mantém as suas próprias cores"}
+  };
+  function GW_LANG(){
+    try{
+      var t=String(Services.locale.appLocaleAsBCP47||"").toLowerCase(), l=t.split("-")[0];
+      if(l==="pt" && t.indexOf("-pt")===2) return "pt_PT";
+      return GW_WORDS[l] ? l : "";
+    }catch(e){ return ""; }
+  }
+  function GW(s,a){
+    var l=GW_LANG(), w=(l && GW_WORDS[l][s]) || s;
+    return a===undefined ? w : w.split("{0}").join(String(a));
+  }
+
   function ACTIONS(win){ return [
-    { id:"golem-save",     title:"Save page", icon:"chrome://browser/skin/save.svg",
+    { id:"golem-save",     title:GW("Save page"), icon:"chrome://browser/skin/save.svg",
       run:function(){ try{ win.saveBrowser(win.gBrowser.selectedBrowser); }catch(e){ win.saveDocument(win.content.document); } } },
-    { id:"golem-downloads",title:"Downloads", icon:"chrome://browser/skin/downloads/downloads.svg",
+    { id:"golem-downloads",title:GW("Downloads"), icon:"chrome://browser/skin/downloads/downloads.svg",
       run:function(){ try{ win.openTrustedLinkIn("about:downloads","tab"); }catch(e){ try{ win.PlacesCommandHook.showPlacesOrganizer("Downloads"); }catch(e2){} } } },
-    { id:"golem-private",  title:"New private window", icon:"chrome://browser/skin/privateBrowsing.svg",
+    { id:"golem-private",  title:GW("New private window"), icon:"chrome://browser/skin/privateBrowsing.svg",
       run:function(){ win.OpenBrowserWindow({private:true}); } },
-    { id:"golem-newwin",   title:"New window", icon:"chrome://browser/skin/window.svg",
+    { id:"golem-newwin",   title:GW("New window"), icon:"chrome://browser/skin/window.svg",
       run:function(){ win.OpenBrowserWindow(); } },
-    { id:"golem-bookmarks",title:"Favorites", icon:"chrome://browser/skin/bookmark.svg",
+    { id:"golem-bookmarks",title:GW("Favorites"), icon:"chrome://browser/skin/bookmark.svg",
       run:function(){ try{ win.SidebarController.show("viewBookmarksSidebar"); }catch(e){ try{win.PlacesCommandHook.showPlacesOrganizer("AllBookmarks");}catch(e2){} } } },
-    { id:"golem-history",  title:"History", icon:"chrome://browser/skin/history.svg",
+    { id:"golem-history",  title:GW("History"), icon:"chrome://browser/skin/history.svg",
       run:function(){ try{ win.SidebarController.show("viewHistorySidebar"); }catch(e){ try{win.PlacesCommandHook.showPlacesOrganizer("History");}catch(e2){} } } },
   ]; }
 
@@ -507,7 +599,7 @@ try {
   function ovCard(win,tab,idx){
     var gb=win.gBrowser;
     var url=""; try{ url=tab.linkedBrowser.currentURI.spec; }catch(e){}
-    var title = tab.label || url || "New tab";
+    var title = tab.label || url || GW("New tab");
     var fav = ovFavicon(win,tab);
     var current = tab.selected;
 
@@ -617,7 +709,7 @@ try {
     var tile = OVEL(win,"div","display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;height:"+OV_CARD_H+";border-radius:14px;cursor:pointer;"+
       "background:transparent;border:2px dashed rgba(255,255,255,.14);color:"+OV_MUTED+";font-size:14px;transition:background 120ms ease, color 120ms ease;");
     var plus = OVEL(win,"div","font-size:38px;line-height:1;font-weight:300;"); plus.textContent="+";
-    var lbl = OVEL(win,"div"); lbl.textContent="New tab  ( t )";
+    var lbl = OVEL(win,"div"); lbl.textContent=GW("New tab")+"  ( t )";
     tile.appendChild(plus); tile.appendChild(lbl);
     tile.addEventListener("mouseenter",function(){ tile.style.background="rgba(255,255,255,.05)"; tile.style.color=OV_TEXT; });
     tile.addEventListener("mouseleave",function(){ tile.style.background="transparent"; tile.style.color=OV_MUTED; });
@@ -633,7 +725,7 @@ try {
     tabs.forEach(function(t,i){ grid.appendChild(ovCard(win,t,i)); });
     grid.appendChild(ovNewTile(win));
     var count=d.getElementById("golem-ov-count");
-    if(count) count.textContent = tabs.length + (tabs.length===1?" tab":" tabs");
+    if(count) count.textContent = tabs.length===1 ? GW("1 tab") : GW("{0} tabs", tabs.length);
     ovApplyBadges(win);
   }
 
@@ -815,7 +907,7 @@ try {
       ov.addEventListener("click",function(ev){ if(ev.target===ov || ev.target===scroll) ovClose(win); });
 
       var head=OVEL(win,"div","flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:18px 30px 12px 30px;");
-      var h=OVEL(win,"div","color:"+OV_TEXT+";font-size:16px;font-weight:600;"); h.textContent="Tabs"; h.id="golem-ov-title";
+      var h=OVEL(win,"div","color:"+OV_TEXT+";font-size:16px;font-weight:600;"); h.textContent=GW("Tabs"); h.id="golem-ov-title";
       var count=OVEL(win,"div","color:"+OV_MUTED+";font-size:13px;"); count.id="golem-ov-count";
       var spacer=OVEL(win,"div","flex:1;");
       var close=OVEL(win,"div","width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);color:#cfd3db;cursor:pointer;font-size:14px;");
@@ -995,7 +1087,7 @@ try {
     box.id="golem-ov-tools";
     OV_TOOLS.forEach(function(t){
       var b=OVEL(win,"div","display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:6px;cursor:pointer;color:var(--toolbarbutton-icon-fill, currentColor);transition:background 110ms ease;");
-      b.setAttribute("title",t[0]);
+      b.setAttribute("title",GW(t[0]));
       var im=OVEL(win,"img","width:16px;height:16px;-moz-context-properties:fill;fill:currentColor;pointer-events:none;");
       im.setAttribute("src",t[1]); b.appendChild(im);
       b.addEventListener("mouseenter",function(){ b.style.background="var(--toolbarbutton-background-color-hover, rgba(255,255,255,.08))"; });
@@ -1023,7 +1115,7 @@ try {
     var navbar=d.getElementById("nav-bar"); if(!navbar) return;
     var b=OVEL(win,"div","display:flex;align-items:center;justify-content:center;align-self:center;width:30px;height:28px;margin:0 6px 0 2px;flex:0 0 auto;border-radius:6px;cursor:pointer;color:var(--toolbarbutton-icon-fill, currentColor);transition:background 110ms ease;");
     b.id="golem-overview-btn";
-    b.setAttribute("title","Show all tabs");
+    b.setAttribute("title",GW("Show all tabs"));
     b.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1.7"/><rect x="9" y="1" width="6" height="6" rx="1.7"/><rect x="1" y="9" width="6" height="6" rx="1.7"/><rect x="9" y="9" width="6" height="6" rx="1.7"/></svg>';
     // HOVER-TO-TOGGLE with hover-intent: dwelling ~140ms on the button TOGGLES the
     // overview — hover to open, hover again to close. A quick graze (on the way to
@@ -2008,7 +2100,7 @@ try {
     "    'h1,#error-title{color:'+FG+' !important;font:600 22px/1.3 system-ui,sans-serif !important;margin:0 0 10px !important}p,#error-intro{color:'+DIM+' !important;font:16px/1.5 system-ui,sans-serif !important}'+"+
     "    (keepButtons(d)?'moz-button-group{margin-top:18px}':'moz-button-group,moz-button,button{display:none !important}'));"+
     "  var t=sr.querySelector('#error-title'), p=sr.querySelector('#error-intro');"+
-    "  if(e==='blockedByPolicy'){ if(t) t.textContent='Not available'; if(p){ p.textContent='This page is not part of Seam.'; } }"+
+    "  if(e==='blockedByPolicy'){ if(t) t.textContent="+JSON.stringify(GW("Not available"))+"; if(p){ p.textContent="+JSON.stringify(GW("This page is not part of Seam."))+"; } }"+
     "  else { brand(sr); }"+
     "  d.__seamErr=true;"+
     "}"+
@@ -2295,7 +2387,7 @@ try {
     nvMode="software (fallback: the nvidia video decoder crashed "+nvState.crashes+"x; retried after the next Firefox or driver update)";
     try{ mrDone=false; mrWrite(); }catch(e){}
     try{ Components.classes["@mozilla.org/alerts-service;1"].getService(Components.interfaces.nsIAlertsService)
-      .showAlertNotification(null,"Seam","Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update.",false,"",null,"golem-nvdec"); }catch(e){}
+      .showAlertNotification(null,"Seam",GW("Hardware video decoding was unstable on this machine, so videos now decode in software. Seam will try hardware again after the next update."),false,"",null,"golem-nvdec"); }catch(e){}
   }
   function nvWatch(win){
     if(!nvOnly() || nvMode!=="hardware" || win.__golemNvWatch) return;
@@ -2450,8 +2542,8 @@ try {
       if(Services.prefs.getStringPref(P,"")!==ver){
         Services.prefs.setStringPref(P,ver);
         Components.classes["@mozilla.org/alerts-service;1"].getService(Components.interfaces.nsIAlertsService)
-          .showAlertNotification(null,"Seam: tab overview paused",
-            "Firefox "+ver+" changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.",false,"",null,"golem-seam-degraded");
+          .showAlertNotification(null,GW("Seam: tab overview paused"),
+            GW("Firefox {0} changed something the overview relies on. Browsing is unaffected; the overview returns after the next Seam update.", ver),false,"",null,"golem-seam-degraded");
       }
     }catch(e){}
   }
@@ -4220,7 +4312,7 @@ try {
       var st=dwSiteState(h), acc=GS_ACCENT||"var(--lwt-accent-color, #4d9fff)";
       b.style.color = st.on ? acc : "var(--toolbarbutton-icon-fill, currentColor)";
       b.style.opacity = st.on ? "1" : "0.55";
-      b.setAttribute("title", st.on ? "Your colours on this site" : "This site keeps its own colours");
+      b.setAttribute("title", st.on ? GW("Your colours on this site") : GW("This site keeps its own colours"));
     }catch(e){}
   }
   function dpPaintAll(){ gsEachWindow(function(w){ dpPaint(w); }); }
