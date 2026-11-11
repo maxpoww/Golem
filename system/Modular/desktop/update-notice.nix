@@ -22,9 +22,11 @@
 { pkgs, ... }:
 
 let
+  golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
+
   notice = pkgs.writeShellApplication {
     name = "golem-update-notice";
-    runtimeInputs = [ pkgs.coreutils pkgs.libnotify ];
+    runtimeInputs = [ pkgs.coreutils pkgs.libnotify golemSay ];
     text = ''
       now=$(date +%s)
       state="''${XDG_STATE_HOME:-$HOME/.local/state}/golem"
@@ -45,8 +47,8 @@ let
         [ "$newest" -gt "$ok" ] && ok=$newest
         failed=$(cat "$notes/update-failed")
         if [ "$failed" -gt "$ok" ] && [ $(( now - ok )) -ge $(( 7 * 24 * 3600 )) ] && once_a_day update-stuck; then
-          notify-send -a Golem "Golem could not update for $(( (now - ok) / 86400 )) days" \
-            "It tries again every day and needs nothing from you but an internet connection. If this keeps coming back, restart the computer."
+          notify-send -a Golem "$(golem-say "Golem could not update for {0} days" "$(( (now - ok) / 86400 ))")" \
+            "$(golem-say "It tries again every day and needs nothing from you but an internet connection. If this keeps coming back, restart the computer.")"
         fi
       fi
 
@@ -67,8 +69,8 @@ let
       [ $(( now - made )) -ge $(( 2 * 24 * 3600 )) ] || exit 0
       once_a_day update-notice || exit 0
       days=$(( (now - made) / 86400 ))
-      notify-send -a Golem "Golem has an update ready" \
-        "It has been waiting $days days. Restart when it suits you to start using it."
+      notify-send -a Golem "$(golem-say "Golem has an update ready")" \
+        "$(golem-say "It has been waiting {0} days. Restart when it suits you to start using it." "$days")"
     '';
   };
 in

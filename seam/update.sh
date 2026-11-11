@@ -96,23 +96,30 @@ if st=$(runuser -u nobody -- env SEAM_DIR="$stdir" SEAM_SCRIPT="$stdir/golem-chr
   log "selftest: ALL PASS"
 elif printf '%s' "$st" | grep -q '"steps"'; then
   log "selftest: FAILURES — overview will run in safe mode until patched"
-  extra=" The Golem tab overview is paused on this version (browsing unaffected)."
+  extra=paused
 else
   # no test results at all: the test could not start (permissions, missing build ...).
   # Nothing is known about this version, and nothing is paused — the overview checks
   # itself at every start (golem-chrome.js health check) and degrades on its own.
   log "selftest: COULD NOT RUN — $(printf '%s' "$st" | tail -1)"
-  extra=" (The post-update self-test could not run; the browser checks itself at startup.)"
+  extra=untested
 fi
 rm -rf "$stdir"
 printf '%s\n' "$st" > /var/lib/seam/selftest-"$latest".txt
 printf '%s\n' "$st" | sed 's/^/  /'
 
-# tell every logged-in user to restart Seam (the running process keeps the old binary)
+# tell every logged-in user to restart Seam (the running process keeps the old binary),
+# each in their own language: root names their settings for golem-say
 for bus in /run/user/*/bus; do
   [ -S "$bus" ] || continue
   u=$(stat -c %U "$bus")
+  home=$(getent passwd "$u" | cut -d: -f6) || home=   # (none: the system's language)
+  say() { GOLEM_SETTINGS="$home/.config/golem/settings.json" golem-say "$@"; }
+  body=$(say "Security update installed. Restart Seam to apply it — your tabs come back.")
+  case "$extra" in
+    paused) body="$body $(say "The Golem tab overview is paused on this version (browsing unaffected).")" ;;
+    untested) body="$body $(say "(The post-update self-test could not run; the browser checks itself at startup.)")" ;;
+  esac
   runuser -u "$u" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
-    notify-send -a Seam -u critical "Seam updated to $latest" \
-    "Security update installed. Restart Seam to apply it — your tabs come back.$extra" || true
+    notify-send -a Seam -u critical "$(say "Seam updated to {0}" "$latest")" "$body" || true
 done
