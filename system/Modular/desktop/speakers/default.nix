@@ -18,6 +18,14 @@ in
 {
   imports = [ ./tas2781.nix ];
 
+  # The same list for the shell: the dock's Equalizer draws an output's factory
+  # tuning under the owner's curve (`eq.rs::factory_for`, matched by the card's
+  # components and the speaker node).
+  environment.etc."golem/speaker-tunings.json".text = builtins.toJSON (map (t: {
+    inherit (t) name components graph;
+    node = "HiFi__Speaker__sink";
+  }) (lib.filter (t: t ? graph) tunings));
+
   services.pipewire.wireplumber.extraScripts."golem/jack-profile.lua" =
     builtins.readFile ./jack-profile.lua;
 
@@ -40,7 +48,7 @@ in
       "node.filter-graph.rules" = map (t: {
         matches = [{
           "node.name" = "~alsa_output.*HiFi__Speaker__sink";
-          "alsa.components" = t.components;
+          "alsa.components" = "~.*${t.components}.*";
         }];
         actions.create-filter-graph = [ (builtins.toJSON t.graph) ];
       }) (lib.filter (t: t ? graph) tunings);
