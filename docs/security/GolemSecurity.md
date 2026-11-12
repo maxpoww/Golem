@@ -92,12 +92,50 @@ the machine layer by the system's own store copy
 A change nobody approved now waits: the update fails (the 7-day notice
 says so) until `rebuild-golem` builds it with the owner's password.
 
-Still open (the next round): the build reads the owner's tree a moment
-after the check (a race a determined program could try to win; the fix is
-building from a root-owned copy), `golem-rollback` and `golem-clean-system`
-can be started without a password (a downgrade or a wipe of rollback
-points, not root), and the owner is in the `input` and `uinput` groups
-(any program can read the keyboard, the sudo password included).
+Still open after 1c: the race below (closed in 1d), `golem-rollback` and
+`golem-clean-system` can be started without a password (a downgrade or a
+wipe of rollback points, not root), and the owner was in the `input` group
+(closed in 1d; `uinput` stays: it can write input, not read it).
+
+## Phase 1d — no friction, one level deeper · 2026-11-12
+
+Max approved five items from the next round, the ones nobody sees.
+
+1. **Root builds its own copy.** Every root build checked `~/Golem` and then
+   built `~/Golem`; in between, a program running as the owner could swap a
+   file in (the harness showed the built `golem-autoupdate` reading the swapped
+   `flake.nix`). Now `golem-seal-copy` gives every unattended root build (the
+   nightly update, Seam's lane, the dock's installs, first boot) a root-only
+   copy of exactly the sealed files, checked against the manifest file by
+   file, plus the generated data channels (plain files only) and `.golem-rev`,
+   which the flake reads for `system.configurationRevision` when it is built
+   from a plain directory. `golem-seal-heal` and `golem-bless` hash root's copy
+   and keep that same copy as the snapshot, so the seal and what root builds
+   are the same bytes. `rebuild-golem` runs `golem-seal-approve`: build a copy,
+   then seal that copy, so a file changed during the build is never approved
+   unbuilt. The install helper and Seam's lane no longer write through names a
+   link could be planted at (`apps.nix.new`, the pin's restore).
+2. **Private windows out of the clipboard's pictures** (launcher, branch
+   `private-clip`): a private Seam window is never photographed for a copied
+   link's picture. It goes live with a dock restart.
+3. **No `input` group.** It let every program read every keyboard and mouse
+   directly. Hyprland opens devices through logind, controllers come by
+   uaccess, the phone's gamepad writes through `uinput`.
+4. **The lab door only on lab machines.** `golem.lab.door`, set by the
+   machine's own `hosts/target/lab.nix`. A lab medium is built with
+   `GOLEM_LAB=1 nix build --impure .#iso`; its baked systems carry the door
+   from the first boot and `golem-install` writes `lab.nix` when the system it
+   copies has `/etc/golem/lab-door`. Every other install loses the door at its
+   next update. The lab laptops get `lab.nix` from the deploy, before this
+   version is published.
+5. **The boot menu asks a password only to be changed.** `e` and GRUB's command
+   line ask for the user `golem` and the machine's boot password: random, made
+   at the first bootloader install, root-only in `/var/lib/golem/secrets`
+   (`sudo golem-boot-password` shows it). Every entry and the Previous Versions
+   submenu boot without it. Put into `grub.cfg` after the generator (like the
+   menu's words), because NixOS's `boot.loader.grub.users` dies on a missing
+   file before anything of ours runs, which would have failed every machine's
+   first nightly update.
 
 ## Phase 2 — root-owned seed as the INSTALLER DEFAULT (queued, design set)
 
@@ -117,9 +155,10 @@ someone who isn't Max.
 - **Lab artifacts must never ship**: the lab root-SSH key (used by the
   deploy loop; it exists on the ASUS today and root-SSH is how #44
   happened) is a LAB device convenience — release images carry no
-  authorized keys and `PermitRootLogin no`. (Status 2026-11-12: the lab
-  door, `system/Modular/lab/lab-door.nix`, ships in every install and the
-  installer ISO until the first finished ISO — Max, 2026-09-24.)
+  authorized keys and `PermitRootLogin no`. (Status 2026-11-12, Phase 1d:
+  the lab door is on lab machines only, `hosts/target/lab.nix`; the installer
+  ISO medium itself still carries the lab keys and Wi-Fi until the first
+  finished ISO.)
 - sudo requires a password (no NOPASSWD anywhere in shipped config).
 - Firewall on by default; no listening services beyond what a feature
   explicitly declares.
