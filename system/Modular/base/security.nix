@@ -64,5 +64,45 @@
     "net.ipv4.conf.default.accept_source_route" = 0;
     "net.ipv6.conf.all.accept_source_route" = 0;
     "net.ipv4.conf.all.log_martians" = 1;
+
+    # THE QUIET HARDENING (the security study, 2026-11-12): what costs the
+    # owner nothing — no prompt, no lost feature, no measurable speed — and
+    # closes doors attackers use. Each is a KSPP / secureblue / Kicksecure
+    # recommendation that a desktop never notices.
+    # No loading a new kernel from a running one (Golem never kexecs).
+    "kernel.kexec_load_disabled" = 1;
+    # The BPF JIT's output hardened against JIT spraying.
+    "net.core.bpf_jit_harden" = 2;
+    # A program cannot make the kernel load a TTY line discipline module.
+    "dev.tty.ldisc_autoload" = 0;
+    # No opening another user's FIFO or file in a sticky shared folder
+    # (/tmp tricks that turn a root program against itself).
+    "fs.protected_fifos" = 2;
+    "fs.protected_regular" = 2;
+    # userfaultfd, a kernel-exploit staple, for privileged users only (the
+    # kernel's own user-mode-only flag still works for everyone).
+    "vm.unprivileged_userfaultfd" = 0;
+    # This machine routes nothing for others: no ICMP redirects sent.
+    "net.ipv4.conf.all.send_redirects" = 0;
+    "net.ipv4.conf.default.send_redirects" = 0;
+    # TIME-WAIT assassination (RFC 1337).
+    "net.ipv4.tcp_rfc1337" = 1;
   };
+
+  # No merging of the kernel's memory caches (an overflow in one cannot land
+  # in another's objects), and a shuffled page allocator. Both cost a few MB
+  # and nothing a person can feel. (Memory zeroed on allocation and a random
+  # kernel stack offset are already the kernel's defaults.)
+  boot.kernelParams = [ "slab_nomerge" "page_alloc.shuffle=1" ];
+
+  # Network protocols and filesystems no desktop uses, which any program could
+  # otherwise make the kernel load by opening a socket or mounting a crafted
+  # image — where kernel bugs keep being found (DCCP, SCTP, RDS, TIPC and the
+  # ham-radio stack all had root exploits). Blacklisted, not removed: an admin
+  # who needs one still loads it by name (modprobe sctp).
+  boot.blacklistedKernelModules = [
+    "dccp" "sctp" "rds" "tipc" "n_hdlc" "ax25" "netrom" "rose" "x25" "atm"
+    "appletalk" "psnap" "p8022" "p8023" "llc2" "ieee802154_socket" "rxrpc"
+    "cramfs" "freevxfs" "jffs2" "hfs" "vivid"
+  ];
 }

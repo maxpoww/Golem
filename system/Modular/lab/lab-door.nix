@@ -31,6 +31,10 @@ in
   golem.update.wave = lib.mkDefault 0;
   users.users.${config.golem.owner}.openssh.authorizedKeys.keys = devKeys;
   users.users.root.openssh.authorizedKeys.keys = devKeys;
+  # The lab's machines keep their real Wi-Fi address (base/network.nix gives
+  # installs a private one): the lab reaches each machine at the address its
+  # real one was given.
+  networking.networkmanager.wifi.macAddress = "permanent";
 
   # Auto-join the open lab wifi so a fresh install is reachable on boot. Baked
   # HERE (not via --lab-wifi → machine.nix) because the direct-copied gen-1 runs

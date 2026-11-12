@@ -57,6 +57,48 @@ password offline — exactly what `/etc/shadow`'s permissions exist to prevent.
   collected: on a migrated machine, delete the old system generations.
 - RULE: no secret is ever written into the flake or anything it imports.
 
+## Phase 1c — the three roads to root, closed · 2026-11-12
+
+The security study (2026-11-12) found that the line in the first paragraph
+no longer held: three root services trusted the owner's tree, so code
+running as the owner reached root with no password.
+
+1. **The app list.** `desktop/app-setup.nix` put the owner in `docker` when
+   Docker was installed and in `libvirtd` for virt-manager — both root. The
+   list is written without a password, so `echo docker >> packages.list`
+   was root. Now: Docker runs rootless (the owner's own daemon,
+   DOCKER_HOST), machines run in the owner's libvirt session (virt-manager
+   connects to `qemu:///session`), and desktop-matrix asserts that no
+   installed app adds a root-equivalent group.
+2. **The nightly update.** `golem-autoupdate` ran `golem-bless || true`
+   before every build, so a local commit plus `golem-update-now` (polkit,
+   no password) was built as root. Now it builds only a tree that passes
+   `golem-seal-check`, or that `golem-seal-heal` proves is the blessed tree
+   moved by upstream's own code (each file against root's own fetch, never
+   the owner's `.git`). Its git calls run as the owner.
+3. **Seam's lane.** `seam-update` rebuilt the checkout even when it was not
+   sealed. Now it refuses the same way, and after a release it seals only
+   its own pin (`golem-seal-adopt`, from root's copy) instead of blessing
+   the whole tree. Its backup pin no longer sits in the checkout.
+
+The same rule now covers the two other places that blessed whatever they
+found: `golem-recover` (run by `golem-rollback`, which needs no password —
+rewritten git objects, then a reset, were sealed) and `golem-seed-adopt`
+(deleting `~/Golem/.git` made the next update re-adopt and seal an edited
+`machine.nix`). Both seal only through check or heal; recover vouches for
+the machine layer by the system's own store copy
+(`GOLEM_SEAL_TRUSTED_MACHINE`).
+
+A change nobody approved now waits: the update fails (the 7-day notice
+says so) until `rebuild-golem` builds it with the owner's password.
+
+Still open (the next round): the build reads the owner's tree a moment
+after the check (a race a determined program could try to win; the fix is
+building from a root-owned copy), `golem-rollback` and `golem-clean-system`
+can be started without a password (a downgrade or a wipe of rollback
+points, not root), and the owner is in the `input` and `uinput` groups
+(any program can read the keyboard, the sudo password included).
+
 ## Phase 2 — root-owned seed as the INSTALLER DEFAULT (queued, design set)
 
 For users, the strongest model costs nothing: they never edit config
@@ -75,12 +117,23 @@ someone who isn't Max.
 - **Lab artifacts must never ship**: the lab root-SSH key (used by the
   deploy loop; it exists on the ASUS today and root-SSH is how #44
   happened) is a LAB device convenience — release images carry no
-  authorized keys and `PermitRootLogin no`.
+  authorized keys and `PermitRootLogin no`. (Status 2026-11-12: the lab
+  door, `system/Modular/lab/lab-door.nix`, ships in every install and the
+  installer ISO until the first finished ISO — Max, 2026-09-24.)
 - sudo requires a password (no NOPASSWD anywhere in shipped config).
 - Firewall on by default; no listening services beyond what a feature
   explicitly declares.
 - Disk encryption offered by the installer (owner's choice, default on
-  for laptops).
+  for laptops). (Status 2026-11-12: offered behind "Advanced", default
+  off — Max, 2026-09-05; the security study proposes default on.)
+- The quiet hardening (2026-11-12, `base/security.nix`, `base/network.nix`):
+  kexec off, BPF JIT hardened, no TTY line-discipline autoload, protected
+  FIFOs and files in sticky folders, no unprivileged userfaultfd, no ICMP
+  redirects sent, `slab_nomerge` and a shuffled page allocator, a
+  blacklist of network protocols and filesystems no desktop uses (DCCP,
+  SCTP, RDS, TIPC, the ham-radio stack, cramfs, jffs2…), and a private
+  Wi-Fi address per network (the lab door keeps the real one). Nothing an
+  owner sees; the boot test and the matrices pass with it.
 - The dock's posture (already landed/staged): secrets never recorded
   (#53), network fetches hardened (#54), state dirs 0700 (#55), root
   channels data-validated (audited), corrupt state preserved not lost
