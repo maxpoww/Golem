@@ -140,10 +140,18 @@ let
         (ex "app-setup: Steam installed → the Steam system side, 32-bit graphics, GameMode"
           (c.programs.steam.enable && c.hardware.graphics.enable32Bit && c.programs.gamemode.enable
            && c.hardware.steam-hardware.enable))
-        (ex "app-setup: Docker installed → its daemon and the owner in its group"
-          (c.virtualisation.docker.enable && lib.elem "docker" (groups c)))
-        (ex "app-setup: virt-manager installed → libvirtd, and the owner may use it"
-          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable && lib.elem "libvirtd" (groups c)))
+        (ex "app-setup: Docker installed → rootless Docker (the owner's own daemon, DOCKER_HOST), no system daemon"
+          (c.virtualisation.docker.rootless.enable && c.virtualisation.docker.rootless.setSocketVariable
+           && !c.virtualisation.docker.enable))
+        (ex "app-setup: virt-manager installed → libvirtd, virt-manager on the owner's own session"
+          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable
+           && lib.hasInfix "qemu:///session" (builtins.toJSON
+                c.home-manager.users.${c.golem.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
+        # The security study's road 1 (2026-11-12): the app list is written
+        # without a password, so no app may put the owner in a group that is
+        # root. Everything installed at once, and still none of them.
+        (ex "app-setup: no installed app puts the owner in a root-equivalent group"
+          (!(lib.any (g: lib.elem g (groups c)) [ "docker" "libvirtd" "lxd" "incus-admin" "disk" "shadow" ])))
         (ex "app-setup: LocalSend and Syncthing installed → their ports are open"
           (lib.elem 53317 c.networking.firewall.allowedTCPPorts && lib.elem 22000 c.networking.firewall.allowedTCPPorts
            && lib.elem 21027 c.networking.firewall.allowedUDPPorts))

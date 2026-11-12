@@ -55,16 +55,37 @@ in
   };
 
   # ── Containers and machines ──────────────────────────────────────────────
-  virtualisation.docker.enable = lib.mkIf (has "docker") true;
+  # NO GROUP HERE IS ROOT (2026-11-12, the security study's road 1). The app
+  # list is written without a password, so anything it switches on must give
+  # the owner nothing they did not have: the `docker` group IS root (a
+  # container with / mounted), and so is `libvirtd` (a machine given the
+  # host's disk). Any program running as the owner could add "docker" to
+  # packages.list and become root at the next install.
+  #
+  # Docker runs ROOTLESS instead: the daemon is the owner's own (a user
+  # service), `docker` finds it through DOCKER_HOST, and `docker run` works as
+  # before without any group. Machines run in the owner's own libvirt session
+  # (qemu:///session, as GNOME Boxes always has): virt-manager connects there
+  # by default (below). The system libvirtd stays for what the session uses
+  # from it (UEFI firmware paths, the bridge helper); nobody is in its group.
+  virtualisation.docker.rootless = lib.mkIf (has "docker") {
+    enable = true;
+    setSocketVariable = true;
+  };
   # Distrobox and Podman Desktop need a container engine; Podman when there
   # is no Docker to use.
   virtualisation.podman.enable = lib.mkIf (any [ "podman-desktop" "distrobox" ] && !has "docker") true;
   virtualisation.libvirtd.enable = lib.mkIf (any machines) true;
   programs.virt-manager.enable = lib.mkIf (has "virt-manager") true;
+  home-manager.users.${owner}.dconf.settings."org/virt-manager/virt-manager/connections" =
+    lib.mkIf (has "virt-manager") {
+      autoconnect = [ "qemu:///session" ];
+      uris = [ "qemu:///session" ];
+    };
 
-  users.users.${owner}.extraGroups =
-    lib.optional (has "docker") "docker"
-    ++ lib.optionals (any machines) [ "libvirtd" "kvm" ];
+  # /dev/kvm: not root (it runs machines, nothing else), and the session's
+  # machines need it.
+  users.users.${owner}.extraGroups = lib.optional (any machines) "kvm";
 
   # Programs built for other Linux systems (an editor's downloaded language
   # server, a vendor's binary) find their loader.
