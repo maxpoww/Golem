@@ -60,6 +60,8 @@ let
     (ex "owner joined uinput + adbusers at the desktop stage"
       (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
         && lib.elem "adbusers" c.users.users.${c.golem.owner}.extraGroups))
+    (ex "the owner is not in the input group: no program reads every keyboard directly (2026-11-12)"
+      (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
     # base groups still present (extraGroups MERGED, not replaced)
     (ex "base groups survive the merge (wheel, video)"
       (lib.elem "wheel" c.users.users.${c.golem.owner}.extraGroups

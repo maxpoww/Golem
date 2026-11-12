@@ -12,11 +12,16 @@
     hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
     description = lib.mkDefault "Max";
     shell = pkgs.bashInteractive;
+    # Not "input" (2026-11-12): it lets every program the owner runs read
+    # every keyboard and mouse directly (/dev/input/event*), keystrokes and
+    # passwords included, past the compositor. Nothing in Golem needs it:
+    # Hyprland opens the devices through the login seat (logind), games get
+    # their controllers by the seat's own rules (uaccess), and the phone's
+    # virtual gamepad writes through uinput, its own group (desktop leaf).
     extraGroups = [
       "networkmanager"
       "wheel"
       "video"
-      "input"
     ];
   };
 
