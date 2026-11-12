@@ -63,7 +63,21 @@ let
   channels = lib.concatMapStringsSep " " (p: lib.escapeShellArg (lib.removePrefix "./" p))
     (lib.filter (p: !(lib.hasSuffix ".last-good" p)) exempt);
 
-  # Shared manifest computation: "sha256  ./path" lines, NUL-walked, sorted.
+  # Symbolic links (the icon themes hold hundreds) are sealed by WHERE THEY
+  # POINT, never by following them: root does not read through a link the
+  # owner could aim anywhere. One process for all of them: "sha256 of the
+  # target  ./path" lines, in the order find gave.
+  linkSums = pkgs.writeScript "golem-seal-link-sums" ''
+    #!${pkgs.perl}/bin/perl
+    use Digest::SHA qw(sha256_hex);
+    $/ = "\0";
+    while (my $p = <STDIN>) { chomp $p; my $t = readlink($p); print sha256_hex($t), "  ", $p, "\n" if defined $t; }
+  '';
+
+  # Shared manifest computation: "sha256  ./path" lines, NUL-walked, sorted;
+  # the files first, then the links (2026-11-12: until then links were left
+  # out of the seal and out of root's copies, and a build from a copy lost
+  # the 777 icons that are links).
   # compute_in DIR for any copy of the tree; compute for the checkout itself.
   computeFn = ''
     compute_in() {
@@ -73,7 +87,13 @@ let
           ! -name '*.tmp' \
           ! -name 'result' ! -name 'result-*' \
           ${exemptArgs} \
-          -print0 | sort -z | xargs -0 -r sha256sum)
+          -print0 | sort -z | xargs -0 -r sha256sum
+        find . -type l \
+          ! -path './.git/*' \
+          ! -name '*.tmp' \
+          ! -name 'result' ! -name 'result-*' \
+          ${exemptArgs} \
+          -print0 | sort -z | ${linkSums})
     }
     compute() { compute_in ${lib.escapeShellArg flakeDir}; }
   '';
@@ -186,9 +206,9 @@ let
       staged=${lib.escapeShellArg snapshotDir}.new
       rm -rf "$staged"; mkdir -p "$staged"; chmod 700 "$staged"
       (cd ${lib.escapeShellArg flakeDir} && \
-        find . -type f ! -path './.git/*' ! -name '*.tmp' ! -name 'result' ! -name 'result-*' -print0 \
+        find . \( -type f -o -type l \) ! -path './.git/*' ! -name '*.tmp' ! -name 'result' ! -name 'result-*' -print0 \
         | tar --null --no-recursion -T - -cf - 2>/dev/null) | tar -xf - -C "$staged" 2>/dev/null || true
-      find "$staged" ! -type f ! -type d -delete
+      find "$staged" ! -type f ! -type d ! -type l -delete
     }
     commit_stage() {
       rm -rf ${lib.escapeShellArg snapshotDir}.old
@@ -256,13 +276,18 @@ let
       trusted=''${GOLEM_SEAL_TRUSTED_MACHINE:-}
       while IFS= read -r p; do
         [[ -n "$p" ]] || continue
-        if [[ -n "$trusted" && "$p" == ./hosts/target/* && "$p" != ./hosts/target/*/* ]] \
+        if [[ -n "$trusted" && "$p" == ./hosts/target/* && "$p" != ./hosts/target/*/* && ! -L "$staged/''${p#./}" ]] \
            && [[ -f "$trusted/''${p#./hosts/target/}" ]] \
            && cmp -s -- "$trusted/''${p#./hosts/target/}" "$staged/''${p#./}"; then
           continue
         fi
         want=$(git -C "$mirror" rev-parse -q --verify "$head:''${p#./}" 2>/dev/null) || { local_edits+=("$p"); continue; }
-        got=$(cd / && git hash-object --no-filters -- "$staged/''${p#./}")
+        if [[ -L "$staged/''${p#./}" ]]; then
+          # git keeps a link as a blob holding where it points
+          got=$(printf '%s' "$(readlink -- "$staged/''${p#./}")" | (cd / && git hash-object --stdin))
+        else
+          got=$(cd / && git hash-object --no-filters -- "$staged/''${p#./}")
+        fi
         [[ "$got" == "$want" ]] || local_edits+=("$p")
       done <<< "$changed"
       while IFS= read -r p; do
