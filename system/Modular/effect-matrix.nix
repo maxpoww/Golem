@@ -41,7 +41,10 @@ let
         (ex "store: on a disk with under 15 GiB free only the newest 3 system versions are kept" (lib.any (lib.hasInfix "golem-store-trim") c.systemd.services.nix-gc.serviceConfig.ExecStartPre))
         (ex "updates: a new version waits the machine's wave, counted from when it first fell behind" (lib.hasInfix "golem-update-wave" c.systemd.services.golem-autoupdate.script && lib.hasInfix "update-behind-since" c.systemd.services.golem-autoupdate.script))
         (ex "updates: a version out before the machine saw it counts from its publication (an install from an older ISO does not wait its whole wave again)" (lib.hasInfix "golem-update-published" c.systemd.services.golem-autoupdate.script))
-        (ex "updates: the lab (lab door) is wave 0, so it meets every version first" (c.golem.update.wave == 0))
+        (ex "an install is not the lab: no lab door (no dev-box keys, no lab Wi-Fi, no fixed wave; lab machines opt in with hosts/target/lab.nix, 2026-11-12)"
+          (!c.golem.lab.door && c.users.users.root.openssh.authorizedKeys.keys == [ ]
+           && !(c.networking.networkmanager.ensureProfiles.profiles ? golem-lab)
+           && c.golem.update.wave == null && !(c.environment.etc ? "golem/lab-door")))
         (ex "updates never freeze the machine: the nix daemon yields the disk and CPU (idle I/O class, IOWeight/CPUWeight 10; Acer HDD froze 2026-10-27)" (c.nix.daemonIOSchedClass == "idle" && c.systemd.services.nix-daemon.serviceConfig.IOWeight == 10 && c.systemd.services.nix-daemon.serviceConfig.CPUWeight == 10))
         (ex "first-boot never holds a boot target (the desktop must not wait for its rebuild): timer-started, low priority" (c.systemd.services.golem-first-boot.wantedBy == [ ] && c.systemd.timers ? golem-first-boot && c.systemd.services.golem-first-boot.serviceConfig.IOSchedulingClass == "idle"))
         (ex "first-boot and nix-gc wait for the desktop to be up (base/quiet-login): no heavy disk work during a login" (lib.any (lib.hasSuffix "/bin/golem-quiet-login") c.systemd.services.golem-first-boot.serviceConfig.ExecStartPre && lib.hasSuffix "/bin/golem-quiet-login" (lib.head c.systemd.services.nix-gc.serviceConfig.ExecStartPre)))
@@ -186,6 +189,17 @@ let
       ];
     }
     {
+      name = "a lab testbed (acer facts + hosts/target/lab.nix: golem.lab.door = true)";
+      facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
+      extra = [ { golem.lab.door = true; } ];
+      expect = c: [
+        (ex "lab door: the dev box's key reaches root and the owner" (lib.any (lib.hasSuffix " dev-lab") c.users.users.root.openssh.authorizedKeys.keys && lib.any (lib.hasSuffix " dev-lab") c.users.users.${c.golem.owner}.openssh.authorizedKeys.keys))
+        (ex "lab door: joins the lab Wi-Fi on its own" (c.networking.networkmanager.ensureProfiles.profiles ? golem-lab))
+        (ex "lab door: wave 0, the lab meets every version first" (c.golem.update.wave == 0))
+        (ex "lab door: the system says so (/etc/golem/lab-door, what golem-install reads)" (c.environment.etc ? "golem/lab-door"))
+      ];
+    }
+    {
       name = "asus (gpu=nvidia, unknown gen — the IRON LAW: NO proprietary driver)";
       facts = (import ../../Installer/preinstall/fixtures/asus/golem-hardware.nix { }).golem.hardware;
       expect = c: [
@@ -201,7 +215,7 @@ let
 
   runRow = row:
     let
-      c = (mkMinimal row.facts [ fakeDisk ]).config;
+      c = (mkMinimal row.facts ([ fakeDisk ] ++ (row.extra or [ ]))).config;
       failed = builtins.filter (e: !e.ok) (row.expect c);
     in
     if failed == [ ]

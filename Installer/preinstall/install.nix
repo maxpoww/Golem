@@ -942,6 +942,16 @@ pkgs.writeShellApplication {
       fi
     fi
     echo "installing system: $system"
+    # A LAB medium's baked systems carry the lab door (built with GOLEM_LAB=1,
+    # system/Modular/lab/lab-door.nix): this machine keeps it past its first
+    # rebuild only with the flag in its own layer. Any other medium installs
+    # no door at all.
+    if [[ -e "$system/etc/golem/lab-door" ]]; then
+      printf '%s\n' "# This machine is a lab testbed: the dev box reaches it over SSH" \
+        "# (system/Modular/lab/lab-door.nix). Written by golem-install from a lab medium." \
+        "{ golem.lab.door = true; }" > "$seed/hosts/target/lab.nix"
+      note "lab: the installed system keeps the lab door (hosts/target/lab.nix)"
+    fi
 
     # Stream the copy (Max, 2026-09-23, on metal: the bar froze here for 2m30s
     # and "installing" is 90% of the wall-clock). nixos-install runs in the

@@ -573,7 +573,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
 
           # STAGE 1 — the same machine PLUS the desktop bundle (spec.md's stage
@@ -629,7 +633,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
 
           # TEST-ONLY (2026-09-26): the desktop stage PLUS the test-chrome
@@ -658,7 +666,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
         });
     };

@@ -33,7 +33,9 @@ in
   imports =
     dropped "hardware-configuration.nix"
     ++ dropped "golem-hardware.nix"
-    ++ dropped "machine.nix";
+    ++ dropped "machine.nix"
+    # A lab testbed's flag (system/Modular/lab/lab-door.nix): only lab machines have it.
+    ++ dropped "lab.nix";
 
   # The installed-machine loop: waverunner-apply and rebuild-golem work
   # against the seeded checkout in the owner's home, and the machine
