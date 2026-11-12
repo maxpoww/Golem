@@ -59,7 +59,30 @@ fi
 # Everything from Mozilla's SHA256SUMS of that version: the tarball AND each language pack.
 # Read before anything is written: a missing hash changes nothing.
 rel="https://archive.mozilla.org/pub/firefox/releases/$want"
-sums=$(curl -fsS --retry 3 "$rel/SHA256SUMS") || { log "could not read Mozilla's SHA256SUMS for $want"; exit 1; }
+# SIGNED BY MOZILLA (the security study, 2026-11-12): SHA256SUMS is trusted only when
+# Mozilla's release key signed it — until then TLS alone vouched for whatever the archive
+# served. The anchor is the key's fingerprint, pinned here; the key itself and its current
+# signing subkey come from the release folder (Mozilla rotates subkeys, the primary key
+# has been the same since 2015). A missing or wrong signature changes nothing.
+MOZ_KEY_FPR=14F26682D0916CDD81E37B6D61B7B526D98F0353
+moz=$(mktemp -d)
+curl -fsS --retry 3 "$rel/SHA256SUMS" -o "$moz/SHA256SUMS" || { log "could not read Mozilla's SHA256SUMS for $want"; exit 1; }
+curl -fsS --retry 3 "$rel/SHA256SUMS.asc" -o "$moz/SHA256SUMS.asc" || { log "could not read Mozilla's signature for $want"; exit 1; }
+curl -fsS --retry 3 "$rel/KEY" -o "$moz/KEY" || { log "could not read Mozilla's release key for $want"; exit 1; }
+mkdir -m 700 "$moz/gnupg"
+signer=$(
+  export GNUPGHOME="$moz/gnupg"
+  gpg --batch --quiet --import "$moz/KEY" 2>/dev/null || true
+  gpg --batch --status-fd 1 --verify "$moz/SHA256SUMS.asc" "$moz/SHA256SUMS" 2>/dev/null \
+    | awk '$2 == "VALIDSIG" { print $NF }' || true
+  gpgconf --kill all >/dev/null 2>&1 || true
+)
+if [ "$signer" != "$MOZ_KEY_FPR" ]; then
+  log "Mozilla's signature on SHA256SUMS for $want does not check out (signer: ${signer:-none}) — not updating"
+  rm -rf "$moz"; exit 1
+fi
+sums=$(cat "$moz/SHA256SUMS")
+rm -rf "$moz"
 sumof(){ printf '%s\n' "$sums" | { grep -E " $1\$" || true; } | cut -d' ' -f1; }   # 2 matches fail the check below
 url="$rel/linux-x86_64/en-US/firefox-$want.tar.xz"
 sha=$(sumof "linux-x86_64/en-US/firefox-$want\.tar\.xz")

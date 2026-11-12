@@ -132,8 +132,13 @@ someone who isn't Max.
   redirects sent, `slab_nomerge` and a shuffled page allocator, a
   blacklist of network protocols and filesystems no desktop uses (DCCP,
   SCTP, RDS, TIPC, the ham-radio stack, cramfs, jffs2…), and a private
-  Wi-Fi address per network (the lab door keeps the real one). Nothing an
-  owner sees; the boot test and the matrices pass with it.
+  Wi-Fi address per network (the lab door keeps the real one), sudo
+  runnable only by the admin group, and /tmp emptied at every boot.
+  Nothing an owner sees; the boot test and the matrices pass with it.
+- Seam's lane trusts Mozilla's SHA256SUMS only when Mozilla's release key
+  signed it (fingerprint `14F2 6682 D091 6CDD 81E3 7B6D 61B7 B526 D98F
+  0353` pinned in `seam/update.sh`; the current subkey comes from the
+  release folder). Until 2026-11-12 TLS alone vouched for the archive.
 - The dock's posture (already landed/staged): secrets never recorded
   (#53), network fetches hardened (#54), state dirs 0700 (#55), root
   channels data-validated (audited), corrupt state preserved not lost

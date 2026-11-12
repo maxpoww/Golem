@@ -60,6 +60,7 @@ let
     name = "seam-update";
     runtimeInputs = with pkgs; [
       coreutils curl jq gnugrep gnused util-linux libnotify git
+      gnupg gawk # Mozilla's signature on SHA256SUMS
       glibc.bin golemSay # getent: each user's home, for their language
       config.system.build.nixos-rebuild selftest
     ];

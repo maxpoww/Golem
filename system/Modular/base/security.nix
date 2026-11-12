@@ -43,6 +43,14 @@
     Defaults lecture = once
     Defaults timestamp_timeout = 15
   '';
+  # Only the admin group may even run sudo (the owner is in it; any other
+  # account, or a service user, gets "permission denied" before sudo parses
+  # a single argument — sudo's own bugs, like 2025's chroot one, stay shut).
+  security.sudo.execWheelOnly = true;
+  # /tmp starts empty at every boot: what a session left there (downloads
+  # opened from the browser, previews, other programs' scratch) does not
+  # outlive it. Nothing of Golem's keeps anything there.
+  boot.tmp.cleanOnBoot = true;
 
   # Conservative kernel + network hardening. Merges with core.nix's sysctls
   # (fq/bbr/printk) — disjoint keys, no conflict. Every value here is a
