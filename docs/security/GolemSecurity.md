@@ -136,6 +136,23 @@ Max approved five items from the next round, the ones nobody sees.
    menu's words), because NixOS's `boot.loader.grub.users` dies on a missing
    file before anything of ours runs, which would have failed every machine's
    first nightly update.
+6. **A desktop that comes back after a crash comes back locked** (Max: "fix
+   it"). The session keeper, or Hyprland's own watchdog, used to start a
+   crashed desktop again open: a crash caused at the lock screen handed over
+   the desktop. Now the second start of the desktop in a boot runs the lock
+   screen first thing, as the compositor's child (`golem-lock-on-return`, a
+   marker in the runtime dir). The first start of a boot is as before
+   (autologin; disk encryption stays an installer option, off by default,
+   Max 2026-11-12). Tested on the ASUS: a SIGSEGV to Hyprland and a stopped
+   session both came back on the lock screen.
+
+Found on the ASUS while testing 1: the seal walked regular files only, so the
+777 symbolic links (the icon themes) were neither sealed nor in root's copy,
+and a build from the copy lost those icons. Links are now sealed by where
+they point (never followed), staged and copied as links, and heal checks them
+against upstream; an install sealed before re-heals once. After the fix a
+build from root's copy and one from `~/Golem` give the same system, byte for
+byte.
 
 ## Phase 2 — root-owned seed as the INSTALLER DEFAULT (queued, design set)
 
