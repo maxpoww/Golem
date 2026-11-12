@@ -26,13 +26,15 @@ let
   sealCheck = lib.attrByPath [ "golem" "seal" "check" ] null config;
   sealHeal = lib.attrByPath [ "golem" "seal" "heal" ] null config;
   sealAdopt = lib.attrByPath [ "golem" "seal" "adopt" ] null config;
+  sealCopy = lib.attrByPath [ "golem" "seal" "copy" ] null config;
   flakeEnv = lib.optionalString isFlake (''
     export SEAM_FLAKE=${lib.escapeShellArg flakeDir}
     export SEAM_FLAKE_ATTR=${lib.escapeShellArg flakeAttr}
-  '' + lib.optionalString (sealCheck != null && sealHeal != null && sealAdopt != null) ''
+  '' + lib.optionalString (sealCheck != null && sealHeal != null && sealAdopt != null && sealCopy != null) ''
     export SEAM_SEAL_CHECK=${sealCheck}/bin/golem-seal-check
     export SEAM_SEAL_HEAL=${sealHeal}/bin/golem-seal-heal
     export SEAM_SEAL_ADOPT=${sealAdopt}/bin/golem-seal-adopt
+    export SEAM_SEAL_COPY=${sealCopy}/bin/golem-seal-copy
   '');
   src = builtins.fromJSON (builtins.readFile ./sources.json);
   # "Seam updated": said to each logged-in user in their own language.

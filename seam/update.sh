@@ -115,17 +115,19 @@ if [ -n "${SEAM_SEAL_CHECK:-}" ] && ! "$SEAM_SEAL_CHECK" >/dev/null 2>&1 \
   log "the checkout holds changes nobody approved — not rebuilding it as root; Seam $want waits until they are approved (rebuild-golem) or put back"
   exit 1
 fi
-# After the rebuild, the pin written below — ours, from Mozilla's SHA256SUMS — is sealed
-# by itself (golem-seal-adopt, from root's own copy), never the whole tree: a full bless
-# would also seal whatever the owner's programs changed meanwhile. Otherwise the dock's
-# next app install is refused ("the system configuration changed since the last blessing").
+# The pin written below — ours, from Mozilla's signed SHA256SUMS — is sealed by itself
+# (golem-seal-adopt, from root's own copy), never the whole tree: a full bless would also
+# seal whatever the owner's programs changed meanwhile. Sealed BEFORE the rebuild, which
+# then reads root's own copy of the sealed files (golem-seal-copy), not the checkout: a
+# file swapped in after the check above is not what gets built (2026-11-12).
 pincopy=$(mktemp)
-reseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$pincopy" >/dev/null && log "sealed the new pin"; fi; }
+reseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$pincopy" "$prev" >/dev/null && log "sealed the new pin"; fi; }
+unseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$prev" "$pincopy" >/dev/null 2>&1 || true; fi; }
 
 # The pin as it was, for a failed rebuild: in a root-only file, never beside the pin —
 # a file left in the checkout is one more thing the seal would have to answer for.
 prev=$(mktemp); cat "$SRC" > "$prev"
-tmp=$(mktemp "$SRC.XXXX")
+tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX")
 jq -n --arg v "$want" --arg u "$url" --arg s "$sha" --argjson p "$packs" \
   '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$pincopy"
 cat "$pincopy" > "$tmp"
@@ -136,18 +138,32 @@ if [ -n "${SEAM_FLAKE:-}" ]; then
   # flake system: the build only sees git-TRACKED files — stage the new pin, then
   # rebuild this machine's own composition from its checkout (safe.directory is set)
   asowner git -C "$SEAM_FLAKE" add seam/sources.json
-  rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
+  if [ -n "${SEAM_SEAL_COPY:-}" ]; then
+    rebuild(){
+      reseal || { log "could not seal the new pin"; return 1; }
+      local src rc=0
+      src=$("$SEAM_SEAL_COPY") || return 1
+      nixos-rebuild switch --flake "path:$src#$SEAM_FLAKE_ATTR" || rc=$?
+      rm -rf "$src"
+      return "$rc"
+    }
+  else
+    rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
+  fi
 else
   rebuild(){ nixos-rebuild switch; }
 fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
-  cat "$prev" > "$SRC"; rm -f "$prev"
+  # A fresh file renamed over the pin: a link swapped in for it is replaced, not followed.
+  tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX"); cat "$prev" > "$tmp"
+  chown --reference="$SRC" "$tmp" 2>/dev/null || true; chmod 644 "$tmp"; mv -f "$tmp" "$SRC"
   [ -n "${SEAM_FLAKE:-}" ] && asowner git -C "$SEAM_FLAKE" add seam/sources.json
-  rm -f "$pincopy"   # (the seal still holds the old pin: nothing to seal)
+  unseal   # the seal back on the old pin, if it had moved to the new one
+  rm -f "$pincopy" "$prev"
   exit 1
 fi
-reseal
+[ -n "${SEAM_SEAL_COPY:-}" ] || reseal
 rm -f "$pincopy" "$prev"
 log "Seam is now $want"
 

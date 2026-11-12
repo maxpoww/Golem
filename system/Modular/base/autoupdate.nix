@@ -369,9 +369,19 @@ lib.mkIf (config.golem.flakeDir != null) {
         echo "golem-autoupdate: $dir holds changes nobody approved — not building them as root. Approve them with rebuild-golem (it asks for the password), or put Golem's files back." >&2
         exit 1
       fi
-      # Then stage the new generation for the next reboot.
+      # Then stage the new generation for the next reboot — built from root's
+      # own copy of exactly what was just vouched for, never from ~/Golem
+      # itself: a file swapped in after the check would otherwise be what
+      # Nix read (golem-seal.nix, golem-seal-copy).
+      if ! src=$(${config.golem.seal.copy}/bin/golem-seal-copy); then
+        echo "golem-autoupdate: root could not make its copy of the approved files — not building." >&2
+        exit 1
+      fi
       echo "golem-autoupdate: $before -> $after, rebuilding (boot)…"
-      if ! ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"; then
+      built_ok=1
+      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || built_ok=0
+      rm -rf "$src"
+      if [ "$built_ok" = 0 ]; then
         # The pulled source does not build. Leave it there and every later
         # rebuild — dock installs included — fails too: put the source back to
         # what built the newest system (base/recover.nix). The next run tries

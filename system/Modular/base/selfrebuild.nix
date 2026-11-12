@@ -25,11 +25,12 @@
   ] ++ lib.optional (config.golem.flakeDir != null)
     (pkgs.writeShellScriptBin "rebuild-golem" ''
       set -euo pipefail
-      sudo golem-rebuild switch --flake "${config.golem.flakeDir}#${config.golem.flakeAttr}" "$@"
-      # Built and switched with sudo: that IS the owner's consent to what is
-      # in the checkout now. Re-seal it, or every app install from the dock
-      # would be refused until a separate `sudo golem-bless`.
-      sudo golem-bless
+      # Built and switched with sudo: that IS the owner's consent. Root copies
+      # the checkout once, builds that copy and seals that same copy
+      # (golem-seal.nix): what is approved is exactly what was built, never a
+      # file changed while the build ran. Without the seal every app install
+      # from the dock would wait on a separate `sudo golem-bless`.
+      sudo golem-seal-approve switch "$@"
 
       current=$(readlink -f /run/current-system)
       latest=$(readlink -f /nix/var/nix/profiles/system)

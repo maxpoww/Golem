@@ -60,6 +60,16 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
+      # The revision a system is built from (system.configurationRevision):
+      # git's, or, for a build from root's own copy of the checkout (a plain
+      # directory: golem-seal-copy, golem-seal-approve), the .golem-rev root
+      # wrote into that copy from the commit the checkout names. The
+      # checkout never tracks one, so a git build never reads it.
+      golemRev = self.rev or self.dirtyRev or
+        (if builtins.pathExists ./.golem-rev
+         then nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./.golem-rev)
+         else "unknown");
+
       # The waveview plugin must be compiled against the SAME Hyprland the
       # desktop runs: Golem's patched one (desktop/hyprland-overlay.nix, also
       # applied by desktop/hyprland.nix). Stock headers would give it the
@@ -80,7 +90,7 @@
         # tree is labeled as such rather than lying with the last commit.
         {
           system.configurationRevision =
-            self.rev or self.dirtyRev or "unknown";
+            golemRev;
         }
         ./system/configuration.nix
         # The same patched Hyprland the waveview plugin is compiled against
@@ -313,7 +323,7 @@
       desktopVmModules = [
         {
           system.configurationRevision =
-            self.rev or self.dirtyRev or "unknown";
+            golemRev;
         }
         home-manager.nixosModules.home-manager
         {
@@ -548,7 +558,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -576,7 +586,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -632,7 +642,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               home-manager.nixosModules.home-manager
               {
