@@ -48,6 +48,11 @@ let
         (ex "updates never freeze the machine: the nix daemon yields the disk and CPU (idle I/O class, IOWeight/CPUWeight 10; Acer HDD froze 2026-10-27)" (c.nix.daemonIOSchedClass == "idle" && c.systemd.services.nix-daemon.serviceConfig.IOWeight == 10 && c.systemd.services.nix-daemon.serviceConfig.CPUWeight == 10))
         (ex "first-boot never holds a boot target (the desktop must not wait for its rebuild): timer-started, low priority" (c.systemd.services.golem-first-boot.wantedBy == [ ] && c.systemd.timers ? golem-first-boot && c.systemd.services.golem-first-boot.serviceConfig.IOSchedulingClass == "idle"))
         (ex "first-boot and nix-gc wait for the desktop to be up (base/quiet-login): no heavy disk work during a login" (lib.any (lib.hasSuffix "/bin/golem-quiet-login") c.systemd.services.golem-first-boot.serviceConfig.ExecStartPre && lib.hasSuffix "/bin/golem-quiet-login" (lib.head c.systemd.services.nix-gc.serviceConfig.ExecStartPre)))
+        (ex "boot menu: editing an entry or the command line asks the boot password, every entry still boots without it (2026-11-12)"
+          (lib.hasInfix "password_pbkdf2 golem" c.boot.loader.grub.extraInstallCommands
+           && lib.hasInfix "--unrestricted" c.boot.loader.grub.subEntryOptions
+           && lib.hasInfix "--unrestricted" c.boot.loader.grub.entryOptions
+           && c.boot.loader.grub.users == { }))
         (ex "the owner cannot read every keyboard directly: not in the input group (2026-11-12)" (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
         (ex "no passwordless sudo on an install (GolemSecurity)" (!(lib.any (r: lib.any (cmd: lib.elem "NOPASSWD" (cmd.options or [ ])) (r.commands or [ ])) c.security.sudo.extraRules) && !(lib.hasInfix "NOPASSWD" c.security.sudo.extraConfig)))
         (ex "Broadwell (not legacy) → LIBVA iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
