@@ -111,7 +111,15 @@ let
       mv "$tmp" "$dir"
       rm -rf "$dir.pre-adopt"
       echo "golem-seed-adopt: $dir is now a checkout of $url ($branch), this machine's files staged"
-      ${config.golem.seal.bless}/bin/golem-bless >/dev/null 2>&1 || true
+      # Sealed only if root can vouch for it: upstream's code, checked against
+      # root's own fetch, and the machine files as they were blessed. Until
+      # 2026-11-12 this blessed whatever it found — and deleting ~/Golem/.git
+      # (anything running as the owner can) made the next update adopt again,
+      # carrying an edited machine.nix into the seal.
+      if ! ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         && ! ${config.golem.seal.heal}/bin/golem-seal-heal; then
+        echo "golem-seed-adopt: the checkout is not sealed (changes nobody approved, or upstream unreachable)" >&2
+      fi
     '';
   };
 in

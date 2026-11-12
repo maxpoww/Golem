@@ -141,7 +141,7 @@ let
   # contents are hashed outside any repository, and the mirror is root's.
   heal = pkgs.writeShellApplication {
     name = "golem-seal-heal";
-    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gawk pkgs.git pkgs.gnutar pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.gawk pkgs.git pkgs.gnutar pkgs.gnugrep pkgs.diffutils ];
     text = ''
       manifest=${lib.escapeShellArg manifest}
       seed=${lib.escapeShellArg flakeDir}
@@ -176,8 +176,18 @@ let
       changed=$(comm -23 <(printf '%s\n' "$current" | sort) <(sort "$manifest") | path_of | sort -u)
       removed=$(comm -13 <(printf '%s\n' "$cur_paths") <(path_of < "$manifest" | sort))
       local_edits=()
+      # A caller that just put back the machine layer from a system's OWN copy
+      # (golem-recover: /etc/golem/machine, in the store) names that copy: a
+      # machine file equal to it is the system's, not an edit. Nothing else
+      # can vouch for a file that is not upstream's.
+      trusted=''${GOLEM_SEAL_TRUSTED_MACHINE:-}
       while IFS= read -r p; do
         [[ -n "$p" ]] || continue
+        if [[ -n "$trusted" && "$p" == ./hosts/target/* && "$p" != ./hosts/target/*/* ]] \
+           && [[ -f "$trusted/''${p#./hosts/target/}" ]] \
+           && cmp -s -- "$trusted/''${p#./hosts/target/}" "$seed/''${p#./}"; then
+          continue
+        fi
         want=$(git -C "$mirror" rev-parse -q --verify "$head:''${p#./}" 2>/dev/null) || { local_edits+=("$p"); continue; }
         got=$(cd / && git hash-object --no-filters -- "$seed/''${p#./}")
         [[ "$got" == "$want" ]] || local_edits+=("$p")
@@ -195,6 +205,42 @@ let
       printf '%s\n' "$current" > "$manifest"; chmod 600 "$manifest"
       snapshot
       echo "golem-seal-heal: the checkout is upstream's ''${head:0:7} — re-blessed"
+    '';
+  };
+
+  # golem-seal-adopt RELPATH NEW [OLD]: a root service changed ONE file of
+  # the checkout itself (Seam's lane: the browser pin it took from Mozilla;
+  # the nightly update: a migration) — seal that one change and nothing
+  # else. A full golem-bless here would also seal whatever else the owner's
+  # programs had changed meanwhile (the security study, 2026-11-12). NEW is
+  # root's own copy of what it wrote (never re-read from the owner's tree);
+  # with OLD, the file must have been the blessed one before the change.
+  # The path must already be in the seal.
+  adopt = pkgs.writeShellApplication {
+    name = "golem-seal-adopt";
+    runtimeInputs = [ pkgs.coreutils pkgs.gawk ];
+    text = ''
+      if [[ "$(id -u)" != 0 ]]; then echo "golem-seal-adopt: root only" >&2; exit 1; fi
+      manifest=${lib.escapeShellArg manifest}
+      snap=${lib.escapeShellArg snapshotDir}
+      rel=''${1:?relpath}; new=''${2:?file}; old=''${3:-}
+      case "$rel" in /*|*..*) echo "golem-seal-adopt: bad path $rel" >&2; exit 1 ;; esac
+      [[ -f "$manifest" ]] || { echo "golem-seal-adopt: nothing blessed yet" >&2; exit 1; }
+      key="./$rel"
+      was=$(awk -v k="$key" 'substr($0, 67) == k { print substr($0, 1, 64) }' "$manifest")
+      [[ -n "$was" ]] || { echo "golem-seal-adopt: $rel is not in the seal" >&2; exit 1; }
+      if [[ -n "$old" ]] && [[ "$(sha256sum < "$old" | cut -c1-64)" != "$was" ]]; then
+        echo "golem-seal-adopt: $rel was not the blessed one before the change — not sealing it" >&2
+        exit 1
+      fi
+      sum=$(sha256sum < "$new" | cut -c1-64)
+      awk -v k="$key" -v s="$sum" 'substr($0, 67) == k { $0 = s substr($0, 65) } { print }' "$manifest" > "$manifest.new"
+      chmod 600 "$manifest.new"; mv "$manifest.new" "$manifest"
+      if [[ -d "$snap" ]]; then
+        mkdir -p "$snap/$(dirname "$rel")"
+        install -m 644 "$new" "$snap/$rel.new" && mv "$snap/$rel.new" "$snap/$rel"
+      fi
+      echo "golem-seal-adopt: sealed $rel"
     '';
   };
 
@@ -287,6 +333,10 @@ in
     type = lib.types.package;
     description = "golem-seal-heal: re-bless when every change since the last bless is upstream's own code.";
   };
+  options.golem.seal.adopt = lib.mkOption {
+    type = lib.types.package;
+    description = "golem-seal-adopt: seal one file a root service wrote itself, nothing else.";
+  };
   options.golem.seal.snapshot = lib.mkOption {
     type = lib.types.str;
     default = snapshotDir;
@@ -304,6 +354,7 @@ in
       golem.seal.check = sealCheck;
       golem.seal.bless = bless;
       golem.seal.heal = heal;
+      golem.seal.adopt = adopt;
       environment.systemPackages = [ bless rebuild ];
     })
   ];

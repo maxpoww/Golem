@@ -78,20 +78,35 @@ exec 9>>/run/golem-rebuild.lock
 flock 9
 
 # The checkout is the OWNER's: git writes run as them (root-written index/object files
-# are ones the owner can no longer touch). And the seal: when the checkout was blessed
-# before this update, the pin written below is ours (root, from Mozilla's SHA256SUMS)
-# and is re-blessed after — otherwise the dock's next app install is refused ("the
-# system configuration changed since the last blessing"). Checked BEFORE writing.
+# are ones the owner can no longer touch).
 asowner(){ runuser -u "$(stat -c %U "$SEAM_FLAKE")" -- "$@"; }
-sealed_before=no
-if [ -n "${SEAM_SEAL_CHECK:-}" ] && "$SEAM_SEAL_CHECK" >/dev/null 2>&1; then sealed_before=yes; fi
-reseal(){ if [ "$sealed_before" = yes ] && [ -n "${SEAM_SEAL_BLESS:-}" ]; then "$SEAM_SEAL_BLESS" >/dev/null && log "re-sealed the checkout"; fi; }
 
-cp -p "$SRC" "$SRC.prev"
+# THE SEAL, checked BEFORE writing (the security study's road 3, 2026-11-12): root
+# rebuilds the checkout only when it can vouch for it — the blessed tree, or that tree
+# moved by upstream's own code (golem-seal-heal checks each changed file against root's
+# own fetch of upstream). Until then an unsealed checkout was rebuilt anyway: any program
+# running as the owner could edit flake.nix and have root build it at Firefox's next
+# release. A change nobody approved waits; rebuild-golem approves it with the password.
+if [ -n "${SEAM_SEAL_CHECK:-}" ] && ! "$SEAM_SEAL_CHECK" >/dev/null 2>&1 \
+   && ! { [ -n "${SEAM_SEAL_HEAL:-}" ] && "$SEAM_SEAL_HEAL"; }; then
+  log "the checkout holds changes nobody approved — not rebuilding it as root; Seam $want waits until they are approved (rebuild-golem) or put back"
+  exit 1
+fi
+# After the rebuild, the pin written below — ours, from Mozilla's SHA256SUMS — is sealed
+# by itself (golem-seal-adopt, from root's own copy), never the whole tree: a full bless
+# would also seal whatever the owner's programs changed meanwhile. Otherwise the dock's
+# next app install is refused ("the system configuration changed since the last blessing").
+pincopy=$(mktemp)
+reseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$pincopy" >/dev/null && log "sealed the new pin"; fi; }
+
+# The pin as it was, for a failed rebuild: in a root-only file, never beside the pin —
+# a file left in the checkout is one more thing the seal would have to answer for.
+prev=$(mktemp); cat "$SRC" > "$prev"
 tmp=$(mktemp "$SRC.XXXX")
 jq -n --arg v "$want" --arg u "$url" --arg s "$sha" --argjson p "$packs" \
-  '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$tmp"
-chown --reference="$SRC.prev" "$tmp"; chmod --reference="$SRC.prev" "$tmp"
+  '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$pincopy"
+cat "$pincopy" > "$tmp"
+chown --reference="$SRC" "$tmp"; chmod --reference="$SRC" "$tmp"
 mv "$tmp" "$SRC"
 
 if [ -n "${SEAM_FLAKE:-}" ]; then
@@ -104,12 +119,13 @@ else
 fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
-  mv "$SRC.prev" "$SRC"
+  cat "$prev" > "$SRC"; rm -f "$prev"
   [ -n "${SEAM_FLAKE:-}" ] && asowner git -C "$SEAM_FLAKE" add seam/sources.json
-  reseal
+  rm -f "$pincopy"   # (the seal still holds the old pin: nothing to seal)
   exit 1
 fi
 reseal
+rm -f "$pincopy" "$prev"
 log "Seam is now $want"
 
 # Test the NEW build headless (as nobody: Firefox must not run as root). Never blocks
