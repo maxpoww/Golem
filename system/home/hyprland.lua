@@ -278,9 +278,13 @@ hl.animation({ leaf = "layersIn",      enabled = true,  speed = 4,    bezier = "
 hl.animation({ leaf = "layersOut",     enabled = true,  speed = 1.5,  bezier = "linear",       style = "fade" })
 hl.animation({ leaf = "fadeLayersIn",  enabled = true,  speed = 1.79, bezier = "almostLinear" })
 hl.animation({ leaf = "fadeLayersOut", enabled = true,  speed = 1.39, bezier = "almostLinear" })
-hl.animation({ leaf = "workspaces",    enabled = true,  speed = 1.18, bezier = "almostLinear", style = "fade" })
-hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 0.73, bezier = "almostLinear", style = "fade" })
-hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 1.18, bezier = "almostLinear", style = "fade" })
+-- Desks SLIDE, on the windows' own spring (Max, 2026-11-12, of the shared
+-- desks: a desk called from elsewhere "slides (gets pulled from the edge
+-- where it goes)", and the swipe's end and the push on the other screen ride
+-- the same motion as the overview). Was a 0.12 s fade.
+hl.animation({ leaf = "workspaces",    enabled = true,  speed = 4.79, spring = "easy",         style = "slide" })
+hl.animation({ leaf = "workspacesIn",  enabled = true,  speed = 4.79, spring = "easy",         style = "slide" })
+hl.animation({ leaf = "workspacesOut", enabled = true,  speed = 4.79, spring = "easy",         style = "slide" })
 hl.animation({ leaf = "zoomFactor",    enabled = true,  speed = 7,    bezier = "quick" })
 
 hl.config({
@@ -715,15 +719,35 @@ do
 end
 hl.on("monitor.added", settleScreen)
 
--- Super+[0-9] goes to workspace 1..10 OF THE SCREEN YOU ARE ON, Super+Shift
+-- SHARED DESKS (Max, 2026-11-12): a screen can show any desk, its own or
+-- another screen's (the overview brings a desk to the screen you pick it
+-- from; waveview >= 2.31). "Here" is then the PAGE of the desk on show: the
+-- block that desk belongs to, whatever screen you are on.
+-- Super+[0-9] BRINGS desk 1..10 of that page to the screen you are on (a desk
+-- another screen was showing sends that screen one desk further), Super+Shift
 -- sends the window there.
 local function hereBase()
     local m = hl.get_active_monitor()
-    return m and SCREEN_STRIDE * screenBlock(m) or 0
+    if not m then
+        return 0
+    end
+    local ws = m.active_workspace
+    if ws and ws.id and ws.id >= 1 then
+        return math.floor((ws.id - 1) / SCREEN_STRIDE) * SCREEN_STRIDE
+    end
+    return SCREEN_STRIDE * screenBlock(m)
+end
+local function bringDesk(id)
+    -- (the plugin not loaded: the plain switch, which goes to the desk where it is)
+    if hl.plugin and hl.plugin.waveview and hl.plugin.waveview.bring then
+        hl.plugin.waveview.bring(id)
+    else
+        hl.dispatch(hl.dsp.focus({ workspace = id }))
+    end
 end
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key,         function() hl.dispatch(hl.dsp.focus({ workspace = hereBase() + i })) end)
+    hl.bind(mainMod .. " + " .. key,         function() bringDesk(hereBase() + i) end)
     hl.bind(mainMod .. " + SHIFT + " .. key, function() hl.dispatch(hl.dsp.window.move({ workspace = hereBase() + i })) end)
 end
 
