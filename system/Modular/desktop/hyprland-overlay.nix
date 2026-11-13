@@ -272,6 +272,22 @@ final: prev: {
       (old.postPatch or "");
   });
 
+  #   android-studio  NATIVE WAYLAND. On XWayland its menus and popups are X
+  #                   windows of their own and went astray: opened away from
+  #                   the menu bar, cut, stretched (Max, 2026-11-13: "i click
+  #                   on file and it opens file menu but somewhere else in the
+  #                   screen… it's not complete"). On Wayland a menu is a
+  #                   popup the compositor fixes to its window. nixpkgs' own
+  #                   switch: -Dawt.toolkit.name=WLToolkit on the launcher, the
+  #                   Wayland library already in its FHS env. Proven with the
+  #                   real 2025.3.4 in a nested Hyprland (File and its
+  #                   submenus under their items, Recent Files and Settings at
+  #                   their own sizes). Omarchy did the same the other way:
+  #                   IntelliJ 2026.1 is Wayland by default and it dropped its
+  #                   JetBrains XWayland rules. Drop this once Android Studio
+  #                   is on that platform.
+  android-studio = prev.android-studio.override { forceWayland = true; };
+
   #   uwsm-rewait     A WAIT THAT BREAKS IS NOT THE END OF THE SESSION.
   #                   uwsm holds the session open on `systemctl --user start
   #                   --wait <the compositor's unit>` and ended it the moment
