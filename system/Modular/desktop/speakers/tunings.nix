@@ -26,7 +26,9 @@
     # Realtek ALC287 with Lenovo subsystem 387e: the Quad "YC" speaker set the
     # kernel drives through a TAS2781 amp (ALC287_FIXUP_TAS2781_I2C). The
     # 387d sibling ("Quad AAC") has different speakers; it is not matched.
-    components = "~.*HDA:10ec0287,17aa387e,.*";
+    # A plain piece of the card's alsa.components (WirePlumber's match wraps
+    # it in ".*"; the dock's Equalizer finds the tuning by it too).
+    components = "HDA:10ec0287,17aa387e,";
     # Chosen by ear by the owner on the machine, 2026-11-10, with the amp
     # reload on (tas2781.nix): stock it "sounds beautiful but saturates".
     #   • below 60 Hz out (12 dB/octave): the woofers cannot move it, and it is

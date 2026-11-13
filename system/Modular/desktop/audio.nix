@@ -12,7 +12,10 @@
 { ... }:
 
 {
-  imports = [ ./speakers ];   # per-model speaker tunings + the jack-aware profile choice
+  imports = [
+    ./speakers     # per-model speaker tunings + the jack-aware profile choice
+    ./equalizer    # the owner's equalizer, one per output (the dock's pages)
+  ];
 
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
