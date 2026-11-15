@@ -323,7 +323,16 @@ hl.config({
     },
 
     misc = {
-        vrr = 1,
+        -- Adaptive sync (VRR) only for a fullscreen window (games, video).
+        -- On the desktop the panel keeps its fixed rate: with VRR there, every
+        -- change in how often frames come (a busy terminal, the pointer over a
+        -- still screen, a redraw after rest) is a change in the panel's refresh,
+        -- and many panels show each one as a brightness step: flicker in
+        -- episodes, hell on some screens, never on others (Max's 165 Hz panel,
+        -- 2026-09-10, 10-20, 11-15). The battery saving is debug:vfr below (no
+        -- frame drawn while nothing changes), which stays on; it does not need
+        -- VRR. KDE, GNOME and Windows choose the same.
+        vrr = 2,
         force_default_wallpaper = 0,
         disable_hyprland_logo   = true,
         disable_splash_rendering = true,
