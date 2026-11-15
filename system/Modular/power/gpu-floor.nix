@@ -6,22 +6,26 @@
 # or they go to another distro". Measured that night on the dev box (Iris Xe,
 # 3200x2000 at 165 Hz, gears under a see-through terminal, 13 s a setting):
 #
-#   performance mode                              162 frames a second
-#   balanced mode                                 80 to 120
-#   balanced, the graphics chip at 900 MHz least  161   (its CPU still at 950 MHz)
-#   balanced, the graphics chip at 1500 MHz least 161
+#   performance mode                               162 to 164 frames a second
+#   balanced mode, the chip free to idle (100 MHz)  81, 83, 96
+#   balanced, its clock at 600 MHz least            122, 160, 88
+#   balanced, at 900 MHz least                      161, 142, 160
+#   balanced, at 1200 MHz least                     161, 161, 161
+#   balanced, at 1500 MHz least                     162, 163, 163
 #
-# The driver picks the chip's clock from how busy it is, and a desktop that
-# draws one small frame every 6 ms never looks busy: it sat at 300 to 1100 of
-# 1500 MHz while each frame came a little too late for its refresh, so the
-# screen showed every other one. A floor under the clock is all it takes.
+# (Three passes each, one scene; the CPU stayed at its slow balanced clock,
+# about 900 MHz, through all of them.) The driver picks the chip's clock from
+# how busy it is, and a desktop that draws one small frame every 6 ms never
+# looks busy: it sat at 300 to 1100 of 1500 MHz while each frame came a little
+# too late for its refresh, so the screen showed every other one. A floor
+# under the clock is all it takes.
 #
 # WHAT THIS DOES — on the charger (or with no battery at all) the lowest clock
-# Intel graphics may use is set to 60 % of its highest (900 of 1500 MHz
-# there, the value measured); off the charger it goes back to the hardware's
-# own lowest, where the battery matters more and Golem's screens go to 60 Hz
-# anyway. The floor only counts while the chip is awake: asleep (RC6), it
-# draws what it always did.
+# Intel graphics may use is set to 80 % of its highest (1200 of 1500 MHz
+# there: the lowest value that held the full rate in every pass); off the
+# charger it goes back to the hardware's own lowest, where the battery matters
+# more and Golem's screens go to 60 Hz anyway. The floor only counts while the
+# chip is awake: asleep (RC6), it draws what it always did.
 #
 # WHEN — at boot, after every wake and on every power-supply event. No
 # polling. Other graphics (AMD, NVIDIA, a virtual machine) have no such file
@@ -57,7 +61,7 @@ let
         highest=$(cat "$3" 2>/dev/null) || return 0
         [ "$highest" -gt "$lowest" ] 2>/dev/null || return 0
         if on_mains; then
-          want=$(( highest * 60 / 100 ))
+          want=$(( highest * 80 / 100 ))
           [ "$want" -lt "$lowest" ] && want=$lowest
         else
           want=$lowest
