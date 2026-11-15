@@ -4,7 +4,7 @@
 # Max, 2026-11-15: "what i want is the screens to be able to get as much fps
 # as posible (if a user have a 240hz monitor … they want their 240 or similar)
 # or they go to another distro". Measured that night on the dev box (Iris Xe,
-# 3200x2000 at 165 Hz, gears under a see-through terminal, 13 s a setting):
+# 3200x2000 at 165 Hz, gears under a see-through terminal, 11 s a setting):
 #
 #   performance mode                               162 to 164 frames a second
 #   balanced mode, the chip free to idle (100 MHz)  81, 83, 96
@@ -13,8 +13,8 @@
 #   balanced, at 1200 MHz least                     161, 161, 161
 #   balanced, at 1500 MHz least                     162, 163, 163
 #
-# (Three passes each, one scene; the CPU stayed at its slow balanced clock,
-# about 900 MHz, through all of them.) The driver picks the chip's clock from
+# (Three passes each, one scene; the CPU mostly at its slow balanced clock,
+# about 900 MHz.) The driver picks the chip's clock from
 # how busy it is, and a desktop that draws one small frame every 6 ms never
 # looks busy: it sat at 300 to 1100 of 1500 MHz while each frame came a little
 # too late for its refresh, so the screen showed every other one. A floor
