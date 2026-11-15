@@ -23,6 +23,8 @@
     # Shared with the Modular base: a CPU the platform pins at its slowest
     # while cool and on the charger is released (decides at runtime).
     ./Modular/power/prochot.nix
+    # …and Intel graphics keeps a clock fast enough for a fast screen.
+    ./Modular/power/gpu-floor.nix
     ./hardware-detect.nix
     ./hardware-runtime.nix
     ./golem-brightness.nix   # brightness that follows the connected panel, not a name

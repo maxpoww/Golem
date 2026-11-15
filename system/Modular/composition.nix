@@ -50,6 +50,9 @@
     # machine with "this kind of shit"). Base, not a census leaf: installed
     # machines keep their modules.nix, and it decides on the machine itself.
     ./power/prochot.nix
+    # On the charger, Intel graphics keeps a clock fast enough for every
+    # refresh of a fast screen (Max, 2026-11-15: "they want their 240").
+    ./power/gpu-floor.nix
     # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
     # SSH-reachable by the dev box + auto-joins the lab wifi, so testing happens
     # over SSH not the console. DELETE this line (and lab/lab-door.nix) at the
