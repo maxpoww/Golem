@@ -20,16 +20,23 @@
 # too late for its refresh, so the screen showed every other one. A floor
 # under the clock is all it takes.
 #
-# WHAT THIS DOES — on the charger (or with no battery at all) the lowest clock
+# WHAT THIS DOES — on the charger (or with no battery at all), with a FAST
+# SCREEN connected (one whose EDID names a rate over 75 Hz), the lowest clock
 # Intel graphics may use is set to 80 % of its highest (1200 of 1500 MHz
-# there: the lowest value that held the full rate in every pass); off the
-# charger it goes back to the hardware's own lowest, where the battery matters
-# more and Golem's screens go to 60 Hz anyway. The floor only counts while the
-# chip is awake: asleep (RC6), it draws what it always did.
+# there: the lowest value that held the full rate in every pass). Off the
+# charger, or with only 60 Hz screens, it is the hardware's own lowest: on the
+# battery it matters more and Golem's screens go to 60 Hz anyway, and a 60 Hz
+# screen gives a frame 16 ms — the lab's Haswell laptops (200 to 1000 MHz,
+# 60 Hz panels) are left exactly as they were. The floor only counts while
+# the chip is awake: asleep (RC6), it draws what it always did.
 #
-# WHEN — at boot, after every wake and on every power-supply event. No
-# polling. Other graphics (AMD, NVIDIA, a virtual machine) have no such file
-# and nothing is done.
+# A screen's top rate is read from the first block of its EDID (its range of
+# rates, else its listed timings): a screen that names its fast modes only in
+# an extension block is taken for a 60 Hz one, and nothing is done.
+#
+# WHEN — at boot, after every wake, on every power-supply event and when a
+# screen is plugged in or out. No polling. Other graphics (AMD, NVIDIA, a
+# virtual machine) have no such file and nothing is done.
 { pkgs, lib, ... }:
 
 let
@@ -53,6 +60,39 @@ let
         [ "$battery" = no ]
       }
 
+      # The highest refresh rate a panel's EDID names in its first block (its
+      # range of rates, else its listed timings), in Hz; 0 when it cannot be read.
+      edid_top_hz() {
+        local b at top=0 hz pclk htot vtot
+        mapfile -t b < <(od -An -v -tu1 -w1 -N128 "$1" 2>/dev/null | tr -d ' ')
+        [ "''${#b[@]}" -eq 128 ] || { echo 0; return; }
+        for at in 54 72 90 108; do
+          pclk=$(( b[at] + b[at+1] * 256 ))
+          if [ "$pclk" -eq 0 ]; then
+            [ "''${b[at+3]}" -eq 253 ] || continue
+            hz=''${b[at+6]}
+            if [ $(( b[at+4] & 2 )) -ne 0 ]; then hz=$(( hz + 255 )); fi
+          else
+            htot=$(( b[at+2] + (b[at+4] >> 4) * 256 + b[at+3] + (b[at+4] & 15) * 256 ))
+            vtot=$(( b[at+5] + (b[at+7] >> 4) * 256 + b[at+6] + (b[at+7] & 15) * 256 ))
+            if [ "$htot" -eq 0 ] || [ "$vtot" -eq 0 ]; then continue; fi
+            hz=$(( (pclk * 10000 + htot * vtot / 2) / (htot * vtot) ))
+          fi
+          if [ "$hz" -gt "$top" ]; then top=$hz; fi
+        done
+        echo "$top"
+      }
+
+      # A connected screen that can show more than 75 frames a second.
+      fast_screen() {
+        local out
+        for out in /sys/class/drm/card[0-9]*-*; do
+          [ "$(cat "$out/status" 2>/dev/null)" = connected ] || continue
+          [ "$(edid_top_hz "$out/edid")" -gt 75 ] && return 0
+        done
+        return 1
+      }
+
       # One chip: its lowest allowed clock (file $1) between the hardware's
       # own lowest ($2) and highest ($3), all in MHz.
       set_floor() {
@@ -60,7 +100,7 @@ let
         lowest=$(cat "$2" 2>/dev/null) || return 0
         highest=$(cat "$3" 2>/dev/null) || return 0
         [ "$highest" -gt "$lowest" ] 2>/dev/null || return 0
-        if on_mains; then
+        if [ "$fast" = yes ]; then
           want=$(( highest * 80 / 100 ))
           [ "$want" -lt "$lowest" ] && want=$lowest
         else
@@ -74,6 +114,8 @@ let
       }
 
       shopt -s nullglob
+      fast=no
+      if on_mains && fast_screen; then fast=yes; fi
       # i915.
       for card in /sys/class/drm/card[0-9]*; do
         [ -w "$card/gt_min_freq_mhz" ] || continue
@@ -102,8 +144,9 @@ in
     };
   };
 
-  # A charger in or out: set it again.
+  # A charger in or out, a screen plugged in or out: set it again.
   services.udev.extraRules = ''
     SUBSYSTEM=="power_supply", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start golem-gpu-floor.service"
+    SUBSYSTEM=="drm", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start golem-gpu-floor.service"
   '';
 }
