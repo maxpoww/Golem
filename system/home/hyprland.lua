@@ -256,6 +256,17 @@ hl.config({
     },
 })
 
+-- NOTHING IS BLURRED BEHIND A WINDOW (Max, 2026-11-15: "i wont worry about the
+-- blur on the windows we can use transparency on them, with high opacity").
+-- The frosted glass is the shell's (the layer rules at the top). A window that
+-- is see-through shows what is behind it as it is. Blurring behind every
+-- floating window is redone on each frame something under it moves, and on a
+-- fast panel the compositor then misses every other refresh. Measured on the
+-- dev box (3200x2000 at 165 Hz, integrated graphics, performance mode, gears
+-- under a see-through terminal): 138 to 161 frames a second with it, 161 to
+-- 162 without.
+hl.window_rule({ name = "golem-no-window-blur", match = { class = ".*" }, no_blur = true })
+
 hl.curve("easeOutQuint",   { type = "bezier", points = { {0.23, 1},    {0.32, 1}    } })
 hl.curve("easeInOutCubic", { type = "bezier", points = { {0.65, 0.05}, {0.36, 1}    } })
 hl.curve("linear",         { type = "bezier", points = { {0, 0},       {1, 1}       } })
