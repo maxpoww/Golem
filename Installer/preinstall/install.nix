@@ -1001,6 +1001,32 @@ pkgs.writeShellApplication {
       check_fail "nixos-install failed ($logdir/nixos-install.log has the trace)"
     fi
 
+    # ── 5a'. WHICH ACCOUNT the installed system really has (2026-11-15). A
+    # baked system is one image for everybody: its account has the name it
+    # was built with (it says so in /etc/golem/owner), not the name typed
+    # here. Until this date everything below went to /home/<typed name>, an
+    # account that did not exist: the session ran under the baked name
+    # without the owner's language, the seed sat root-owned where nothing
+    # looked for it, and the first-boot step failed forever. Now the owner's
+    # things go to the account that exists; machine.nix carries the typed
+    # name, and the first rebuilt generation renames the account and its
+    # home at the next restart (system/Modular/base/users.nix).
+    acct="$owner"
+    if [[ -r "$system/etc/golem/owner" ]]; then
+      acct=$(head -n1 "$system/etc/golem/owner")
+      [[ "$acct" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || acct="$owner"
+    fi
+    if [[ "$acct" != "$owner" ]]; then
+      if [[ -d "/mnt/home/$acct" ]]; then
+        run cp -a "/mnt/home/$owner/." "/mnt/home/$acct/"
+        run rm -rf "/mnt/home/$owner"
+      else
+        run mv -T "/mnt/home/$owner" "/mnt/home/$acct"
+      fi
+      seed="/mnt/home/$acct/Golem"
+      note "account: the installed system's account is '$acct'; it becomes '$owner' at the first restart after the first-boot step"
+    fi
+
     # ── 5b. Make gen-1 USABLE (the opt-A/baked path installs a GENERIC
     # toplevel that never imported this machine's machine.nix, so its owner
     # has no password and no key — the machine boots to a login nobody can
@@ -1017,22 +1043,22 @@ pkgs.writeShellApplication {
     if [[ -n "$passhash" && "$passhash" != "!unhashed" ]]; then
       # -e: the value is ALREADY a hash — the surface hashed it the moment it
       # was typed (a plaintext password has never reached this script).
-      if printf '%s:%s\n' "$owner" "$passhash" \
+      if printf '%s:%s\n' "$acct" "$passhash" \
            | nixos-enter --root /mnt -c 'chpasswd -e' 2>"$logdir/personalize.err"; then
-        check_ok "owner: password applied to $owner on the generic system (loginable at first boot)"
+        check_ok "owner: password applied to $acct on the generic system (loginable at first boot)"
       else
-        check_warn "owner: could not set $owner's password on the generic system — first login will need a rebuild (personalize.err has the trace)"
+        check_warn "owner: could not set $acct's password on the generic system — first login will need a rebuild (personalize.err has the trace)"
       fi
     fi
     if [[ -n "$labkey" ]]; then
       # sshd's default AuthorizedKeysFile reads ~/.ssh/authorized_keys, which
       # is user-owned mutable state (not reasserted by activation), so the key
       # is live at first boot. Ownership is fixed by the chown -R below.
-      sshdir="/mnt/home/$owner/.ssh"
+      sshdir="/mnt/home/$acct/.ssh"
       run install -d -m 700 "$sshdir"
       printf '%s\n' "$labkey" > "$sshdir/authorized_keys"
       run chmod 600 "$sshdir/authorized_keys"
-      check_ok "owner: SSH key authorized for $owner on the generic system (reachable at first boot)"
+      check_ok "owner: SSH key authorized for $acct on the generic system (reachable at first boot)"
     fi
 
     # ── 5b'. SEED the owner's LIVE SETTINGS (2026-10-13). The baked desktop is
@@ -1047,8 +1073,8 @@ pkgs.writeShellApplication {
     # from it. So the first session is already in the owner's language. The
     # rebuild still makes the same answers the SYSTEM's (machine.nix above);
     # this file keeps agreeing with them until the owner picks otherwise.
-    live="/mnt/home/$owner/.config/golem"
-    if run install -d -m 755 "/mnt/home/$owner/.config" "$live"; then
+    live="/mnt/home/$acct/.config/golem"
+    if run install -d -m 755 "/mnt/home/$acct/.config" "$live"; then
       jq_str() { printf '%s' "$1" | ${pkgs.gnused}/bin/sed 's/[\\"]/\\&/g'; }
       # (An if, not `write && ok || warn`: shellcheck SC2015 refused that, and
       # the installer could not be built from 2026-10-13 until 10-28.)
@@ -1068,12 +1094,12 @@ pkgs.writeShellApplication {
 
     # The seed is the installed machine's own flake (golem.flakeDir), so it
     # must belong to the owner, not to root — rebuild-golem runs as them.
-    uid=$(chroot /mnt id -u "$owner" 2>/dev/null || echo "")
-    gid=$(chroot /mnt id -g "$owner" 2>/dev/null || echo "")
+    uid=$(chroot /mnt id -u "$acct" 2>/dev/null || echo "")
+    gid=$(chroot /mnt id -g "$acct" 2>/dev/null || echo "")
     if [[ -n "$uid" && -n "$gid" ]]; then
-      run chown -R "$uid:$gid" "/mnt/home/$owner"
+      run chown -R "$uid:$gid" "/mnt/home/$acct"
     else
-      echo "note: user '$owner' not found in the installed system — seed left root-owned" >&2
+      echo "note: user '$acct' not found in the installed system — seed left root-owned" >&2
     fi
 
     # ── 5c. SEED the console keyboard (2026-09-25). The LANGUAGE is now BAKED
@@ -1137,14 +1163,14 @@ pkgs.writeShellApplication {
     sleep 1
 
     echo "##verify 76/100 seed"
-    if [ -e /mnt/etc/golem/src ] || [ -e "/mnt/home/$owner/Golem" ]; then
+    if [ -e /mnt/etc/golem/src ] || [ -e "/mnt/home/$acct/Golem" ]; then
       echo "ok   seed + rebuild machinery present" >> "$vlog"
     else echo "FAIL seed missing (self-rebuild owed)" >> "$vlog"; vfail=$(( vfail + 1 )); fi
     sleep 1
 
     echo "##verify 92/100 account"
-    ahash=$( { grep "^$owner:" /mnt/etc/shadow 2>/dev/null || true; } | cut -d: -f2 )
-    if [ "''${ahash:0:1}" = '$' ] || [ -s "/mnt/home/$owner/.ssh/authorized_keys" ]; then
+    ahash=$( { grep "^$acct:" /mnt/etc/shadow 2>/dev/null || true; } | cut -d: -f2 )
+    if [ "''${ahash:0:1}" = '$' ] || [ -s "/mnt/home/$acct/.ssh/authorized_keys" ]; then
       echo "ok   owner is loginable (password and/or key)" >> "$vlog"
     else echo "FAIL owner not loginable" >> "$vlog"; vfail=$(( vfail + 1 )); fi
     sleep 1
@@ -1170,7 +1196,7 @@ pkgs.writeShellApplication {
     umount -R /mnt 2>/dev/null || true
 
     echo "── done ─────────────────────────────────────────"
-    echo "  installed to $disk; seed checkout at /home/$owner/Golem"
+    echo "  installed to $disk; seed checkout at /home/$acct/Golem"
     echo "  verify: $vlog"
   '';
 }
