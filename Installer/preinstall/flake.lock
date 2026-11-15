@@ -25,11 +25,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1789267039,
-        "narHash": "sha256-LWiBv9yAYFi2LPbUhDGHPGKYskJQjj2fw12OlyO1uQo=",
+        "lastModified": 1792818383,
+        "narHash": "sha256-199i7ubVSXTMl+0AAlL7cVCXSjcI+jWByMcimYjeMX0=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "ec172013fa62135f58fb58dd17ae9651e8f39727",
+        "rev": "24f2190587513b9c2f73db112a17844ae912d965",
         "type": "github"
       },
       "original": {
@@ -85,17 +85,17 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1787962033,
-        "narHash": "sha256-u6z9VTZA4Kf3RkHQo9sQI7NI4Ei/uiU9vrMqOiwWP1Y=",
+        "lastModified": 1793015021,
+        "narHash": "sha256-Ee5BWo8sh3pGt70QUdRajnaginqFmWvrtdBc4gJzhks=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "c5c4a43b0e8056328ec4529f735cabdb8f1942bb",
+        "rev": "718f670e845328e9c2cecdd832835712b2cbd065",
         "type": "github"
       },
       "original": {
         "owner": "NixOS",
+        "ref": "nixos-26.05",
         "repo": "nixpkgs",
-        "rev": "c5c4a43b0e8056328ec4529f735cabdb8f1942bb",
         "type": "github"
       }
     },
@@ -140,11 +140,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1790826156,
-        "narHash": "sha256-10h1oqtA4GFHlRFbJCp4GLxlXsmwPmYG+C4rG9sSHbE=",
+        "lastModified": 1793153471,
+        "narHash": "sha256-hJ+12X4LJiOB2ZSF7pr8rnEYsxh7g+d89vorJV4e5c8=",
         "owner": "maxpoww",
         "repo": "launcher",
-        "rev": "02d741acfaaf39c742e7c18f95fa06e92af548f3",
+        "rev": "b430f005cf60f3a557b11130a3befdd361a9b654",
         "type": "github"
       },
       "original": {
@@ -156,11 +156,11 @@
     "waveview-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1790805766,
-        "narHash": "sha256-ExVR4nyoWvF4zPgxxRwkLr5CBNBP8XOuSyngdqF4B4M=",
+        "lastModified": 1792369705,
+        "narHash": "sha256-uyIrl3lliaUJFqZlHIDIv0tkDUa4BeRG6M8W3YAT20E=",
         "owner": "maxpoww",
         "repo": "waveview",
-        "rev": "5af97916efb432947ee48d2da568cfc47d360d66",
+        "rev": "fe2233dcb8491d48f79ad7ce08e990d38407fc73",
         "type": "github"
       },
       "original": {

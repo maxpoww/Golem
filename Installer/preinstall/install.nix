@@ -1050,16 +1050,20 @@ pkgs.writeShellApplication {
     live="/mnt/home/$owner/.config/golem"
     if run install -d -m 755 "/mnt/home/$owner/.config" "$live"; then
       jq_str() { printf '%s' "$1" | ${pkgs.gnused}/bin/sed 's/[\\"]/\\&/g'; }
-      {
+      # (An if, not `write && ok || warn`: shellcheck SC2015 refused that, and
+      # the installer could not be built from 2026-10-13 until 10-28.)
+      if {
         printf '{\n'
         printf '  "keyboard": { "layout": "%s", "variant": "%s", "options": "%s" },\n' \
           "$(jq_str "$kb_layout")" "$(jq_str "$kb_variant")" "$(jq_str "$kb_options")"
         printf '  "language": "%s",\n' "$(jq_str "$locale")"
         printf '  "time_zone": "%s"\n' "$(jq_str "$timezone")"
         printf '}\n'
-      } > "$live/settings.json" 2>/dev/null \
-        && check_ok "owner: language '$locale', time zone '$timezone' and keyboard '$kb_layout' seeded as live settings (in effect at first boot, no rebuild)" \
-        || check_warn "owner: could not seed the live settings — the first session is in English until the first rebuild"
+      } > "$live/settings.json" 2>/dev/null; then
+        check_ok "owner: language '$locale', time zone '$timezone' and keyboard '$kb_layout' seeded as live settings (in effect at first boot, no rebuild)"
+      else
+        check_warn "owner: could not seed the live settings — the first session is in English until the first rebuild"
+      fi
     fi
 
     # The seed is the installed machine's own flake (golem.flakeDir), so it

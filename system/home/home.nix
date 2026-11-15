@@ -805,10 +805,14 @@ in
         "application/vnd.rar" = archives;
         "application/x-bzip2" = archives;
 
-        "application/x-cd-image" = [ "org.gnome.DiskUtility.desktop" ];
-        "text/calendar" = [ "org.gnome.Calendar.desktop" ];
-        "text/vcard" = [ "org.gnome.Contacts.desktop" ];
-        "x-scheme-handler/geo" = [ "org.gnome.Maps.desktop" ];
+        # A disk image opens as the archive it is (File Roller reads ISO
+        # 9660). GNOME Disks left with the debloat, and with it Calendar,
+        # Contacts and Maps: a calendar file, a contact card and a geo: link
+        # have no default here until an app that opens them ships — a default
+        # that names an app nobody installed only hides the ones that are.
+        # (desktop-matrix: every default here is a desktop file of an app
+        # the desktop really installs.)
+        "application/x-cd-image" = archives;
       };
     };
 
