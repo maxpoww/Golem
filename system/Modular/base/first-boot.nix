@@ -92,7 +92,11 @@ lib.mkIf (config.golem.flakeDir != null) {
         echo "first-boot: seal check failed — refusing to converge" >&2; exit 1; }
 
       echo "first-boot: converging onto measured hardware + machine.nix (boot)…"
-      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"
+      # From root's own copy of what was just sealed (golem-seal-copy), like
+      # every unattended root build.
+      src=$(${config.golem.seal.copy}/bin/golem-seal-copy)
+      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || { rm -rf "$src"; exit 1; }
+      rm -rf "$src"
 
       mkdir -p "$(dirname ${lib.escapeShellArg stamp})"
       chmod 700 "$(dirname ${lib.escapeShellArg stamp})"

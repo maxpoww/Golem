@@ -17,6 +17,11 @@ helper. The design is right:
 - Installing an attr lands in `home.packages` — user-profile binaries,
   no setuid, nothing a user couldn't get with `nix profile install`
   themselves. The list grants no privilege the user lacks.
+  (2026-11-12: this had stopped being true — desktop/app-setup.nix put the
+  owner in the `docker` group for Docker and `libvirtd` for virt-manager,
+  both root. Now Docker runs rootless and machines run in the owner's own
+  libvirt session; desktop-matrix asserts that no installed app adds a
+  root-equivalent group.)
 - The daemon never runs as root; the control socket lives in the user's
   0700 runtime dir (same-user only).
 - The package index is a distro-built, store-pinned TSV — not fetched at

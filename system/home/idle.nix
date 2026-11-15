@@ -76,6 +76,24 @@ let
     exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
   '';
   lock = "${golemLock}";
+  # A desktop that starts a SECOND time in a boot is coming back after a crash
+  # (the session keeper starting it again, or Hyprland's own watchdog): it
+  # comes back LOCKED. Before, it came back open, so a crash (maybe caused on
+  # purpose at the lock screen) handed whoever was at the keyboard an open
+  # desktop (the privacy study, 2026-11-12; Max: "fix it"). The first start
+  # of a boot is as before. The marker lives in the runtime dir, which logind
+  # keeps for as long as the session (the keeper holds it) and empties at
+  # every boot. Run by the compositor first thing (hyprland.lua), so the lock
+  # screen is the compositor's child like every other lock.
+  golemLockOnReturn = pkgs.writeShellScriptBin "golem-lock-on-return" ''
+    run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
+    ${pkgs.coreutils}/bin/mkdir -p "$run"
+    if [ -e "$run/desktop-started" ]; then
+      ${pkgs.procps}/bin/pgrep -u "$(${pkgs.coreutils}/bin/id -u)" -x 'hyprlock|\.hyprlock-wrapp' >/dev/null && exit 0
+      exec ${config.programs.hyprlock.package}/bin/hyprlock
+    fi
+    : > "$run/desktop-started"
+  '';
   # The idle suspend waits for a running install or system update: an app
   # from the dock can take longer than the 15 minutes (DaVinci Resolve, 25
   # min on the ThinkPad), and a suspend in the middle stalls the download or
@@ -110,7 +128,7 @@ let
   '';
 in
 {
-  home.packages = [ golemCaffeine ];
+  home.packages = [ golemCaffeine golemLockOnReturn ];
   systemd.user.services.golem-caffeine = {
     Unit = {
       Description = "Golem caffeine: stay awake (golem-caffeine on|off)";

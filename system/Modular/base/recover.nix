@@ -109,8 +109,18 @@ let
       done
       rm -rf "$held"
 
-      # 4. sealed again: this tree built a system that works
-      ${config.golem.seal.bless}/bin/golem-bless >/dev/null 2>&1 || true
+      # 4. sealed again — but only what root can vouch for: upstream's code
+      #    (checked against root's own fetch, never the owner's .git, whose
+      #    objects a program running as the owner can rewrite) and the
+      #    machine layer equal to the system's own copy. Until 2026-11-12
+      #    this blessed whatever the reset produced, and golem-rollback (no
+      #    password) runs it: rewritten objects, then root built them.
+      if ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         || GOLEM_SEAL_TRUSTED_MACHINE="$snap" ${config.golem.seal.heal}/bin/golem-seal-heal; then
+        :
+      else
+        echo "golem-recover: the source is reset but not sealed (not upstream's, or offline); the next update checks it again" >&2
+      fi
       echo "golem-recover: the source now matches $(basename "$sys") (revision ''${rev:0:8}) — a rebuild reproduces it"
     '';
   };

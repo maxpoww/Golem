@@ -60,6 +60,8 @@ let
     (ex "owner joined uinput + adbusers at the desktop stage"
       (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
         && lib.elem "adbusers" c.users.users.${c.golem.owner}.extraGroups))
+    (ex "the owner is not in the input group: no program reads every keyboard directly (2026-11-12)"
+      (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
     # base groups still present (extraGroups MERGED, not replaced)
     (ex "base groups survive the merge (wheel, video)"
       (lib.elem "wheel" c.users.users.${c.golem.owner}.extraGroups
@@ -140,10 +142,18 @@ let
         (ex "app-setup: Steam installed → the Steam system side, 32-bit graphics, GameMode"
           (c.programs.steam.enable && c.hardware.graphics.enable32Bit && c.programs.gamemode.enable
            && c.hardware.steam-hardware.enable))
-        (ex "app-setup: Docker installed → its daemon and the owner in its group"
-          (c.virtualisation.docker.enable && lib.elem "docker" (groups c)))
-        (ex "app-setup: virt-manager installed → libvirtd, and the owner may use it"
-          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable && lib.elem "libvirtd" (groups c)))
+        (ex "app-setup: Docker installed → rootless Docker (the owner's own daemon, DOCKER_HOST), no system daemon"
+          (c.virtualisation.docker.rootless.enable && c.virtualisation.docker.rootless.setSocketVariable
+           && !c.virtualisation.docker.enable))
+        (ex "app-setup: virt-manager installed → libvirtd, virt-manager on the owner's own session"
+          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable
+           && lib.hasInfix "qemu:///session" (builtins.toJSON
+                c.home-manager.users.${c.golem.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
+        # The security study's road 1 (2026-11-12): the app list is written
+        # without a password, so no app may put the owner in a group that is
+        # root. Everything installed at once, and still none of them.
+        (ex "app-setup: no installed app puts the owner in a root-equivalent group"
+          (!(lib.any (g: lib.elem g (groups c)) [ "docker" "libvirtd" "lxd" "incus-admin" "disk" "shadow" ])))
         (ex "app-setup: LocalSend and Syncthing installed → their ports are open"
           (lib.elem 53317 c.networking.firewall.allowedTCPPorts && lib.elem 22000 c.networking.firewall.allowedTCPPorts
            && lib.elem 21027 c.networking.firewall.allowedUDPPorts))
@@ -449,6 +459,13 @@ let
             # the kernel's tiny driver asks for the pills too, never a poweroff
             && lib.hasInfix "tiny_power_button power_signal=28" c.boot.extraModprobeConfig
             && lib.elem "golem-power-key.service" c.systemd.targets.kbrequest.wants))
+        (ex "real desktop: a desktop that comes back after a crash comes back locked (2026-11-12)"
+          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
+            lib.hasInfix ''hl.on("hyprland.start", function()
+-- First: a desktop coming back after a crash comes back locked (idle.nix).
+hl.exec_cmd("golem-lock-on-return")'' lua
+            && lib.any (p: lib.hasInfix "golem-lock-on-return" (p.name or ""))
+                 c.home-manager.users.${owner}.home.packages))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))
