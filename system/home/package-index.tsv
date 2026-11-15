@@ -49,7 +49,7 @@ _389-ds-base	3.1.3	389-ds-base			Enterprise-class Open Source LDAP server for Li
 _3cpio	0.14.0	3cpio			Manage initrd cpio archives
 _3llo	1.3.1	3llo			Trello interactive CLI on terminal
 _3mux	1.1.0	3mux			Terminal multiplexer inspired by i3
-_3proxy	1.0.2	3proxy			Tiny free proxy server
+_3proxy	1.0.3	3proxy			Tiny free proxy server
 _4d-minesweeper	2.0	4d-minesweeper			4D Minesweeper game written in Godot
 _4th	3.64.2	4th			Portable Forth compiler
 _4ti2	1.6.14	4ti2			Software package for algebraic, geometric and combinatorial problems on linear s
@@ -273,7 +273,7 @@ aggregate6	1.0.15	aggregate6			IPv4 and IPv6 prefix aggregation tool
 agi	3.3.1	agi	agi	/nix/store/0jj90v8hq7rydssc4kgmj7nxmcc1bqfn-agi-3.3.1/share/icons/hicolor/48x48/apps/agi.png	Android GPU Inspector
 agkozak-zsh-prompt	3.11.4	agkozak-zsh-prompt			Fast, asynchronous Zsh prompt
 agneyastra	0-unstable-2025-11-06	agneyastra			Firebase Misconfiguration Detection Toolkit
-agnos	0.1.1	agnos			Obtains certificates from Let's Encrypt using DNS-01 without the need for API ac
+agnos	0.1.1-unstable-2026-11-06	agnos			Obtains certificates from Let's Encrypt using DNS-01 without the need for API ac
 agola	0.11.0	agola			CI/CD Redefined
 agorakit	1.11	agorakit			Web-based, open-source groupware
 ags	2.3.0	ags			Scaffolding CLI for Astal widget system
@@ -305,7 +305,7 @@ airgeddon	11.52	airgeddon			Multi-use TUI to audit wireless networks
 airgorah	0.7.4	airgorah	airgorah		WiFi security auditing software mainly based on aircrack-ng tools suite
 airlift	0.4.0	airlift			Flexible, configuration driven CLI for Apache Airflow local development
 airscan	0.3	airscan			Package to scan paper documents using the Apple AirScan (eSCL) protocol
-airshipper	0.17.0	airshipper	net.veloren.airshipper		Provides automatic updates for the voxel RPG Veloren
+airshipper	0.18.0	airshipper	net.veloren.airshipper		Provides automatic updates for the voxel RPG Veloren
 airsonic	10.6.2	airsonic			Personal media streamer
 airspy	1.0.10	airspy			Host tools and driver library for the AirSpy SDR
 airspyhf	1.6.8-unstable-2025-07-12	airspyhf			User mode driver for Airspy HF+
@@ -369,7 +369,7 @@ alertmanager-webhook-logger	1.0	alertmanager-webhook-logger			Generates (structu
 alex	3.5.4.2	alex			Alex is a tool for generating lexical analysers in Haskell
 alfaview	9.24.1	alfaview			Video-conferencing application, specialized in virtual online meetings, seminars
 alfis	0.8.11	alfis			Alternative Free Identity System
-alfred	2026.3	alfred			B.A.T.M.A.N. routing protocol in a linux kernel module for layer 2, information 
+alfred	2026.4	alfred			B.A.T.M.A.N. routing protocol in a linux kernel module for layer 2, information 
 algia	0.0.120	algia			CLI application for nostr
 alglib	4.07.0	alglib3			Numerical analysis and data processing library
 algol68g	3.12.1	algol68g			Algol 68 Genie compiler-interpreter
@@ -515,7 +515,7 @@ android-backup-extractor	0-unstable-2025-10-27	android-backup-extractor			Utilit
 android-cli	1.1.16717390	android-cli			Android Command-Line Tool (CLI) by Google
 android-file-transfer	4.5-unstable-2026-04-17	android-file-transfer	android-file-transfer	/nix/store/r2ff28k2vx50n3qik3q2va7bbm5ra2wf-android-file-transfer-4.5-unstable-2026-04-17/share/icons/hicolor/512x512/apps/android-file-transfer.png	Reliable MTP client with minimalistic UI
 android-image-kitchen	0-unstable-2025-10-17	android-image-kitchen			Unpack & repack Android boot files
-android-mic	2.2.10	android-mic			Use your Android phone as a microphone for your PC
+android-mic	2.2.12	android-mic			Use your Android phone as a microphone for your PC
 android-ota-payload-extractor	1.1	android-ota-payload-extractor			A fast & natively cross-platform Android OTA payload extractor written in Go
 android-studio	2025.3.4.7	android-studio			Official IDE for Android (stable channel)
 android-studio-for-platform	2025.3.2.6	android-studio-for-platform			Official IDE for Android platform development
@@ -838,7 +838,7 @@ art	1.26.4	art	ART	/nix/store/920l8yb704hcsc3ybfbh150wxsy9bn2l-art-1.26.8/share/
 art-standalone	0-unstable-2025-10-09	art-standalone			Art and dependencies with modifications to make it work on Linux
 artem	3.0.0	artem			Small CLI program to convert images to ASCII art
 artha	1.0.5	artha			Offline thesaurus based on WordNet
-arti	2.7.0	arti			Implementation of Tor in Rust
+arti	2.8.0	arti			Implementation of Tor in Rust
 artisan	4.0.2	artisan	org.artisan_scope.artisan		Visual scope for coffee roasters
 artix-games-launcher	2.20	artix-games-launcher			Launcher for games by Artix Entertainment
 artyFX	1.3.1	openav-artyfx			LV2 plugin bundle of artistic realtime effects
@@ -851,6 +851,7 @@ as31	2.3.1	as31			8031/8051 assembler
 asahi-bless	0.4.3	asahi-bless			Tool to select active boot partition on ARM Macs
 asahi-btsync	0.2.5	asahi-btsync			Tool to sync Bluetooth pairing keys with macos on ARM Macs
 asahi-nvram	0.2.4	asahi-nvram			Tool to read and write nvram variables on ARM Macs
+asahi-va-driver	2.0	asahi-va-driver			VA-API (libva) backend driver for V4L2 stateless video decoders.
 asahi-wifisync	0.2.3	asahi-wifisync			Tool to sync Wifi passwords with macos on ARM Macs
 asak	0.4.0	asak			Cross-platform audio recording/playback CLI tool with TUI, written in Rust
 asap	8.0.0	asap			Another Slight Atari Player
@@ -918,10 +919,10 @@ assyrian	13.00	assyrian			Neo-Assyrian in Unicode with OpenType
 ast-grep	0.42.1	ast-grep			Fast and polyglot tool for code searching, linting, rewriting at large scale
 astartectl	26.5.0	astartectl			Astarte command line client utility
 astc-encoder	5.3.0	astc-encoder			Encoder for the ASTC texture compression format
-asterisk	22.11.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
-asterisk-ldap	22.11.0	asterisk-ldap			Software implementation of a telephone private branch exchange (PBX)
-asterisk-stable	20.21.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
-asterisk_23	23.5.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
+asterisk	22.12.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
+asterisk-ldap	22.12.0	asterisk-ldap			Software implementation of a telephone private branch exchange (PBX)
+asterisk-stable	20.22.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
+asterisk_23	23.6.0	asterisk			Software implementation of a telephone private branch exchange (PBX)
 astral	5.7.1	astral			Tool for estimating an unrooted species tree given a set of unrooted gene trees
 astro-language-server	2.16.7	astro-language-server			Astro language server
 astroid	0.17	astroid	astroid	/nix/store/7vqdab55z3kr20x56kfsylzny4jjd6rl-astroid-0.17/share/icons/hicolor/scalable/apps/astroid.svg	GTK frontend to the notmuch mail system
@@ -956,7 +957,7 @@ atkinson-hyperlegible-next	2.001-unstable-2025-02-21	atkinson-hyperlegible-next	
 atkinson-monolegible	0-unstable-2023-02-27	atkinson-monolegible			Mono variant of the Atkinson Hyperlegible typeface
 atkmm	2.28.4	atkmm			C++ wrappers for ATK accessibility toolkit
 atkmm_2_36	2.36.3	atkmm			C++ wrappers for ATK accessibility toolkit
-atlantis	0.47.1	atlantis			Terraform Pull Request Automation
+atlantis	0.49.0	atlantis			Terraform Pull Request Automation
 atlas	1.2.0	atlas			Manage your database schema as code
 atlassian-plugin-sdk	9.9.1	atlassian-plugin-sdk			Atlassian Plugin SDK
 atlauncher	3.4.40.4	atlauncher	atlauncher	/nix/store/y5mgaba50h0qn7f4pxgz2vw2mc0mbl40-atlauncher-3.4.41.2/share/icons/hicolor/128x128/apps/atlauncher.png	Simple and easy to use Minecraft launcher which contains many different modpacks
@@ -1307,7 +1308,7 @@ basilk	0.2.1	basilk			Terminal User Interface (TUI) to manage your tasks with mi
 bastet	0.43.2	bastet			Tetris clone with 'bastard' block-choosing AI
 basu	0.2.1	basu			Sd-bus library, extracted from systemd
 bat	0.26.1	bat			Cat(1) clone with syntax highlighting and Git integration
-batctl	2026.3	batctl			B.A.T.M.A.N. routing protocol in a linux kernel module for layer 2, control tool
+batctl	2026.4	batctl			B.A.T.M.A.N. routing protocol in a linux kernel module for layer 2, control tool
 batik	1.19	batik			Java based toolkit for handling SVG
 batmon	0.2.0	batmon			Interactive batteries viewer
 bato	0.2.1	bato			Small program to send battery notifications
@@ -1632,6 +1633,7 @@ bloop	2.0.19	bloop			Scala build server and command-line tool to make the compil
 blowfish-tools	1.13.1	blowfish-tools			CLI to initialize and configure a Blowfish project
 blst	0.3.16	blst			Multilingual BLS12-381 signature library
 blucontrol	9.10.3	blucontrol-with-packages			Configurable blue light filter
+bluebuild	0.9.42	bluebuild			Build custom atomic Linux images from recipes
 bluefish	2.2.19	bluefish	bluefish	/nix/store/kdlg8mjd0iznmw5gnr70z7vr3hydvqbv-bluefish-2.4.2/share/icons/hicolor/48x48/apps/bluefish.png	Powerful editor targeted towards programmers and webdevelopers
 bluej	5.5.0	bluej	BlueJ	/nix/store/i0l8df4a7khsbaph82a0dpnfi0ap9a5a-bluej-5.5.0/share/icons/hicolor/48x48/apps/bluej.png	Simple integrated development environment for Java
 bluejay	1.0.3	bluejay	io.github.ebonjaeger.bluejay	/nix/store/b5pv0q02pgfimaxby27ll8g4gzyk2xbq-bluejay-1.0.3/share/icons/hicolor/scalable/apps/io.github.ebonjaeger.bluejay.svg	Bluetooth manager written in Qt
@@ -1739,7 +1741,7 @@ borg-sans-mono	0.2.0	borg-sans-mono			Droid Sans Mono Slashed + Hasklig-style li
 borgbackup	1.4.4	borgbackup			Deduplicating archiver with compression and encryption
 borgmatic	2.1.5	borgmatic			Simple, configuration-driven backup software for servers and workstations
 boring	0.13.0	boring			SSH tunnel manager
-boringssl	0.20261020.0	boringssl			Free TLS/SSL implementation
+boringssl	0.20261105.0	boringssl			Free TLS/SSL implementation
 boringtun	0.6.0	boringtun			Userspace WireGuard® implementation in Rust
 bork	0.4.0-unstable-2025-04-18	bork			TUI chat client tailored for livecoding on Twitch
 boron	2.1.0	boron			Scripting language and C library useful for building DSLs
@@ -1748,7 +1750,7 @@ bossa	1.9.1	bossa			Flash programming utility for Atmel's SAM family of flash-ba
 bossa-arduino	1.9.1-arduino2	bossa-arduino			Flash programming utility for Atmel's SAM family of flash-based ARM microcontrol
 bosun	2021-05-13	bosun-unstable			Time Series Alerting Framework
 botamusique	7.2.2	botamusique			Bot to play youtube / soundcloud / radio / local music on Mumble
-botan3	3.12.0	botan			Cryptographic algorithms library
+botan3	3.13.0	botan			Cryptographic algorithms library
 bottles	63.2	bottles			Easy-to-use wineprefix manager
 bottom	0.14.2	bottom	bottom	/nix/store/9f9qzviq973kvwy5jdxinav55zgmknvq-bottom-0.14.8/share/icons/hicolor/scalable/apps/bottom-system-monitor.svg	Cross-platform graphical process/system monitor with a customizable interface
 bottom-rs	1.2.0	bottom-rs			Fantastic (maybe) CLI for translating between bottom and human-readable text
@@ -1791,6 +1793,8 @@ braincurses	1.1.0	braincurses			Version of the classic game Mastermind
 brainflow	5.22.2	brainflow			Library to obtain, parse and analyze data (EEG, EMG, ECG) from biosensors
 brakeman	7.1.0	brakeman			Static analysis security scanner for Ruby on Rails
 brasero	3.12.3	brasero	brasero	/nix/store/lyxf9hnpdl24jsr1pqi4md46mn91d1xb-brasero-3.12.3/share/icons/hicolor/48x48/apps/brasero.png	Gnome CD/DVD Burner
+brave	1.99.56	brave	brave-browser;com.brave.Browser	/nix/store/swis8j2aasp24qkxj127q3vk012bazf7-brave-1.93.138/share/icons/hicolor/48x48/apps/brave-browser.png	Privacy-oriented browser for Desktop and Laptop computers
+brave-origin	1.99.56	brave-origin	brave-origin;com.brave.Origin	/nix/store/g5k9h4l84s1rnvzk7hwj27sy9cqn6kv1-brave-origin-1.93.138/share/icons/hicolor/48x48/apps/brave-origin.png	Privacy-oriented browser for Desktop and Laptop computers (Origin variant)
 brave-search-cli	1.5.0	brave-search-cli			CLI for the Brave Search API with support for web, news, images, and AI answer e
 breakpad	2024.02.16	breakpad			Open-source multi-platform crash reporting system
 breakpointHook		breakpoint-hook			
@@ -1926,7 +1930,7 @@ buildah	1.43.1	buildah-wrapper			Tool which facilitates building OCI images
 buildbot	4.3.0	buildbot			Open-source continuous integration framework for automating software build, test
 buildbot-full	4.3.0	buildbot-with-plugins			
 buildbot-worker	4.3.0	python3.13-buildbot_worker			Buildbot Worker Daemon
-buildbox	1.4.30	buildbox			Set of tools for remote worker build execution
+buildbox	1.4.31	buildbox			Set of tools for remote worker build execution
 buildcatrust	0.5.1	buildcatrust			Build SSL/TLS trust stores
 buildkit	0.30.0	buildkit			Concurrent, cache-efficient, and Dockerfile-agnostic builder toolkit
 buildkit-nix	0.1.1	buildkit-nix			Nix frontend for BuildKit
@@ -2158,7 +2162,7 @@ cargo-auditable-cargo-wrapper	1.95.0	auditable-cargo			Tool to make production R
 cargo-autoinherit	0.1.6	cargo-autoinherit			Automatically DRY up your Rust dependencies
 cargo-bazel	0.17.0	cargo-bazel			Part of the `crate_universe` collection of tools which use Cargo to generate bui
 cargo-benchcmp	0.4.5	cargo-benchcmp			Small utility to compare Rust micro-benchmarks
-cargo-binstall	1.19.1	cargo-binstall			Tool for installing rust binaries as an alternative to building from source
+cargo-binstall	1.26.2	cargo-binstall			Tool for installing rust binaries as an alternative to building from source
 cargo-binutils	0.4.0	cargo-binutils			Cargo subcommands to invoke the LLVM tools shipped with the Rust toolchain
 cargo-bisect-rustc	0.6.12	cargo-bisect-rustc			Bisects rustc, either nightlies or CI artifacts
 cargo-bitbake	0.3.16	cargo-bitbake			Cargo extension that can generate BitBake recipes utilizing the classes from met
@@ -2641,8 +2645,8 @@ chromaprint	1.6.0	chromaprint			AcoustID audio fingerprinting library
 chrome-export	2.0.2	chrome-export			Scripts to save Google Chrome's bookmarks and history as HTML bookmarks files
 chrome-pak-customizer	2.0-unstable-2021-06-24	chrome-pak-customizer			Simple batch tool to customize pak files in chrome or chromium-based browser
 chrome-token-signing	1.1.5	chrome-token-signing			Chrome and Firefox extension for signing with your eID on the web
-chromedriver	157.0.8103.38	chromedriver-unwrapped			WebDriver server for running Selenium tests on Chrome
-chromium	157.0.8103.38	chromium			Open source web browser from Google
+chromedriver	157.0.8103.78	chromedriver-unwrapped			WebDriver server for running Selenium tests on Chrome
+chromium	157.0.8103.78	chromium			Open source web browser from Google
 chromium-bsu	0.9.16.1	chromium-bsu	chromium-bsu	/nix/store/lcxlyp012scrj6zipy8myjg8i7w7r9gq-chromium-bsu-0.9.16.1/share/icons/hicolor/64x64/apps/chromium-bsu.png	Fast paced, arcade-style, top-scrolling space shooter
 chromium-xorg-conf		chromium-xorg-conf			
 chrony	4.8	chrony			Sets your computer's clock from time servers on the Net
@@ -2842,7 +2846,7 @@ clooj	0.4.4	clooj			Lightweight IDE for Clojure
 clorinde	2.0.0	clorinde			Generate type-checked Rust from your PostgreSQL
 closurecompiler	20260128	closure-compiler			Tool for making JavaScript download and run faster
 cloud-custodian	0.9.38.0	cloud-custodian			Rules engine for cloud security, cost optimization, and governance
-cloud-hypervisor	52.0	cloud-hypervisor			Open source Virtual Machine Monitor (VMM) that runs on top of KVM
+cloud-hypervisor	53.1	cloud-hypervisor			Open source Virtual Machine Monitor (VMM) that runs on top of KVM
 cloud-init	25.2	cloud-init			Provides configuration and customization of cloud instance
 cloud-nuke	0.50.0	cloud-nuke			Tool for cleaning up your cloud accounts by nuking (deleting) all resources with
 cloud-provider-kind	0.10.0	cloud-provider-kind			Load Balancer implementation for Kubernetes-in-Docker
@@ -3003,7 +3007,6 @@ codebook	0.3.39	codebook			Unholy spellchecker for code
 codebraid	0.11.0	codebraid			Live code in Pandoc Markdown.  Codebraid is a Python program that enables execut
 codebuff	1.0.674	codebuff			Use natural language to edit your codebase and run commands from your terminal f
 codec2	1.2.0	codec2			Speech codec designed for communications quality speech at low data rates
-codechecker	6.28.3	codechecker			Analyzer tooling, defect database and viewer extension for the Clang Static Anal
 codecov-cli	11.2.6	codecov-cli			Codecov Command Line Interface
 codecrafters-cli	54	codecrafters-cli			CodeCrafters CLI to run tests
 codecserver	0.2.0	codecserver			Modular audio codec server
@@ -3258,7 +3261,7 @@ corectrl	1.5.1	corectrl	org.corectrl.CoreCtrl	/nix/store/ixcvvaczsvl25a86j7y3ki5
 coredns	1.14.7	coredns			DNS server that runs middleware
 corefonts	1	corefonts			Microsoft's TrueType core fonts for the Web
 corepack	0.36.0	corepack			Package manager version manager for Node.js projects
-corepack_22	22.23.4	corepack-nodejs			Wrappers for npm, pnpm and Yarn via Node.js Corepack
+corepack_22	22.23.5	corepack-nodejs			Wrappers for npm, pnpm and Yarn via Node.js Corepack
 corepack_24	24.22.1	corepack-nodejs			Wrappers for npm, pnpm and Yarn via Node.js Corepack
 corerad	1.3.1	corerad			Extensible and observable IPv6 NDP RA daemon
 coreutils	9.11	coreutils			GNU Core Utilities
@@ -3449,7 +3452,7 @@ criu	4.1.1	criu			Userspace checkpoint/restore for Linux
 crlfsuite	2.5.2	crlfsuite			CRLF injection (HTTP Response Splitting) scanner
 crlfuzz	1.4.1	crlfuzz			Tool to scan for CRLF vulnerability
 cro-mag-rally	3.0.1	CroMagRally	cromagrally	/nix/store/7pmgahzqnmhl2fi8bq06wv4z28dwkgh3-CroMagRally-3.0.1/share/icons/hicolor/256x256/apps/io.jor.cromagrally.png	Port of Cro-Mag Rally, a 2000 Macintosh game by Pangea Software, for modern oper
-croaring	5.4.0	croaring			Compressed bitset library for C and C++
+croaring	5.5.5	croaring			Compressed bitset library for C and C++
 croc	10.4.3	croc			Easily and securely send things from one computer to another
 crocoddyl	3.2.1	crocoddyl			Crocoddyl optimal control library
 cromfs	1.5.10.2	cromfs			FUSE Compressed ROM filesystem with lzma
@@ -3494,7 +3497,7 @@ crypt4gh	1.7	crypt4gh			Tool to encrypt, decrypt or re-encrypt files, according 
 crypto-org-wallet	1.5.1	chain-desktop-wallet	chain-desktop-wallet	/nix/store/yqx6a03b0snsfg1m9ld3bfi847ggb0gy-chain-desktop-wallet-1.5.1/share/icons/hicolor/512x512/apps/chain-desktop-wallet.png	Crypto.org Chain desktop wallet (Beta)
 crypto-tracker	0.1.8	crypto-tracker			Program to retrieve the latest price for several cryptocurrencies using the Coin
 cryptodev	1.14-unstable-2025-11-04	cryptodev-linux			Device that allows access to Linux kernel cryptographic drivers
-cryptolyzer	1.5.0	cryptolyzer			Cryptographic protocol analyzer
+cryptolyzer	1.6.1	cryptolyzer			Cryptographic protocol analyzer
 cryptomator	1.19.6	cryptomator	org.cryptomator.Cryptomator	/nix/store/gs8aknz19z0d4cjcj31aqs7vfinpsz3q-cryptomator-1.19.2/share/icons/hicolor/scalable/apps/org.cryptomator.Cryptomator.svg	Free client-side encryption for your cloud files
 cryptomator-cli	0.6.2	cryptomator-cli			Command line program to access encrypted Cryptomator vaults
 cryptominisat	5.11.21	cryptominisat			Advanced SAT Solver
@@ -3863,7 +3866,7 @@ ddgr	2.2	ddgr			Search DuckDuckGo from the terminal
 ddh	0.13.0	ddh			Fast duplicate file finder
 ddhx	0.10.0	ddhx			Console text-mode hex editor, inspired by GNU nano and vim
 ddm	4.1.0	ddm			Tabletop Yugioh Experience
-ddnet	20.1.1	ddnet	ddnet	/nix/store/0n1hbnsjq5b3vm6d7n2j0bkqz8sf6rb2-ddnet-19.8.3/share/icons/hicolor/48x48/apps/ddnet-server.png	Teeworlds modification with a unique cooperative gameplay
+ddnet	20.2.1	ddnet	ddnet	/nix/store/0n1hbnsjq5b3vm6d7n2j0bkqz8sf6rb2-ddnet-19.8.3/share/icons/hicolor/48x48/apps/ddnet-server.png	Teeworlds modification with a unique cooperative gameplay
 ddns-go	6.17.0	ddns-go			Simple and easy to use DDNS
 ddns-updater	2.10.0	ddns-updater			Container to update DNS records periodically with WebUI for many DNS providers
 ddosify	2.6.0	ddosify			High-performance load testing tool, written in Golang
@@ -3913,7 +3916,6 @@ deepsource	0.10.1	deepsource			Command line interface to DeepSource, the code he
 deeptools	3.5.6	deeptools			Tools for exploring deep DNA sequencing data
 deer	1.4	deer			Ranger-like file navigation for zsh
 deezer-desktop	8.0.10	deezer-desktop			Unofficial Linux port of the music streaming application
-deezer-enhanced	1.5.1	deezer-enhanced	deezer-enhanced	/nix/store/v35j9qs3qgam1l8azviqhjmv8sp4vixl-deezer-enhanced-1.5.1/share/pixmaps/deezer-enhanced.png	Unofficial application for Deezer with enhanced features
 deface	1.5.0	deface			Video anonymization by face detection
 defuddle	0.18.1	defuddle			Command line utility to extract clean html, markdown and metadata from web pages
 degate	2.0.0	degate			Modern and open-source cross-platform software for chips reverse engineering
@@ -4135,7 +4137,7 @@ discordchatexporter-cli	2.43.3	discordchatexporter-cli			Tool to export Discord 
 discordchatexporter-desktop	2.44.2	discordchatexporter-desktop			Tool to export Discord chat logs to a file (GUI version)
 discordo	0-unstable-2026-05-12	discordo			Lightweight, secure, and feature-rich Discord terminal client
 discount	3.0.1.2	discount			Implementation of Markdown markup language in C
-discourse	2026.9.1	discourse			Open source discussion platform
+discourse	2026.9.2	discourse			Open source discussion platform
 discourse-mail-receiver	4.1.0	discourse-mail-receiver			Helper program which receives incoming mail for Discourse
 discover-overlay	0.7.9	discover-overlay	discover_overlay;discover_overlay_configure	/nix/store/sy1256zy737gz80a6zr1f7an65anhwm2-discover-overlay-0.7.9/share/icons/hicolor/scalable/apps/discover-overlay-default.svg	Yet another discord overlay for linux
 disfetch	3.7	disfetch			Yet another *nix distro fetching program, but less complex
@@ -4239,7 +4241,7 @@ dnscontrol	4.39.0	dnscontrol			Synchronize your DNS to multiple providers from a
 dnscrypt-proxy	2.1.15	dnscrypt-proxy			Tool that provides secure DNS resolution
 dnsdbq	2.6.8	dnsdbq			C99 program that accesses passive DNS database systems
 dnsdiag	2.9.3	dnsdiag			DNS Measurement, Troubleshooting and Security Auditing Toolset
-dnsdist	2.0.7	dnsdist			DNS Loadbalancer
+dnsdist	2.0.10	dnsdist			DNS Loadbalancer
 dnsenum	1.3.2	dnsenum			Tool to enumerate DNS information
 dnsight	1.0.2	dnsight			SDK and CLI tool for DNS, email and web security hygiene
 dnslink-std-go	0.6.0	dnslink			Reference implementation for DNSLink in golang
@@ -4285,7 +4287,7 @@ docfd	12.3.2	ocaml5.4.1-docfd			TUI multiline fuzzy document finder
 docfx	2.78.5	docfx			Build your technical documentation site with docfx, with landing pages, markdown
 docify	1.2.1	docify			Script to add docstrings to Python type stubs using reflection
 dockbarx	1.0-beta4	dockbarx	DockX;dbx_preference	/nix/store/26a657f7nlvpphpimy10ihhl8b4in7ji-dockbarx-1.0-beta4/share/icons/hicolor/48x48/apps/dockbarx.png	Lightweight taskbar/panel replacement which works as a stand-alone dock
-docker	29.9.2	docker			Open source project to pack, ship and run any application as a lightweight conta
+docker	29.9.3	docker			Open source project to pack, ship and run any application as a lightweight conta
 docker-buildx	0.31.1	docker-buildx			Docker CLI plugin for extended build capabilities with BuildKit
 docker-color-output	3.0.1	docker-color-output			Add color to the Docker CLI
 docker-compose	5.6.1	docker-compose			Docker CLI plugin to define and run multi-container applications with Docker
@@ -4337,7 +4339,7 @@ dokuwiki	2026-07-14c	dokuwiki			Simple to use and highly versatile Open Source w
 dolbybcsoftwaredecode	2018	dolbybcsoftwaredecode-april			Dolby B & C software decoder
 dolfinx	0.10.0.post5	dolfinx			Computational environment of FEniCSx and implements the FEniCS Problem Solving E
 dolibarr	23.0.4	dolibarr			Enterprise resource planning (ERP) and customer relationship manager (CRM) serve
-dolphin-emu	2609a	dolphin-emu	dolphin-emu	/nix/store/l95dzpdqzwqby2jfjqfj4nsa7mjvkjiw-dolphin-emu-2606/share/icons/hicolor/scalable/apps/dolphin-emu.svg	Gamecube/Wii/Triforce emulator for x86_64 and ARMv8
+dolphin-emu	2609b	dolphin-emu	dolphin-emu	/nix/store/l95dzpdqzwqby2jfjqfj4nsa7mjvkjiw-dolphin-emu-2606/share/icons/hicolor/scalable/apps/dolphin-emu.svg	Gamecube/Wii/Triforce emulator for x86_64 and ARMv8
 dolphin-emu-primehack	1.0.8	dolphin-emu-primehack	dolphin-emu-primehack	/nix/store/c8dx0lx0pyll36ql2wx83qisy5ppm37j-dolphin-emu-primehack-1.0.8/share/icons/hicolor/scalable/apps/dolphin-emu.svg	Gamecube/Wii/Triforce emulator for x86_64 and ARMv8
 dolt	1.86.6	dolt			Relational database with version control and CLI a-la Git
 domination	1.3.6	domination	domination-map-editor;domination	/nix/store/24kmp0mwqds0acsibg1xdlblnxr4y6yb-domination-1.3.5/share/icons/hicolor/16x16/apps/domination.png	Game that is a bit like the board game Risk or RisiKo
@@ -4418,7 +4420,7 @@ downkyicore	1.0.24	downkyicore	downkyicore	/nix/store/nj5c3a4374vjsywkg570xk0psb
 doxx	0.1.2	doxx			Terminal document viewer for .docx files
 doxygen	1.16.1	doxygen			Source code documentation generator tool
 doxygen-awesome-css	2.4.2	doxygen-awesome-css			CSS theme for doxygen html-documentation with lots of customization parameters
-dpdk	26.03	dpdk			Set of libraries and drivers for fast packet processing
+dpdk	26.07	dpdk			Set of libraries and drivers for fast packet processing
 dpic	2025.08.01	dpic			Implementation of the pic little language for creating drawings
 dpkg	1.23.7	dpkg			Debian package manager
 dplusplus	0.6.0	dpp			Directly include C headers in D source code
@@ -4483,7 +4485,7 @@ druid	36.0.0	apache-druid			Apache Druid: a high performance real-time analytics
 drum-machine	2.2.0	drum-machine	io.github.revisto.drum-machine	/nix/store/s2n21m7mc45qhq9708kq6bxpyfk4hl4s-drum-machine-2.2.0/share/icons/hicolor/scalable/apps/io.github.revisto.drum-machine.svg	Modern and intuitive application for creating, playing, and managing drum patter
 drumgizmo	0.9.20	drumgizmo			LV2 sample based drum plugin
 drumkv1	1.4.2	drumkv1	org.rncbc.drumkv1	/nix/store/c0nf3zyqbqqba52847xbpffcm5hn26cc-drumkv1-1.4.2/share/icons/hicolor/scalable/apps/org.rncbc.drumkv1.svg	Old-school drum-kit sampler synthesizer with stereo fx
-drupal	11.3.14	drupal			Drupal CMS
+drupal	11.3.19	drupal			Drupal CMS
 dry	0.13.0	dry			Terminal application to manage Docker and Docker Swarm
 dscanner	0.15.2	dscanner			Swiss-army knife for D source code
 dsda-doom	0.29.4	dsda-doom	dsda-doom	/nix/store/ga6kkpzz8kimqsvl33xzhh0zjiiwpn3q-dsda-doom-0.29.4/share/icons/hicolor/scalable/apps/dsda-doom.svg	Advanced Doom source port with a focus on speedrunning, successor of PrBoom+
@@ -4794,17 +4796,17 @@ elasticmq-server-bin	1.7.1	elasticmq-server			Message queueing system with Java,
 elasticsearch-curator	8.0.21	elasticsearch-curator			Curate, or manage, your Elasticsearch indices and snapshots
 elastix	5.2.0	elastix			Image registration toolkit based on ITK
 electricsheep	3.0.2-unstable-2024-02-13	electricsheep	ElectricSheep		Electric Sheep, a distributed screen saver for evolving artificial organisms
-electron	43.8.3	electron			Cross platform desktop application shell
-electron-chromedriver	43.8.3	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
+electron	43.8.7	electron			Cross platform desktop application shell
+electron-chromedriver	43.8.7	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-chromedriver_38	38.8.4	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-chromedriver_39	39.8.10	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-chromedriver_40	40.10.5	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-chromedriver_41	41.10.7	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-chromedriver_42	42.11.18	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
-electron-chromedriver_44	44.9.3	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
+electron-chromedriver_44	44.10.2	electron-chromedriver			WebDriver server for running Selenium tests on Chrome
 electron-fiddle	0.37.2	electron-fiddle	electron-fiddle	/nix/store/qrkacxf9f5qbmcf3ba91k563nammjg07-electron-fiddle-0.40.1/share/icons/hicolor/scalable/apps/electron-fiddle.svg	Easiest way to get started with Electron
 electron-mail	5.3.10	electron-mail	electron-mail	/nix/store/7c0ky61n8vqsan1ir13kycn2bjzpmn3v-electron-mail-5.3.8/share/icons/hicolor/48x48/apps/electron-mail.png	Unofficial Election-based ProtonMail desktop client
-electron_44	44.9.3	electron			Cross platform desktop application shell
+electron_44	44.10.2	electron			Cross platform desktop application shell
 electrs	0.11.0	electrs			Efficient re-implementation of Electrum Server in Rust
 electrum	4.8.2	electrum	electrum	/nix/store/nwr9ilgs990y2192hr2v6hq0mbialpkr-electrum-4.8.1/share/icons/hicolor/128x128/apps/electrum.png	Lightweight Bitcoin wallet
 elegant-sddm	0-unstable-2024-03-30	elegant-sddm			Sleek and stylish SDDM theme crafted in QML for Qt6
@@ -5043,9 +5045,9 @@ esshader	0-unstable-2020-08-09	esshader			Offline ShaderToy-compatible GLSL shad
 et	0.1.2	et			Minimal libnotify-based (egg) timer
 et-book	0-unstable-2015-10-05	et-book			Typeface used in Edward Tufte’s books
 eta	1.0.1-unstable-2026-01-04	eta			Tool for monitoring progress and ETA of an arbitrary process
-etcd	3.6.14	etcd			Distributed reliable key-value store for the most critical data of a distributed
+etcd	3.6.16	etcd			Distributed reliable key-value store for the most critical data of a distributed
 etcd_3_4	3.4.45	etcd			Distributed reliable key-value store for the most critical data of a distributed
-etcd_3_5	3.5.33	etcd			Distributed reliable key-value store for the most critical data of a distributed
+etcd_3_5	3.5.35	etcd			Distributed reliable key-value store for the most critical data of a distributed
 ete	0-unstable-2025-08-17	ete			Improved Wolfenstein: Enemy Territory Engine
 etebase-server	0.14.2	etebase-server			Etebase (EteSync 2.0) server so you can run your own
 eternal-terminal	6.2.11	eternal-terminal			Remote shell that automatically reconnects without interrupting the session
@@ -5062,7 +5064,7 @@ ethtool	7.0	ethtool			Utility for controlling network drivers and hardware
 etlegacy	2.83.2	etlegacy			ET: Legacy is an open source project based on the code of Wolfenstein: Enemy Ter
 etlegacy-assets	2.83.2	etlegacy-assets			ET: Legacy assets only
 ets	0.3.1	ets			Command output timestamper
-ettercap	0.8.4-unstable-2025-07-16	ettercap	ettercap	/nix/store/n2g894had7a4jpqq54v1k24lvirldm92-ettercap-0.8.4-unstable-2025-07-16/share/icons/hicolor/scalable/apps/ettercap.svg	Comprehensive suite for man in the middle attacks
+ettercap	0.8.5.1	ettercap	ettercap	/nix/store/n2g894had7a4jpqq54v1k24lvirldm92-ettercap-0.8.4-unstable-2025-07-16/share/icons/hicolor/scalable/apps/ettercap.svg	Comprehensive suite for man in the middle attacks
 etterna	0.74.4	etterna	etterna	/nix/store/fsphk1yqll8fylbm3pkw9w30mhkrw569-etterna-0.74.4/share/icons/hicolor/scalable/apps/etterna.svg	Advanced cross-platform rhythm game focused on keyboard play
 eudev	3.2.14	eudev			Fork of udev with the aim of isolating it from init
 eudic	13.5.2	eudic			Authoritative English Dictionary Software Essential Tools for English Learners
@@ -5559,11 +5561,11 @@ firefly	1.4.3	firefly			Black box fuzzer for web applications
 firefly-desktop	2.1.8	firefly-desktop	firefly-desktop		IOTA's New Wallet
 firefly-iii	6.7.9	firefly-iii			Firefly III: a personal finances manager
 firefly-iii-data-importer	2.3.5	firefly-iii-data-importer			Firefly III Data Importer can import data into Firefly III
-firefox	159.0.1	firefox	firefox	/nix/store/4zgp0fbr62c5bkhjl2bxabq0am4km4k4-firefox-154.0.1/share/icons/hicolor/48x48/apps/firefox.png	Web browser built from Firefox source tree
+firefox	160.0	firefox	firefox	/nix/store/4zgp0fbr62c5bkhjl2bxabq0am4km4k4-firefox-154.0.1/share/icons/hicolor/48x48/apps/firefox.png	Web browser built from Firefox source tree
 firefox-beta	156.0b4	firefox-beta			Web browser built from Firefox Beta Release source tree
-firefox-bin	159.0.1	firefox-bin			Mozilla Firefox, free web browser (binary package)
-firefox-devedition	160.0b1	firefox-devedition			Web browser built from Firefox Developer Edition source tree
-firefox-esr	153.6.0esr	firefox	firefox-esr	/nix/store/68s3qiwzm3p4k4zrviy20x6gj0qk6r6h-firefox-153.1.0esr/share/icons/hicolor/48x48/apps/firefox-esr.png	Web browser built from Firefox source tree
+firefox-bin	160.0	firefox-bin			Mozilla Firefox, free web browser (binary package)
+firefox-devedition	161.0b1	firefox-devedition			Web browser built from Firefox Developer Edition source tree
+firefox-esr	153.7.0esr	firefox	firefox-esr	/nix/store/68s3qiwzm3p4k4zrviy20x6gj0qk6r6h-firefox-153.1.0esr/share/icons/hicolor/48x48/apps/firefox-esr.png	Web browser built from Firefox source tree
 firefox-esr-140	140.17.0esr	firefox	firefox-esr	/nix/store/z7gvr21yin5mzf649gi3wmhmw2569293-firefox-140.14.0esr/share/icons/hicolor/48x48/apps/firefox-esr.png	Web browser built from Firefox source tree
 firefox-gnome-theme	150	firefox-gnome-theme			GNOME theme for Firefox
 firefox-sync-client	1.9.0	firefox-sync-client			Commandline-utility to list/view/edit/delete entries in a firefox-sync account
@@ -5908,7 +5910,7 @@ framesh	0.6.11	framesh	frame	/nix/store/5lqgzrlyf1xmsc355cwdyr1vcvp3alfj-framesh
 framework-tool	0.6.3	framework-tool			Swiss army knife for Framework laptops
 framework-tool-tui	0.8.4	framework-tool-tui			TUI for controlling and monitoring Framework Computers hardware
 frangipanni	0.5.0	frangipanni			Convert lines of text into a tree structure
-frankenphp	1.12.7	frankenphp			Modern PHP app server
+frankenphp	1.13.5	frankenphp			Modern PHP app server
 franz	5.11.0	franz			Free messaging app that combines chat & messaging services into one application
 fraunces	1.000	fraunces			Display, “Old Style” soft-serif typeface inspired by early 20th century typeface
 frawk	0.4.8	frawk			Small programming language for writing short programs processing textual data
@@ -5919,7 +5921,7 @@ free42	3.3.12	free42	free42bin;free42dec	/nix/store/qhi52iki602gh6hfq9aadffx2c7h
 freealut	1.1.0	freealut			Free implementation of OpenAL's ALUT standard
 freebayes	1.3.1	freebayes			Bayesian haplotype-based polymorphism discovery and genotyping
 freebind	2017-12-27	freebind			IPv4 and IPv6 address rate limiting evasion tool
-freecad	1.1.3	freecad	org.freecad.FreeCAD	/nix/store/dk3qwzgn6bi18srhnrzqik40kazs268d-freecad-1.1.3/share/icons/hicolor/48x48/apps/org.freecad.FreeCAD.png	General purpose Open Source 3D CAD/MCAD/CAx/CAE/PLM modeler
+freecad	1.1.4	freecad	org.freecad.FreeCAD	/nix/store/dk3qwzgn6bi18srhnrzqik40kazs268d-freecad-1.1.3/share/icons/hicolor/48x48/apps/org.freecad.FreeCAD.png	General purpose Open Source 3D CAD/MCAD/CAx/CAE/PLM modeler
 freecell-solver	6.16.0	freecell-solver			FreeCell automatic solver
 freeciv	3.2.6	freeciv	org.freeciv.gtk3.mp;org.freeciv.gtk322;org.freeciv.server	/nix/store/fzpv74qyfvblszpkcxyf93j10gmwsivs-freeciv-3.2.5/share/icons/hicolor/48x48/apps/freeciv-client.png	Multiplayer (or single player), turn-based strategy game
 freediameter	1.6.0-unstable-2025-10-18	freediameter			Implementation of the Diameter Protocol
@@ -5928,7 +5930,7 @@ freedoom	0.13.0	freedoom	io.github.freedoom.FreeDM;io.github.freedoom.Phase1;io.
 freedroid	1.2.1	freedroid	freedroid	/nix/store/ldbnyc4mhyichss37lanpfj8m38pd5i9-freedroid-1.2.1/share/icons/hicolor/32x32/apps/freedroid.png	Clone of the classic game 'Paradroid' on Commodore 64
 freedroidrpg	1.0	freedroidrpg	org.freedroid.freedroidRPG	/nix/store/7zb716mnrrmdjq5xsx3kkkxdlf4lmrbk-freedroidrpg-1.0/share/icons/hicolor/48x48/apps/freedroidrpg.png	Isometric 3D RPG similar to game Diablo
 freedv	2.2.1	freedv	freedv	/nix/store/g2s4sdylgw7zjhw9xjp5lmwjl7bqky03-freedv-2.3.1/share/icons/hicolor/48x48/apps/freedv.png	Digital voice for HF radio
-freefall	6.18.60	freefall			Free-fall protection for spinning HP/Dell laptop hard drives
+freefall	6.18.63	freefall			Free-fall protection for spinning HP/Dell laptop hard drives
 freefilesync	14.9	freefilesync	FreeFileSync;RealTimeSync	/nix/store/j9lbvbm9zidhdqfyqs7alsb7ksqspz0z-freefilesync-14.11/share/icons/hicolor/128x128/apps/FreeFileSync.png	Open Source File Synchronization & Backup Software
 freefont_ttf	20120503	freefont-ttf			GNU Free UCS Outline Fonts
 freeglut	3.8.0	freeglut			Create and manage windows containing OpenGL contexts
@@ -5945,7 +5947,7 @@ freepats	20060219	freepats			Instrument patches, for MIDI synthesizers
 freeplane	1.12.16	freeplane	freeplane		Mind-mapping software
 freepv	0.3.0	freepv	freepv-glut		Open source panorama viewer using GL
 freeradius	3.2.8	freeradius			Modular, high performance free RADIUS suite
-freerdp	3.32.0	freerdp			Remote Desktop Protocol Client
+freerdp	3.33.0	freerdp			Remote Desktop Protocol Client
 freerouting	2.2.4	freerouting	freerouting	/nix/store/4xhxp8i9pslw4dncs1hsp38hqbw22rm6-freerouting-2.2.4/share/icons/hicolor/256x256/apps/freerouting.png	Advanced PCB auto-router
 freesasa	2.1.2	freesasa			C-library for calculating Solvent Accessible Surface Areas
 freesweep	1.0.2-unstable-2024-04-19	freesweep			Console minesweeper-style game written in C for Unix-like systems
@@ -6396,7 +6398,7 @@ ggh	0.1.4	ggh			Recall your SSH sessions (also search your SSH config file)
 ggml	0.12.0	ggml			Tensor library for machine learning
 ggshield	1.50.4	ggshield			Tool to find and fix various types of hardcoded secrets and infrastructure-as-co
 ggz_base_libs	0.99.5	ggz-base-libs			GGZ Gaming zone libraries
-gh	2.103.3	gh			GitHub CLI tool
+gh	2.104.0	gh			GitHub CLI tool
 gh-actions-cache	1.0.4	gh-actions-cache			gh extension to manage GitHub Actions caches
 gh-cal	0.1.3	gh-cal			GitHub contributions calender terminal viewer
 gh-cherry-pick	1.5.0	gh-cherry-pick			Cherry-pick commits across GitHub repositories using only the GitHub API
@@ -6438,14 +6440,14 @@ ghdorker	0.3.2	ghdorker			Extensible GitHub dorking tool
 ghdump	0.2.2	ghdump			Export GitHub issues, pull requests, and discussions through customizable templa
 ghex	50.0	ghex	org.gnome.GHex	/nix/store/j73klf5f8kh8r86gdvsxdj9wv5cw87qm-ghex-50.2/share/icons/hicolor/scalable/apps/org.gnome.GHex.Devel.svg	Hex editor for GNOME desktop environment
 ghfetch	0.0.19	ghfetch			CLI tool to fetch GitHub user information and show like neofetch
-ghgrab	2.3.0	ghgrab			Simple, pretty terminal tool that lets you search and download files from GitHub
+ghgrab	2.3.1	ghgrab			Simple, pretty terminal tool that lets you search and download files from GitHub
 ghi	1.2.1	ghi			GitHub Issues on the command line
 ghidra	12.0.4	ghidra	ghidra	/nix/store/xrxnp2isnig2hfi7f8bjfq95qdby0jfc-ghidra-12.1.2/share/icons/hicolor/48x48/apps/ghidra.png	Software reverse engineering (SRE) suite of tools
 ghmap	2.0.4	ghmap			A Python tool for mapping GitHub events to contributor activities
 ghorg	1.11.10	ghorg			Quickly clone an entire org/users repositories into one directory
 ghost	8.0.0-unstable-2025-11-01	ghost			Android post-exploitation framework
 ghost-cli	1.28.6	ghost-cli			CLI Tool for installing & updating Ghost
-ghostfolio	3.93.0	ghostfolio			Open Source Wealth Management Software
+ghostfolio	3.99.0	ghostfolio			Open Source Wealth Management Software
 ghostie	0.3.1	ghostie			Github notifications in your terminal
 ghostscript	10.08.0	ghostscript-with-X			PostScript interpreter (mainline version)
 ghostscript_headless	10.08.0	ghostscript			PostScript interpreter (mainline version)
@@ -6645,7 +6647,7 @@ git2cl	2008-08-27	git2cl-unstable			Convert git logs to GNU style ChangeLog file
 gitMinimal	2.54.0	git-minimal			Distributed version control system
 gitSetupHook		gitSetupHook			
 gita	0.16.8.2	gita			Command-line tool to manage multiple git repos
-gitaly	19.5.3	gitaly			Git RPC service for handling all the git calls made by GitLab
+gitaly	19.5.4	gitaly			Git RPC service for handling all the git calls made by GitLab
 gitbatch	0.6.1	gitbatch			Running git UI commands
 gitbeaker-cli	43.8.0	gitbeaker-cli			CLI Wrapper for the @gitbeaker/rest SDK
 gitbutler	0.19.7	gitbutler			Git client for simultaneous branches on top of your existing workflow
@@ -6669,7 +6671,7 @@ github-linguist	9.5.0	github-linguist			Language savant Ruby library
 github-markdown-toc-go	2.0.1	github-markdown-toc-go			Easy TOC creation for GitHub README.md (in go)
 github-mcp-server	1.1.2	github-mcp-server			GitHub's official MCP Server
 github-release	0.11.0	github-release			Commandline app to create and edit releases on Github (and upload artifacts)
-github-runner	2.338.0	github-runner			Self-hosted runner for GitHub Actions
+github-runner	2.338.2	github-runner			Self-hosted runner for GitHub Actions
 github-to-sops	2.0.0	github-to-sops			Tool for managing infrastructure secrets in git repositories using SOPS and GitH
 github-to-sqlite	2.9	github-to-sqlite			Save data from GitHub to a SQLite database
 gitify	6.20.0	gitify	gitify	/nix/store/rw86jq7vk2yb2pwhml5x9qaindhs70h0-gitify-7.5.0/share/icons/hicolor/256x256/apps/gitify.png	GitHub notifications on your menu bar
@@ -6677,7 +6679,7 @@ gitingest	0.3.1	gitingest			Replace 'hub' with 'ingest' in any github url to get
 gitit	0.15.1.2	gitit			Wiki using happstack, git or darcs, and pandoc
 gitjacker	0.1.0	gitjacker			Leak git repositories from misconfigured websites
 gitkraken	12.1.1	gitkraken			Simplifying Git for any OS
-gitlab	19.5.3	gitlab			GitLab Community Edition
+gitlab	19.5.4	gitlab			GitLab Community Edition
 gitlab-art	0.5.0	gitlab-art			Pull cross-project Gitlab artifact dependencies
 gitlab-ci-linter	2.4.0	gitlab-ci-linter			.gitlab-ci.yml lint helper tool
 gitlab-ci-local	4.64.1	gitlab-ci-local			Run gitlab pipelines locally as shell executor or docker executor
@@ -6685,16 +6687,16 @@ gitlab-ci-ls	1.3.2	gitlab-ci-ls			GitLab CI Language Server (gitlab-ci-ls)
 gitlab-clippy	1.0.3	gitlab-clippy			Convert clippy warnings into GitLab Code Quality report
 gitlab-container-registry	4.43.0	gitlab-container-registry			GitLab Docker toolset to pack, ship, store, and deliver content
 gitlab-duo	8.89.0	gitlab-duo			CLI for GitLab AI assistant
-gitlab-ee	19.5.3	gitlab-ee			GitLab Enterprise Edition
+gitlab-ee	19.5.4	gitlab-ee			GitLab Enterprise Edition
 gitlab-elasticsearch-indexer	5.14.17	gitlab-elasticsearch-indexer			Indexes Git repositories into Elasticsearch for GitLab
 gitlab-kas	18.6.3	gitlab-kas			Kubernetes Agent (Gitlab side)
-gitlab-pages	19.5.3	gitlab-pages			Daemon used to serve static websites for GitLab users
+gitlab-pages	19.5.4	gitlab-pages			Daemon used to serve static websites for GitLab users
 gitlab-release-cli	0.24.0	gitlab-release-cli			Toolset to create, retrieve and update releases on GitLab
 gitlab-runner	19.0.0	gitlab-runner			GitLab Runner the continuous integration executor of GitLab
 gitlab-shell	14.58.0	gitlab-shell			SSH access and repository management app for GitLab
 gitlab-timelogs	0.7.1	gitlab-timelogs			CLI utility to support you with your time logs in GitLab
 gitlab-triage	1.51.0	gitlab-triage			GitLab's issues and merge requests triage, automated
-gitlab-workhorse	19.5.3	gitlab-workhorse			
+gitlab-workhorse	19.5.4	gitlab-workhorse			
 gitleaks	8.30.1	gitleaks			Scan git repos (or files) for secrets
 gitless	0.9.17	gitless			Version control system built on top of Git
 gitlint	0.19.1	gitlint			Linting for your git commit messages
@@ -6743,7 +6745,6 @@ gladtex	2023-01-22	python3.13-gladtex-unstable			Embed LaTeX formulas into HTML 
 glamoroustoolkit	1.1.58	glamoroustoolkit	glamoroustoolkit	/nix/store/xcy600rvh8ahw8xi7zsyx0rx8mz33v8m-glamoroustoolkit-1.1.58/share/icons/hicolor/scalable/apps/GlamorousToolkit.svg	GlamorousToolkit Development Environment
 glance	0.8.7	glance			Self-hosted dashboard that puts all your feeds in one place
 glanceclient	4.11.0	python-glanceclient			Python bindings for the OpenStack Images API
-glances	4.5.5	glances			Cross-platform curses-based monitoring tool
 glas	0.2.3	glas			Language server for the Gleam programming language
 glasgow	0-unstable-2025-12-22	glasgow			Software for Glasgow, a digital interface multitool
 glasskube	0.26.1	glasskube			Missing Package Manager for Kubernetes featuring a GUI and a CLI
@@ -6920,7 +6921,7 @@ gnome-session	50.1	gnome-session			GNOME session manager
 gnome-session-ctl	50.0	gnome-session-ctl			gnome-session-ctl extracted from gnome-session for nixpkgs
 gnome-settings-daemon	50.1	gnome-settings-daemon			
 gnome-settings-daemon48	48.1	gnome-settings-daemon			GNOME Settings Daemon
-gnome-shell	50.5	gnome-shell	org.gnome.Extensions;org.gnome.Shell.Extensions;org.gnome.Shell.PortalHelper	/nix/store/fbi98m8vlwk5nw4ybvbnp3mvzyszv7v4-gnome-shell-50.4/share/icons/hicolor/scalable/apps/org.gnome.Extensions.Devel.svg	Core user interface for the GNOME 3 desktop
+gnome-shell	50.6	gnome-shell	org.gnome.Extensions;org.gnome.Shell.Extensions;org.gnome.Shell.PortalHelper	/nix/store/fbi98m8vlwk5nw4ybvbnp3mvzyszv7v4-gnome-shell-50.4/share/icons/hicolor/scalable/apps/org.gnome.Extensions.Devel.svg	Core user interface for the GNOME 3 desktop
 gnome-shell-extensions	50.2	gnome-shell-extensions			Modify and extend GNOME Shell functionality and behavior
 gnome-software	50.4	gnome-software	gnome-software-local-file-flatpak;gnome-software-local-file-fwupd;gnome-software-local-file-metainfo;gnome-software-local-file-packagekit	/nix/store/rv9qvndz4ja1cjhw8lyvgdl0wcyynq5k-gnome-software-50.3/share/icons/hicolor/scalable/apps/org.gnome.Software.svg	Software store that lets you install and update applications and system extensio
 gnome-solanum	6.0.0	solanum	org.gnome.Solanum	/nix/store/z1ckmwdmm753dih68z4b9jh1g97n9c7g-solanum-6.0.0/share/icons/hicolor/scalable/apps/org.gnome.Solanum.svg	Pomodoro timer for the GNOME desktop
@@ -7072,7 +7073,7 @@ go2tv-lite	2.1.0	go2tv-lite			Cast media files to UPnP/DLNA Media Renderers and 
 go365	2.0	go365			Office 365 enumeration tool
 go9p	0.25.0	go9p			Implementation of the 9p2000 protocol in Go
 go_1_25	1.25.14	go			Go Programming language
-go_1_27	1.27.3	go			Go Programming language
+go_1_27	1.27.4	go			Go Programming language
 goa	3.23.4	goa			Design-based APIs and microservices in Go
 goaccess	1.11	goaccess			Real-time web log analyzer and interactive viewer that runs in a terminal in *ni
 goarista	0-unstable-2025-12-01	goarista			Collection of open-source tools for network management and monitoring mostly bas
@@ -7146,7 +7147,7 @@ gogetdoc	2019-02-28	gogetdoc-unstable			Gets documentation for items in Go sourc
 gogh	365	gogh			Collection of color schemes for terminal emulators
 gogogadget	0.1.0	gogogadget			Single binary collection of tools useful for penetration testers and system admi
 gogui	1.6.0	gogui			Graphical user interface to programs that play the board game Go and support the
-gogup	1.10.2	gogup			Update binaries installed by 'go install' with goroutines
+gogup	1.10.4	gogup			Update binaries installed by 'go install' with goroutines
 gohai	0-unstable-2022-04-12	gohai			System information collector
 gohufont	2.1	gohufont			A monospace bitmap font well suited for programming and terminal use 
 goimapnotify	2.5.5	goimapnotify			Execute scripts on IMAP mailbox changes (new/deleted/updated messages) using IDL
@@ -7203,7 +7204,7 @@ google-amber	0-unstable-2026-04-29	amber			Multi-API shader test framework
 google-app-engine-go-sdk	1.9.61	google-app-engine-go-sdk			Google App Engine SDK for Go
 google-authenticator	1.11	google-authenticator-libpam			Two-step verification, with pam module
 google-chat-linux	5.39.24-1	google-chat-linux	google-chat-linux		Electron-base client for Google Hangouts Chat
-google-chrome	157.0.8103.38	google-chrome			Freeware web browser developed by Google
+google-chrome	157.0.8103.78	google-chrome			Freeware web browser developed by Google
 google-clasp	3.3.0	clasp			Develop Apps Script Projects locally
 google-cloud-bigtable-tool	0.12.0	google-cloud-bigtable-tool			Google Cloud Bigtable Tool
 google-cloud-cpp	2.44.0	google-cloud-cpp			C++ Idiomatic Clients for Google Cloud Platform services
@@ -7335,7 +7336,7 @@ gphoto2	2.5.32	gphoto2			Ready to use set of digital camera software application
 gphoto2fs	0.5.0	gphoto2fs			Fuse FS to mount a digital camera
 gpick	0.3	gpick	org.gpick.gpick	/nix/store/ci8f6ils8fbvw44s4vhnvhn9q0shfhnc-gpick-0.3/share/icons/hicolor/48x48/apps/gpick.png	Advanced color picker written in C++ using GTK+ toolkit
 gping	1.20.1	gping			Ping, but with a graph
-gpio-utils	6.18.60	gpio-utils			Linux tools to inspect the gpiochip interface
+gpio-utils	6.18.63	gpio-utils			Linux tools to inspect the gpiochip interface
 gplates	2.5.0-dev3	gplates			Desktop software for the interactive visualisation of plate-tectonics
 gpm	2020-06-17	gpm-unstable			Daemon that provides mouse support on the Linux console
 gpodder	3.11.5	gpodder	gpodder-url-handler;gpodder	/nix/store/yi30p5r2x9q2zp7nibisrrnr32yiac4l-gpodder-3.11.5/share/icons/hicolor/48x48/apps/gpodder.png	Podcatcher written in python
@@ -7732,7 +7733,7 @@ gzip	1.14	gzip			GNU zip compression program
 gzrt	0.8	gzrt			Gzip Recovery Toolkit
 h	1.1.1	h			Faster shell navigation of projects
 h2	2.4.240	h2			Java SQL database
-h2o	2.3.0-rolling-2026-08-04	h2o			Optimized HTTP/1.x, HTTP/2, HTTP/3 server
+h2o	2.3.0-rolling-2026-11-06	h2o			Optimized HTTP/1.x, HTTP/2, HTTP/3 server
 h2spec	2.6.0	h2spec			Testing tool for HTTP/2 implementation
 h3	3.7.2	h3			Hexagonal hierarchical geospatial indexing system
 h3_4	4.4.1	h3			Hexagonal hierarchical geospatial indexing system
@@ -7844,7 +7845,7 @@ hat-trie	0.7.1	hat-trie			C++ implementation of a fast and memory efficient HAT-
 hatari	2.6.1	hatari	hatari	/nix/store/xxdwxxci660h139wqkzs87dm72klvc7r-hatari-2.6.1/share/icons/hicolor/48x48/apps/hatari.png	Atari ST/STE/TT/Falcon emulator
 hatch	1.16.5	hatch			Modern, extensible Python project manager
 hatchet	0.8.10	hatchet			MongoDB JSON Log Analyzer
-hath-rust	1.18.0	hath-rust			Unofficial Hentai@Home client written in Rust
+hath-rust	1.19.0	hath-rust			Unofficial Hentai@Home client written in Rust
 hatsu	0.3.4	hatsu			Self-hosted and fully-automated ActivityPub bridge for static sites
 haunt	0.3.0	haunt			Guile-based static site generator
 haveged	1.9.21	haveged			Simple entropy daemon
@@ -7956,7 +7957,7 @@ helmholtz	1.0	helmholtz			Time domain pitch tracker for Pure Data
 helmsman	4.0.5	helmsman			Helm Charts (k8s applications) as Code tool
 help2man	1.49.3	help2man			Generate man pages from `--help' output
 helvetica-neue-lt-std	2014.08.16	helvetica-neue-lt-std			Helvetica Neue LT Std font
-hentai-at-home	1.6.5	hentai-at-home			Open-source P2P gallery distribution system which reduces the load on the E-Hent
+hentai-at-home	1.6.6	hentai-at-home			Open-source P2P gallery distribution system which reduces the load on the E-Hent
 hepmc2	2.06.11	hepmc			HepMC package is an object oriented event record written in C++ for High Energy 
 hepmc3	3.3.1	hepmc3			HepMC package is an object oriented, C++ event record for High Energy Physics Mo
 heptabase	1.87.2	heptabase			Visual note-taking tool for learning complex topics
@@ -8103,7 +8104,7 @@ home-assistant-cli	1.0.0	homeassistant-cli			Command-line tool for Home Assistan
 home-assistant-matter-hub	2.0.43	home-assistant-matter-hub			Publish your home-assistant instance using Matter
 home-manager	0-unstable-2026-04-24	home-manager			Nix-based user environment configurator
 homebank	5.10.2	homebank	homebank	/nix/store/94wl6r6kqf9cyaa1h1qq3hdp04dvxf58-homebank-5.10.2/share/icons/hicolor/48x48/apps/homebank.png	Free, easy, personal accounting for everyone
-homebox	0.26.2	homebox			Inventory and organization system built for the Home User
+homebox	0.27.1	homebox			Inventory and organization system built for the Home User
 homebridge	2.0.2	homebridge			Lightweight emulator of iOS HomeKit API
 homebridge-config-ui-x	5.22.0	homebridge-config-ui-x			Configure Homebridge, monitor and backup from a browser
 homepage-dashboard	1.12.3	homepage-dashboard			Highly customisable dashboard with Docker and service API integrations
@@ -8925,7 +8926,7 @@ jamulus	3.11.0	jamulus	jamulus-server;jamulus	/nix/store/615hc1dpfl3fb20c1sz2s1i
 jan	0.7.9	Jan	Jan	/nix/store/nm2vn0g5myxnj3fmh8c8wxiniyshncwv-Jan-0.8.4/share/icons/hicolor/128x128/apps/Jan.png	Jan is an open source alternative to ChatGPT that runs 100% offline on your comp
 janet	1.41.2	janet			Janet programming language
 jansson	2.15.0	jansson			C library for encoding, decoding and manipulating JSON data
-janus-gateway	1.4.1	janus-gateway			General purpose WebRTC server
+janus-gateway	1.4.3	janus-gateway			General purpose WebRTC server
 janusgraph	1.1.0	janusgraph			Open-source, distributed graph database
 japa	0.9.4	japa			'perceptual' or 'psychoacoustic' audio spectrum analyser for JACK and ALSA
 jaq	3.1.2	jaq			Jq clone focused on correctness, speed and simplicity
@@ -8967,8 +8968,8 @@ jdd	0.4.5	jdd			Johnny Decimal daemon for automatically organizing files into th
 jdenticon-cli	3.3.0	jdenticon-cli			JavaScript library for generating highly recognizable identicons using HTML5 can
 jdepend	2.10	jdepend			Traverses Java class file directories and generates design quality metrics for e
 jdiskreport	1.4.1	jdiskreport			Graphical utility to visualize disk usage
-jdk11_headless	11.0.32.1+1	openjdk-headless			Open-source Java Development Kit
-jdk17_headless	17.0.20.1+1	openjdk-headless			Open-source Java Development Kit
+jdk11_headless	11.0.33+10	openjdk-headless			Open-source Java Development Kit
+jdk17_headless	17.0.21.0.3+1	openjdk-headless			Open-source Java Development Kit
 jdk21_headless	21.0.12.1+1	openjdk-headless			Open-source Java Development Kit
 jdk25_headless	25.0.5.0.3+1	openjdk-headless			Open-source Java Development Kit
 jdk8_headless	8u504-b01	openjdk-headless			Open-source Java Development Kit
@@ -9086,7 +9087,7 @@ jonquil	0.3.0	jonquil			JSON parser on top of TOML implementation
 jool-cli	4.1.15	jool-cli			Fairly compliant SIIT and Stateful NAT64 for Linux - CLI tools
 joomscan	2021-06-08	joomscan-unstable			Joomla Vulnerability Scanner
 joplin	3.5.1	joplin-cli			CLI client for Joplin
-joplin-desktop	3.5.13	joplin-desktop	joplin	/nix/store/8xgdgyk1ng6pp1zsj2fxp6shbvayvgby-joplin-desktop-3.6.16/share/icons/hicolor/48x48/apps/joplin.png	Open source note taking and to-do application with synchronisation capabilities
+joplin-desktop	3.7.21	joplin-desktop	joplin	/nix/store/8xgdgyk1ng6pp1zsj2fxp6shbvayvgby-joplin-desktop-3.6.16/share/icons/hicolor/48x48/apps/joplin.png	Open source note taking and to-do application with synchronisation capabilities
 jose	14	jose			C-language implementation of Javascript Object Signing and Encryption
 josh	26.05.08	josh			Just One Single History
 joshuto	0.9.9	joshuto			Ranger-like terminal file manager written in Rust
@@ -9127,8 +9128,8 @@ jql	8.0.10	jql			JSON Query Language CLI tool built with Rust
 jqp	0.8.0	jqp			TUI playground to experiment with jq
 jquake	1.8.5	jquake			Real-time earthquake map of Japan
 jre-generate-cacerts		jre-generate-cacerts			
-jre11_minimal	11.0.32.1+1	openjdk-minimal-jre			Minimal JRE for OpenJDK 11.0.32.1+1
-jre17_minimal	17.0.20.1+1	openjdk-minimal-jre			Minimal JRE for OpenJDK 17.0.20.1+1
+jre11_minimal	11.0.33+10	openjdk-minimal-jre			Minimal JRE for OpenJDK 11.0.33+10
+jre17_minimal	17.0.21.0.3+1	openjdk-minimal-jre			Minimal JRE for OpenJDK 17.0.21.0.3+1
 jre21_minimal	21.0.12.1+1	openjdk-minimal-jre			Minimal JRE for OpenJDK 21.0.12.1+1
 jre25_minimal	25.0.5.0.3+1	openjdk-minimal-jre			Minimal JRE for OpenJDK 25.0.5.0.3+1
 jre8	8u504-b01	openjdk			Open-source Java Development Kit
@@ -9232,6 +9233,7 @@ jwhois	4.0	jwhois			Client for the WHOIS protocol allowing you to query the owne
 jwm	2.4.6	jwm			Joe's Window Manager is a light-weight X11 window manager
 jwm-settings-manager	2019-01-27	jwm-settings-manager			Full configuration manager for JWM
 jwt-cli	6.2.0	jwt-cli			Super fast CLI tool to decode and encode JWTs
+jwt-cpp	0.7.2	jwt-cpp			Header-only C++ library for creating and validating JSON Web Tokens
 jwt-hack	2.5.0	jwt-hack			JSON Web Token Hack Toolkit
 jwtinfo	0.6.1	jwtinfo			Command-line tool to get information about JWTs
 jwx	4.5.0	jwx			Implementation of various JWx (Javascript Object Signing and Encryption/JOSE) te
@@ -9318,7 +9320,7 @@ karakeep	0.33.0	karakeep			Self-hostable bookmark-everything app (links, notes a
 karate	1.5.2	karate			API Test Automation Made Simple
 kardolus-chatgpt-cli	1.10.11	kardolus-chatgpt-cli			Command-line interface for ChatGPT
 karere	2.5.5	karere	io.github.tobagin.karere	/nix/store/j55dkmb1jd9rlrn3sy7zd6zxfl5c6zml-karere-3.1.1/share/icons/hicolor/48x48/apps/io.github.tobagin.karere.png	Gtk4 Whatsapp client
-kargo	1.9.6	kargo			Application lifecycle orchestration
+kargo	1.9.9	kargo			Application lifecycle orchestration
 karla	2.004	karla			Outstanding grotesque sans serif typeface family
 karlender	0.10.11	karlender	codes.loers.Karlender	/nix/store/6kgwwkmhpyrqlypg6ax537q5g9f50qhs-karlender-0.10.11/share/icons/hicolor/64x64/apps/codes.loers.Karlender.png	Mobile-friendly GTK calendar application
 karlyriceditor	4.1.2	karlyriceditor	karlyriceditor	/nix/store/azg8wca1qhma3h4xi9qdz9zcv5dikzk1-karlyriceditor-4.1.2/share/pixmaps/karlyriceditor.png	Edit and synchronize lyrics with karaoke songs in various formats
@@ -9424,14 +9426,13 @@ kexec-tools	2.0.32	kexec-tools			Tools related to the kexec Linux feature
 key	2.12.3	key	KeY	/nix/store/69992phb41qk1jryhnlmj7f6fl6ymz9y-key-2.12.3/share/icons/hicolor/256x256/apps/key.png	Java formal verification tool
 key-rack	0.4.0	key-rack	app.drey.KeyRack	/nix/store/f1mf2zfk5gwwcb01hkxnnxhq3jm5bhcm-key-rack-0.4.0/share/icons/hicolor/scalable/apps/app.drey.KeyRack.svg	View and edit your apps’ keys
 keybase	6.5.1	keybase			Keybase official command-line utility and service
-keybase-gui	6.5.1	keybase-gui	keybase	/nix/store/sjm119z5b2vadpghv3w47yq4isf4w965-keybase-gui-6.5.1/share/icons/hicolor/128x128/apps/keybase.png	Keybase official GUI
 keybinder	0.3.1	keybinder			Library for registering global key bindings
 keybinder3	0.3.2	keybinder3			Library for registering global key bindings
 keyboard-layout-editor	0-unstable-2019-05-14	keyboard-layout-editor			Keyboard layout editor for XKB
 keycard-cli	0.8.2	keycard-cli			Command line tool and shell to manage keycards
 keychain	2.9.8	keychain			Manage SSH and GPG keys in a convenient and secure manner
 keychron-udev-rules	0-unstable-2026-01-07	keychron-udev-rules			Keychron Keyboard Udev Rules, fixes issues with keyboard detection on Linux & pe
-keycloak	26.8.1	keycloak			Identity and access management for modern applications and services
+keycloak	26.8.2	keycloak			Identity and access management for modern applications and services
 keycloak-config-cli	6.4.0	keycloak-config-cli			Import YAML/JSON-formatted configuration files into Keycloak
 keyd	2.6.0	keyd			Key remapping daemon for Linux
 keyfinder-cli	1.1.2	keyfinder-cli			Musical key detection for digital audio (command-line tool)
@@ -9547,7 +9548,6 @@ kmscon	9.3.5	kmscon			KMS/DRM based System Console
 kmscube	2023-09-25	kmscube-unstable			Example OpenGL app using KMS/GBM
 kmsvnc	0.0.6	kmsvnc			VNC server for DRM/KMS capable GNU/Linux devices
 kmsxx	2021-07-26	kmsxx			C++11 library, utilities and python bindings for Linux kernel mode setting
-kmymoney	5.2.2	kmymoney	org.kde.kmymoney	/nix/store/yf75pnywlsbkk8kgyi9f9a6g0mhfkh8y-kmymoney-5.2.2/share/icons/hicolor/48x48/apps/kmymoney.png	Personal finance manager for KDE
 kn	1.22.0	kn			Create Knative resources interactively from the command line or from within scri
 knewave	2012-07-30	knewave			Bold, painted face for the rocker within
 knightos-genkfs	1.3.2	genkfs			Utility to write a KFS filesystem into a ROM file
@@ -9896,7 +9896,7 @@ lazpaint	7.3	lazpaint	lazpaint	/nix/store/mrmfzh1jda4zadmc5njc7n88r5cml9ry-lazpa
 lazycli	0.1.15	lazycli			Tool to static turn CLI commands into TUIs
 lazycommit	1.5.3	lazycommit			Simple cli for generating git commits
 lazydocker	0.25.2	lazydocker			Simple terminal UI for both docker and docker-compose
-lazygit	0.61.1	lazygit			Simple terminal UI for git commands
+lazygit	0.66.3	lazygit			Simple terminal UI for git commands
 lazyhetzner	1.3.0	lazyhetzner			TUI for managing Hetzner Cloud resources
 lazyjj	0.6.1	lazyjj			TUI for Jujutsu/jj
 lazyjournal	0.8.4	lazyjournal			TUI for journalctl, file system logs, as well as Docker and Podman containers
@@ -9984,7 +9984,7 @@ leftwm	0.5.4	leftwm			Tiling window manager for the adventurer
 leftwm-config	0-unstable-2024-03-13	leftwm-config			Little satellite utility for LeftWM
 leftwm-theme	2024-03-05	leftwm-theme-unstable			Theme manager for LeftWM
 legba	0.11.0	legba			Multiprotocol credentials bruteforcer / password sprayer and enumerator
-legcord	1.2.4	legcord	legcord	/nix/store/1ppnpfy3jhkf9gd0l0rc2wdbzwmsmpci-legcord-1.3.0/share/icons/hicolor/256x256/apps/legcord.png	Lightweight, alternative desktop client for Discord
+legcord	1.3.1	legcord	legcord	/nix/store/1ppnpfy3jhkf9gd0l0rc2wdbzwmsmpci-legcord-1.3.0/share/icons/hicolor/256x256/apps/legcord.png	Lightweight, alternative desktop client for Discord
 legendary-gl	0.20.34	legendary-gl			Free and open-source Epic Games Launcher alternative
 legends-of-equestria	2025.06.002	legends-of-equestria			Free-to-play MMORPG
 legendsbrowser2	2.0.10	legendsbrowser2			Multi-platform, open source, legends viewer for dwarf fortress 0.47 written in g
@@ -10421,7 +10421,7 @@ libgpiod_1	1.6.4	libgpiod			C library and tools for interacting with the linux G
 libgpod	0.8.3	libgpod			Library used by gtkpod to access the contents of an ipod
 libgrapheme	3.0.0	libgrapheme			Unicode string library
 libgringotts	1.2.1	libgringotts			Small library to encapsulate data in an encrypted structure
-libgsf	1.14.59	libgsf			GNOME's Structured File Library
+libgsf	1.14.60	libgsf			GNOME's Structured File Library
 libgssglue	0.9	libgssglue			Exports a gssapi interface which calls other random gssapi libraries
 libgtkflow3	1.0.6	libgtkflow3			Flow graph widget for GTK 3
 libgtkflow4	0.2.6	libgtkflow4			Flow graph widget for GTK 3
@@ -10480,7 +10480,7 @@ libinklevel	0.9.4	libinklevel			Library for checking the ink level of your print
 libinput	1.31.3	libinput			Handles input devices in Wayland compositors and provides a generic X.Org input 
 libinput-gestures	2.79	libinput-gestures	libinput-gestures	/nix/store/vr699w090gwh8knj5jqwnv0dhx3gm80s-libinput-gestures-2.79/share/icons/hicolor/128x128/apps/libinput-gestures.svg	Gesture mapper for libinput
 libinsane	1.0.10	libinsane			Crossplatform access to image scanners (paper eaters only)
-libinstpatch	1.1.7	libinstpatch			MIDI instrument patch files support library
+libinstpatch	1.1.8	libinstpatch			MIDI instrument patch files support library
 libint	2.11.2	libint			Library for the evaluation of molecular integrals of many-body operators over Ga
 libiodbc	3.52.16	libiodbc			iODBC driver manager
 libipfix	110209	libipfix			C library that implements the IPFIX protocol defined by the IP Flow Information 
@@ -10579,7 +10579,7 @@ libmhash	0.9.9.9	mhash			Hash algorithms library
 libmicrodns	0.2.0	libmicrodns			Minimal mDNS resolver library, used by VLC
 libmicrohttpd	1.0.10	libmicrohttpd			Embeddable HTTP server library
 libmicrohttpd_0_9_77	0.9.77	libmicrohttpd			Embeddable HTTP server library
-libmikmod	3.3.13	libmikmod			Library for playing tracker music module files
+libmikmod	3.3.16	libmikmod			Library for playing tracker music module files
 libmilter	8.18.2	libmilter			Sendmail Milter mail filtering API library
 libminc	2.4.07	libminc			Medical imaging library based on HDF5
 libmirage	3.3.2	libmirage			CD-ROM image access library
@@ -10779,7 +10779,7 @@ librasterlite2	1.1.0-beta1	librasterlite2			Advanced library supporting raster h
 libratbag	0.18	libratbag			Configuration library for gaming mice
 libraw	0.22.1	libraw			Library for reading RAW files obtained from digital photo cameras (CRW/CR2, NEF,
 libraw1394	2.1.2	libraw1394			Library providing direct access to the IEEE 1394 bus through the Linux 1394 subs
-librclone	1.75.2	librclone			Rclone as a C library
+librclone	1.76.0	librclone			Rclone as a C library
 librda	0.0.5-unstable-2023-09-15	librda			Remote Desktop Awareness Shared Library
 librdata	0-unstable-2023-10-03	librdata			Read and write R data frames from C
 librdf_raptor2	2.0.16	raptor2			RDF Parser Toolkit
@@ -10821,7 +10821,7 @@ librespot	0.8.0	librespot			Open Source Spotify client library and playback daem
 librespot-ma	0.8.0-unstable-2025-12-05	librespot-ma			Fork of librespot for use in Music Assistant only
 libresprite	1.2	libresprite	libresprite	/nix/store/y7wy89p454fr626gngnnym6r3957x619-libresprite-1.2/share/icons/hicolor/48x48/apps/libresprite.png	Animated sprite editor & pixel art tool, fork of Aseprite
 libressl	4.2.1	libressl			Free TLS/SSL implementation
-libressl_4_3	4.3.1	libressl			Free TLS/SSL implementation
+libressl_4_3	4.3.4	libressl			Free TLS/SSL implementation
 librest_1_0	0.10.2	librest			Helper library for RESTful services
 libreswan	5.3.3	libreswan			Free software implementation of the VPN protocol based on IPSec and the Internet
 libretls	3.8.1	libretls			Libtls for OpenSSL
@@ -10830,7 +10830,7 @@ libretranslate	1.9.6	libretranslate			Free and Open Source Machine Translation A
 libretro-core-info	1.22.2	libretro-core-info			Libretro's core info files
 libretro-shaders-slang	0-unstable-2026-05-07	libretro-shaders-slang			Slang shaders for use with RetroArch's shader system
 librevenge	0.0.5	librevenge			Base library for writing document import filters
-librewolf	159.0-1	librewolf			Fork of Firefox, focused on privacy, security and freedom
+librewolf	160.0-1	librewolf			Fork of Firefox, focused on privacy, security and freedom
 librewolf-bin	156.0.1-1	librewolf-bin			Fork of Firefox, focused on privacy, security and freedom (upstream binary relea
 librice	0.3.0	librice			A (sans-IO) implementation of ICE (RFC8445) protocol written in Rust
 librime	1.16.1	librime			Rime Input Method Engine, the core library
@@ -10880,7 +10880,7 @@ libsigrokdecode	0.5.3-unstable-2024-10-01	libsigrokdecode			Protocol decoding li
 libsigsegv	2.15	libsigsegv			Library to handle page faults in user mode
 libsixel	1.10.5	libsixel			SIXEL library for console graphics, and converter programs
 libskk	1.1.0	libskk			Library to deal with Japanese kana-to-kanji conversion method
-libslirp	4.9.3	libslirp			General purpose TCP-IP emulator
+libslirp	4.9.6	libslirp			General purpose TCP-IP emulator
 libsmartcols	2.42.4	util-linux			Set of system utilities for Linux
 libsmbios	2.4.3	libsmbios			Library to obtain BIOS information
 libsmf	1.3	libsmf			C library for reading and writing Standard MIDI Files
@@ -10956,7 +10956,7 @@ libtpms	0.10.2	libtpms			Library for software emulation of a Trusted Platform Mo
 libtrace	4.0.31-1	libtrace			C Library for working with network packet traces
 libtraceevent	1.9	libtraceevent			Linux kernel trace event library
 libtracefs	1.8.3	libtracefs			Linux kernel trace file system library
-libtransmission_4	4.1.3	transmission			Fast, easy and free BitTorrent client
+libtransmission_4	4.1.4	transmission			Fast, easy and free BitTorrent client
 libtree	3.1.1	libtree			Tree ldd with an option to bundle dependencies into a single folder
 libtsm	4.5.0	libtsm			Terminal-emulator State Machine
 libtypec	0.6.1	libtypec			generic diagnostic tool interface for usb-c ports
@@ -11211,13 +11211,13 @@ linssid	2.7	linssid	linssid	/nix/store/1hs691ilmyn8n50wfikbvpzwramwzcyk-linssid-
 lint-staged	17.0.4	lint-staged			Run linters on git staged files
 linthesia	2023-05-23	linthesia-unstable	linthesia	/nix/store/s97plg1l8vqpc668j8sa6858qjr0pj5b-linthesia-unstable-2023-05-23/share/icons/hicolor/128x128/apps/linthesia.png	Game of playing music using a MIDI keyboard following a MIDI file
 lintspec	0.17.0	lintspec			Blazingly fast linter for NatSpec comments in Solidity code
-linux	6.18.60	linux			The Linux kernel (with patches: bridge-stp-helper, request-key-helper)
-linux-doc	7.3.1	linux-kernel-latest-htmldocs			Linux kernel html documentation
+linux	6.18.63	linux			The Linux kernel (with patches: bridge-stp-helper, request-key-helper)
+linux-doc	7.3.4	linux-kernel-latest-htmldocs			Linux kernel html documentation
 linux-enable-ir-emitter	6.1.2	linux-enable-ir-emitter			Provides support for infrared cameras that are not directly enabled out-of-the b
 linux-exploit-suggester	2022-04-01	linux-exploit-suggester-unstable			Tool designed to assist in detecting security deficiencies for given Linux kerne
 linux-firmware	20261019	linux-firmware			Binary firmware collection packaged by kernel.org
 linux-gpib	4.3.7	linux-gpib-user			Support package for GPIB (IEEE 488) hardware
-linux-manual	7.3.1	linux-manual			Linux kernel API manual pages
+linux-manual	7.3.4	linux-manual			Linux kernel API manual pages
 linux-pam	1.7.2	linux-pam			Pluggable Authentication Modules, a flexible mechanism for authenticating user
 linux-router	0.8.1	linux-router			Set Linux as router / Wifi hotspot / proxy in one command
 linux-scripts	6.18.7	linux-scripts			Standalone scripts from <linux>/scripts
@@ -11339,7 +11339,7 @@ lms	3.78.0	lms			Lightweight Music Server - Access your self-hosted music using 
 lmstudio	0.4.15-2	lmstudio			LM Studio is an easy to use desktop app for experimenting with local and open-so
 lnav	0.14.0	lnav			Logfile Navigator
 lnch	0-unstable-2021-08-15	lnch			Launches a process and moves it out of the process group
-lnd	0.20.7-beta	lnd			Lightning Network Daemon
+lnd	0.20.8-beta	lnd			Lightning Network Daemon
 lndconnect	0.2.1	lndconnect			Generate QRCode to connect apps to lnd Resources
 lndhub-go	1.0.2	lndhub-go			Accounting wrapper for the Lightning Network
 lndinit	0.1.22-beta	lndinit			Wallet initializer utility for lnd
@@ -11357,14 +11357,13 @@ locale	2.42-103	locale-glibc
 localproxy	3.1.2	localproxy			AWS IoT Secure Tunneling Local Proxy Reference Implementation C++
 localsearch	3.11.2	localsearch			Desktop-neutral user information store, search tool and indexer
 localsend	1.17.0	localsend	LocalSend	/nix/store/szaka19iwabf6xkw1kbhv0986wf86s73-localsend-1.18.0/share/icons/hicolor/128x128/apps/localsend.png	Open source cross-platform alternative to AirDrop
-localstack	4.12.0	localstack			Fully functional local Cloud stack
 localtime	0-unstable-2022-02-20	localtime			Daemon for keeping the system timezone up-to-date based on the current location
 localtunnel	2.0.2	localtunnel			CLI for localtunnel
 locate-dominating-file	0.0.1	locate-dominating-file			Program that looks up in a directory hierarchy for a given filename
 loccount	2.16	loccount			Re-implementation of sloccount in Go
 lock	1.9.3	lock	com.konstantintutsch.Lock	/nix/store/isxib2n8ialaj68jn7gn5cvr9rrcdld9-lock-1.9.3/share/icons/hicolor/scalable/apps/com.konstantintutsch.Lock.svg	Process data with GnuPG
 lockbook	26.10.30	lockbook			Private, polished note-taking platform
-lockbook-desktop	26.10.30	lockbook-desktop	lockbook-desktop	/nix/store/77638psh6cibmm2ddz5fckyjy7vxi7jq-lockbook-desktop-26.8.4/share/icons/hicolor/scalable/apps/lockbook.svg	Private, polished note-taking platform
+lockbook-desktop	26.11.5	lockbook-desktop	lockbook-desktop	/nix/store/77638psh6cibmm2ddz5fckyjy7vxi7jq-lockbook-desktop-26.8.4/share/icons/hicolor/scalable/apps/lockbook.svg	Private, polished note-taking platform
 lockdep	5.0.21	lockdep			Userspace locking validation tool built on the Linux kernel
 lockfile-progs	0.2.0	lockfile-progs			Programs for locking and unlocking files and mailboxes
 loco	0.16.3	loco			Loco CLI is a powerful command-line tool designed to streamline the process of g
@@ -11618,7 +11617,7 @@ mackup	0.10.3	mackup			Tool to keep your application settings in sync (OS X/Linu
 macopix	3.4.0	macopix			Mascot Constructive Pilot for X
 macs2	2.2.9.1	python3.11-macs2			Model-based Analysis for ChIP-Seq
 macse	2.03	macse			Multiple alignment of coding sequences
-maddy	0.9.6	maddy			Composable all-in-one mail server
+maddy	0.9.7	maddy			Composable all-in-one mail server
 mado	0.3.0	mado			Markdown linter written in Rust
 madonctl	3.0.3	madonctl			CLI for the Mastodon social network API
 maelstrom	3.0.7	maelstrom			Arcade-style game resembling Asteroids
@@ -11656,7 +11655,7 @@ mailhog	1.0.1	MailHog			Web and API based SMTP testing
 mailman	3.3.10	python3.13-mailman			Free software for managing electronic mail discussion and newsletter lists
 mailman-hyperkitty	1.2.1	python3.13-mailman-hyperkitty			Mailman archiver plugin for HyperKitty
 mailman-web	0.0.9	python3.13-mailman_web			Django project for Mailman 3 web interface
-mailpit	1.32.0	mailpit			Email and SMTP testing tool with API for developers
+mailpit	1.33.1	mailpit			Email and SMTP testing tool with API for developers
 mailsend	1.19	mailsend			CLI email sending tool
 mailspring	1.21.1	mailspring	Mailspring	/nix/store/mh91xvbz1k6b3r284ixf44vchc92b884-mailspring-1.23.0/share/icons/hicolor/64x64/apps/mailspring.png	Beautiful, fast and maintained fork of Nylas Mail by one of the original authors
 mailsy	5.0.0	mailsy			Quickly generate a disposable email straight from terminal
@@ -11746,7 +11745,7 @@ mariadb-connector-java	3.5.7	mariadb-connector-java			MariaDB Connector/J is use
 mariadb-galera	26.4.24	mariadb-galera			Galera 3 wsrep provider library
 mariadb_1011	10.11.18	mariadb-server			Enhanced, drop-in replacement for MySQL
 mariadb_106	10.6.27	mariadb-server			Enhanced, drop-in replacement for MySQL
-mariadb_118	11.8.8	mariadb-server			Enhanced, drop-in replacement for MySQL
+mariadb_118	11.8.9	mariadb-server			Enhanced, drop-in replacement for MySQL
 marimo	0.23.10	marimo			Reactive Python notebook that's reproducible, git-friendly, and deployable as sc
 marisa	0.3.1	marisa			Static and space-efficient trie data structure library
 mark	16.4.0	mark			Tool for syncing your markdown documentation with Atlassian Confluence pages
@@ -11857,15 +11856,15 @@ mathmod	13.0	mathmod			Mathematical modelling software
 mathpix-snipping-tool	03.00.0138	mathpix-snipping-tool			OCR tool to convert pictures to LaTeX
 matio	1.5.29	matio			C library for reading and writing Matlab MAT files
 matlab-language-server	1.3.12	matlab-language-server			Language Server for MATLAB® code
-matomo	5.12.0	matomo			Real-time web analytics application
+matomo	5.13.0	matomo			Real-time web analytics application
 matrix-alertmanager	0.9.0	matrix-alertmanager			Bot to receive Alertmanager webhook events and forward them to chosen rooms
 matrix-alertmanager-receiver	2026.5.13	matrix-alertmanager-receiver			Alertmanager client that forwards alerts to a Matrix room
 matrix-appservice-irc	4.0.0	matrix-appservice-irc			Node.js IRC bridge for Matrix
 matrix-authentication-service	1.28.0	matrix-authentication-service			OAuth2.0 + OpenID Provider for Matrix Homeservers
 matrix-brandy	1.23.6	matrix-brandy			Matrix Brandy BASIC VI for Linux, Windows, MacOSX
 matrix-commander-rs	1.0.0	matrix-commander-rs			CLI-based Matrix client app for sending and receiving
-matrix-conduit	0.10.14	matrix-conduit			Matrix homeserver written in Rust
-matrix-continuwuity_latest	26.9.1	matrix-continuwuity			Matrix homeserver written in Rust, forked from conduwuit
+matrix-conduit	0.10.16	matrix-conduit			Matrix homeserver written in Rust
+matrix-continuwuity_latest	26.9.3	matrix-continuwuity			Matrix homeserver written in Rust, forked from conduwuit
 matrix-corporal	2.2.0	matrix-corporal			Reconciliator and gateway for a managed Matrix server
 matrix-dl	0-unstable-2020-07-14	matrix-dl			Download backlogs from Matrix as raw text
 matrix-gtk-theme	0-unstable-2025-10-15	matrix-gtk-theme			GTK theme based on the Matrix colour palette
@@ -11881,7 +11880,7 @@ matterbridge	1.26.0-unstable-2024-08-27	matterbridge			Simple bridge between Mat
 matterircd	0.29.0	matterircd			Minimal IRC server bridge to Mattermost
 mattermost	11.7.14	mattermost			Open source platform for secure collaboration across the entire software develop
 mattermost-desktop	6.3.0	mattermost-desktop	Mattermost	/nix/store/2zhddxmmfaf4iz6bjq436pr4qhkx1hqb-mattermost-desktop-6.3.0/share/icons/hicolor/512x512/apps/mattermost-desktop.png	Mattermost Desktop client
-mattermostLatest	12.0.1	mattermost			Open source platform for secure collaboration across the entire software develop
+mattermostLatest	12.0.2	mattermost			Open source platform for secure collaboration across the entire software develop
 matugen	4.0.0	matugen			Material you color generation tool
 maturin	1.12.6	maturin			Build and publish Rust crates Python packages
 maude	3.5.1	maude			High-level specification language
@@ -12054,7 +12053,7 @@ megaglest	3.13.0	megaglest	megaglest;megaglest_editor;megaglest_g3dviewer	/nix/s
 megahit	1.2.9	megahit			Ultra-fast single-node solution for large and complex metagenomics assembly via 
 megam	0.92	megam			MEGA Model Optimization Package
 megapixels	2.1.0	megapixels	me.gapixels.Megapixels	/nix/store/n126zia5z39vxghjznr5wvwqm3x5zh08-megapixels-2.1.0/share/icons/hicolor/scalable/apps/me.gapixels.Megapixels.svg	GTK4 camera application that knows how to deal with the media request api
-megasync	6.6.2.0	megasync			Easy automated syncing between your computers and your MEGA Cloud Drive
+megasync	6.7.0.3	megasync			Easy automated syncing between your computers and your MEGA Cloud Drive
 megatools	1.11.5	megatools			Command line client for Mega.co.nz
 meh	2018-10-22	meh-unstable			Minimal image viewer using raw XLib
 meilisearch	1.43.1	meilisearch			Powerful, fast, and an easy to use search engine
@@ -12225,7 +12224,7 @@ micropython	1.27.0	micropython			Lean and efficient Python implementation for mi
 microscheme	0.9.3	microscheme			Scheme subset for Atmel microcontrollers
 microserver	0.2.1	microserver			Simple ad-hoc server with SPA support
 microsocks	1.0.5	microsocks			Tiny, portable SOCKS5 server with very moderate resource usage
-microsoft-edge	156.0.4314.58	microsoft-edge			Web browser from Microsoft
+microsoft-edge	157.0.4341.46	microsoft-edge			Web browser from Microsoft
 microsoft-gsl	4.2.1	microsoft-gsl			C++ Core Guideline support library
 microsoft-identity-broker	3.0.1	microsoft-identity-broker			Microsoft Authentication Broker for Linux
 mictray	0.2.5	mictray	mictray		System tray application for microphone
@@ -12361,7 +12360,7 @@ mise	2026.5.12	mise			Front-end to your dev env
 missidentify	1.0	missidentify			Find Win32 applications
 mission-center	1.1.0	mission-center	io.missioncenter.MissionCenter	/nix/store/xwsgp635kg1m4mwh0grkkx20kgycpsc6-mission-center-1.2.0/share/icons/hicolor/scalable/apps/io.missioncenter.MissionCenter.svg	Monitor your CPU, Memory, Disk, Network and GPU usage
 mission-planner	1.3.83	mission-planner	mission-planner		ArduPilot ground station
-misskey	2026.10.0	misskey			Open source, federated social media platform
+misskey	2026.10.1	misskey			Open source, federated social media platform
 mistral-rs	0.8.0	mistral-rs			Blazingly fast LLM inference
 mistralclient	6.2.0	python-mistralclient			OpenStack Mistral Command-line Client
 mitama-cpp-result	11.0.0	mitama-cpp-result			Library that provides `result<T, E>` and `maybe<T>` and monadic functions for th
@@ -12658,7 +12657,7 @@ mozcdic-ut-place-names	0-unstable-2024-10-12	mozcdic-ut-place-names			Dictionary
 mozcdic-ut-skk-jisyo	0-unstable-2024-10-12	mozcdic-ut-skk-jisyo			Dictionary converted from SKK-JISYO for Mozc
 mozcdic-ut-sudachidict	0-unstable-2024-10-12	mozcdic-ut-sudachidict			Dictionary converted from SudachiDict for Mozc
 mozhi	0-unstable-2026-04-09	mozhi			Alternative-frontend for many translation engines, fork of SimplyTranslate
-mozillavpn	2.40.0	mozillavpn	org.mozilla.vpn	/nix/store/lklw2mqws08y27cijzqnn58lak9vmd5p-mozillavpn-2.39.0/share/icons/hicolor/48x48/apps/org.mozilla.vpn.png	Client for the Mozilla VPN service
+mozillavpn	2.40.1	mozillavpn	org.mozilla.vpn	/nix/store/lklw2mqws08y27cijzqnn58lak9vmd5p-mozillavpn-2.39.0/share/icons/hicolor/48x48/apps/org.mozilla.vpn.png	Client for the Mozilla VPN service
 mozjpeg	4.1.5	mozjpeg			Mozilla JPEG Encoder Project
 mozlz4a	2022-03-19	mozlz4a			Compression/decompression utility
 mozo	1.28.0	mozo	mozo	/nix/store/bahlxx97gw1666i3azb8y5v1fqwcwrlk-mozo-1.28.0/share/icons/hicolor/48x48/apps/mozo.png	MATE Desktop menu editor
@@ -12747,7 +12746,7 @@ mscgen	0.20	mscgen			Convert Message Sequence Chart descriptions into PNG, SVG, 
 mscompress	0.4	mscompress			Microsoft "compress.exe/expand.exe" compatible (de)compressor
 mscp	0.2.2	mscp			Transfer files over multiple SSH (SFTP) connections
 msecli	10.01.012024.00	msecli			Micron Storage Executive CLI
-msedgedriver	156.0.4314.58	msedgedriver			WebDriver implementation that controls an Edge browser running on the local mach
+msedgedriver	157.0.4341.46	msedgedriver			WebDriver implementation that controls an Edge browser running on the local mach
 msedit	1.2.1	msedit			Simple editor for simple needs
 msfpc	1.4.5	msfpc			MSFvenom Payload Creator
 msgpack-c	6.1.0	msgpack-c			MessagePack implementation for C
@@ -12786,7 +12785,7 @@ mtdutils	2.3.1	mtd-utils			Tools for MTD filesystems
 mtk-uartboot	0-unstable-2024-12-07	mtk-uartboot			Tool to load and execute binaries over UART for Mediatek SoCs
 mtkclient	2.1.4.1	mtkclient	mtkclient		MTK reverse engineering and flash tool
 mtm	1.2.1	mtm			Perhaps the smallest useful terminal multiplexer in the world
-mtools	4.0.49	mtools			Utilities to access MS-DOS disks
+mtools	4.0.50	mtools			Utilities to access MS-DOS disks
 mtpaint	3.50.14	mtPaint	mtpaint	/nix/store/32dscxyh9rqi1alyn1igg11sbh2xn0la-mtPaint-3.50.14/share/pixmaps/mtpaint.png	Simple GTK painting program
 mtpfs	0-unstable-2024-12-10	mtpfs			FUSE Filesystem providing access to MTP devices
 mtprotoproxy	1.1.2	mtprotoproxy			Async MTProto proxy for Telegram
@@ -12812,7 +12811,7 @@ mujmap	0.2.0	mujmap			JMAP integration for notmuch mail
 mujoco	3.8.1	mujoco			Multi-Joint dynamics with Contact. A general purpose physics simulator
 mujs	1.3.6	mujs			Lightweight, embeddable Javascript interpreter
 mullvad	2026.2	mullvad			Mullvad VPN command-line client tools
-mullvad-browser	16.0	mullvad-browser	mullvad-browser	/nix/store/mx9kmz6n5rmas6cyi6lzrd7fr0f153kp-mullvad-browser-15.0.20/share/icons/hicolor/48x48/apps/mullvad-browser.png	Privacy-focused browser made in a collaboration between The Tor Project and Mull
+mullvad-browser	16.0.1	mullvad-browser	mullvad-browser	/nix/store/mx9kmz6n5rmas6cyi6lzrd7fr0f153kp-mullvad-browser-15.0.20/share/icons/hicolor/48x48/apps/mullvad-browser.png	Privacy-focused browser made in a collaboration between The Tor Project and Mull
 mullvad-compass	0.0.4	mullvad-compass			Find the best Mullvad VPN server to connect to
 mullvad-vpn	2026.3	mullvad-vpn	mullvad-vpn	/nix/store/gy7n6yxf0rmjcwbj4jj4dfrfadccy6kh-mullvad-vpn-2026.4/share/icons/hicolor/48x48/apps/mullvad-vpn.png	Client for Mullvad VPN
 multica-cli	0.3.2	multica-cli			CLI for the Multica managed agents platform
@@ -12875,7 +12874,7 @@ mutmut	3.2.0	mutmut			Mutation testing system for Python, with a strong focus on
 mutt	2.3.3	mutt			Small but very powerful text-based mail client
 mutt-ics	0.9.2	mutt-ics			Tool to show calendar event details in Mutt
 mutt-wizard	3.3.1	mutt-wizard			System for automatically configuring mutt and isync
-mutter	50.5	mutter	org.gnome.Mutter.Mdk	/nix/store/957rxarr2gqdrxs63slhqjv258pjn0y5-mutter-50.4/share/icons/hicolor/scalable/apps/org.gnome.Mutter.Mdk.Devel.svg	Window manager for GNOME
+mutter	50.6	mutter	org.gnome.Mutter.Mdk	/nix/store/957rxarr2gqdrxs63slhqjv258pjn0y5-mutter-50.4/share/icons/hicolor/scalable/apps/org.gnome.Mutter.Mdk.Devel.svg	Window manager for GNOME
 mutter48	48.7	mutter			Window manager for GNOME
 muvm	0.6.0	muvm			Run programs from your system in a microVM
 mvapich	4.1	mvapich			MPI-3.1 implementation optimized for Infiband and OmniPath transport
@@ -12959,7 +12958,7 @@ namaka	0.2.1	namaka			Snapshot testing tool for Nix based on haumea
 namecoind	28.0	namecoind			Decentralized open source information registration and transfer system based on 
 namespace-cli	0.0.516	namespace-cli			Command line interface for the Namespaces platform
 namespaced-openvpn	0.6.0	python3.13-namespaced-openvpn			Network namespace isolation for OpenVPN tunnels
-nano	9.2	nano			Small, user-friendly console text editor
+nano	9.3	nano			Small, user-friendly console text editor
 nano-syntax-highlighting	2026.05.01	nano-syntax-highlighting			Improved Nano Syntax Highlighting Files, fork of nanorc
 nano-wallet	28.2	nano-wallet			Wallet for Nano cryptocurrency
 nanobench	4.3.11	nanobench			Simple, fast, accurate single-header microbenchmarking functionality for C++11/1
@@ -13004,7 +13003,7 @@ nats-server	2.14.4	nats-server			High-Performance server for NATS
 nats-top	0.6.4	nats-top			top-like tool for monitoring NATS servers
 natscli	0.4.0	natscli			NATS Command Line Interface
 natural-docs	2.3.1	natural-docs			Documentation generator for multiple programming languages
-nautilus	50.3.1	nautilus	nautilus-autorun-software;org.gnome.Nautilus	/nix/store/10fvws3xcy23a68ciffc5f2kz1yq4prj-nautilus-50.2.2/share/icons/hicolor/scalable/apps/org.gnome.Nautilus.svg	File manager for GNOME
+nautilus	50.4	nautilus	nautilus-autorun-software;org.gnome.Nautilus	/nix/store/10fvws3xcy23a68ciffc5f2kz1yq4prj-nautilus-50.2.2/share/icons/hicolor/scalable/apps/org.gnome.Nautilus.svg	File manager for GNOME
 nautilus-open-any-terminal	0.8.1	python3.13-nautilus-open-any-terminal			Extension for nautilus, which adds an context-entry for opening other terminal-e
 nautilus-open-in-blackbox	0.1.1	nautilus-open-in-blackbox			Extension for nautilus, which adds an context-entry for opening in blackbox
 nautilus-python	4.1.0	nautilus-python			Python bindings for the Nautilus Extension API
@@ -13033,6 +13032,7 @@ nbutools	0-unstable-2023-06-06	nbutools			Tools for offensive security of NetBac
 nbxplorer	2.6.10	nbxplorer			Minimalist UTXO tracker for HD Cryptocurrency Wallets
 nbytes	0.1.4	nbytes			Library of byte handling functions extracted from Node.js core
 nc4nix	0-unstable-2024-09-28	nc4nix			Packaging helper for Nextcloud apps
+ncalayer	1.4	ncalayer			Digital signature client for Kazakhstan government portals
 ncbi-vdb	3.4.1	ncbi-vdb			Libraries for the INSDC Sequence Read Archives
 ncdc	1.25	ncdc			Modern and lightweight direct connect client with a friendly ncurses interface
 ncdns	2024-05-18	ncdns-unstable			Namecoin to DNS bridge daemon
@@ -13134,7 +13134,6 @@ netbird-ui	0.71.4	netbird-ui	netbird	/nix/store/pkfhqv7xaz8iippj6anjk42hzj3m1a9p
 netbird-upload	0.71.4	netbird-upload			Connect your devices into a single secure private WireGuard®-based mesh network 
 netboot	0.10.2	netboot			Mini PXE server
 netbootxyz-efi	2.0.88	netboot.xyz-efi			Tool to boot OS installers and utilities over the network, to be run from a boot
-netbox	4.5.10	netbox			IP address management (IPAM) and data center infrastructure management (DCIM) to
 netbox2netshot	0.2.0	netbox2netshot			Inventory synchronization tool between Netbox and Netshot
 netcap	0.9.0	netcap			Framework for secure and scalable network traffic analysis
 netcat-gnu	0.7.1	netcat-gnu			Utility which reads and writes data across network connections
@@ -13509,12 +13508,12 @@ nodeenv	1.10.0	nodeenv			Node.js virtual environment builder
 nodehun	3.0.2	nodehun			Hunspell binding for NodeJS that exposes as much of Hunspell as possible and als
 nodeinfo	1.0.0	nodeinfo			Command line tool to query nodeinfo based on a given domain
 nodejs-slim	24.22.1	nodejs-slim			Event-driven I/O framework for the V8 JavaScript engine
-nodejs-slim_22	22.23.4	nodejs-slim			Event-driven I/O framework for the V8 JavaScript engine
-nodejs-slim_26	26.13.0	nodejs-slim			Event-driven I/O framework for the V8 JavaScript engine
+nodejs-slim_22	22.23.5	nodejs-slim			Event-driven I/O framework for the V8 JavaScript engine
+nodejs-slim_26	26.13.1	nodejs-slim			Event-driven I/O framework for the V8 JavaScript engine
 nodejsInstallExecutables		nodejs-install-executables			
 nodejsInstallManuals		nodejs-install-manuals			
-nodejs_22	22.23.4	nodejs			Event-driven I/O framework for the V8 JavaScript engine
-nodejs_26	26.13.0	nodejs			Event-driven I/O framework for the V8 JavaScript engine
+nodejs_22	22.23.5	nodejs			Event-driven I/O framework for the V8 JavaScript engine
+nodejs_26	26.13.1	nodejs			Event-driven I/O framework for the V8 JavaScript engine
 nodemon	3.1.14	nodemon			Simple monitor script for use during development of a Node.js app
 nodenv	1.5.0	nodenv			Manage multiple NodeJS versions
 nodepy-runtime	2.1.5	nodepy-runtime			Runtime for Python inspired by Node.JS
@@ -13652,7 +13651,7 @@ nsplist	0-unstable-2017-04-11	nsplist			Parses .plist files
 nspr	4.40	nspr			Netscape Portable Runtime, a platform-neutral API for system-level and libc-like
 nsq	1.3.0	nsq			Realtime distributed messaging platform
 nss	3.112.5	nss			Set of libraries for development of security-enabled client and server applicati
-nss_latest	3.132	nss			Set of libraries for development of security-enabled client and server applicati
+nss_latest	3.133	nss			Set of libraries for development of security-enabled client and server applicati
 nss_ldap	265	nss_ldap			LDAP module for the Solaris Nameservice Switch (NSS)
 nss_pam_ldapd	0.9.13	nss-pam-ldapd			LDAP identity and authentication for NSS/PAM
 nss_wrapper	1.1.16	nss_wrapper			Wrapper for the user, group and hosts NSS API
@@ -13815,7 +13814,7 @@ oakctl	0.16.5	oakctl			Tool to interact with Luxonis OAK4 cameras
 oaknut	2.0.3	oaknut			Header-only library that allows one to dynamically assemble code in-memory at ru
 oama	0.20.2	oama			OAuth credential MAnager
 oapi-codegen	2.5.1	oapi-codegen			Go client and server OpenAPI 3 generator
-oath-toolkit	2.6.14	oath-toolkit			Components for building one-time password authentication systems
+oath-toolkit	2.6.15	oath-toolkit			Components for building one-time password authentication systems
 oathkeeper	26.2.0	oathkeeper			Open-source identity and access proxy that authorizes HTTP requests based on set
 oatpp	1.3.1	oatpp			Light and powerful C++ web framework for highly scalable and resource-efficient 
 oauth2-proxy	7.15.5	oauth2-proxy			Reverse proxy that provides authentication with Google, Github, or other provide
@@ -14002,7 +14001,7 @@ onioncircuits	0.8.2	onioncircuits	onioncircuits	/nix/store/ky6k0367sn0dqr54pg70m
 onionprobe	1.4.1	onionprobe			Tooling for onion service monitoring
 onionshare	2.6.4	onionshare-cli			Securely and anonymously send and receive files
 onionshare-gui	2.6.4	onionshare	org.onionshare.OnionShare		Securely and anonymously send and receive files
-oniux	0.14.0	oniux			Isolate Applications over Tor using Linux Namespaces
+oniux	0.15.0	oniux			Isolate Applications over Tor using Linux Namespaces
 online-judge-template-generator	4.8.1	online-judge-template-generator			Analyze problems of competitive programming and automatically generate boilerpla
 online-judge-tools	12.0.0	online-judge-tools			Tools for various online judges. Download sample cases, generate additional test
 online-judge-verify-helper	5.6.0	online-judge-verify-helper			Testing framework for snippet libraries used in competitive programming
@@ -14337,7 +14336,7 @@ orbitron	2011-05-25	orbitron			Geometric sans-serif for display purposes by Matt
 orbuculum	2.2.0	orbuculum			Cortex M SWO SWV Demux and Postprocess for the ORBTrace
 orbvis	0.3.3	orbvis	io.github.wojciech_graj.OrbVis	/nix/store/cdvj9jibs2isqpf4dhwy3ggvpqvsdzb5-orbvis-0.3.3/share/icons/hicolor/128x128/apps/io.github.wojciech_graj.OrbVis.png	View and propagate the full CelesTrak satellite catalog in realtime
 orc	0.4.41	orc			Oil Runtime Compiler
-orca	50.2	orca	orca	/nix/store/s9jmp4s1hq0rsnhna5j570j2d10sxzz6-orca-50.2/share/icons/hicolor/48x48/apps/orca.png	Screen reader
+orca	50.3	orca	orca	/nix/store/s9jmp4s1hq0rsnhna5j570j2d10sxzz6-orca-50.2/share/icons/hicolor/48x48/apps/orca.png	Screen reader
 orca-c	2021-02-13	orca-c-unstable			Esoteric programming language designed to quickly create procedural sequencers
 orca-slicer	2.3.2	orca-slicer	com.orcaslicer.OrcaSlicer	/nix/store/79vqnv7sxkariivlzzyhpiz72fc117vk-orca-slicer-2.4.2/share/icons/hicolor/128x128/apps/OrcaSlicer.png	G-code generator for 3D printers (Bambu, Prusa, Voron, VzBot, RatRig, Creality, 
 orcania	2.3.3	orcania			Potluck with different functions for different purposes that can be shared among
@@ -14395,7 +14394,7 @@ osmscout-server	3.1.5	osmscout-server	osmscout-server-gui	/nix/store/iky3rvxlmi6
 ospd-openvas	22.10.1	ospd-openvas			OSP server implementation to allow GVM to remotely control an OpenVAS Scanner
 osqp	1.0.0	osqp			Quadratic programming solver using operator splitting
 osqp-eigen	0.11.0	osqp-eigen			Simple Eigen-C++ wrapper for OSQP library
-osquery	5.24.0	osquery			SQL powered operating system instrumentation, monitoring, and analytics
+osquery	5.24.1	osquery			SQL powered operating system instrumentation, monitoring, and analytics
 osrm-backend	26.4.0	osrm-backend			Open Source Routing Machine computes shortest paths in a graph. It was designed 
 oss-rebuild	0-unstable-2025-07-22	oss-rebuild			Securing open-source package ecosystems by originating, validating, and augmenti
 ossia-score	3.8.2	ossia-score			Sequencer for audio-visual artists
@@ -14843,7 +14842,6 @@ peek	1.5.1	peek	com.uploadedlobster.peek	/nix/store/rdpifjxprry188kf7d3z932gsw9q
 peep	0.1.6	peep			CLI text viewer tool that works like less command on small pane within the termi
 peerflix-server	0.6.0	peerflix-server			Streaming torrent client for Node.js with web ui
 peergos	1.26.0	peergos			P2P, secure file storage, social network and application protocol
-peering-manager	1.10.4	peering-manager			BGP sessions management tool
 peertube	8.3.2	peertube			Free software to take back control of your videos
 peertube-viewer	1.8.6	peertube-viewer			Simple CLI browser for the peertube federated video platform
 peg	0.1.20	peg			Tools for generating recursive-descent parsers: programs that perform pattern ma
@@ -14861,7 +14859,7 @@ percollate	4.3.0	percollate			Command-line tool to turn web pages into readable 
 percona-server	8.4.10-10	percona-server			A free, fully compatible, enhanced, open source drop-in replacement for MySQL® t
 percona-toolkit	3.7.1-4-3.7.1-4	perl5.42.3-Percona-Toolkit			Collection of advanced command-line tools to perform a variety of MySQL and syst
 percona-xtrabackup	8.4.0-4	percona-xtrabackup			Non-blocking backup tool for MySQL
-perf	7.3.1	perf-linux			Linux tools to profile with performance counters
+perf	7.3.4	perf-linux			Linux tools to profile with performance counters
 perf-tools	2017-12-19	perf-tools-unstable			Performance analysis tools based on Linux perf_events (aka perf) and ftrace
 perf_data_converter	0-unstable-2026-03-10	perf_data_converter			Tool to convert Linux perf files to the profile.proto format used by pprof
 perfect-hash	0.4.1	perfect-hash			Minimal perfect hash function generator
@@ -14905,7 +14903,7 @@ pg-dump-anon	2.4.1	pg-dump-anon			Export databases with data being anonymized wi
 pg-schema-diff	1.0.5	pg-schema-diff			Go library for diffing Postgres schemas and generating SQL migrations
 pg_activity	3.6.1	pg_activity			Top like application for PostgreSQL server activity monitoring
 pg_checksums	1.3	pg_checksums			Activate/deactivate/verify checksums in offline PostgreSQL clusters
-pg_exporter	1.5.0	pg_exporter			Advanced PostgreSQL & Pgbouncer Metrics Exporter for Prometheus
+pg_exporter	1.6.0	pg_exporter			Advanced PostgreSQL & Pgbouncer Metrics Exporter for Prometheus
 pg_featureserv	1.3.1	pg_featureserv			Lightweight RESTful Geospatial Feature Server for PostGIS in Go
 pg_flame	1.2	pg_flame			Flamegraph generator for Postgres EXPLAIN ANALYZE output
 pg_tileserv	1.0.11	pg_tileserv			Very thin PostGIS-only tile server in Go
@@ -15139,7 +15137,7 @@ pixcat	0.1.4	pixcat			Display images on a kitty terminal with optional resizing
 pixd	1.0.0	pixd			Colourful visualization tool for binary files
 pixel-code	2.2	pixel-code			Pixel font designed to actually be good for programming
 pixel2svg	0.3.0	pixel2svg			Converts pixel art to SVG - pixel by pixel
-pixelfed	0.12.7	pixelfed			Federated image sharing platform
+pixelfed	0.12.9	pixelfed			Federated image sharing platform
 pixelflasher	8.14.3.1	pixelflasher	PixelFlasher	/nix/store/nxr28nzj7gnb46a9a93shdm4ji0l7p9q-pixelflasher-9.1.5.0/share/icons/hicolor/64x64/apps/pixelflasher.png	Pixel™ phone flashing GUI utility with features
 pixelnuke	0-unstable-2019-05-19	pixelnuke			Multiplayer canvas (C implementation)
 pixelorama	1.1.8	pixelorama	com.orama_interactive.Pixelorama	/nix/store/a3x8c8mislk3ysvx03wdf0g7k679c18f-pixelorama-1.1.8/share/icons/hicolor/256x256/apps/pixelorama.png	Free & open-source 2D sprite editor, made with the Godot Engine
@@ -15417,20 +15415,20 @@ postcss	8.5.14	postcss			Transforming styles with JS plugins
 posteid-seed-extractor	0-unstable-2022-02-23	posteid-seed-extractor			Extract OTP seed instead of using PosteID app
 postfix	3.11.7	postfix			Fast, easy to administer, and secure mail server
 postfix-tlspol	1.10.0	postfix-tlspol			Lightweight MTA-STS + DANE/TLSA resolver and TLS policy server for Postfix, prio
-postfixadmin	4.0.1	postfixadmin			Web based virtual user administration interface for Postfix mail servers
+postfixadmin	4.0.5	postfixadmin			Web based virtual user administration interface for Postfix mail servers
 postgres-language-server	0.24.0	postgres-language-server			Tools and language server for Postgres
 postgres-websockets	0.12.0.0	postgres-websockets			Middleware to map LISTEN/NOTIFY messages to Websockets
-postgresql	17.11	postgresql			Powerful, open source object-relational database system
+postgresql	17.12	postgresql			Powerful, open source object-relational database system
 postgresqlTestHook		postgresql-test-hook			
-postgresql_14	14.24	postgresql			Powerful, open source object-relational database system
-postgresql_14_jit	14.24	postgresql-and-plugins			
-postgresql_15	15.19	postgresql			Powerful, open source object-relational database system
-postgresql_15_jit	15.19	postgresql-and-plugins			
-postgresql_16	16.15	postgresql			Powerful, open source object-relational database system
-postgresql_16_jit	16.15	postgresql-and-plugins			
-postgresql_17_jit	17.11	postgresql-and-plugins			
-postgresql_18	18.6	postgresql			Powerful, open source object-relational database system
-postgresql_18_jit	18.6	postgresql-and-plugins			
+postgresql_14	14.25	postgresql			Powerful, open source object-relational database system
+postgresql_14_jit	14.25	postgresql-and-plugins			
+postgresql_15	15.20	postgresql			Powerful, open source object-relational database system
+postgresql_15_jit	15.20	postgresql-and-plugins			
+postgresql_16	16.16	postgresql			Powerful, open source object-relational database system
+postgresql_16_jit	16.16	postgresql-and-plugins			
+postgresql_17_jit	17.12	postgresql-and-plugins			
+postgresql_18	18.7	postgresql			Powerful, open source object-relational database system
+postgresql_18_jit	18.7	postgresql-and-plugins			
 postgresql_jdbc	42.7.7	postgresql-jdbc			JDBC driver for PostgreSQL allowing Java programs to connect to a PostgreSQL dat
 postgrest	14.12	postgrest			REST API for any Postgres database
 postgrey	1.37	postgrey			Postfix policy server to provide greylisting
@@ -15556,7 +15554,7 @@ prisma_6	6.19.3	prisma_6			Next-generation ORM for Node.js and TypeScript
 prismlauncher	11.1.1	prismlauncher	org.prismlauncher.PrismLauncher	/nix/store/hiqv5b1s0wr49kypxa37rbwvpghn3g3k-prismlauncher-11.0.3/share/icons/hicolor/scalable/apps/org.prismlauncher.PrismLauncher.svg	Free, open source launcher for Minecraft
 pritunl-client	1.3.4275.94	pritunl-client			Pritunl OpenVPN client
 pritunl-ssh	1.0.3231.6	pritunl-ssh			Pritunl Zero SSH client
-privatebin	2.1.0	privatebin			Minimalist, open source online pastebin where the server has zero knowledge of p
+privatebin	2.1.1	privatebin			Minimalist, open source online pastebin where the server has zero knowledge of p
 privoxy	4.1.0	privoxy			Non-caching web proxy with advanced filtering capabilities
 prl-tools	26.4.2-57518	prl-tools			Parallels Tools for Linux guests
 prmers	4.19.00-alpha	prmers			GPU-accelerated Mersenne primality testing
@@ -15785,7 +15783,7 @@ protozero	1.8.2	protozero			Minimalistic protocol buffer decoder and encoder in 
 prover9	2009-11A	prover9			Automated theorem prover for first-order and equational logic
 proverif	2.05	proverif			Cryptographic protocol verifier in the formal model
 prow	0-unstable-2026-05-19	prow			Kubernetes based CI/CD system developed to serve the Kubernetes community
-prowlarr	2.6.5.5623	prowlarr			Indexer manager/proxy built on the popular arr .net/reactjs base stack
+prowlarr	2.7.0.5723	prowlarr			Indexer manager/proxy built on the popular arr .net/reactjs base stack
 prowler	5.12.3	prowler			Security tool for AWS, Azure and GCP to perform Cloud Security best practices as
 prox	1.1.0	prox			Process runner for Procfile-based applications
 proxelar	0.4.4	proxelar			Programmable MITM proxy that intercepts HTTP/HTTPS traffic
@@ -15959,7 +15957,6 @@ pydeps	3.0.6	pydeps			Python module dependency visualization
 pydf	12	python3.13-pydf			Colourised df(1)-clone
 pyditz	0.11	pyditz			Drop-in replacement for the Ditz distributed issue tracker
 pyenv	2.6.31	pyenv			Simple Python version management
-pyfa	2.69.3	pyfa	pyfa	/nix/store/9lr9pp83fn805ny58bbyksaay59qdcgv-pyfa-2.68.0/share/icons/hicolor/64x64/apps/pyfa.png	Python fitting assistant, cross-platform fitting tool for EVE Online
 pyflyby	1.9.11	pyflyby			Set of productivity tools for Python
 pyglossary	5.3.0	pyglossary			Tool for converting dictionary files aka glossaries. Mainly to help use our offl
 pygpoabuse	0-unstable-2025-11-09	pygpoabuse			Partial python implementation of SharpGPOAbuse
@@ -16189,7 +16186,7 @@ quantumminigolf	1.1.1	quantumminigolf			Quantum mechanics-based minigolf-like ga
 quark	2021-02-22	quark-unstable			Extremely small and simple HTTP GET/HEAD-only web server for static content
 quark-engine	25.6.1	quark-engine			Android malware (analysis and scoring) system
 quark-goldleaf	1.2.0	quark-goldleaf	quark-goldleaf	/nix/store/16r685i8jzs9cl2vqx920957iw7wxf6i-quark-goldleaf-1.2.0/share/icons/hicolor/48x48/apps/quark-goldleaf.png	GUI tool for transfering files between a computer and a Nintendo Switch running 
-quarkdown	1.6.1	quarkdown			Modern Markdown-based typesetting system
+quarkdown	2.7.0	quarkdown			Modern Markdown-based typesetting system
 quarkus	3.35.3	quarkus-cli			Kubernetes-native Java framework tailored for GraalVM and HotSpot, crafted from 
 quarto	1.9.37	quarto			Open-source scientific and technical publishing system built on Pandoc
 quassel	0.14.0	quassel-kf5	quassel	/nix/store/k930ghbbmm3vll7a4804w7kpm7rrby1f-quassel-kf5-0.14.0/share/icons/hicolor/48x48/apps/quassel.png	Qt/KDE distributed IRC client supporting a remote daemon
@@ -16238,7 +16235,6 @@ quodlibet-without-gst-plugins	4.7.1	quodlibet-without-gst-plugins	io.github.quod
 quodlibet-xine	4.7.1	quodlibet-xine	io.github.quodlibet.ExFalso;io.github.quodlibet.QuodLibet	/nix/store/jq7b5z5aga9dy0nfp71y27lall52pjjz-quodlibet-xine-4.7.1/share/icons/hicolor/48x48/apps/io.github.quodlibet.ExFalso.png	GTK-based audio player written in Python, using the Mutagen tagging library
 quodlibet-xine-full	4.7.1	quodlibet-xine-full	io.github.quodlibet.ExFalso;io.github.quodlibet.QuodLibet	/nix/store/gkmgnqnpzmmmg7v5fr1gr9bs0ixs9lg0-quodlibet-xine-full-4.7.1/share/icons/hicolor/48x48/apps/io.github.quodlibet.ExFalso.png	GTK-based audio player written in Python, using the Mutagen tagging library
 qusb2snes	0.7.35	qusb2snes	fr.nyo.QUsb2Snes	/nix/store/by9dgzqk0mi1r55pl4v6ny3rd0sirxr3-qusb2snes-0.7.35/share/icons/hicolor/128x128/apps/fr.nyo.QUsb2Snes.png	Websocket server that provides a unified protocol for accessing SNES (or SNES em
-qutebrowser	3.7.0	qutebrowser	org.qutebrowser.qutebrowser	/nix/store/lchiizd0az046r0xcd4c6kjp5hr3bpm4-qutebrowser-3.7.0/share/icons/hicolor/48x48/apps/qutebrowser.png	Keyboard-focused browser with a minimal GUI
 qvge	0.7.0	qvge	qvge	/nix/store/rqdv8rm0h6yc1nxv4sl1klyc80rf2v9m-qvge-0.7.0/share/pixmaps/qvge.png	Qt Visual Graph Editor
 qview	7.1	qview	com.interversehq.qView	/nix/store/rpwkacfggqrkgq344lgky4rrh3kcnf3s-qview-7.1/share/icons/hicolor/64x64/apps/com.interversehq.qView.png	Practical and minimal image viewer
 qwen-code	0.16.0	qwen-code			Coding agent that lives in digital world
@@ -16278,8 +16274,8 @@ radianWrapper	0.6.15-wrapper	radian			21 century R console
 radiance-vj	0.7.1	radiance			Video art software for VJs
 radicale	3.7.4	radicale			CalDAV and CardDAV server
 radicle-artifact	0.23.3	radicle-artifact			Secure artifact distribution for Radicle
-radicle-explorer	0-unstable-2026-10-23	radicle-explorer			Web frontend for Radicle
-radicle-httpd	0.30.0	radicle-httpd			Radicle JSON HTTP API Daemon
+radicle-explorer	0-unstable-2026-11-09	radicle-explorer			Web frontend for Radicle
+radicle-httpd	0.31.0	radicle-httpd			Radicle JSON HTTP API Daemon
 radio-active	2.9.1	radio-active			Play any radios from around the globe right from the terminal
 radio-cli	2.3.2	radio-cli			Simple radio CLI written in rust
 radioboat	0.7.0	radioboat			Terminal web radio client
@@ -16394,7 +16390,7 @@ rbw	1.15.0	rbw			Unofficial command line client for Bitwarden
 rc	2025-10-01	rc-unstable			Plan 9 shell
 rc-9front	9front-0-unstable-2026-05-01	rc			9front shell
 rclip	2.1.6	rclip			AI-Powered Command-Line Photo Search Tool
-rclone	1.75.2	rclone			Command line program to sync files and directories to and from major cloud stora
+rclone	1.76.0	rclone			Command line program to sync files and directories to and from major cloud stora
 rclone-browser	1.8.0	rclone-browser	rclone-browser	/nix/store/vc5prarpc59x384ggllywad2p543js54-rclone-browser-1.8.0/share/icons/hicolor/64x64/apps/rclone-browser.png	Graphical Frontend to Rclone written in Qt
 rclone-ui	3.5.4	rclone-ui		/nix/store/0xg1fccw9rqhjgxmdxj6c3xk8qpa37bc-rclone-ui-3.5.4/share/icons/hicolor/128x128/apps/rclone-ui.png	Cross-platform desktop GUI for rclone & S3
 rcm	1.3.6	rcm			Management Suite for Dotfiles
@@ -16590,7 +16586,7 @@ renpy	8.5.2.26010301-unstable-2026-03-27	renpy	renpy	/nix/store/qx0cz8lms4jkir4s
 rep-grep	0.0.8	rep-grep			Command-line utility that takes grep-formatted lines and performs a find-and-rep
 rep-gtk	0.90.8.3	rep-gtk			GTK bindings for librep
 repak	0.2.3	repak			Unreal Engine .pak file library and CLI in rust
-repath-studio	0.4.27	repath-studio			Cross-platform vector graphics editor, that combines procedural tooling with tra
+repath-studio	0.4.28	repath-studio			Cross-platform vector graphics editor, that combines procedural tooling with tra
 repgrep	0.16.1	repgrep			Interactive replacer for ripgrep that makes it easy to find and replace across f
 replace	2.24	replace			Tool to replace verbatim strings
 replace-secret		replace-secret			Replace a string in one file with a secret from a second file
@@ -16601,7 +16597,7 @@ replibyte	0.10.0	replibyte			Seed your development database with real data
 replxx	0.0.4	replxx			Readline and libedit replacement that supports UTF-8, syntax highlighting, hints
 repocheck	1.0.0	repocheck			Check the status of code repositories under a root directory
 repomix	1.15.0	repomix			Tool to pack repository contents to single file for AI consumption
-reposilite	3.6.4	Reposilite			Lightweight and easy-to-use repository management software dedicated for the Mav
+reposilite	3.6.6	Reposilite			Lightweight and easy-to-use repository management software dedicated for the Mav
 reposurgeon	5.3	reposurgeon			Tool for editing version-control repository history
 repren	1.0.2	repren			Simple but flexible command-line tool for rewriting file contents
 reprepro	5.4.8	reprepro			Debian package repository producer
@@ -16911,7 +16907,7 @@ rot8	1.0.0	rot8			Screen rotation daemon for X11 and wlroots
 rotonda	0.5.0	rotonda			Composable, programmable BGP Engine
 rotp	1.04	remnants-of-the-precursors			Open-source modernization of the 1993 classic "Master of Orion", written in Java
 round	0.0.2	round			CLI tool for rounding images
-roundcube	1.7.5	roundcube			Open Source Webmail Software
+roundcube	1.7.6	roundcube			Open Source Webmail Software
 rounded-mgenplus	20150602	rounded-mgenplus			Japanese font based on Rounded M+ and Noto Sans Japanese
 roundup	0.0.6	roundup			Unit testing tool for running test plans which are written in any POSIX shell
 route-detect	0.8.0	route-detect			Find authentication (authn) and authorization (authz) security bugs in web appli
@@ -17114,7 +17110,7 @@ rustormy	0.5.2	rustormy			Minimal neofetch-like weather CLI
 rustplayer	1.1.2-unstable-2024-07-14	rustplayer			Local audio player and network m3u8 radio player using a terminal interface
 rustpython	0.5.0	rustpython			Python 3 interpreter in written Rust
 rustscan	2.4.1	rustscan			Faster Nmap Scanning with Rust
-rustup	1.29.2	rustup			Rust toolchain installer
+rustup	1.29.3	rustup			Rust toolchain installer
 rustup-toolchain-install-master	1.12.0	rustup-toolchain-install-master			Install a rustc master toolchain usable from rustup
 rustus	1.1.3	rustus			TUS protocol implementation in Rust
 rusty-bash	1.2.2	rusty-bash			Bash written with Rust, a.k.a. sushi shell
@@ -17214,7 +17210,7 @@ salt-lint	0.9.2	salt-lint			Command-line utility that checks for best practices 
 salut	2022-12-17	salut-unstable			Sleek notification daemon for Wayland
 sam-ba	3.5	sam-ba			Programming tools for Atmel SAM3/7/9 ARM-based microcontrollers
 saman_ttf	1.001	saman_ttf			Medium contrast sans serif font for web use
-samba	4.23.10	samba			Standard Windows interoperability suite of programs for Linux and Unix
+samba	4.25.1	samba			Standard Windows interoperability suite of programs for Linux and Unix
 sambamba	1.0.1	sambamba			SAM/BAM processing tool
 samblaster	0.1.26	samblaster			Tool for marking duplicates and extracting discordant/split reads from SAM/BAM f
 samdump2	3.0.0	samdump2			Dump password hashes from a Windows NT/2k/XP installation
@@ -17565,7 +17561,7 @@ serverpod_cli	3.4.8	serverpod_cli			Command line tools for Serverpod
 serverspec	2.42.2	serverspec			RSpec tests for your servers configured by CFEngine, Puppet, Ansible, Itamae or 
 service-wrapper	19.04	service-wrapper			Convenient wrapper for the systemctl commands, borrow from Ubuntu
 serviio	2.4	serviio			UPnP Media Streaming Server
-servo	0.7.0	servo			Embeddable, independent, memory-safe, modular, parallel web rendering engine
+servo	0.8.0	servo			Embeddable, independent, memory-safe, modular, parallel web rendering engine
 sesh	2.26.2	sesh			Smart session manager for the terminal
 seshat	0.100	seshat			Roman body font designed for main text by Sora Sagano
 session-desktop	1.18.0	session-desktop			Onion routing based messenger
@@ -17755,7 +17751,7 @@ siglo	0.9.9	siglo	com.github.theironrobin.siglo	/nix/store/v4m31vvdqsfx38widwiwr
 sigma-cli	3.0.2	sigma-cli			Sigma command line interface
 signal-backup-deduplicator	0-unstable-2024-05-24	signal-backup-deduplicator			Generate chunked backups for Signal messages
 signal-cli	0.14.7	signal-cli			Command-line and dbus interface for communicating with the Signal messaging serv
-signal-desktop	8.31.0	signal-desktop	signal	/nix/store/19jipyx2p00mp0p9gw9iw58j05npihs7-signal-desktop-8.24.0/share/icons/hicolor/48x48/apps/signal-desktop.png	Private, simple, and secure messenger
+signal-desktop	8.32.0	signal-desktop	signal	/nix/store/19jipyx2p00mp0p9gw9iw58j05npihs7-signal-desktop-8.24.0/share/icons/hicolor/48x48/apps/signal-desktop.png	Private, simple, and secure messenger
 signal-export	3.8.3	signal-export			Export your Signal chats to markdown files with attachments
 signalbackup-tools	20260511	signalbackup-tools			Tool to work with Signal Backup files
 signaturepdf	1.9.2	signaturepdf			Web software for signing PDFs and also organize pages, edit metadata and compres
@@ -17994,7 +17990,7 @@ smuxi	2023-07-01	smuxi-unstable			irssi-inspired, detachable, cross-platform, mu
 sn-pro	1.5.0	sn-pro			SN Pro Font Family
 sn0int	0.26.1	sn0int			Semi-automatic OSINT framework and package manager
 snabb	2024.08	snabb			Simple and fast packet networking toolkit
-snac2	2.96	snac2			Simple, minimalistic ActivityPub instance (2.x, C)
+snac2	2.97	snac2			Simple, minimalistic ActivityPub instance (2.x, C)
 snagboot	2.4	snagboot			Generic recovery and reflashing tool for embedded platforms
 snake4	1.0.14	snake4			Game starring a fruit-eating snake
 snakefmt	1.1.0	snakefmt			Uncompromising Snakemake code formatter
@@ -18020,7 +18016,7 @@ snes9x	1.63	snes9x			Super Nintendo Entertainment System (SNES) emulator, X11 ve
 snes9x-gtk	1.63	snes9x-gtk			Super Nintendo Entertainment System (SNES) emulator, GTK version
 snet	2021-11-26	snet-unstable			Transparent proxy works on linux desktop, MacOS, router
 sng	1.1.1	sng			Minilanguage designed to represent the entire contents of a PNG file in an edita
-sngrep	1.8.4	sngrep			Tool for displaying SIP calls message flows from terminal
+sngrep	1.9.0	sngrep			Tool for displaying SIP calls message flows from terminal
 snicat	0.0.1-unstable-2024-09-05	snicat			TLS & SNI aware netcat
 snid	0.4.0	snid			Zero config TLS proxy server that uses SNI
 sniffglue	0.16.2	sniffglue			Secure multithreaded packet sniffer
@@ -18103,7 +18099,7 @@ softflowd	1.1.1	softflowd			Flow-based network traffic analyser capable of Cisco
 softhsm	2.7.0	softhsm			Cryptographic store accessible through a PKCS #11 interface
 softmaker-office	2024.1234	softmaker-office			Office suite with a word processor, spreadsheet and presentation program
 softmaker-office-nx	1234	softmaker-office-nx			Office suite with a word processor, spreadsheet and presentation program
-sogo	5.12.12	sogo			Very fast and scalable modern collaboration suite (groupware)
+sogo	5.12.13	sogo			Very fast and scalable modern collaboration suite (groupware)
 soi	0.1.2	soi			Physics-based puzzle game
 soil	2020-01-04	soil-unstable			Simple OpenGL Image Library
 sointu	0.6.0	sointu			Fork of 4klang that can target 386, amd64 and WebAssembly
@@ -18266,7 +18262,7 @@ speedtest	1.4.0	speedtest	xyz.ketok.Speedtest	/nix/store/gflqijsk25anlpg6dcmpvb8
 speedtest-cli	2.1.3	speedtest-cli			Command line interface for testing internet bandwidth using speedtest.net
 speedtest-go	1.7.10	speedtest-go			CLI and Go API to Test Internet Speed using speedtest.net
 speedtest-rs	0.2.0	speedtest-rs			Command line internet speedtest tool written in rust
-speedtest-tracker	1.14.1	speedtest-tracker			Speedtest Tracker is a self-hosted application that monitors the performance and
+speedtest-tracker	1.15.1	speedtest-tracker			Speedtest Tracker is a self-hosted application that monitors the performance and
 speex	1.2.1	speex			Open Source/Free Software patent-free audio compression format designed for spee
 speexdsp	1.2.1	speexdsp			Open Source/Free Software patent-free audio compression format designed for spee
 spek	0.8.5	spek	spek	/nix/store/vwv1mxpv5v8423clf6709m0mkhw6fx58-spek-0.8.5/share/icons/hicolor/48x48/apps/spek.png	Analyse your audio files by showing their spectrogram
@@ -18591,7 +18587,7 @@ steghide	0.5.1.1	steghide			Open source steganography program
 stegseek	0.6	stegseek			Tool to crack steganography
 stegsolve	1.3.1	stegsolve	stegsolve		Steganographic image analyzer, solver and data extractor for challanges
 stella	7.0c	stella	stella	/nix/store/0qbw3rm07v30n6k3nky158r8z0p0akna-stella-7.0c/share/icons/hicolor/48x48/apps/stella.png	Open-source Atari 2600 VCS emulator
-stellar-core	27.0.0	stellar-core			Reference peer-to-peer agent that manages the Stellar network
+stellar-core	30.0.0	stellar-core			Reference peer-to-peer agent that manages the Stellar network
 stellarium	26.1	stellarium	org.stellarium.Stellarium	/nix/store/qi790905n9gkzs9c4azvdwyw4dfh9hsf-stellarium-26.2/share/icons/hicolor/48x48/apps/stellarium.png	Free open-source planetarium
 stellarsolver	2.7	stellarsolver			Astrometric plate solving library
 stenc	2.0.1	stenc			SCSI Tape Encryption Manager
@@ -18898,7 +18894,6 @@ swego	1.14	swego			Simple Webserver
 swell-foop	50.0	swell-foop	org.gnome.SwellFoop	/nix/store/cmf4ghjfj8q7dxm8iynd3kia5v4qh5pr-swell-foop-50.0/share/icons/hicolor/48x48/apps/org.gnome.SwellFoop.png	Puzzle game, previously known as Same GNOME
 swfmill	0.3.6	swfmill			Xml2swf and swf2xml processor with import functionalities
 swgp-go	1.10.0	swgp-go			Simple WireGuard proxy with minimal overhead for WireGuard traffic
-swh		swh			Software Heritage command-line client
 swh_lv2	1.0.16	swh-lv2			LV2 version of Steve Harris' SWH plugins
 swi-prolog	9.2.9	swi-prolog			Prolog compiler and interpreter
 swift	5.10.1	swift-wrapper			Swift Programming Language
@@ -19085,7 +19080,7 @@ taler-wallet-core	1.5.10	taler-wallet-core			CLI wallet for GNU Taler written in
 talhelper	3.1.15	talhelper			Help creating Talos kubernetes cluster
 tali	40.9	tali	org.gnome.Tali	/nix/store/bdywdfs6m4cwx66qd9p7qgpwfiq9nvlz-tali-40.9/share/icons/hicolor/scalable/apps/org.gnome.Tali.svg	Sort of poker with dice and less money
 talkfilters	2.3.8	talkfilters			Converts English text into text that mimics a stereotyped or humorous dialect
-talloc	2.4.4	talloc			Hierarchical pool based memory allocator with destructors
+talloc	2.5.0	talloc			Hierarchical pool based memory allocator with destructors
 talm	0.23.1	talm			Manage Talos Linux the GitOps way
 talos-pilot	0.1.9	talos-pilot			Talos TUI for real-time node monitoring, log streaming, etcd health, and diagnos
 talosctl	1.13.11	talosctl			CLI for out-of-band management of Kubernetes nodes created by Talos
@@ -19097,7 +19092,7 @@ tamsyn	1.11	tamsyn-font			Monospace bitmap font aimed at programmers
 tamzen	1.11.6	tamzen-font			Bitmapped programming font based on Tamsyn
 tana	1.515.0	tana			Intelligent all-in-one workspace
 tandem-aligner	0.1	TandemAligner			Parameter-free algorithm for sequence alignment
-tandoor-recipes	2.6.13	python3.13-tandoor-recipes			Application for managing recipes, planning meals, building shopping lists and mu
+tandoor-recipes	2.7.2	python3.13-tandoor-recipes			Application for managing recipes, planning meals, building shopping lists and mu
 tang	15	tang			Server for binding data to network presence
 tangara-cli	0.4.3	tangara-cli			Command-line tool for managing the Cool Tech Zone Tangara
 tangara-companion	0.5.2	tangara-companion	tangara-companion	/nix/store/k56ddw0di66z3i6fhhkbdmgzxb4n1bly-tangara-companion-0.5.2/share/icons/hicolor/scalable/apps/tangara-companion.svg	Companion app for Cool Tech Zone Tangara
@@ -19203,7 +19198,7 @@ tea	0.14.0	tea			Gitea official CLI client
 tea-dash	0.3.7	tea-dash			gh-dash-style terminal dashboard (TUI) for Gitea & Forgejo — PRs, issues, notifi
 tealdeer	1.8.1	tealdeer			Very fast implementation of tldr in Rust
 teamocil	1.4.2	teamocil			Simple tool used to automatically create windows and panes in tmux with YAML fil
-teams-for-linux	2.25.0	teams-for-linux	teams-for-linux	/nix/store/w9q1jd8i3b2rpb5f710pbh03vlx1c86v-teams-for-linux-2.17.1/share/icons/hicolor/48x48/apps/teams-for-linux.png	Unofficial Microsoft Teams client for Linux
+teams-for-linux	2.29.0	teams-for-linux	teams-for-linux	/nix/store/w9q1jd8i3b2rpb5f710pbh03vlx1c86v-teams-for-linux-2.17.1/share/icons/hicolor/48x48/apps/teams-for-linux.png	Unofficial Microsoft Teams client for Linux
 teamspeak6-client	6.0.0-beta4	teamspeak6-client			TeamSpeak voice communication tool (beta version)
 teamspeak_server	3.13.7	teamspeak-server			TeamSpeak voice communication server
 teamviewer	15.74.3	teamviewer			Desktop sharing application, providing remote support and online meetings
@@ -19342,7 +19337,7 @@ tesh	0.3.2	python3.13-tesh
 tesla_auth	0.15.0	tesla_auth			Securely generate API tokens for third-party access to your Tesla
 tessen	2.2.3	tessen			Interactive menu to autotype and copy Pass and GoPass data
 tessera	0.10.2	tessera			Enterprise Implementation of Quorum's transaction manager
-tesseract	5.5.3	tesseract			OCR engine
+tesseract	5.5.4	tesseract			OCR engine
 tesseract3	3.05.02	tesseract			OCR engine
 tesseract4	4.1.3	tesseract			OCR engine
 test-drive	0.5.0	test-drive			Procedural Fortran testing framework
@@ -19353,13 +19348,13 @@ testssl	3.2.3	testssl.sh			CLI tool to check a server's TLS/SSL capabilities
 tetex	3.0	tetex			Full-featured (La)TeX distribution
 tetgen	1.6.0	tetgen			Quality Tetrahedral Mesh Generator and 3D Delaunay Triangulator
 tetgen_1_4	1.4.3	tetgen			Quality Tetrahedral Mesh Generator and 3D Delaunay Triangulator
-tetragon	1.6.0	tetragon			Real-time, eBPF-based Security Observability and Runtime Enforcement tool
+tetragon	1.7.0	tetragon			Real-time, eBPF-based Security Observability and Runtime Enforcement tool
 tetraproc	0.10.0	tetraproc			Converts the A-format signals from a tetrahedral Ambisonic microphone into B-for
 tetrd	1.0.4	tetrd			Share your internet connection from your device to your PC and vice versa throug
 tetrio-desktop	10	tetrio-desktop			Desktop client for TETR.IO, an online stacker game
 tetris	0.1.6	tetris			
 tev	2.12.0	tev	tev	/nix/store/kyraz1dkdw3azay549afsgxgkbzcv1n4-tev-2.14.0/share/icons/hicolor/48x48/apps/tev.png	High dynamic range (HDR) image viewer for people who care about colors
-tevent	0.17.1	tevent			Event system based on the talloc memory management library
+tevent	0.17.2	tevent			Event system based on the talloc memory management library
 tewisay	0-unstable-2022-11-04	tewisay			Cowsay replacement with unicode and partial ansi escape support
 tex-fmt	0.5.7	tex-fmt			LaTeX formatter written in Rust
 texi2html	5.0	texi2html			Perl script which converts Texinfo source files to HTML output
@@ -19368,7 +19363,7 @@ texinfo	7.2	texinfo			GNU documentation system
 texinfoInteractive	7.2	texinfo-interactive			GNU documentation system
 texlab	5.25.1	texlab			Implementation of the Language Server Protocol for LaTeX
 texliveBasic	2025-r78234-final-env	texlive			
-texlyre	0.13.0	texlyre			Local-first LaTeX & Typst web editor with real-time collaboration & offline supp
+texlyre	0.14.1	texlyre			Local-first LaTeX & Typst web editor with real-time collaboration & offline supp
 texmacs	2.1.4	texmacs	texmacs	/nix/store/07pvarwhb5nm7cbikdacy9jks32q5zz7-texmacs-2.1.5/share/icons/hicolor/48x48/apps/TeXmacs.png	WYSIWYW editing platform with special features for scientists
 texmaker	6.0.1	texmaker	texmaker	/nix/store/23x6w3fyfwvxb6qvd17bfqirf4nglxii-texmaker-6.0.2/share/pixmaps/texmaker.png	TeX and LaTeX editor
 texpresso	0.1-unstable-2026-04-02	texpresso			Live rendering and error reporting for LaTeX
@@ -19481,8 +19476,8 @@ thunar-shares-plugin	0.5.0	thunar-shares-plugin			Thunar plugin providing quick 
 thunar-vcs-plugin	0.4.0	thunar-vcs-plugin		/nix/store/ikymw5pafm0xlygm5ibc0xsg2s4xqiar-thunar-vcs-plugin-0.4.0/share/icons/hicolor/48x48/apps/git.png	Thunar plugin providing support for Subversion and Git
 thunar-volman	4.20.0	thunar-volman	thunar-volman-settings	/nix/store/mw90v2ywdva5c9i65kj7wfahy3qljf8q-thunar-volman-4.20.0/share/icons/hicolor/48x48/apps/org.xfce.volman.png	Thunar extension for automatic management of removable drives and media
 thunderbird	159.0	thunderbird			Full-featured e-mail client
-thunderbird-153	153.5.1esr	thunderbird			Full-featured e-mail client
-thunderbird-bin	158.0.1	thunderbird-bin			Mozilla Thunderbird, a full-featured email client (binary package)
+thunderbird-153	153.6.0esr	thunderbird			Full-featured e-mail client
+thunderbird-bin	159.0	thunderbird-bin			Mozilla Thunderbird, a full-featured email client (binary package)
 thunderbird-cli	1.0.2	thunderbird-cli			Low-level CLI to manage Mozilla Thunderbird email from the shell
 thunderbird-cli-bridge	1.0.2	thunderbird-cli-bridge			HTTP/WebSocket bridge daemon between thunderbird-cli (or any HTTP client) and th
 thunderbird-cli-mcp	1.0.2	thunderbird-cli-mcp			MCP server that gives full access to your email through Mozilla Thunderbird
@@ -19589,7 +19584,7 @@ tinyscheme	1.42	tinyscheme			Lightweight Scheme implementation
 tinysparql	3.11.1	tinysparql			Desktop-neutral user information store, search tool and indexer
 tinyssh	20260401	tinyssh			Minimalistic SSH server
 tinystatus	0-unstable-2025-03-27	tinystatus			Static HTML status page generator written in pure shell
-tinywl	0.20.0	tinywl			A "minimum viable product" Wayland compositor based on wlroots
+tinywl	0.20.2	tinywl			A "minimum viable product" Wayland compositor based on wlroots
 tinywm	1.1-unstable-2014-04-22	tinywm			Tiny window manager for X11
 tinyxml	2.6.2	tinyxml			Simple, small, C++ XML parser that can be easily integrating into other programs
 tinyxml-2	11.0.0	tinyxml2			Simple, small, efficient, C++ XML parser
@@ -19739,7 +19734,7 @@ topicctl	2.0.2	topicctl			Tool for easy, declarative management of Kafka topics
 toppler	1.3	toppler			Jump and run game, reimplementation of Tower Toppler/Nebulus
 topydo	0.16	topydo			Cli todo application compatible with the todo.txt format
 tor	0.4.9.16	tor			Anonymizing overlay network
-tor-browser	16.0	tor-browser	tor-browser	/nix/store/psynq3rn2zd0wr57z6a9v97i0hcy76sm-tor-browser-15.0.20/share/icons/hicolor/48x48/apps/tor-browser.png	Privacy-focused browser routing traffic through the Tor network
+tor-browser	16.0.1	tor-browser	tor-browser	/nix/store/psynq3rn2zd0wr57z6a9v97i0hcy76sm-tor-browser-15.0.20/share/icons/hicolor/48x48/apps/tor-browser.png	Privacy-focused browser routing traffic through the Tor network
 torcs	1.3.9	torcs			Car racing game
 torcs-without-data	1.3.9	torcs-without-data			Car racing game (does not come with the game data required to run)
 torctl	0.5.7	torctl			Script to redirect all traffic through tor network including dns queries for ano
@@ -20104,7 +20099,7 @@ typst-live	0.8.0	typst-live			Hot reloading for your typst files
 typstwriter	0.3	typstwriter			Integrated editor for the typst typesetting system
 typstyle	0.14.4	typstyle			Format your typst source code
 typtea	0.1.6	typtea			Terminal-based typing speed test with multi-language support
-tyrolienne	1.2.4	tyrolienne	net.uku3lig.tyrolienne	/nix/store/ghvbxxz4lz9swqzpi8xclqywf2fif3v9-tyrolienne-1.2.2/share/icons/hicolor/48x48/apps/net.uku3lig.tyrolienne.png	Simple tool to convert, upload, and embed videos to Zipline
+tyrolienne	1.2.5	tyrolienne	net.uku3lig.tyrolienne	/nix/store/ghvbxxz4lz9swqzpi8xclqywf2fif3v9-tyrolienne-1.2.2/share/icons/hicolor/48x48/apps/net.uku3lig.tyrolienne.png	Simple tool to convert, upload, and embed videos to Zipline
 tyson	0.1.1-unstable-2024-04-10	tyson			TypeScript as a configuration language
 tytools	0.9.9	tytools	tycommander;tyuploader	/nix/store/566li88gafyssyf6vf7ivh80x5jg30wa-tytools-0.9.9/share/icons/hicolor/512x512/apps/tycommander.png	Collection of tools to manage Teensy boards
 tz	0.8.0	tz			Time zone helper
@@ -20189,7 +20184,7 @@ ueberzugpp	2.9.10	ueberzugpp			Drop in replacement for ueberzug written in C++
 uefi-firmware-parser	1.16	uefi-firmware-parser			Tool for parsing, extracting, and recreating UEFI firmware volumes
 uefi-run	0.6.1	uefi-run			Directly run UEFI applications in qemu
 uefisettings	0-unstable-2025-07-29	uefisettings			CLI tool to read/get/extract and write/change/modify BIOS/UEFI settings
-uefitool		uefitool-A73	uefitool	/nix/store/3ihm0zg94hclmf75d5rbwza9dn5iwnka-uefitool-A75/share/icons/hicolor/64x64/apps/uefitool.png	UEFI firmware image viewer and editor
+uefitool		uefitool-A76	uefitool	/nix/store/3ihm0zg94hclmf75d5rbwza9dn5iwnka-uefitool-A75/share/icons/hicolor/64x64/apps/uefitool.png	UEFI firmware image viewer and editor
 uemacs	4.0-unstable-2018-07-19	uemacs			Linus Torvalds's random version of microemacs with his personal modifications
 ueransim	3.2.8	ueransim			Open source 5G UE and RAN (gNodeB) implementation
 uesave	0.7.1	uesave			Reading and writing Unreal Engine save files (commonly referred to as GVAS)
@@ -20221,7 +20216,7 @@ uhhyou-plugins	0.70.0	uhhyou-plugins			Collection of VST3 audio synthesis and pr
 uhhyou-plugins-juce	0.1.0	uhhyou-plugins-juce			A collection of VST3 effect plugins
 uhk-agent	10.0.0	uhk-agent			Configuration application of the Ultimate Hacking Keyboard
 uhk-udev-rules	10.0.0	uhk-udev-rules			udev rules for UHK keyboards from https://ultimatehackingkeyboard.com
-uhttpd	0-unstable-2025-12-24	uhttpd			Tiny HTTP server from OpenWrt project
+uhttpd	0-unstable-2026-10-19	uhttpd			Tiny HTTP server from OpenWrt project
 uhttpmock_1_0	0.11.0	uhttpmock			Project for mocking web service APIs which use HTTP or HTTPS
 uhub	2019-12-13	uhub-unstable			High performance peer-to-peer hub for the ADC network
 uhubctl	2.6.0	uhubctl			Utility to control USB power per-port on smart USB hubs
@@ -20249,7 +20244,6 @@ ultrastar-creator	2019-04-23	ultrastar-creator			Ultrastar karaoke song creation
 ultrastar-manager	2019-04-23	ultrastar-manager			Ultrastar karaoke song manager
 ultrastardx	2026.6.0	ultrastardx	ultrastardx		Free and open source karaoke game
 umami	3.4.1	umami			Simple, easy to use, self-hosted web analytics solution
-umap	3.7.3	umap			UMap lets you create maps with OpenStreetMap layers in a minute and embed them i
 umka-lang	1.5.6	umka-lang			Statically typed embeddable scripting language
 umlet	15.1.0	umlet			Free, open-source UML tool with a simple user interface
 umoci	0.6.0	umoci			Modifies Open Container images
@@ -20278,7 +20272,7 @@ undefined-medium	1.3	undefined-medium			Pixel grid-based monospace typeface
 undercut-f1	3.4.32	undercut-f1			Open-source F1 Live Timing TUI client with replay, driver tracker and team-radio
 undertime	4.3.1	undertime			Pick a meeting time across timezones from the commandline
 undervolt	0.4.0	undervolt			Program for undervolting Intel CPUs on Linux
-undetected-chromedriver	157.0.8103.38	undetected-chromedriver			Custom Selenium ChromeDriver that passes all bot mitigation systems
+undetected-chromedriver	157.0.8103.78	undetected-chromedriver			Custom Selenium ChromeDriver that passes all bot mitigation systems
 undistract-me	0-unstable-2020-08-09	undistract-me			Notifies you when long-running terminal commands complete
 undmg	1.1.0-unstable-2024-08-02	undmg			Extract a DMG file
 undock	0.13.0	undock			Extract contents of a container image in a local folder
@@ -20291,7 +20285,7 @@ unfs3	0.11.0	unfs3			User-space NFSv3 file system server
 unftp	0.15.2	unftp			FTP(S) server with a couple of twists written in Rust
 unfurl	0.4.3	unfurl			Pull out bits of URLs provided on stdin
 ungit	1.5.30	ungit			Git made easy
-ungoogled-chromium	156.0.8078.79	ungoogled-chromium			Open source web browser from Google, with dependencies on Google web services re
+ungoogled-chromium	157.0.8103.50	ungoogled-chromium			Open source web browser from Google, with dependencies on Google web services re
 unhide	20240510	unhide			Forensic tool to find hidden processes and TCP/UDP ports by rootkits/LKMs
 unhide-gui	20240510	unhide-gui			Forensic tool to find hidden processes and TCP/UDP ports by rootkits, LKMs or ot
 uni	2.9.0	uni			Query the Unicode database from the commandline, with good support for emojis
@@ -20407,7 +20401,7 @@ upsies	2026.05.14	upsies			Toolkit for collecting, generating, normalizing and s
 upspin	2023-02-05	upspin-unstable			Global name space for storing data akin to a filesystem
 upsun	5.11.1	upsun			Unified tool for managing your Upsun services from the command line
 upterm	0.24.0	upterm			Secure terminal-session sharing
-uptime-kuma	2.5.9	uptime-kuma			Fancy self-hosted monitoring tool
+uptime-kuma	2.5.10	uptime-kuma			Fancy self-hosted monitoring tool
 uptimed	0.4.7	uptimed			Uptime record daemon
 upx	5.1.1	upx			Ultimate Packer for eXecutables
 uqm	0.8.0	uqm			Remake of Star Control II
@@ -20459,7 +20453,7 @@ usbrip	0-unstable-2021-07-02	usbrip			Tool to track the history of USB events
 usbsdmux	25.8	usbsdmux			Control software for the LXA USB-SD-Mux
 usbtop	1.0	usbtop			Top utility that shows an estimated instantaneous bandwidth on USB buses and dev
 usbutils	019	usbutils			Tools for working with USB devices, such as lsusb
-usbvfiod	0.3.0	usbvfiod			A tool for USB device pass-through using the vfio-user protocol.
+usbvfiod	0.4.0	usbvfiod			A tool for USB device pass-through using the vfio-user protocol.
 usbview	3.1	usbview	usbview	/nix/store/8nasydmvadm0gshw0yqinxl05m50nlr9-usbview-3.1/share/icons/hicolor/48x48/apps/usbview.png	USB viewer for Linux
 useOldCXXAbi		use-old-cxx-abi-hook			
 userborn	0.5.0	userborn			Declaratively bear (manage) Linux users and groups
@@ -20578,8 +20572,8 @@ vault-tasks	0.13.0	vault-tasks			TUI Markdown Task Manager
 vault-unseal	1.0.0	vault-unseal			Auto-unseal utility for Hashicorp Vault
 vaultenv	0.19.0	vaultenv			Runs processes with secrets from HashiCorp Vault
 vaults	0.10.0	vaults			GTK frontend for encrypted vaults supporting gocryptfs and CryFS for encryption
-vaultwarden	1.37.4	vaultwarden			Unofficial Bitwarden compatible server written in Rust
-vaultwarden-webvault	2026.7.0+0	vaultwarden-webvault			Integrates the web vault into vaultwarden
+vaultwarden	1.37.5	vaultwarden			Unofficial Bitwarden compatible server written in Rust
+vaultwarden-webvault	2026.10.1+0	vaultwarden-webvault			Integrates the web vault into vaultwarden
 vazir-code-font	1.1.2	vazir-code-font			Persian (farsi) Monospaced Font for coding
 vazir-fonts	33.003	vazir-fonts			Persian (Farsi) Font - قلم (فونت) فارسی وزیر
 vbam	2.2.3	visualboyadvance-m	visualboyadvance-m	/nix/store/rsddyg9icygr6dy95c00jkar4ylxg2na-visualboyadvance-m-2.2.3/share/icons/hicolor/48x48/apps/visualboyadvance-m.png	Merge of the original Visual Boy Advance forks
@@ -20629,12 +20623,12 @@ velero	1.18.0	velero			Utility for managing disaster recovery, specifically for 
 velocity	3.5.0-unstable-2026-05-09	velocity			Modern, next-generation Minecraft server proxy
 veloren	0.18.0	veloren	net.veloren.veloren	/nix/store/hxwx14151wiikfdwhs71zqb3if8r2c21-veloren-0.18.0/share/icons/hicolor/256x256/apps/net.veloren.veloren.png	Open world, open source voxel RPG
 venator	1.0.4	venator	Venator	/nix/store/kz6j4p6q1j2yxchl8crhvnq2cnindka9-venator-1.0.4/share/icons/hicolor/128x128/apps/venator.png	Desktop app for viewing logs and traces from OpenTelemetry and the Rust tracing 
-vencord	1.15.13	vencord			Cutest Discord client mod
+vencord	1.15.16	vencord			Cutest Discord client mod
 vendir	0.45.3	vendir			CLI tool to vendor portions of git repos, github releases, helm charts, docker i
 venera	1.6.3	venera			Comic reader that support reading local and network comics
 venta	0.7.1	venta			Gtk theme based on windows 10 style
 vep	110	perl5.42.3-vep			Annotate genetics variants based on genes, transcripts, and protein sequence, as
-veracrypt	1.26.30	veracrypt			Free Open-Source filesystem on-the-fly encryption
+veracrypt	1.26.31	veracrypt			Free Open-Source filesystem on-the-fly encryption
 verapdf	1.28.2	verapdf			Command line and GUI industry supported PDF/A and PDF/UA Validation
 verbiste	0.1.49	verbiste			French and Italian verb conjugator
 vercel-pkg	5.8.1	pkg			Package your Node.js project into an executable
@@ -20684,7 +20678,7 @@ viceroy	0.16.5	viceroy			Provides local testing for developers working with Comp
 vicinae	0.23.2	vicinae	vicinae-url-handler;vicinae	/nix/store/212426p3pdbfsf51may31zgdgkkjcl0q-vicinae-0.27.1/share/icons/hicolor/512x512/apps/vicinae.png	Native, fast, extensible launcher for the desktop
 victor-mono	1.5.6	victor-mono			Free programming font with cursive italics and ligatures
 victorialogs	1.52.1	VictoriaLogs			User friendly log database from VictoriaMetrics
-victoriametrics	1.155.0	VictoriaMetrics			Fast, cost-effective and scalable time series database, long-term remote storage
+victoriametrics	1.156.0	VictoriaMetrics			Fast, cost-effective and scalable time series database, long-term remote storage
 victoriatraces	0.12.0	VictoriaTraces			Fast open-source observability solution for distributed traces
 vid-stab	1.1.1-unstable-2025-08-21	vid.stab			Video stabilization library
 vidcutter	6.0.5.3	vidcutter	com.ozmartians.VidCutter	/nix/store/ij91hkzw6j6b8hvhl0kcmpnyk1mnmjji-vidcutter-6.0.5.3/share/icons/hicolor/48x48/apps/com.ozmartians.VidCutter.png	Modern yet simple multi-platform video cutter and joiner
@@ -20700,7 +20694,7 @@ vifm	0.14.3	vifm	vifm	/nix/store/wd2yz4zr4zpy6600pvzlf9j1179agiwi-vifm-0.14.4/sh
 vifm-full	0.14.3	vifm-full	vifm	/nix/store/c01krc213z0jrg41wpps7l8gik6af5ks-vifm-full-0.14.4/share/icons/hicolor/128x128/apps/vifm.png	Vi-like file manager; Includes support for optional features
 vigra	1.12.3	vigra			Novel computer vision C++ library with customizable algorithms and data structur
 viking	1.11	viking	viking	/nix/store/pxib96g42dzzkr1g6svk3hdnispxi44b-viking-1.11/share/icons/hicolor/48x48/apps/viking.png	GPS data editor and analyzer
-vikunja	2.7.1	vikunja			Todo-app to organize your life
+vikunja	2.8.0	vikunja			Todo-app to organize your life
 vikunja-desktop	2.3.0	vikunja-desktop		/nix/store/g1ims9czfgjirm71c76z4lv95pr0x1jd-vikunja-desktop-2.3.0/share/icons/hicolor/256x256/apps/vikunja-desktop.png	Desktop App of the Vikunja to-do list app
 villain	2.2.1	villain			High level stage 0/1 C2 framework that can handle multiple TCP socket & HoaxShel
 vim	9.2.1252	vim	gvim;vim	/nix/store/rw9gjjkfmgmcmpbi61nprm5nv68dh33g-vim-9.2.0782/share/icons/hicolor/48x48/apps/gvim.png	Most popular clone of the VI editor
@@ -20727,7 +20721,7 @@ vimv-rs	3.1.0	vimv-rs			Command line utility for batch-renaming files
 vimwiki-markdown	0.4.1	vimwiki-markdown			Vimwiki markdown plugin
 vinegar	1.9.3	vinegar	org.vinegarhq.Vinegar	/nix/store/rpr2iicbz3jh66r50nmgqcq29x0jjnsr-vinegar-1.9.3/share/icons/hicolor/scalable/apps/org.vinegarhq.Vinegar.studio.svg	Open-source, minimal, configurable, fast bootstrapper for running Roblox Studio 
 vintagestory	1.22.7	vintagestory			In-development indie sandbox game about innovation and exploration
-vinyl-cache	9.0.1	vinyl-cache			Web application accelerator also known as a caching HTTP reverse proxy
+vinyl-cache	9.0.2	vinyl-cache			Web application accelerator also known as a caching HTTP reverse proxy
 violet	0.5.4	violet			Lightweight STUN/TURN server
 vips	8.18.3	vips			Image processing system for large images
 vips_8_17	8.17.3	vips			Image processing system for large images
@@ -20767,7 +20761,7 @@ vitejs	7.3.1	vitejs			Frontend tooling for NodeJS
 vitess	23.0.3	vitess			Database clustering system for horizontal scaling of MySQL
 vitetris	0.59.1	vitetris	vitetris		Terminal-based Tetris clone by Victor Nilsson
 viu	1.6.1	viu			Command-line application to view images from the terminal written in Rust
-vivaldi	8.2.4133.96	vivaldi			Browser for our Friends, powerful and personal
+vivaldi	8.3.4191.35	vivaldi			Browser for our Friends, powerful and personal
 vivaldi-ffmpeg-codecs	123075	chromium-codecs-ffmpeg-extra			Additional support for proprietary codecs for Vivaldi and other chromium based t
 vivictpp	1.3.2	vivictpp			Easy to use tool for subjective comparison of the visual quality of different en
 vivid	0.11.1	vivid			Generator for LS_COLORS with support for multiple color themes
@@ -20861,16 +20855,16 @@ vrpn	07.36	vrpn			Virtual Reality Peripheral Network
 vrrtest	2.1.0	vrrtest			Tool testing variable refresh rates
 vsc-leetcode-cli	2021-04-11	vsc-leetcode-cli-unstable			CLI tool for leetcode.com
 vsce	3.9.1	vsce			Visual Studio Code Extension Manager
-vscode	1.144.0	vscode			Code editor developed by Microsoft
+vscode	1.119.0	vscode			Code editor developed by Microsoft
 vscode-css-languageserver	1.105.0	vscode-css-languageserver			CSS language server
 vscode-extension-update		vscode-extension-update			
-vscode-fhs	1.144.0	code			Wrapped variant of vscode which launches in a FHS compatible environment, should
+vscode-fhs	1.119.0	code			Wrapped variant of vscode which launches in a FHS compatible environment, should
 vscode-js-debug	1.117.0	vscode-js-debug			DAP-compatible JavaScript debugger
 vscode-json-languageserver	1.3.4	vscode-json-languageserver			JSON language server
 vscode-langservers-extracted	1.116.02821	vscode-langservers-extracted			HTML/CSS/JSON/ESLint language servers extracted from vscode
 vscode-runner	1.9.0	vscode-runner			KRunner plugin for quickly opening recent VSCode workspaces
 vscode-solidity-server	0.0.185	solidity-language-server			Language Server for solidity code
-vscode-with-extensions	1.144.0	vscode-with-extensions			Code editor developed by Microsoft
+vscode-with-extensions	1.119.0	vscode-with-extensions			Code editor developed by Microsoft
 vscodium	1.116.02821	vscodium	codium-url-handler;codium	/nix/store/kw4is6f89jv5wr8nk4gpq7i3h65p6025-vscodium-1.126.04524/share/icons/hicolor/1024x1024/apps/vscodium.png	Open source source code editor developed by Microsoft for Windows, Linux and mac
 vscodium-fhs	1.116.02821	codium			Wrapped variant of vscodium which launches in a FHS compatible environment, shou
 vsftpd	3.0.5	vsftpd			Very secure FTP daemon
@@ -21119,9 +21113,8 @@ webex	46.4.0.34752	webex			All-in-one app to call, meet, message, and get work d
 webfont-bundler	1.3.0	webfont-bundler	com.rafaelmardojai.WebfontKitGenerator	/nix/store/r6lgwkkfddnyh79mn064sigq53bxbmvv-webfont-bundler-1.3.0/share/icons/hicolor/scalable/apps/com.rafaelmardojai.WebfontKitGenerator.svg	Create @font-face kits easily
 webfs	1.21-unstable-2021-02-24	webfs			HTTP server for purely static content
 webhook	2.8.3	webhook			Incoming webhook server that executes shell commands
-webkitgtk_4_1	2.54.1+abi=4.1	webkitgtk			Web content rendering engine, GTK port
-webkitgtk_6_0	2.54.1+abi=6.0	webkitgtk			Web content rendering engine, GTK port
-weblate	2026.6.1	weblate			Web based translation tool with tight version control integration
+webkitgtk_4_1	2.54.2+abi=4.1	webkitgtk			Web content rendering engine, GTK port
+webkitgtk_6_0	2.54.2+abi=6.0	webkitgtk			Web content rendering engine, GTK port
 webmesh	0.17.1	webmesh			Simple, distributed, zero-configuration WireGuard mesh provider
 webp-pixbuf-loader	0.2.7	webp-pixbuf-loader			WebP GDK Pixbuf Loader library
 webpack-cli	6.0.1	webpack-cli			Webpack's Command Line Interface
@@ -21141,7 +21134,7 @@ webull-desktop	8.9.0	webull-desktop			Webull desktop trading application
 webwormhole	0-unstable-2023-11-15	webwormhole			Send files using peer authenticated WebRTC
 wechat	4.1.1.4	wechat			Messaging and calling app
 wechat-uos	4.1.1.4	wechat-uos			Messaging app
-weechat	4.10.2	weechat-bin-env			Fast, light and extensible chat client
+weechat	4.10.4	weechat-bin-env			Fast, light and extensible chat client
 weechat-matrix-rs	0-unstable-2025-10-09	weechat-matrix-rs			Rust plugin for WeeChat to communicate over Matrix
 weevely	4.0.2-unstable-2024-04-29	weevely			Weaponized web shell
 weggli	0.2.4	weggli			Fast and robust semantic search tool for C and C++ codebases
@@ -21243,7 +21236,7 @@ wimboot	2.9.0	wimboot			Windows Imaging Format bootloader
 wimlib	1.14.4	wimlib			Library and program to extract, create, and modify WIM files
 win-spice	0.21	win-spice			Windows SPICE Drivers
 win2xcur	0.2.1	python3.13-win2xcur			Tools that convert cursors between the Windows (*.cur, *.ani) and Xcursor format
-winbox	4.4	winbox			Graphical configuration utility for RouterOS-based devices
+winbox	4.5	winbox			Graphical configuration utility for RouterOS-based devices
 winbox3	3.43	winbox			Graphical configuration utility for RouterOS-based devices
 windmill	1.601.1	windmill			Open-source developer platform to turn scripts into workflows and UIs
 windowchef	0.5.2	windowchef			Stacking window manager that cooks windows with orders from the Waitron
@@ -21333,7 +21326,7 @@ wlr-protocols	2022-09-05	wlr-protocols-unstable			Wayland roots protocol extensi
 wlr-randr	0.5.0	wlr-randr			Xrandr clone for wlroots compositors
 wlr-which-key	1.3.0	wlr-which-key			Keymap manager for wlroots-based compositors
 wlrctl	0.2.2	wlrctl			Command line utility for miscellaneous wlroots Wayland extensions
-wlroots	0.20.0	wlroots			Modular Wayland compositor library
+wlroots	0.20.2	wlroots			Modular Wayland compositor library
 wlroots_0_19	0.19.3	wlroots			Modular Wayland compositor library
 wlsunset	0.4.0	wlsunset			Day/night gamma adjustments for Wayland
 wluma	4.10.0	wluma			Automatic brightness adjustment based on screen contents and ALS
@@ -21427,7 +21420,7 @@ writableTmpDirAsHomeHook		writable-tmpdir-as-home-hook
 write-good	1.0.8	write-good			Naive linter for English prose
 writeDarwinBundle		write-darwin-bundle			
 writedisk	1.3.0	writedisk			Small utility for writing a disk image to a USB drive
-writefreely	0.17.2	writefreely			Build a digital writing community
+writefreely	0.17.3	writefreely			Build a digital writing community
 wrk	4.2.0	wrk			HTTP benchmarking tool
 wrk2	4.0.0-e0109df	wrk2			Constant throughput, correct latency recording variant of wrk
 wrkflw	0.8.0	wrkflw			Validate and execute GitHub Actions workflows locally
@@ -21464,7 +21457,7 @@ wvkbd	0.19.4	wvkbd			On-screen keyboard for wlroots
 wvstreams	4.6.1	wvstreams			Network programming library in C++
 wwcd	2022-02-05	wwcd-unstable			What would cron do? Read crontab entries from stdin and print time of next execu
 wxGTK31	3.1.7	wxwidgets			Cross-Platform C++ GUI Library
-wxGTK32	3.2.11	wxwidgets			Cross-Platform C++ GUI Library
+wxGTK32	3.2.12	wxwidgets			Cross-Platform C++ GUI Library
 wxGTK33	3.3.3.1	wxwidgets			Cross-Platform C++ GUI Library
 wxSVG	1.5.25	wxsvg			SVG manipulation library built with wxWidgets
 wxc	1.0.0.2	wxc			C language binding for wxWidgets
@@ -21984,7 +21977,7 @@ xvinfo	1.1.5	xvinfo			Utility to print out X-Video extension adaptor information
 xvkbd	4.1	xvkbd			Virtual keyboard for X window system
 xwallpaper	0.7.6	xwallpaper			Utility for setting wallpapers in X
 xwax	1.9	xwax			Digital vinyl on Linux
-xwayland	24.1.14	xwayland	org.freedesktop.Xwayland		X server for interfacing X11 apps with the Wayland protocol
+xwayland	24.1.15	xwayland	org.freedesktop.Xwayland		X server for interfacing X11 apps with the Wayland protocol
 xwayland-run	0.0.6	xwayland-run			Set of small utilities revolving around running Xwayland and various Wayland com
 xwayland-satellite	0.8.3	xwayland-satellite			Xwayland outside your Wayland compositor
 xwd	1.0.9	xwd			Utility to dump an image of an X window in XWD format
@@ -22299,7 +22292,7 @@ zig_0_15	0.15.2	zig			General-purpose programming language and toolchain for mai
 zigbee2mqtt	2.14.3	zigbee2mqtt			Zigbee to MQTT bridge using zigbee-shepherd
 zigfetch	0.25.0	zigfetch			Minimal neofetch/fastfetch like system information tool
 zigimports	0.1.0	zigimports			Automatically remove unused imports and globals from Zig files
-ziglint	0.8.0	ziglint			Linter for Zig source code
+ziglint	0.8.1	ziglint			Linter for Zig source code
 zigpy-cli	1.2.1	zigpy-cli			Command line interface for zigpy
 zile	2.6.4	zile			Implements Lua Editors
 zilla-slab	1.002	zilla-slab			Zilla Slab fonts
@@ -22315,7 +22308,6 @@ zint-qt	2.16.0	zint-qt	zint-qt	/nix/store/pxj30y8xsa9icn1g0kpr5mc3py0wxhx2-zint-
 zip	3.0	zip			Compressor/archiver for creating and modifying zipfiles
 zip2hashcat	1.0	zip2hashcat			Processes input ZIP files into a format suitable for use with hashcat
 zipkin	1.28.1	zipkin-server			Distributed tracing system
-zipline	4.7.0	zipline			ShareX/file upload server that is easy to use, packed with features, and with an
 zipperposition	2.1-unstable-2024-02-08	ocaml5.4.1-zipperposition			Superposition prover for full first order logic
 zircolite	2.40.0	zircolite			SIGMA-based detection tool for EVTX, Auditd, Sysmon and other logs
 zita-ajbridge	0.8.4	zita-ajbridge			Connect additional ALSA devices to JACK
@@ -22327,7 +22319,7 @@ zita-resampler	1.11.2	zita-resampler			Resample library by Fons Adriaensen
 zitadel	2.71.7	zitadel			Identity and access management platform
 zitadel-tools	0.5.0	zitadel-tools			Helper tools for zitadel
 zix	0.6.2	zix			Lightweight C99 portability and data structure library
-zizmor	1.31.1	zizmor			Tool for finding security issues in GitHub Actions setups
+zizmor	1.32.0	zizmor			Tool for finding security issues in GitHub Actions setups
 zk	0.15.4	zk			Zettelkasten plain text note-taking assistant
 zkar	1.6.0	zkar			Java serialization protocol analysis tool
 zkfuse	3.9.5	zkfuse			
