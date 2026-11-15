@@ -350,7 +350,15 @@ let
       ${computeFn}
       ${snapshotFn}
       if [[ ! -f "$manifest" ]]; then
-        # Trust on first use: seal what the installer wrote.
+        # Trust on first use: seal what the installer wrote. Only a real seed:
+        # with the folder missing this used to seal NOTHING as approved
+        # ("seed sealed (1 files)", seen 2026-11-14 on an install whose owner
+        # was not the baked one), and whatever appeared there later was judged
+        # against that empty seal.
+        if [[ ! -f ${lib.escapeShellArg flakeDir}/flake.nix ]]; then
+          echo "golem-seal: no system folder at ${flakeDir} — nothing to seal" >&2
+          exit 1
+        fi
         mkdir -p ${lib.escapeShellArg manifestDir}
         chmod 700 ${lib.escapeShellArg manifestDir}
         stage
