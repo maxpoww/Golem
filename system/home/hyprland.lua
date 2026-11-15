@@ -519,6 +519,10 @@ end
 -- pill's clicks (waverunner ranks by decayed focus frequency).
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
+-- The same walk one level up, round the SCREENS: the first press goes to the
+-- screen last worked on; pressed again with nothing touched it goes on to the
+-- next one and wraps home; touching the screen commits it.
+hl.bind(mainMod .. " + grave", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-screen"))
 hl.bind(mainMod .. " + R", function() hl.plugin.waveview.toggle() end) -- waveview 3x3 overview (digits 1-9 jump, Esc closes)
 
 -- The Mac's own keys for the same two places (every MacBook with the classic
