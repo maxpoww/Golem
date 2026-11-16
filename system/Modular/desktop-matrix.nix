@@ -358,8 +358,9 @@ let
            && lib.hasInfix ''hl.dsp.exec_cmd("golem-lock-screen"), { locked = true })'' (luaOf c)))
         (ex "F3.17: the portal is said out loud: Hyprland's then GTK's, nobody for Secret"
           (c.xdg.portal.enable
-           && c.xdg.portal.config.hyprland.default == [ "hyprland" "gtk" ]
-           && c.xdg.portal.config.hyprland."org.freedesktop.impl.portal.Secret" == [ "none" ]
+           # (the option's type joins a list into the file's own "a;b")
+           && c.xdg.portal.config.hyprland.default == "hyprland;gtk"
+           && c.xdg.portal.config.hyprland."org.freedesktop.impl.portal.Secret" == "none"
            && lib.any (p: lib.hasPrefix "xdg-desktop-portal-gtk" (p.name or "")) c.xdg.portal.extraPortals
            && lib.any (p: lib.hasPrefix "xdg-desktop-portal-hyprland" (p.name or "")) c.xdg.portal.extraPortals))
         (ex "the login: the lock screen is the first thing the desktop starts, and it opens the keyring"
