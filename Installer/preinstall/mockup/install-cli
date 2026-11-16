@@ -2453,8 +2453,11 @@ disk_load() {
     eval "$(printf '%s' "$pairs" | sed -E 's/([A-Z]+)=/\L\1=/g')"
     [ "$type" = disk ] || continue
     [ "$name" = "$boot" ] && continue
-    # loop/zram/ram are not disks anyone installs to
-    case $name in loop*|zram*|ram*|sr*) continue ;; esac
+    # loop/zram/ram are not disks anyone installs to. Nor a floppy drive
+    # (fd0: any PC with the controller on shows one, with or without a
+    # diskette; the VM's showed as "fd0 4K" at the top of the list,
+    # 2026-11-14), a firmware flash chip (mtdblock) or a network block device.
+    case $name in loop*|zram*|ram*|sr*|fd[0-9]*|mtdblock*|nbd*) continue ;; esac
 
     DISK_DEV+=("/dev/$name")
     # No model string on some USB bridges and most VM disks — the device
