@@ -12,11 +12,16 @@
     hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
     description = lib.mkDefault "Max";
     shell = pkgs.bashInteractive;
+    # Not "input" (2026-11-12): it lets every program the owner runs read
+    # every keyboard and mouse directly (/dev/input/event*), keystrokes and
+    # passwords included, past the compositor. Nothing in Golem needs it:
+    # Hyprland opens the devices through the login seat (logind), games get
+    # their controllers by the seat's own rules (uaccess), and the phone's
+    # virtual gamepad writes through uinput, its own group (desktop leaf).
     extraGroups = [
       "networkmanager"
       "wheel"
       "video"
-      "input"
     ];
   };
 
@@ -54,7 +59,110 @@
   # userborn define no such script to order against.)
   system.activationScripts.users = lib.mkIf
     (!config.systemd.sysusers.enable && !config.services.userborn.enable)
-    { deps = [ "golemOwnerSecret" ]; };
+    { deps = [ "golemOwnerRename" "golemOwnerSecret" ]; };
+  system.activationScripts.golemOwnerSecret.deps = [ "golemOwnerRename" ];
+
+  # THE OWNER'S NAME FOLLOWS golem.owner (2026-11-15). The installer copies a
+  # system built for everybody, whose account has the name it was built with;
+  # the name the person typed arrives with machine.nix in the first rebuilt
+  # generation. Without this step NixOS would delete the old account and
+  # create an empty new one beside the old home. Instead: every system writes
+  # its owner's name in /etc/golem/owner (the installer reads it to know which
+  # account exists) and records it in /var/lib/golem/owner once activated; a
+  # generation whose owner differs from the record RENAMES that account, same
+  # uid, same password, and moves its home, before the users step looks. It
+  # works both ways, so booting the older generation renames it back.
+  # Only when no program of that account is running: in practice at boot
+  # (first-boot and autoupdate stage with `boot`). A live `switch` that changes
+  # golem.owner under a running session is not renamed: NixOS's own behaviour.
+  environment.etc."golem/owner".text = "${config.golem.owner}\n";
+  system.activationScripts.golemOwnerRename = {
+    text = ''
+      (
+        set -u
+        PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.jq pkgs.procps pkgs.findutils ]}
+        new=${lib.escapeShellArg config.golem.owner}
+        rec=/var/lib/golem/owner
+        old=
+        [ -f "$rec" ] && old=$(head -n1 "$rec")
+        record() {
+          [ "$old" = "$new" ] && return 0
+          install -d -m 0700 /var/lib/golem
+          printf '%s\n' "$new" > "$rec.tmp" && mv "$rec.tmp" "$rec"
+        }
+        valid() { printf '%s' "$1" | grep -qE '^[a-z][a-z0-9_-]{0,31}$'; }
+        if [ -z "$old" ] || [ "$old" = "$new" ] || ! valid "$old" || ! valid "$new"; then
+          record; exit 0
+        fi
+        # Nothing to rename, or nowhere to rename it to: the record follows.
+        grep -q "^$old:" /etc/passwd || { record; exit 0; }
+        if grep -q "^$new:" /etc/passwd; then
+          echo "golem-owner: both '$old' and '$new' exist; nothing renamed" >&2
+          record; exit 0
+        fi
+        uid=$(grep "^$old:" /etc/passwd | cut -d: -f3)
+        [ "$uid" -ge 1000 ] 2>/dev/null || { record; exit 0; }
+        if pgrep -u "$uid" >/dev/null 2>&1; then
+          echo "golem-owner: '$old' is in use; it becomes '$new' at a restart" >&2
+          exit 0
+        fi
+
+        home=$(grep "^$old:" /etc/passwd | cut -d: -f6)
+        newhome=$home
+        if [ "$home" = "/home/$old" ]; then
+          newhome=/home/$new
+          if [ -e "$newhome" ] || [ -L "$newhome" ]; then
+            rmdir "$newhome" 2>/dev/null \
+              || mv -T "$newhome" "$newhome.before-rename.$(date +%s)" || exit 0
+          fi
+          if [ -d "$home" ]; then mv -T "$home" "$newhome" || exit 0; fi
+        fi
+
+        # Same file, same mode and owner, swapped in whole.
+        edit() {
+          f=$1; shift
+          [ -f "$f" ] || return 0
+          sed "$@" "$f" > "$f.golem-tmp" \
+            && chmod --reference="$f" "$f.golem-tmp" && chown --reference="$f" "$f.golem-tmp" \
+            && mv "$f.golem-tmp" "$f"
+        }
+        edit /etc/passwd -e "/^$old:/{s|^$old:|$new:|;s|:$home:|:$newhome:|}"
+        edit /etc/shadow -e "s|^$old:|$new:|"
+        edit /etc/subuid -e "s|^$old:|$new:|"
+        edit /etc/subgid -e "s|^$old:|$new:|"
+        for f in /etc/group /etc/gshadow; do
+          edit "$f" -E -e ":a;s/([:,])$old(,|\$)/\1$new\2/;ta"
+        done
+        # NixOS's own books: the uid stays with the name, and the name stays
+        # "declared" (else the users step would treat it as a stranger).
+        for f in /var/lib/nixos/uid-map /var/lib/nixos/auto-subuid-map; do
+          [ -f "$f" ] || continue
+          jq -c --arg o "$old" --arg n "$new" \
+            'if has($o) and (has($n) | not) then .[$n] = .[$o] | del(.[$o]) else . end' \
+            "$f" > "$f.golem-tmp" && mv "$f.golem-tmp" "$f"
+        done
+        edit /var/lib/nixos/declarative-users -E -e "s/(^| )$old( |\$)/\1$new\2/"
+        for d in /var/lib/AccountsService/users /var/lib/AccountsService/icons \
+                 /var/lib/systemd/linger /nix/var/nix/profiles/per-user /nix/var/nix/gcroots/per-user; do
+          if [ -e "$d/$old" ] && [ ! -e "$d/$new" ]; then mv -T "$d/$old" "$d/$new" || true; fi
+        done
+        # Links inside the home that pointed into the old home by full path.
+        if [ "$newhome" != "$home" ] && [ -d "$newhome" ]; then
+          find "$newhome" -xdev -type l \( -lname "$home/*" -o -lname "*/per-user/$old/*" \) -print0 2>/dev/null \
+            | while IFS= read -r -d "" l; do
+                t=$(readlink "$l"); o=$(stat -c %u:%g "$l")
+                case "$t" in
+                  "$home"/*) t="$newhome''${t#"$home"}" ;;
+                  *) t=$(printf '%s' "$t" | sed "s|/per-user/$old/|/per-user/$new/|") ;;
+                esac
+                ln -sfn "$t" "$l" && chown -h "$o" "$l"
+              done
+        fi
+        record
+        echo "golem-owner: the account '$old' is now '$new' (home $newhome)" >&2
+      ) || true
+    '';
+  };
 
   # A machine file that still declares the hash (written by an installer
   # before 2026-10-01) keeps working and says so; golem-autoupdate removes it.

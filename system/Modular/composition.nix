@@ -53,10 +53,9 @@
     # On the charger, Intel graphics keeps a clock fast enough for every
     # refresh of a fast screen (Max, 2026-11-15: "they want their 240").
     ./power/gpu-floor.nix
-    # TEMPORARY (Max, 2026-09-24): the lab door — every installed Golem is
-    # SSH-reachable by the dev box + auto-joins the lab wifi, so testing happens
-    # over SSH not the console. DELETE this line (and lab/lab-door.nix) at the
-    # first FINISHED Golem ISO — see the file's header.
+    # The lab door: the dev box's SSH keys + the lab Wi-Fi, ONLY on a machine
+    # whose own layer asks for it (hosts/target/lab.nix → golem.lab.door;
+    # every install had it until 2026-11-12) — see the file's header.
     ./lab/lab-door.nix
     # The seal (#56) rides with selfrebuild: every unattended rebuild
     # is gated on the blessed manifest. Shared with the fat path,

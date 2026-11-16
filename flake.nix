@@ -60,6 +60,16 @@
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
 
+      # The revision a system is built from (system.configurationRevision):
+      # git's, or, for a build from root's own copy of the checkout (a plain
+      # directory: golem-seal-copy, golem-seal-approve), the .golem-rev root
+      # wrote into that copy from the commit the checkout names. The
+      # checkout never tracks one, so a git build never reads it.
+      golemRev = self.rev or self.dirtyRev or
+        (if builtins.pathExists ./.golem-rev
+         then nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./.golem-rev)
+         else "unknown");
+
       # The waveview plugin must be compiled against the SAME Hyprland the
       # desktop runs: Golem's patched one (desktop/hyprland-overlay.nix, also
       # applied by desktop/hyprland.nix). Stock headers would give it the
@@ -80,7 +90,7 @@
         # tree is labeled as such rather than lying with the last commit.
         {
           system.configurationRevision =
-            self.rev or self.dirtyRev or "unknown";
+            golemRev;
         }
         ./system/configuration.nix
         # The same patched Hyprland the waveview plugin is compiled against
@@ -212,6 +222,26 @@
           # common SAS/RAID HBAs
           "mptspi" "megaraid_sas" "mpt3sas"
         ];
+        # AN ENCRYPTED INSTALL BOOTS AT GEN-1 (2026-10-28, VM: it did not).
+        # Encryption is a UEFI-only branch of install.nix: partition 2 is
+        # labelled `crypt` (GPT 8309), one LUKS2 container holding an LVM
+        # volume group whose `root` LV is labelled golem and whose `swap` LV is
+        # labelled swap — so `/` and resume above find them by label once the
+        # container is open. But the DIRECT-COPY gen-1 knew nothing of the
+        # container: the machine's own luks line (install.nix, by UUID) only
+        # reaches the first rebuild, so the initrd never asked for the
+        # passphrase and `/` timed out into emergency mode. Every baked UEFI
+        # toplevel therefore opens a partition labelled `crypt` if there is one
+        # (asking for the passphrase on the boot bar, boot/plymouth; waiting for
+        # it as long as it takes, disk/policy); the systemd initrd activates LVM
+        # by default. `nofail`: a plain install has no such partition, and its
+        # boot neither waits for one nor fails. BOTH firmwares carry it,
+        # though a BIOS install is never encrypted: one initrd for both, or the
+        # medium carries every initrd twice (+0.5 GB, measured).
+        boot.initrd.luks.devices.golem = {
+          device = "/dev/disk/by-partlabel/crypt";
+          crypttabExtraOpts = [ "nofail" ];
+        };
       };
       bakedLib = nixpkgs.lib;
       bakedFirmwares = [ "bios" "uefi" ];
@@ -313,7 +343,7 @@
       desktopVmModules = [
         {
           system.configurationRevision =
-            self.rev or self.dirtyRev or "unknown";
+            golemRev;
         }
         home-manager.nixosModules.home-manager
         {
@@ -548,7 +578,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -563,7 +593,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
 
           # STAGE 1 — the same machine PLUS the desktop bundle (spec.md's stage
@@ -576,7 +610,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -619,7 +653,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
 
           # TEST-ONLY (2026-09-26): the desktop stage PLUS the test-chrome
@@ -632,7 +670,7 @@
             modules = [
               {
                 system.configurationRevision =
-                  self.rev or self.dirtyRev or "unknown";
+                  golemRev;
               }
               home-manager.nixosModules.home-manager
               {
@@ -648,7 +686,11 @@
             ]
             ++ nixpkgs.lib.optional
               (builtins.pathExists ./hosts/target/modules.nix)
-              ./hosts/target/modules.nix;
+              ./hosts/target/modules.nix
+            # A lab testbed's flag (system/Modular/lab/lab-door.nix).
+            ++ nixpkgs.lib.optional
+              (builtins.pathExists ./hosts/target/lab.nix)
+              ./hosts/target/lab.nix;
           };
         });
     };

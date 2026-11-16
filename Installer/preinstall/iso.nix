@@ -24,6 +24,9 @@ let
     in if s != "" then s else "HOLA";
   labWifiPsk = builtins.getEnv "GOLEM_LAB_WIFI_PSK";
 
+  # The lab medium's switch (see "Lab access" below). Pure builds read "".
+  labDoor = builtins.getEnv "GOLEM_LAB" == "1";
+
   # The Install boot's tty1 launcher — the DEFINITIVE no-banner autostart
   # (Max, 2026-09-23: "do the definitive fix, no banner at all"). The install
   # specialisation runs getty with `--skip-login --login-program ${this}`, so
@@ -171,11 +174,28 @@ in
   # itself is set in audit.nix, which has the other half of what the
   # console needs to say.
 
-  # ── Lab access: SSH up, key-only, zero-touch ──────────────────────────
+  # ── Lab access: a LAB medium only (2026-11-14) ────────────────────────
+  # The public download carried all of this until today: the dev box's keys
+  # for root on the live medium, sshd up, and the open lab Wi-Fi joined on
+  # its own (finalizar F0, "cerrar la puerta"). It is lab equipment, so it
+  # rides the same switch as the installed system's lab door
+  # (system/Modular/lab/lab-door.nix):
+  #
+  #     GOLEM_LAB=1 nix build --impure .#iso      the lab medium
+  #     nix build .#iso                           the public medium
+  #
+  # A pure build reads GOLEM_LAB as "": no key, no lab network, no sshd.
+  # /etc/golem/lab-medium says which of the two a stick is; golem-publish-iso
+  # refuses to upload a medium that has it, either key, or the lab network.
+  services.openssh.enable = lib.mkIf (!labDoor) (lib.mkForce false);
+  environment.etc."golem/lab-medium" = lib.mkIf labDoor {
+    text = "This is a lab medium (Installer/preinstall/iso.nix, GOLEM_LAB=1).\n";
+  };
+
   # The dev machine's lab key (~/.ssh/id_ed25519.pub, "golem-vm-loop"),
   # embedded literally: the flake evals pure, so it cannot read $HOME —
   # and the medium's trust anchor SHOULD be pinned in-repo anyway.
-  users.users.nixos.openssh.authorizedKeys.keys = [
+  users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf labDoor [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
     # The dev box's own key (~/.ssh/id_ed25519): the private half of
     # golem-vm-loop is no longer on any machine (2026-10-01), so without it
@@ -183,7 +203,7 @@ in
     # installs (system/Modular/lab/lab-door.nix).
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPGzyAbOC4icrUkntYWzPhKN0hjZ3J12FV0HOjZrEI70 dev-lab"
   ];
-  users.users.root.openssh.authorizedKeys.keys = [
+  users.users.root.openssh.authorizedKeys.keys = lib.mkIf labDoor [
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILn4GLtnQEthtkhvWmcPpl7Y1GtMlBVUyTAJrNcHcX5K golem-vm-loop"
     # The dev box's own key (~/.ssh/id_ed25519): the private half of
     # golem-vm-loop is no longer on any machine (2026-10-01), so without it
@@ -203,11 +223,13 @@ in
   # in and collects /var/log/golem-rehearsal. No wifi-security section IS
   # the open-network spelling; the PSK branch appears only when one was
   # injected at build time.
-  networking.networkmanager.ensureProfiles.profiles.golem-lab = {
-    connection = { id = "golem-lab"; type = "wifi"; autoconnect = true; };
-    wifi = { mode = "infrastructure"; ssid = labWifiSsid; };
-  } // lib.optionalAttrs (labWifiPsk != "") {
-    wifi-security = { key-mgmt = "wpa-psk"; psk = labWifiPsk; };
+  networking.networkmanager.ensureProfiles.profiles = lib.mkIf labDoor {
+    golem-lab = {
+      connection = { id = "golem-lab"; type = "wifi"; autoconnect = true; };
+      wifi = { mode = "infrastructure"; ssid = labWifiSsid; };
+    } // lib.optionalAttrs (labWifiPsk != "") {
+      wifi-security = { key-mgmt = "wpa-psk"; psk = labWifiPsk; };
+    };
   };
 
   # The medium is a terminal; don't spend boot time compressing for looks.

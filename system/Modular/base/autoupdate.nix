@@ -22,10 +22,12 @@
 #    mutate the lock in place, which would fight the seal). We rebuild ONLY
 #    after a clean `git pull --ff-only`; a tree that cannot fast-forward
 #    (local commits or a dirty checkout) is the OWNER's — we leave it on its
-#    current generation and let them drive rebuild-golem + bless. After a
-#    trusted fast-forward we re-seal (golem.seal.bless) so the dev-loop seal's
-#    baseline tracks upstream; we NEVER re-seal a local edit. The seal (#56)
-#    thus keeps guarding user→root escalation exactly as before.
+#    current generation and let them drive rebuild-golem + bless. After the
+#    fast-forward, golem-seal-heal checks every changed file against root's
+#    OWN fetch of upstream and re-seals only upstream's code; a tree with
+#    anything else in it is not built (2026-11-12: until then this re-sealed
+#    whatever was there, so any program running as the owner could commit to
+#    ~/Golem and have root build it — the security study's road 2).
 #
 # 3. GATE ON REAL CONNECTIVITY, fail LOUD. golem-wait-online (shared with the
 #    rice) waits for the channel/cache hosts before touching anything, so a
@@ -150,7 +152,10 @@ lib.mkIf (config.golem.flakeDir != null) {
       ${config.golem.gitHeal}/bin/golem-git-heal "$dir" || true
 
       # 2) is there a trusted upstream to pull from?
-      if [ -z "$(git remote 2>/dev/null)" ] || ! git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+      # (Every git command here runs AS THE OWNER: root never runs git inside
+      # their repository, whose config could name commands git would run.)
+      if [ -z "$(runuser -u "$owner" -- git -C "$dir" remote 2>/dev/null)" ] \
+         || ! runuser -u "$owner" -- git -C "$dir" rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
         echo "golem-autoupdate: the seed is not a checkout of an upstream yet (offline at every try so far?) — nothing to pull." >&2
         exit 0
       fi
@@ -161,7 +166,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       # exists upstream; until the lane's first publish it doesn't, and the
       # seed stays where it is.
       want=${lib.escapeShellArg config.golem.upstream.branch}
-      cur=$(git rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
+      cur=$(runuser -u "$owner" -- git -C "$dir" rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
       if [ "$cur" != "origin/$want" ] \
          && runuser -u "$owner" -- git -C "$dir" fetch --quiet origin "+refs/heads/$want:refs/remotes/origin/$want" 2>/dev/null; then
         runuser -u "$owner" -- git -C "$dir" branch --quiet --set-upstream-to="origin/$want"
@@ -172,14 +177,25 @@ lib.mkIf (config.golem.flakeDir != null) {
       # password hash, which puts it in the world-readable store (base/users.nix).
       # Remove the line: the account is mutable and keeps its password, and the
       # activation step has already mirrored it into the root-only secret file.
+      # Root edits a root-only copy, seals that one change (golem-seal-adopt:
+      # only if the file was the blessed one), then writes it into the owner's
+      # file — never sealing whatever else is in the tree.
       migrated=0
       mf="$dir/hosts/target/machine.nix"
       if [ -f "$mf" ] && [ -s /var/lib/golem/secrets/owner-password-hash ] \
          && grep -q '\.hashedPassword = ' "$mf"; then
-        runuser -u "$owner" -- sed -i '/users\.users\.[^ ]*\.hashedPassword = /d' "$mf"
-        runuser -u "$owner" -- git -C "$dir" add -f hosts/target/machine.nix || true
-        migrated=1
-        echo "golem-autoupdate: removed the owner's password hash from the system source (it stays in /etc/shadow)."
+        mold=$(mktemp); mnew=$(mktemp)
+        cat "$mf" > "$mold"
+        sed '/users\.users\.[^ ]*\.hashedPassword = /d' "$mold" > "$mnew"
+        if ${config.golem.seal.adopt}/bin/golem-seal-adopt hosts/target/machine.nix "$mnew" "$mold"; then
+          cat "$mnew" > "$mf"   # into the owner's existing file: keeps its owner
+          runuser -u "$owner" -- git -C "$dir" add -f hosts/target/machine.nix || true
+          migrated=1
+          echo "golem-autoupdate: removed the owner's password hash from the system source (it stays in /etc/shadow)."
+        else
+          echo "golem-autoupdate: the password-hash line stays until the change to machine.nix is approved" >&2
+        fi
+        rm -f "$mold" "$mnew"
       fi
 
       # Seam's update lane pins a newer browser IN the checkout between our
@@ -266,8 +282,8 @@ lib.mkIf (config.golem.flakeDir != null) {
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
       pull=1
       runuser -u "$owner" -- git -C "$dir" fetch --quiet || true
-      upstream=$(git rev-parse '@{u}' 2>/dev/null || true)
-      if [ -z "$upstream" ] || git merge-base --is-ancestor "$upstream" HEAD 2>/dev/null; then
+      upstream=$(runuser -u "$owner" -- git -C "$dir" rev-parse '@{u}' 2>/dev/null || true)
+      if [ -z "$upstream" ] || runuser -u "$owner" -- git -C "$dir" merge-base --is-ancestor "$upstream" HEAD 2>/dev/null; then
         rm -f "$since"
       else
         [ -s "$since" ] || date +%s > "$since"
@@ -290,7 +306,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       flock -w 7200 8 || { echo "golem-autoupdate: another rebuild has held the lock for 2 h — trying again tomorrow" >&2; exit 1; }
       export GOLEM_REBUILD_LOCK_HELD=1
 
-      before=$(git rev-parse HEAD)
+      before=$(runuser -u "$owner" -- git -C "$dir" rev-parse HEAD)
       # The checkout is the OWNER's: every git write runs as them, or root
       # leaves FETCH_HEAD/objects behind that the owner can no longer touch
       # (seen on the first real pull, 2026-09-30).
@@ -305,7 +321,7 @@ lib.mkIf (config.golem.flakeDir != null) {
           exit 1
         fi
       fi
-      after=$(git rev-parse HEAD)
+      after=$(runuser -u "$owner" -- git -C "$dir" rev-parse HEAD)
       if [ -n "$heldpin" ]; then
         held=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$heldpin")
         up=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$dir/$pin")
@@ -339,11 +355,33 @@ lib.mkIf (config.golem.flakeDir != null) {
         echo "golem-autoupdate: the checkout is at $after but the newest built system is ''${built:-unknown} — finishing that build."
       fi
 
-      # 3) the fast-forwarded tree is upstream-trusted → re-baseline the seal,
-      #    then stage the new generation for the next reboot.
-      ${config.golem.seal.bless}/bin/golem-bless || true
+      # 3) Root builds only a tree it can vouch for: the one last blessed, or
+      #    that one moved by upstream's own code (golem-seal-heal checks each
+      #    changed file, byte for byte, against root's own fetch of upstream —
+      #    never the owner's .git, whose remote and objects are theirs to
+      #    change). Until 2026-11-12 this re-sealed unconditionally: a program
+      #    running as the owner could commit to ~/Golem, start
+      #    golem-update-now (no password) and have root build its commit — the
+      #    security study's road 2. A change nobody approved stays the
+      #    owner's: rebuild-golem builds it with their password.
+      if ! ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         && ! ${config.golem.seal.heal}/bin/golem-seal-heal; then
+        echo "golem-autoupdate: $dir holds changes nobody approved — not building them as root. Approve them with rebuild-golem (it asks for the password), or put Golem's files back." >&2
+        exit 1
+      fi
+      # Then stage the new generation for the next reboot — built from root's
+      # own copy of exactly what was just vouched for, never from ~/Golem
+      # itself: a file swapped in after the check would otherwise be what
+      # Nix read (golem-seal.nix, golem-seal-copy).
+      if ! src=$(${config.golem.seal.copy}/bin/golem-seal-copy); then
+        echo "golem-autoupdate: root could not make its copy of the approved files — not building." >&2
+        exit 1
+      fi
       echo "golem-autoupdate: $before -> $after, rebuilding (boot)…"
-      if ! ${config.golem.rebuild}/bin/golem-rebuild boot --flake "$dir#$attr"; then
+      built_ok=1
+      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || built_ok=0
+      rm -rf "$src"
+      if [ "$built_ok" = 0 ]; then
         # The pulled source does not build. Leave it there and every later
         # rebuild — dock installs included — fails too: put the source back to
         # what built the newest system (base/recover.nix). The next run tries

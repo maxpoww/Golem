@@ -60,6 +60,8 @@ let
     (ex "owner joined uinput + adbusers at the desktop stage"
       (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
         && lib.elem "adbusers" c.users.users.${c.golem.owner}.extraGroups))
+    (ex "the owner is not in the input group: no program reads every keyboard directly (2026-11-12)"
+      (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
     # base groups still present (extraGroups MERGED, not replaced)
     (ex "base groups survive the merge (wheel, video)"
       (lib.elem "wheel" c.users.users.${c.golem.owner}.extraGroups
@@ -126,7 +128,8 @@ let
         ({ config, pkgs, ... }: {
           # As hosts/target/apps.nix does for what the dock installed.
           home-manager.users.${config.golem.owner}.home.packages =
-            map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing ];
+            map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing
+                              pkgs.kdePackages.kdeconnect-kde pkgs.teamviewer pkgs.noisetorch pkgs.retroarch ];
         })
       ]).config;
       groups = cfg: cfg.users.users.${cfg.golem.owner}.extraGroups;
@@ -140,14 +143,29 @@ let
         (ex "app-setup: Steam installed → the Steam system side, 32-bit graphics, GameMode"
           (c.programs.steam.enable && c.hardware.graphics.enable32Bit && c.programs.gamemode.enable
            && c.hardware.steam-hardware.enable))
-        (ex "app-setup: Docker installed → its daemon and the owner in its group"
-          (c.virtualisation.docker.enable && lib.elem "docker" (groups c)))
-        (ex "app-setup: virt-manager installed → libvirtd, and the owner may use it"
-          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable && lib.elem "libvirtd" (groups c)))
+        (ex "app-setup: Docker installed → rootless Docker (the owner's own daemon, DOCKER_HOST), no system daemon"
+          (c.virtualisation.docker.rootless.enable && c.virtualisation.docker.rootless.setSocketVariable
+           && !c.virtualisation.docker.enable))
+        (ex "app-setup: virt-manager installed → libvirtd, virt-manager on the owner's own session"
+          (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable
+           && lib.hasInfix "qemu:///session" (builtins.toJSON
+                c.home-manager.users.${c.golem.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
+        # The security study's road 1 (2026-11-12): the app list is written
+        # without a password, so no app may put the owner in a group that is
+        # root. Everything installed at once, and still none of them.
+        (ex "app-setup: no installed app puts the owner in a root-equivalent group"
+          (!(lib.any (g: lib.elem g (groups c)) [ "docker" "libvirtd" "lxd" "incus-admin" "disk" "shadow" ])))
         (ex "app-setup: LocalSend and Syncthing installed → their ports are open"
           (lib.elem 53317 c.networking.firewall.allowedTCPPorts && lib.elem 22000 c.networking.firewall.allowedTCPPorts
            && lib.elem 21027 c.networking.firewall.allowedUDPPorts))
         (ex "app-setup: Ollama installed → its service" c.services.ollama.enable)
+        (ex "app-setup: KDE Connect installed → 1714–1764 open, both ways; a clean machine keeps them shut"
+          (lib.elem { from = 1714; to = 1764; } c.networking.firewall.allowedTCPPortRanges
+           && lib.elem { from = 1714; to = 1764; } c.networking.firewall.allowedUDPPortRanges
+           && clean.networking.firewall.allowedTCPPortRanges == [ ]))
+        (ex "app-setup: TeamViewer → its daemon; NoiseTorch → its capability wrapper; an emulator → the controllers' rules"
+          (c.services.teamviewer.enable && c.programs.noisetorch.enable && c.hardware.steam-hardware.enable
+           && !clean.services.teamviewer.enable && !clean.programs.noisetorch.enable))
         (ex "app-setup: the base groups are still there (merged, not replaced)"
           (lib.elem "wheel" (groups c) && lib.elem "uinput" (groups c)))
       ];
@@ -222,6 +240,34 @@ let
         })
       ]).config;
       devHome = cDev.home-manager.users.${cDev.golem.owner};
+      # THE DEFAULT APPS name apps that are there (2026-10-28): after the
+      # debloat four defaults still named GNOME Disks, Calendar, Contacts and
+      # Maps. Every desktop file the home layer's table names is shipped by a
+      # package this desktop installs (below), and is looked for IN that
+      # package when the matrix builds (an upstream rename fails too). A new
+      # default needs its app here. The dock writes golem-files.desktop
+      # itself, at its first start.
+      hm = c.home-manager.users.${owner};
+      shippedBy = {
+        "org.gnome.Nautilus.desktop" = "nautilus";
+        "org.gnome.TextEditor.desktop" = "gnome-text-editor";
+        "org.gnome.Loupe.desktop" = "loupe";
+        "org.gnome.Papers.desktop" = "papers";
+        "org.gnome.FileRoller.desktop" = "file-roller";
+        "mpv.desktop" = "mpv";
+        "seam.desktop" = "seam";
+      };
+      writtenByTheDock = [ "golem-files.desktop" ];
+      installed = c.environment.systemPackages ++ hm.home.packages;
+      # (By its name; else the one whose name it begins — mpv with its scripts.)
+      installedNamed = n:
+        let exact = lib.findFirst (p: lib.getName p == n) null installed; in
+        if exact != null then exact else lib.findFirst (p: lib.hasPrefix "${n}-" (lib.getName p)) null installed;
+      defaultIds = lib.subtractLists writtenByTheDock
+        (lib.unique (lib.concatMap lib.toList (lib.attrValues hm.xdg.mimeApps.defaultApplications)));
+      unshipped = builtins.filter (id: !(shippedBy ? ${id}) || installedNamed shippedBy.${id} == null) defaultIds;
+      defaultFiles = lib.optionalString (unshipped == [ ])
+        (lib.concatMapStringsSep "\n" (id: "desktop-file ${id} ${installedNamed shippedBy.${id}}/share/applications/${id}") defaultIds);
       luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;
@@ -305,6 +351,8 @@ let
         (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
           (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)
            && c.home-manager.users.${owner}.xdg.dataFile ? "applications/mimeapps.list"))
+        (ex "every default app is an app this desktop installs (not installed: ${lib.concatStringsSep ", " unshipped})"
+          (unshipped == [ ]))
         (ex "an Intel iGPU can report its load (perf_event_paranoid 0 on intel leaves)"
           ((cLight.boot.kernel.sysctl."kernel.perf_event_paranoid" or null) == 0))
         (ex "trusted Bluetooth devices reconnect after hibernate"
@@ -449,6 +497,13 @@ let
             # the kernel's tiny driver asks for the pills too, never a poweroff
             && lib.hasInfix "tiny_power_button power_signal=28" c.boot.extraModprobeConfig
             && lib.elem "golem-power-key.service" c.systemd.targets.kbrequest.wants))
+        (ex "real desktop: a desktop that comes back after a crash comes back locked (2026-11-12)"
+          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
+            lib.hasInfix ''hl.on("hyprland.start", function()
+-- First: a desktop coming back after a crash comes back locked (idle.nix).
+hl.exec_cmd("golem-lock-on-return")'' lua
+            && lib.any (p: lib.hasInfix "golem-lock-on-return" (p.name or ""))
+                 c.home-manager.users.${owner}.home.packages))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))
@@ -456,7 +511,7 @@ let
       failed = builtins.filter (e: !e.ok) checks;
     in
     if failed == [ ]
-    then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
+    then "real desktop ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}\n${defaultFiles}"
     else throw "desktop-matrix real-desktop failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
   report = (map runRow rows) ++ [ testChrome appSetup realDesktop ];
@@ -464,6 +519,12 @@ in
 pkgs.runCommand "golem-desktop-matrix"
   { passAsFile = [ "report" ]; report = lib.concatStringsSep "\n" report; }
   ''
+    # Each default app's desktop file, in the package that ships it.
+    missing=0
+    while read -r _ id file; do
+      [ -e "$file" ] || { echo "desktop-matrix: the default app $id is not in its package ($file)" >&2; missing=1; }
+    done < <(grep '^desktop-file ' "$reportPath")
+    [ "$missing" = 0 ]
     cp "$reportPath" $out
     echo "desktop-matrix: ${toString (builtins.length rows)} desktop stages composed & asserted" >&2
   ''

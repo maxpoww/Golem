@@ -25,6 +25,9 @@ let
   distro = config.system.nixos.distroName;
 in
 {
+  # The boot menu asks a password only to be changed (2026-11-12).
+  imports = [ ./grub-password.nix ];
+
   nixpkgs.overlays = [ (import ./grub-patch-overlay.nix) ];
 
   # #95 — THE MENU'S WORDS. NixOS names the submenu

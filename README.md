@@ -77,7 +77,9 @@ nix build --no-link "$G#checks.x86_64-linux.minimal-matrix"   # base composes, a
 nix build --no-link "$G#checks.x86_64-linux.desktop-matrix"   # the desktop stage composes
 nix build --no-link "$G#nixosConfigurations.golem.pkgs.golem-seam"
 ~/Golem/seam/selftest.sh                                      # Seam, headless (~10 min)
-nix build "$G#iso"                                            # installer ISO
+nix build "$G#iso"                                            # the OLD live medium (fat profile) — not the installer
+( cd Installer/preinstall && nix flake update golem && nix build .#iso )   # THE installer ISO (its own flake;
+                                                              # `golem` is path:../../ — keep the tree small)
 ```
 
 ## License

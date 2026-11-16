@@ -59,7 +59,30 @@ fi
 # Everything from Mozilla's SHA256SUMS of that version: the tarball AND each language pack.
 # Read before anything is written: a missing hash changes nothing.
 rel="https://archive.mozilla.org/pub/firefox/releases/$want"
-sums=$(curl -fsS --retry 3 "$rel/SHA256SUMS") || { log "could not read Mozilla's SHA256SUMS for $want"; exit 1; }
+# SIGNED BY MOZILLA (the security study, 2026-11-12): SHA256SUMS is trusted only when
+# Mozilla's release key signed it — until then TLS alone vouched for whatever the archive
+# served. The anchor is the key's fingerprint, pinned here; the key itself and its current
+# signing subkey come from the release folder (Mozilla rotates subkeys, the primary key
+# has been the same since 2015). A missing or wrong signature changes nothing.
+MOZ_KEY_FPR=14F26682D0916CDD81E37B6D61B7B526D98F0353
+moz=$(mktemp -d)
+curl -fsS --retry 3 "$rel/SHA256SUMS" -o "$moz/SHA256SUMS" || { log "could not read Mozilla's SHA256SUMS for $want"; exit 1; }
+curl -fsS --retry 3 "$rel/SHA256SUMS.asc" -o "$moz/SHA256SUMS.asc" || { log "could not read Mozilla's signature for $want"; exit 1; }
+curl -fsS --retry 3 "$rel/KEY" -o "$moz/KEY" || { log "could not read Mozilla's release key for $want"; exit 1; }
+mkdir -m 700 "$moz/gnupg"
+signer=$(
+  export GNUPGHOME="$moz/gnupg"
+  gpg --batch --quiet --import "$moz/KEY" 2>/dev/null || true
+  gpg --batch --status-fd 1 --verify "$moz/SHA256SUMS.asc" "$moz/SHA256SUMS" 2>/dev/null \
+    | awk '$2 == "VALIDSIG" { print $NF }' || true
+  gpgconf --kill all >/dev/null 2>&1 || true
+)
+if [ "$signer" != "$MOZ_KEY_FPR" ]; then
+  log "Mozilla's signature on SHA256SUMS for $want does not check out (signer: ${signer:-none}) — not updating"
+  rm -rf "$moz"; exit 1
+fi
+sums=$(cat "$moz/SHA256SUMS")
+rm -rf "$moz"
 sumof(){ printf '%s\n' "$sums" | { grep -E " $1\$" || true; } | cut -d' ' -f1; }   # 2 matches fail the check below
 url="$rel/linux-x86_64/en-US/firefox-$want.tar.xz"
 sha=$(sumof "linux-x86_64/en-US/firefox-$want\.tar\.xz")
@@ -78,38 +101,70 @@ exec 9>>/run/golem-rebuild.lock
 flock 9
 
 # The checkout is the OWNER's: git writes run as them (root-written index/object files
-# are ones the owner can no longer touch). And the seal: when the checkout was blessed
-# before this update, the pin written below is ours (root, from Mozilla's SHA256SUMS)
-# and is re-blessed after — otherwise the dock's next app install is refused ("the
-# system configuration changed since the last blessing"). Checked BEFORE writing.
+# are ones the owner can no longer touch).
 asowner(){ runuser -u "$(stat -c %U "$SEAM_FLAKE")" -- "$@"; }
-sealed_before=no
-if [ -n "${SEAM_SEAL_CHECK:-}" ] && "$SEAM_SEAL_CHECK" >/dev/null 2>&1; then sealed_before=yes; fi
-reseal(){ if [ "$sealed_before" = yes ] && [ -n "${SEAM_SEAL_BLESS:-}" ]; then "$SEAM_SEAL_BLESS" >/dev/null && log "re-sealed the checkout"; fi; }
 
-cp -p "$SRC" "$SRC.prev"
-tmp=$(mktemp "$SRC.XXXX")
+# THE SEAL, checked BEFORE writing (the security study's road 3, 2026-11-12): root
+# rebuilds the checkout only when it can vouch for it — the blessed tree, or that tree
+# moved by upstream's own code (golem-seal-heal checks each changed file against root's
+# own fetch of upstream). Until then an unsealed checkout was rebuilt anyway: any program
+# running as the owner could edit flake.nix and have root build it at Firefox's next
+# release. A change nobody approved waits; rebuild-golem approves it with the password.
+if [ -n "${SEAM_SEAL_CHECK:-}" ] && ! "$SEAM_SEAL_CHECK" >/dev/null 2>&1 \
+   && ! { [ -n "${SEAM_SEAL_HEAL:-}" ] && "$SEAM_SEAL_HEAL"; }; then
+  log "the checkout holds changes nobody approved — not rebuilding it as root; Seam $want waits until they are approved (rebuild-golem) or put back"
+  exit 1
+fi
+# The pin written below — ours, from Mozilla's signed SHA256SUMS — is sealed by itself
+# (golem-seal-adopt, from root's own copy), never the whole tree: a full bless would also
+# seal whatever the owner's programs changed meanwhile. Sealed BEFORE the rebuild, which
+# then reads root's own copy of the sealed files (golem-seal-copy), not the checkout: a
+# file swapped in after the check above is not what gets built (2026-11-12).
+pincopy=$(mktemp)
+reseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$pincopy" "$prev" >/dev/null && log "sealed the new pin"; fi; }
+unseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources.json "$prev" "$pincopy" >/dev/null 2>&1 || true; fi; }
+
+# The pin as it was, for a failed rebuild: in a root-only file, never beside the pin —
+# a file left in the checkout is one more thing the seal would have to answer for.
+prev=$(mktemp); cat "$SRC" > "$prev"
+tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX")
 jq -n --arg v "$want" --arg u "$url" --arg s "$sha" --argjson p "$packs" \
-  '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$tmp"
-chown --reference="$SRC.prev" "$tmp"; chmod --reference="$SRC.prev" "$tmp"
+  '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$pincopy"
+cat "$pincopy" > "$tmp"
+chown --reference="$SRC" "$tmp"; chmod --reference="$SRC" "$tmp"
 mv "$tmp" "$SRC"
 
 if [ -n "${SEAM_FLAKE:-}" ]; then
   # flake system: the build only sees git-TRACKED files — stage the new pin, then
   # rebuild this machine's own composition from its checkout (safe.directory is set)
   asowner git -C "$SEAM_FLAKE" add seam/sources.json
-  rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
+  if [ -n "${SEAM_SEAL_COPY:-}" ]; then
+    rebuild(){
+      reseal || { log "could not seal the new pin"; return 1; }
+      local src rc=0
+      src=$("$SEAM_SEAL_COPY") || return 1
+      nixos-rebuild switch --flake "path:$src#$SEAM_FLAKE_ATTR" || rc=$?
+      rm -rf "$src"
+      return "$rc"
+    }
+  else
+    rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
+  fi
 else
   rebuild(){ nixos-rebuild switch; }
 fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
-  mv "$SRC.prev" "$SRC"
+  # A fresh file renamed over the pin: a link swapped in for it is replaced, not followed.
+  tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX"); cat "$prev" > "$tmp"
+  chown --reference="$SRC" "$tmp" 2>/dev/null || true; chmod 644 "$tmp"; mv -f "$tmp" "$SRC"
   [ -n "${SEAM_FLAKE:-}" ] && asowner git -C "$SEAM_FLAKE" add seam/sources.json
-  reseal
+  unseal   # the seal back on the old pin, if it had moved to the new one
+  rm -f "$pincopy" "$prev"
   exit 1
 fi
-reseal
+[ -n "${SEAM_SEAL_COPY:-}" ] || reseal
+rm -f "$pincopy" "$prev"
 log "Seam is now $want"
 
 # Test the NEW build headless (as nobody: Firefox must not run as root). Never blocks

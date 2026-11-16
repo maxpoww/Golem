@@ -56,6 +56,42 @@ Plymouth.SetBootProgressFunction(
     draw_fill(progress);
   });
 
+# ── an encrypted disk's password, asked under the bar (2026-10-28) ────────
+# An encrypted install's initrd asks for the passphrase through Plymouth, and
+# a theme with no password function draws nothing: the bar just stood there
+# and nobody knew to type (VM, 2026-10-28). Under the bar while it is asked:
+# one dim word, and a dot in the bar's orange for each character typed. Gone
+# once the passphrase is taken.
+pw_label = Sprite();
+pw_dots  = Sprite();
+pw_y = bar_y + bar_height + Math.Int(bar_height * 1.2);
+
+fun place_centred(sprite, image, y) {
+  sprite.SetImage(image);
+  sprite.SetPosition(Math.Int((screen_width - image.GetWidth()) / 2), y, 3);
+  sprite.SetOpacity(1);
+}
+
+Plymouth.SetDisplayPasswordFunction(
+  fun (prompt, bullets) {
+    place_centred(pw_label, Image.Text("Password", 0.62, 0.62, 0.62, 1, "Sans 15"), pw_y);
+    dots = "";
+    i = 0;
+    while (i < bullets) {
+      dots = dots + "●";
+      i = i + 1;
+    }
+    if (dots == "") dots = " ";
+    place_centred(pw_dots, Image.Text(dots, 0.667, 0.333, 0.0, 1, "Sans 15"),
+                  pw_y + Math.Int(bar_height * 1.1));
+  });
+
+Plymouth.SetDisplayNormalFunction(
+  fun () {
+    pw_label.SetOpacity(0);
+    pw_dots.SetOpacity(0);
+  });
+
 # On quit, fade the bar out so the handoff to the compositor is clean.
 Plymouth.SetQuitFunction(
   fun () {

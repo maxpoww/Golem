@@ -460,6 +460,7 @@ S[en:v_done]='installation finished'
 S[en:v_remove]='remove the USB and press ENTER'
 S[en:f_keys]='ENTER to continue'
 S[en:e_name]='Letters and digits, starting with a letter.'
+S[en:e_name_taken]='The system uses that name itself. Pick another.'
 S[en:e_pass]='Type a password.'
 S[en:luks_on]='LOCKED'
 S[en:luks_off]='off'
@@ -545,6 +546,7 @@ S[es:v_done]='instalación terminada'
 S[es:v_remove]='retira el USB y pulsa ENTER'
 S[es:f_keys]='ENTER para continuar'
 S[es:e_name]='Letras y números, empezando por una letra.'
+S[es:e_name_taken]='El sistema usa ese nombre. Elige otro.'
 S[es:e_pass]='Escribe una contraseña.'
 S[es:luks_on]='BLOQUEADO'
 S[es:luks_off]='desactivado'
@@ -621,6 +623,7 @@ S[fr:v_done]='installation terminée'
 S[fr:v_remove]='retire l’USB et appuie sur ENTER'
 S[fr:f_keys]='ENTER pour continuer'
 S[fr:e_name]='Lettres et chiffres, en commençant par une lettre.'
+S[fr:e_name_taken]='Le système utilise déjà ce nom. Choisissez-en un autre.'
 S[fr:e_pass]='Saisissez un mot de passe.'
 S[fr:luks_on]='VERROUILLÉ'
 S[fr:luks_off]='désactivé'
@@ -697,6 +700,7 @@ S[de:v_done]='Installation abgeschlossen'
 S[de:v_remove]='USB entfernen und ENTER drücken'
 S[de:f_keys]='ENTER zum Fortfahren'
 S[de:e_name]='Buchstaben und Ziffern, beginnend mit einem Buchstaben.'
+S[de:e_name_taken]='Diesen Namen verwendet das System selbst. Bitte einen anderen wählen.'
 S[de:e_pass]='Gib ein Passwort ein.'
 S[de:luks_on]='GESPERRT'
 S[de:luks_off]='aus'
@@ -773,6 +777,7 @@ S[it:v_done]='installazione terminata'
 S[it:v_remove]='rimuovi la USB e premi INVIO'
 S[it:f_keys]='ENTER per continuare'
 S[it:e_name]='Lettere e cifre, iniziando con una lettera.'
+S[it:e_name_taken]='Il sistema usa già questo nome. Scegline un altro.'
 S[it:e_pass]='Scrivi una password.'
 S[it:luks_on]='BLOCCATO'
 S[it:luks_off]='disattiva'
@@ -849,6 +854,7 @@ S[pt:v_done]='instalação terminada'
 S[pt:v_remove]='remove a USB e pressiona ENTER'
 S[pt:f_keys]='ENTER para continuar'
 S[pt:e_name]='Letras e algarismos, começando por uma letra.'
+S[pt:e_name_taken]='O sistema já usa esse nome. Escolha outro.'
 S[pt:e_pass]='Escreva uma palavra-passe.'
 S[pt:luks_on]='BLOQUEADO'
 S[pt:luks_off]='desativada'
@@ -2836,8 +2842,20 @@ ask_field() {                    # $1 title  $2 footer  $3 initial  $4 validator
 # here rather than at install time because a rejection three screens later
 # is a rejection nobody can act on.
 valid_name() {
-  [[ $FIELD_VALUE =~ ^[a-z][a-z0-9_-]{0,31}$ ]] && return 0
-  FIELD_ERR=$(t e_name); return 1
+  [[ $FIELD_VALUE =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || { FIELD_ERR=$(t e_name); return 1; }
+  # A name the system itself uses (root, the greeter, the build accounts…)
+  # cannot be the owner's: the account could not be created. The medium runs
+  # the same system it installs, so its own list is the list.
+  local taken
+  taken=$(getent passwd "$FIELD_VALUE" 2>/dev/null | cut -d: -f3)
+  case "$FIELD_VALUE" in root|nobody|greeter|nixbld*|systemd-*) taken=0 ;; esac
+  if [ -n "$taken" ] && [ "$taken" -lt 1000 ] 2>/dev/null; then
+    FIELD_ERR=$(t e_name_taken); return 1
+  fi
+  if getent group "$FIELD_VALUE" >/dev/null 2>&1; then
+    FIELD_ERR=$(t e_name_taken); return 1
+  fi
+  return 0
 }
 valid_pass() {
   [ -n "$FIELD_VALUE" ] && return 0

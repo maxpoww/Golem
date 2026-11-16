@@ -45,6 +45,8 @@ hl.layer_rule({ match = { namespace = "waverunner-desktop-menu" }, ignore_alpha 
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
+-- First: a desktop coming back after a crash comes back locked (idle.nix).
+hl.exec_cmd("golem-lock-on-return")
 hl.exec_cmd("hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so")
 hl.exec_cmd("hyprctl setcursor phinger-cursors-light 24")
 hl.exec_cmd("/home/max/launcher/waverunner-dev")

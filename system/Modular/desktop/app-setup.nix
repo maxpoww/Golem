@@ -28,9 +28,40 @@ let
   any = names: lib.any has names;
 
   games = [ "steam" "lutris" "heroic" "bottles" ];
+  # (Names as lib.getName gives them: RetroArch with its cores is its own.)
+  emulators = [ "retroarch" "retroarch-with-cores" "dolphin-emu" "pcsx2" "rpcs3" ];
   machines = [ "virt-manager" "gnome-boxes" ];
 in
 {
+  # ── OBS Studio ───────────────────────────────────────────────────────────
+  # NVENC. OBS decides whether NVENC exists by running its own helper,
+  # obs-nvenc-test, which dlopens libnvidia-encode.so.1. nixpkgs gives the
+  # driver's library directory to OBS's plugins (addDriverRunpath) but not to
+  # that helper, so on every NixOS machine with the NVIDIA driver the test
+  # fails ("Cannot load libnvidia-encode.so.1"), OBS logs "NVENC not
+  # supported" and encodes on the CPU (the dev box, 2026-10-28: an RTX 4050
+  # idle while x264 took 2.2 cores). The wrapper hands the running `obs`
+  # (and so the helper it spawns) the driver directory, at the END of its
+  # library path: OBS's own libraries still come first. No rebuild of OBS —
+  # the package is joined, only bin/obs is replaced. Its name stays
+  # obs-studio-<version>: the fit and this leaf look packages up by name.
+  # Harmless without NVIDIA (Mesa's libraries live in the same directory).
+  nixpkgs.overlays = [
+    (final: prev: {
+      obs-studio = prev.symlinkJoin {
+        name = "obs-studio-${prev.obs-studio.version}";
+        paths = [ prev.obs-studio ];
+        nativeBuildInputs = [ prev.makeWrapper ];
+        postBuild = ''
+          rm "$out/bin/obs"
+          makeWrapper "${prev.obs-studio}/bin/obs" "$out/bin/obs" \
+            --suffix LD_LIBRARY_PATH : /run/opengl-driver/lib
+        '';
+        inherit (prev.obs-studio) version meta passthru;
+      };
+    })
+  ];
+
   # ── Games ────────────────────────────────────────────────────────────────
   # Steam is a system program on NixOS: its 32-bit runtime, its udev rules
   # and (for Remote Play / local transfers) its ports come with the module.
@@ -39,8 +70,9 @@ in
     remotePlay.openFirewall = true;
     localNetworkGameTransfers.openFirewall = true;
   };
-  # Controllers and VR headsets are let through to the session.
-  hardware.steam-hardware.enable = lib.mkIf (any games) true;
+  # Controllers and VR headsets are let through to the session — for the
+  # emulators too, which read the same pads (a DualSense through hidraw).
+  hardware.steam-hardware.enable = lib.mkIf (any (games ++ emulators)) true;
   # Windows games and old Linux ones are 32-bit: they need 32-bit graphics.
   hardware.graphics.enable32Bit = lib.mkIf (any (games ++ [ "wine" "wine-wow64" "winetricks" ])) true;
   # GameMode's daemon needs its polkit rules to be allowed to do anything.
@@ -55,16 +87,37 @@ in
   };
 
   # ── Containers and machines ──────────────────────────────────────────────
-  virtualisation.docker.enable = lib.mkIf (has "docker") true;
+  # NO GROUP HERE IS ROOT (2026-11-12, the security study's road 1). The app
+  # list is written without a password, so anything it switches on must give
+  # the owner nothing they did not have: the `docker` group IS root (a
+  # container with / mounted), and so is `libvirtd` (a machine given the
+  # host's disk). Any program running as the owner could add "docker" to
+  # packages.list and become root at the next install.
+  #
+  # Docker runs ROOTLESS instead: the daemon is the owner's own (a user
+  # service), `docker` finds it through DOCKER_HOST, and `docker run` works as
+  # before without any group. Machines run in the owner's own libvirt session
+  # (qemu:///session, as GNOME Boxes always has): virt-manager connects there
+  # by default (below). The system libvirtd stays for what the session uses
+  # from it (UEFI firmware paths, the bridge helper); nobody is in its group.
+  virtualisation.docker.rootless = lib.mkIf (has "docker") {
+    enable = true;
+    setSocketVariable = true;
+  };
   # Distrobox and Podman Desktop need a container engine; Podman when there
   # is no Docker to use.
   virtualisation.podman.enable = lib.mkIf (any [ "podman-desktop" "distrobox" ] && !has "docker") true;
   virtualisation.libvirtd.enable = lib.mkIf (any machines) true;
   programs.virt-manager.enable = lib.mkIf (has "virt-manager") true;
+  home-manager.users.${owner}.dconf.settings."org/virt-manager/virt-manager/connections" =
+    lib.mkIf (has "virt-manager") {
+      autoconnect = [ "qemu:///session" ];
+      uris = [ "qemu:///session" ];
+    };
 
-  users.users.${owner}.extraGroups =
-    lib.optional (has "docker") "docker"
-    ++ lib.optionals (any machines) [ "libvirtd" "kvm" ];
+  # /dev/kvm: not root (it runs machines, nothing else), and the session's
+  # machines need it.
+  users.users.${owner}.extraGroups = lib.optional (any machines) "kvm";
 
   # Programs built for other Linux systems (an editor's downloaded language
   # server, a vendor's binary) find their loader.
@@ -77,7 +130,18 @@ in
   # The application firewall's window is a front end to its daemon.
   services.opensnitch.enable = lib.mkIf (has "opensnitch-ui") true;
 
+  # TeamViewer's window is a front end to its daemon: without it, it never
+  # connects.
+  services.teamviewer.enable = lib.mkIf (has "teamviewer") true;
+
   # Sharing on the local network only works when the others can reach us.
+  # KDE Connect (the Internet module's phone link) finds the phone and talks
+  # to it on 1714–1764 — opened only by the old profile until now
+  # (system/configuration.nix): an installed Golem with it blocked the phone.
+  networking.firewall.allowedTCPPortRanges =
+    lib.optional (has "kdeconnect-kde") { from = 1714; to = 1764; };
+  networking.firewall.allowedUDPPortRanges =
+    lib.optional (has "kdeconnect-kde") { from = 1714; to = 1764; };
   networking.firewall.allowedTCPPorts =
     lib.optional (has "localsend") 53317
     ++ lib.optional (has "syncthing") 22000;
@@ -91,6 +155,11 @@ in
   services.trezord.enable = lib.mkIf (has "trezor-suite") true;
   # A drawing tablet's driver is a user service with its own device rules.
   hardware.opentabletdriver.enable = lib.mkIf (has "opentabletdriver") true;
+
+  # ── Sound ────────────────────────────────────────────────────────────────
+  # NoiseTorch makes its virtual microphone with a capability its wrapper
+  # carries; the bare program cannot.
+  programs.noisetorch.enable = lib.mkIf (any [ "noisetorch" "NoiseTorch" ]) true;
 
   # ── Local AI ─────────────────────────────────────────────────────────────
   # Ollama's command is a client: the models run in its service.
