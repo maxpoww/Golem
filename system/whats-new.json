@@ -1,5 +1,16 @@
 [
   {
+    "id": "2026-11-16-capture",
+    "en": "Print Screen opens a capture tool: region, window or screen, picture or video",
+    "es": "Impr Pant abre una herramienta de captura: región, ventana o pantalla, foto o video",
+    "es_ES": "Impr Pant abre una herramienta de captura: región, ventana o pantalla, foto o vídeo",
+    "pt": "Print Screen abre uma ferramenta de captura: região, janela ou tela, foto ou vídeo",
+    "pt_PT": "Print Screen abre uma ferramenta de captura: região, janela ou ecrã, foto ou vídeo",
+    "fr": "Impr écran ouvre un outil de capture : zone, fenêtre ou écran, photo ou vidéo",
+    "de": "Druck öffnet ein Aufnahmewerkzeug: Bereich, Fenster oder Bildschirm, Foto oder Video",
+    "it": "Stamp apre uno strumento di cattura: area, finestra o schermo, foto o video"
+  },
+  {
     "id": "2026-11-16-versions",
     "en": "Updates lists the versions kept and can go back to the one before",
     "es": "Actualizaciones muestra las versiones guardadas y puede volver a la anterior",
