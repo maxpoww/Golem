@@ -5,8 +5,9 @@
 #   1. the lock screen is the first screen (the login), and the owner's
 #      password opens it;
 #   2. the password just typed opened the keyring too (Secret Service);
-#   3. Shift+Print leaves a picture in Pictures/Screenshots;
-#   4. a desktop that crashes comes back LOCKED, and the password opens it.
+#   3. the desktop portal answers (file chooser, look, screen share);
+#   4. Shift+Print leaves a picture in Pictures/Screenshots;
+#   5. a desktop that crashes comes back LOCKED, and the password opens it.
 #
 # NOT a flake check: the lane runs every check before it publishes, and a
 # test that types on a software-rendered screen is the kind that can fail
@@ -55,6 +56,14 @@ pkgs.testers.runNixOSTest {
 
       with subtest("the password opened the keyring"):
           machine.wait_until_succeeds(asowner % "busctl --user list | grep -q org.freedesktop.secrets", timeout=60)
+
+      with subtest("the portal answers: a file chooser, the look, a screen to share"):
+          portal = asowner % "busctl --user introspect org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop"
+          machine.wait_until_succeeds(portal + " | grep -q org.freedesktop.portal.FileChooser", timeout=60)
+          machine.succeed(portal + " | grep -q org.freedesktop.portal.Settings")
+          machine.succeed(portal + " | grep -q org.freedesktop.portal.ScreenCast")
+          # Nobody answers for Secret (desktop/portals.nix says why).
+          machine.fail(portal + " | grep -q org.freedesktop.portal.Secret")
 
       with subtest("Shift+Print leaves a picture in Pictures/Screenshots"):
           machine.send_key("shift-print")

@@ -45,6 +45,8 @@
     ./keyring.nix           # where apps keep their passwords (Secret Service), opened
                             #   by the owner's password at the login (the lock screen)
     ./phone.nix             # the loopback camera device a plugged-in phone's camera is fed into
+    ./portals.nix           # the desktop portal said out loud: Hyprland's for the screen,
+                            #   GTK's for the rest (file chooser, look), nobody for Secret
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
@@ -54,7 +56,6 @@
     # Phase B, still to land (see the plan):
     #   waverunner.nix   the OPTIONS bar + dock (the body of OPTIONS)
     #   waveview.nix     the Hyprland overview/spread plugin
-    #   portals.nix      xdg-desktop-portal   (NEW — absent everywhere today)
     #   ime.nix          fcitx5 + engines     (NEW — the global-input hole)
     #   + the home layer (home-manager: hyprland.lua, waverunner, foot, neovim)
     # NOTE: desktop/test-chrome.nix is TEST-ONLY and deliberately NOT here —
