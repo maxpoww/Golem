@@ -371,6 +371,15 @@
 
         # What the update lane builds before it publishes a version, and
         # whose pieces go into that version's cache (updates/README.md).
+        # The first minute of a session in the boot test's VM: login, keyring,
+        # a screenshot, a crash coming back locked (updates/session-test.nix).
+        # A package, not a check: the lane does not run it.
+        session-test = import ./updates/session-test.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          modules = desktopVmModules;
+          specialArgs = { golemSrc = self; };
+        };
+
         update-gate = import ./updates/gate.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           inherit bakedUnique mkBakedEntry;
