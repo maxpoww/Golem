@@ -53,6 +53,7 @@ in
     ./fits.nix            # an app the owner installs works the moment it lands (OBS)
     ./warm-browser.nix    # on a spinning disk, Seam's files read ahead after the login
     ./phone.nix           # a plugged-in Android: mirror its screen, use it as the camera
+    ./screenshot.nix      # the Print Screen keys: a file, the clipboard, a notification
     waverunner.homeManagerModules.default
   ];
   # ./waverunner-packages.nix (the owner's launcher-installed list) is NOT

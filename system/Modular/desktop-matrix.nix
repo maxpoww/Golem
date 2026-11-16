@@ -301,6 +301,10 @@ let
         # Found by the P1 diff (2026-09-30): only the dev box had these.
         (ex "the sunset option's hyprsunset ships in the home layer"
           (lib.any (p: (p.pname or "") == "hyprsunset") c.home-manager.users.${owner}.home.packages))
+        # Print Screen (2026-11-16): the three keys run a command that ships.
+        (ex "the screenshot keys run golem-screenshot, and it ships in the home layer"
+          (lib.any (p: (p.name or "") == "golem-screenshot") c.home-manager.users.${owner}.home.packages
+           && lib.all (m: lib.hasInfix "golem-screenshot ${m}\")" (luaOf c)) [ "region" "screen" "window" ]))
         # The control panel's Default apps (2026-10-13): the owner's file is theirs.
         (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
           (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)

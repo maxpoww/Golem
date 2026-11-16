@@ -33,5 +33,12 @@
  "Golem: the desktop closed several times in a row. Sign in and look at the log in Care.": "Golem: il desktop si è chiuso più volte di seguito. Accedi e guarda il registro in Manutenzione.",
  "The session bus is {0}% full": "Il bus di sessione è pieno al {0}%",
  "Golem raised its limit so it doesn't go down. Something is leaking connections: {0}": "Golem ne ha alzato il limite perché non cada. Qualcosa perde connessioni: {0}",
- "Something is leaving connections open: {0}": "Qualcosa lascia connessioni aperte: {0}"
+ "Something is leaving connections open: {0}": "Qualcosa lascia connessioni aperte: {0}",
+ "The screenshot could not be taken": "Non è stato possibile fare lo screenshot",
+ "Screenshot saved": "Screenshot salvato",
+ "It is in {0} and on the clipboard.": "È in {0} e negli appunti.",
+ "It is in {0}.": "È in {0}.",
+ "The screenshot is on the clipboard": "Lo screenshot è negli appunti",
+ "It could not be saved in {0}.": "Non è stato possibile salvarlo in {0}.",
+ "Open": "Apri"
 }
