@@ -1,14 +1,13 @@
 [
   {
     "id": "2026-11-16-capture",
-    "en": "Print Screen opens a capture tool: region, window or screen, picture or video",
-    "es": "Impr Pant abre una herramienta de captura: región, ventana o pantalla, foto o video",
-    "es_ES": "Impr Pant abre una herramienta de captura: región, ventana o pantalla, foto o vídeo",
-    "pt": "Print Screen abre uma ferramenta de captura: região, janela ou tela, foto ou vídeo",
-    "pt_PT": "Print Screen abre uma ferramenta de captura: região, janela ou ecrã, foto ou vídeo",
-    "fr": "Impr écran ouvre un outil de capture : zone, fenêtre ou écran, photo ou vidéo",
-    "de": "Druck öffnet ein Aufnahmewerkzeug: Bereich, Fenster oder Bildschirm, Foto oder Video",
-    "it": "Stamp apre uno strumento di cattura: area, finestra o schermo, foto o video"
+    "en": "Print Screen takes the screen at once; click its preview to cut a region or a window",
+    "es": "Impr Pant captura la pantalla al instante; haz clic en la vista previa para recortar una región o una ventana",
+    "pt": "Print Screen captura a tela na hora; clique na prévia para recortar uma região ou uma janela",
+    "pt_PT": "Print Screen captura o ecrã na hora; clique na pré-visualização para recortar uma região ou uma janela",
+    "fr": "Impr écran capture l'écran aussitôt ; cliquez sur l'aperçu pour découper une zone ou une fenêtre",
+    "de": "Druck nimmt den Bildschirm sofort auf; ein Klick auf die Vorschau schneidet einen Bereich oder ein Fenster aus",
+    "it": "Stamp cattura subito lo schermo; un clic sull'anteprima ritaglia un'area o una finestra"
   },
   {
     "id": "2026-11-16-versions",

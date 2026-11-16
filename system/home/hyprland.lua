@@ -599,11 +599,10 @@ hl.bind(mainMod .. " + SHIFT + W", hl.dsp.window.move({ direction = "up" }))
 -- Tool chord: the keyboard itself types Super+Shift+S, all three inside a few
 -- ms (only Fn+PrtSc sends a real Print). A hand never gets S in within 40 ms
 -- of Super, so a burst that fast is the key: a screenshot, not a move.
--- The key opens the dock's CAPTURE TOOL (Max, 2026-11-16: "una herramienta,
--- que tenga todo lo que un usuario necesite"): region, window or screen, a
--- picture or a film. A dock that does not answer, or one from before the
--- tool, leaves the key what it was: drag a region.
-local screenshot = hl.dsp.exec_cmd("sh -c '/home/max/launcher/target/debug/waverunner-ctl capture || golem-screenshot region'")
+-- This keyboard's key cannot be held (it lets go by itself), so it is the
+-- tap alone: the dock's `capture shot` (see PrtSc below). A dock that does
+-- not answer, or one from before the tool: a plain shot of the screen.
+local screenshot = hl.dsp.exec_cmd("sh -c '/home/max/launcher/target/debug/waverunner-ctl capture shot || golem-screenshot screen'")
 hl.bind(mainMod .. " + SHIFT + S", function()
     if superBurst then
         hl.dispatch(screenshot)
@@ -831,11 +830,16 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
--- PrtSc: the capture tool (above). Shift: the whole screen at once. Alt: the
--- window at once. Each shot is a file in Pictures → Screenshots, on the
--- clipboard, and shown in a notification (golem-screenshot,
--- system/home/screenshot.nix; the tool does the same).
-hl.bind("Print", screenshot, { submap_universal = true })
+-- PrtSc (Max, 2026-11-16): the screen is taken the moment the key goes
+-- down and shown on the card's pill; a click there cuts it to a region or a
+-- window, left alone it is kept whole. HELD a second and a half it records
+-- the screen instead, and a tap stops a recording. The dock does all of it
+-- (capture.rs) and has to know both ends of the press. A dock that does not
+-- answer, or one from before this: a plain shot of the screen.
+-- Shift: the whole screen, and Alt: the window, at once and with a
+-- notification (golem-screenshot, system/home/screenshot.nix).
+hl.bind("Print", hl.dsp.exec_cmd("sh -c '/home/max/launcher/target/debug/waverunner-ctl capture press || golem-screenshot screen'"), { submap_universal = true })
+hl.bind("Print", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl capture release"), { release = true, submap_universal = true })
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("golem-screenshot screen"), { submap_universal = true })
 hl.bind("ALT + Print", hl.dsp.exec_cmd("golem-screenshot window"), { submap_universal = true })
 -- Ctrl + Print records the screen the keyboard is on (plan F3.3): the first

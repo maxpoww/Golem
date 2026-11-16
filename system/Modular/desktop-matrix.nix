@@ -385,11 +385,14 @@ let
         (ex "the screenshot keys run golem-screenshot, and it ships in the home layer"
           (lib.any (p: (p.name or "") == "golem-screenshot") c.home-manager.users.${owner}.home.packages
            && lib.all (m: lib.hasInfix "golem-screenshot ${m}\")" (luaOf c)) [ "screen" "window" ]))
-        # The capture tool (2026-11-16): Print asks the dock for it, by the
-        # dock's command as it is on an install, and is still a region shot
-        # where the dock does not answer; the text reader ships.
-        (ex "Print opens the dock's capture tool, falls back to a region shot, and tesseract ships"
-          (lib.hasInfix "exec_cmd(\"sh -c 'waverunner-ctl capture || golem-screenshot region'\")" (luaOf c)
+        # The capture tool (2026-11-16): Print tells the dock both ends of
+        # the press (a tap is a shot, a hold records), by the dock's command
+        # as it is on an install, and is still a shot of the screen where the
+        # dock does not answer; the text reader ships.
+        (ex "Print tells the dock its press and its release, falls back to a screen shot, and tesseract ships"
+          (lib.hasInfix "exec_cmd(\"sh -c 'waverunner-ctl capture press || golem-screenshot screen'\")" (luaOf c)
+           && lib.hasInfix "exec_cmd(\"waverunner-ctl capture release\"), { release = true" (luaOf c)
+           && lib.hasInfix "exec_cmd(\"sh -c 'waverunner-ctl capture shot || golem-screenshot screen'\")" (luaOf c)
            && lib.any (p: (p.pname or "") == "tesseract") c.home-manager.users.${owner}.home.packages))
         (ex "what each update changed is written by hand and carried by the system"
           (c.environment.etc ? "golem/whats-new.json"))
