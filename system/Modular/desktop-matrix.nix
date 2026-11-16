@@ -385,6 +385,9 @@ let
         (ex "the screenshot keys run golem-screenshot, and it ships in the home layer"
           (lib.any (p: (p.name or "") == "golem-screenshot") c.home-manager.users.${owner}.home.packages
            && lib.all (m: lib.hasInfix "golem-screenshot ${m}\")" (luaOf c)) [ "region" "screen" "window" ]))
+        (ex "F3.3: Ctrl+Print asks the dock to record, and the recorder ships in the home layer"
+          (lib.hasInfix "waverunner-ctl record\")" (luaOf c)
+           && lib.any (p: (p.pname or "") == "wf-recorder") c.home-manager.users.${owner}.home.packages))
         # The control panel's Default apps (2026-10-13): the owner's file is theirs.
         (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
           (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)

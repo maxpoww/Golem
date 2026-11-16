@@ -833,6 +833,10 @@ hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = tr
 hl.bind("Print", screenshot, { submap_universal = true })
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("golem-screenshot screen"), { submap_universal = true })
 hl.bind("ALT + Print", hl.dsp.exec_cmd("golem-screenshot window"), { submap_universal = true })
+-- Ctrl + Print records the screen the keyboard is on (plan F3.3): the first
+-- press starts, the next stops and keeps the film in Videos/Screencasts.
+-- While it runs it is on the bar's task pill, whose Stop stops it too.
+hl.bind("CTRL + Print", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl record"), { submap_universal = true })
 
 
 
