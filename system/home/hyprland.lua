@@ -45,8 +45,8 @@ hl.layer_rule({ match = { namespace = "waverunner-desktop-menu" }, ignore_alpha 
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
--- First: a desktop coming back after a crash comes back locked (idle.nix).
-hl.exec_cmd("golem-lock-on-return")
+-- The lock screen first: it is the login (home/idle.nix, golem-lock-screen).
+hl.exec_cmd("golem-lock-screen --login")
 hl.exec_cmd("hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so")
 hl.exec_cmd("hyprctl setcursor phinger-cursors-light 24")
 hl.exec_cmd("/home/max/launcher/waverunner-dev")
@@ -434,7 +434,7 @@ hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))
 -- session; home/idle.nix). `locked`: it also works on a locked session, so if
 -- the lock screen ever dies (the session stays locked, frozen on its last
 -- frame), Super+L brings a live one back (allow_session_lock_restore below).
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("sh -c 'pidof hyprlock || hyprlock'"), { locked = true })
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("golem-lock-screen"), { locked = true })
 -- (While something dictated is being written out, Escape cancels it — the
 -- dock binds the bare key for that long and raises `golem_dictating`. A hand
 -- that has not let go of Super yet presses THIS key instead: it cancels too,

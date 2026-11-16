@@ -140,10 +140,11 @@ Max approved five items from the next round, the ones nobody sees.
    it"). The session keeper, or Hyprland's own watchdog, used to start a
    crashed desktop again open: a crash caused at the lock screen handed over
    the desktop. Now the second start of the desktop in a boot runs the lock
-   screen first thing, as the compositor's child (`golem-lock-on-return`, a
-   marker in the runtime dir). The first start of a boot is as before
-   (autologin; disk encryption stays an installer option, off by default,
-   Max 2026-11-12). Tested on the ASUS: a SIGSEGV to Hyprland and a stopped
+   screen first thing, as the compositor's child (`golem-lock-screen --login`,
+   a marker in the runtime dir), whatever the login setting says. The first
+   start of a boot shows the lock screen as the login (branch login-live),
+   unless `golem.home.loginLock.enable` is off (disk encryption stays an
+   installer option, off by default, Max 2026-11-12). Tested on the ASUS: a SIGSEGV to Hyprland and a stopped
    session both came back on the lock screen.
 
 Found on the ASUS while testing 1: the seal walked regular files only, so the

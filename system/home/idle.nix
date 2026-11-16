@@ -34,6 +34,12 @@
 # golem.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
+#
+# THE LOGIN (Max, 2026-10-28: "tenemos que poner una pantalla de login … ¿se
+# puede usar la misma que la pantalla de bloqueo?"): the same lock screen is
+# the desktop's first screen (golem-lock-screen --login, the first thing
+# hyprland.lua starts). golem.home.loginLock.enable = false opens the desktop
+# at once, as before.
 { config, lib, pkgs, ... }:
 
 let
@@ -73,26 +79,40 @@ let
   # input could unlock them (2026-09-30). Super+L launches it the same way.
   golemLock = pkgs.writeShellScript "golem-lock" ''
     pidof hyprlock >/dev/null && exit 0
-    exec hyprctl dispatch 'hl.dsp.exec_cmd("hyprlock")'
+    exec hyprctl dispatch 'hl.dsp.exec_cmd("${golemLockScreen}/bin/golem-lock-screen")'
   '';
   lock = "${golemLock}";
-  # A desktop that starts a SECOND time in a boot is coming back after a crash
-  # (the session keeper starting it again, or Hyprland's own watchdog): it
-  # comes back LOCKED. Before, it came back open, so a crash (maybe caused on
-  # purpose at the lock screen) handed whoever was at the keyboard an open
-  # desktop (the privacy study, 2026-11-12; Max: "fix it"). The first start
-  # of a boot is as before. The marker lives in the runtime dir, which logind
-  # keeps for as long as the session (the keeper holds it) and empties at
-  # every boot. Run by the compositor first thing (hyprland.lua), so the lock
-  # screen is the compositor's child like every other lock.
-  golemLockOnReturn = pkgs.writeShellScriptBin "golem-lock-on-return" ''
-    run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
-    ${pkgs.coreutils}/bin/mkdir -p "$run"
-    if [ -e "$run/desktop-started" ]; then
-      ${pkgs.procps}/bin/pgrep -u "$(${pkgs.coreutils}/bin/id -u)" -x 'hyprlock|\.hyprlock-wrapp' >/dev/null && exit 0
-      exec ${config.programs.hyprlock.package}/bin/hyprlock
+  # THE LOCK SCREEN, as the compositor runs it (every lock: the idle one
+  # above, Super+L, and the login at the desktop's start). After the unlock
+  # it completes the keyring's start: hyprlock's PAM started GNOME Keyring
+  # with the password just typed (desktop/keyring.nix) and `--start` puts its
+  # Secret Service on the bus, and its certificates (pkcs11) where apps look;
+  # one started that way that hears nothing for two minutes exits. Already
+  # running: a no-op.
+  # THE LOGIN (`--login`): greetd starts the owner's desktop with no
+  # password typed (desktop/greeter.nix), so the lock screen comes first.
+  # A DESKTOP THAT COMES BACK: one that starts a SECOND time in a boot is
+  # coming back after a crash (the session keeper starting it again, or
+  # Hyprland's own watchdog), and it comes back LOCKED whatever loginLock
+  # says: a crash, maybe caused on purpose at the lock screen, must not hand
+  # whoever is at the keyboard an open desktop (the privacy study,
+  # 2026-11-12; Max: "fix it"). The marker lives in the runtime dir, which
+  # logind keeps for as long as the session (the keeper holds it) and empties
+  # at every boot.
+  golemLockScreen = pkgs.writeShellScriptBin "golem-lock-screen" ''
+    if [ "''${1:-}" = --login ]; then
+      run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
+      ${pkgs.coreutils}/bin/mkdir -p "$run"
+      returning=
+      [ -e "$run/desktop-started" ] && returning=1
+      : > "$run/desktop-started"
+      ${lib.optionalString (!config.golem.home.loginLock.enable) ''[ -n "$returning" ] || exit 0''}
     fi
-    : > "$run/desktop-started"
+    ${pkgs.procps}/bin/pgrep -u "$(${pkgs.coreutils}/bin/id -u)" -x 'hyprlock|\.hyprlock-wrapp' >/dev/null && exit 0
+    hyprlock
+    if command -v gnome-keyring-daemon >/dev/null; then
+      exec gnome-keyring-daemon --start --components=pkcs11,secrets >/dev/null 2>&1
+    fi
   '';
   # The idle suspend waits for a running install or system update: an app
   # from the dock can take longer than the 15 minutes (DaVinci Resolve, 25
@@ -128,7 +148,7 @@ let
   '';
 in
 {
-  home.packages = [ golemCaffeine golemLockOnReturn ];
+  home.packages = [ golemCaffeine golemLockScreen ];
   systemd.user.services.golem-caffeine = {
     Unit = {
       Description = "Golem caffeine: stay awake (golem-caffeine on|off)";

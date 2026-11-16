@@ -56,6 +56,23 @@ let
     (ex "greetd does not restart itself (an initial_session would autologin again)"
       (!c.services.greetd.restart))
     (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)
+    # Apps keep their passwords somewhere (desktop/keyring): the Secret
+    # Service, opened by the password typed at the login (the lock screen).
+    (ex "keyring: the lock screen's PAM starts or unlocks it; the autologin's never does"
+      (c.services.gnome.gnome-keyring.enable
+        && c.security.pam.services.hyprlock.enableGnomeKeyring
+        && (c.security.pam.services.hyprlock.rules.auth.gnome_keyring.settings.auto_start or false)
+        # (only a password pam_unix accepted reaches it: the check first, requisite)
+        && (let auth = lib.filter (l: lib.hasPrefix "auth " l)
+                  (lib.splitString "\n" c.security.pam.services.hyprlock.text); in
+            lib.length auth == 2
+            && lib.hasPrefix "auth requisite " (lib.elemAt auth 0) && lib.hasInfix "/pam_unix.so" (lib.elemAt auth 0)
+            && lib.hasPrefix "auth optional " (lib.elemAt auth 1) && lib.hasInfix "pam_gnome_keyring.so auto_start" (lib.elemAt auth 1))
+        && !c.security.pam.services.greetd.enableGnomeKeyring
+        && !c.services.gnome.gcr-ssh-agent.enable
+        # (nothing starts it before that password: its autostart entries hidden)
+        && lib.all (f: lib.hasInfix "Hidden=true" (c.environment.etc."xdg/autostart/${f}".text or ""))
+             [ "gnome-keyring-pkcs11.desktop" "gnome-keyring-secrets.desktop" ]))
     (ex "xserver on for XWayland xkb" c.services.xserver.enable)
     (ex "owner joined uinput + adbusers at the desktop stage"
       (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
@@ -337,7 +354,16 @@ let
           (let s = builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings; in
            lib.hasInfix "golem-lock" s && !(lib.hasInfix "|| hyprlock" s)
            && lib.hasInfix "allow_session_lock_restore = true" (luaOf c)
-           && lib.hasInfix "hyprlock'\"), { locked = true })" (luaOf c)))
+           && lib.hasInfix ''hl.dsp.exec_cmd("golem-lock-screen"), { locked = true })'' (luaOf c)))
+        (ex "the login: the lock screen is the first thing the desktop starts, and it opens the keyring"
+          (let
+            lockScreen = lib.findFirst (p: (p.name or "") == "golem-lock-screen")
+              null c.home-manager.users.${owner}.home.packages;
+          in
+           lib.hasInfix "hl.on(\"hyprland.start\", function()\n-- The lock screen first: it is the login (home/idle.nix, golem-lock-screen).\nhl.exec_cmd(\"golem-lock-screen --login\")" (luaOf c)
+           && lockScreen != null
+           && !(lib.hasInfix ''[ -n "$returning" ] || exit 0'' (lockScreen.text or ""))
+           && lib.hasInfix "gnome-keyring-daemon --start --components=pkcs11,secrets" (lockScreen.text or "")))
         (ex "P11: the lock never goes through loginctl (a greeter-class session refuses it)"
           (!(lib.hasInfix "lock-session" (builtins.toJSON c.home-manager.users.${owner}.services.hypridle.settings))
            && !(lib.hasInfix "lock-session" (luaOf c))))
@@ -498,12 +524,15 @@ let
             && lib.hasInfix "tiny_power_button power_signal=28" c.boot.extraModprobeConfig
             && lib.elem "golem-power-key.service" c.systemd.targets.kbrequest.wants))
         (ex "real desktop: a desktop that comes back after a crash comes back locked (2026-11-12)"
-          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
-            lib.hasInfix ''hl.on("hyprland.start", function()
--- First: a desktop coming back after a crash comes back locked (idle.nix).
-hl.exec_cmd("golem-lock-on-return")'' lua
-            && lib.any (p: lib.hasInfix "golem-lock-on-return" (p.name or ""))
-                 c.home-manager.users.${owner}.home.packages))
+          (let
+            lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text;
+            lockScreen = lib.findFirst (p: (p.name or "") == "golem-lock-screen")
+              null c.home-manager.users.${owner}.home.packages;
+          in
+            lib.hasInfix ''hl.exec_cmd("golem-lock-screen --login")'' lua
+            && lockScreen != null
+            # the second start of a boot is told from the first by a marker
+            && lib.hasInfix ''[ -e "$run/desktop-started" ] && returning=1'' (lockScreen.text or "")))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))
