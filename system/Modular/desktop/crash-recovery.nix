@@ -37,13 +37,21 @@ let
     name = "golem-rollback";
     runtimeInputs = [ pkgs.coreutils pkgs.gnugrep pkgs.findutils pkgs.git pkgs.util-linux config.nix.package pkgs.systemd ];
     text = ''
+      # `golem-rollback asked`: the owner pressed "Go back" in Controls →
+      # Updates (golem-go-back.service). The same steps; only the words after
+      # the restart differ, because nothing crashed.
+      why=''${1:-crash}
       profiles=/nix/var/nix/profiles
       rev_of() { local r; r=$("$1/sw/bin/nixos-version" --configuration-revision 2>/dev/null || true); echo "''${r%-dirty}"; }
       booted=$(readlink -f /run/booted-system)
       bad=$(rev_of "$booted")
       mkdir -p "$(dirname ${held})"; touch ${held}
       if [ -n "$bad" ] && ! grep -qx "$bad" ${held}; then echo "$bad" >> ${held}; fi
-      echo "golem-rollback: the desktop crashed in a loop on revision ''${bad:-unknown} — holding it"
+      if [ "$why" = asked ]; then
+        echo "golem-rollback: the owner asked to go back from revision ''${bad:-unknown} — holding it"
+      else
+        echo "golem-rollback: the desktop crashed in a loop on revision ''${bad:-unknown} — holding it"
+      fi
 
       cur=""
       for l in "$profiles"/system-*-link; do
@@ -72,7 +80,7 @@ let
       ${config.golem.recover}/bin/golem-recover "$profiles/system" \
         || echo "golem-rollback: golem-recover could not reset the source (it stays where it is)" >&2
       install -d -m 755 "$(dirname ${note})"
-      printf 'from=%s\nto=%s\nat=%s\n' "''${bad:-unknown}" "''${target_rev:-unknown}" "$(date -Is)" > ${note}
+      printf 'from=%s\nto=%s\nat=%s\nwhy=%s\n' "''${bad:-unknown}" "''${target_rev:-unknown}" "$(date -Is)" "$why" > ${note}
       chmod 644 ${note}
       mkdir -p /run/golem; touch /run/golem/rollback-pending
       systemd-run --on-active=6 --unit=golem-rollback-reboot systemctl reboot
@@ -106,8 +114,13 @@ let
     [ -f ${note} ] || exit 0
     seen="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/rollback-seen"
     if [ -f "$seen" ] && [ "$seen" -nt ${note} ]; then exit 0; fi
-    ${pkgs.libnotify}/bin/notify-send -a Golem "$(${golemSay}/bin/golem-say "Golem went back to the previous version")" \
-      "$(${golemSay}/bin/golem-say "The desktop kept crashing after an update, so Golem restarted on the version before it. It will update again when a fixed version is out.")"
+    if ${pkgs.gnugrep}/bin/grep -qx 'why=asked' ${note}; then
+      ${pkgs.libnotify}/bin/notify-send -a Golem "$(${golemSay}/bin/golem-say "Golem went back to the previous version")" \
+        "$(${golemSay}/bin/golem-say "As you asked. It will update again when a newer version is out.")"
+    else
+      ${pkgs.libnotify}/bin/notify-send -a Golem "$(${golemSay}/bin/golem-say "Golem went back to the previous version")" \
+        "$(${golemSay}/bin/golem-say "The desktop kept crashing after an update, so Golem restarted on the version before it. It will update again when a fixed version is out.")"
+    fi
     mkdir -p "$(dirname "$seen")"; touch "$seen"
   '';
 in
@@ -145,12 +158,18 @@ in
     description = "Golem: go back to the previous version after a desktop crash loop";
     serviceConfig = { Type = "oneshot"; ExecStart = "${rollback}/bin/golem-rollback"; };
   };
+  # The same, asked for: the button in Controls → Updates.
+  systemd.services.golem-go-back = {
+    description = "Golem: go back to the previous version, as the owner asked";
+    serviceConfig = { Type = "oneshot"; ExecStart = "${rollback}/bin/golem-rollback asked"; };
+  };
 
-  # Only the owner, and only this one unit.
+  # Only the owner, and only these two units.
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.systemd1.manage-units" &&
-          action.lookup("unit") == "golem-rollback.service" &&
+          (action.lookup("unit") == "golem-rollback.service" ||
+           action.lookup("unit") == "golem-go-back.service") &&
           action.lookup("verb") == "start" &&
           subject.user == "${owner}") {
         return polkit.Result.YES;

@@ -521,6 +521,11 @@ end
 -- pill's clicks (waverunner ranks by decayed focus frequency).
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
+-- The reflexes a hand brings from every other desktop: Alt+Tab is Super+Tab
+-- (the same walk, the same order), Alt+F4 is Super+Q.
+hl.bind("ALT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
+hl.bind("ALT + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
+hl.bind("ALT + F4", hl.dsp.window.close())
 -- The same walk one level up, round the SCREENS: the first press goes to the
 -- screen last worked on; pressed again with nothing touched it goes on to the
 -- next one and wraps home; touching the screen commits it.
@@ -594,7 +599,7 @@ hl.bind(mainMod .. " + SHIFT + W", hl.dsp.window.move({ direction = "up" }))
 -- Tool chord: the keyboard itself types Super+Shift+S, all three inside a few
 -- ms (only Fn+PrtSc sends a real Print). A hand never gets S in within 40 ms
 -- of Super, so a burst that fast is the key: a screenshot, not a move.
-local screenshot = hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy')
+local screenshot = hl.dsp.exec_cmd("golem-screenshot region")
 hl.bind(mainMod .. " + SHIFT + S", function()
     if superBurst then
         hl.dispatch(screenshot)
@@ -822,8 +827,12 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
--- PrtSc: drag a region, the shot goes straight to the clipboard.
+-- PrtSc: drag a region. Shift: the whole screen. Alt: the window. Each shot is
+-- a file in Pictures → Screenshots, on the clipboard, and shown in a
+-- notification (golem-screenshot, system/home/screenshot.nix).
 hl.bind("Print", screenshot, { submap_universal = true })
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("golem-screenshot screen"), { submap_universal = true })
+hl.bind("ALT + Print", hl.dsp.exec_cmd("golem-screenshot window"), { submap_universal = true })
 
 
 

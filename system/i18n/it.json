@@ -16,6 +16,7 @@
  "It has been waiting {0} days. Restart when it suits you to start using it.": "È in attesa da {0} giorni. Riavvia quando ti è comodo per iniziare a usarlo.",
  "Golem went back to the previous version": "Golem è tornato alla versione precedente",
  "The desktop kept crashing after an update, so Golem restarted on the version before it. It will update again when a fixed version is out.": "Il desktop continuava a bloccarsi dopo un aggiornamento, quindi Golem è ripartito con la versione precedente. Si aggiornerà di nuovo quando uscirà una versione corretta.",
+ "As you asked. It will update again when a newer version is out.": "Come richiesto. Si aggiornerà di nuovo quando uscirà una versione più recente.",
  "Golem had a problem starting the desktop. It is going back to the previous version and will restart in a moment.": "Golem ha avuto un problema ad avviare il desktop. Sta tornando alla versione precedente e si riavvierà tra un momento.",
  "Golem can't start the desktop right now. Restart the computer to try again.": "Golem non riesce ad avviare il desktop in questo momento. Riavvia il computer per riprovare.",
  "Restart": "Riavvia",
@@ -33,5 +34,12 @@
  "Golem: the desktop closed several times in a row. Sign in and look at the log in Care.": "Golem: il desktop si è chiuso più volte di seguito. Accedi e guarda il registro in Manutenzione.",
  "The session bus is {0}% full": "Il bus di sessione è pieno al {0}%",
  "Golem raised its limit so it doesn't go down. Something is leaking connections: {0}": "Golem ne ha alzato il limite perché non cada. Qualcosa perde connessioni: {0}",
- "Something is leaving connections open: {0}": "Qualcosa lascia connessioni aperte: {0}"
+ "Something is leaving connections open: {0}": "Qualcosa lascia connessioni aperte: {0}",
+ "The screenshot could not be taken": "Non è stato possibile fare lo screenshot",
+ "Screenshot saved": "Screenshot salvato",
+ "It is in {0} and on the clipboard.": "È in {0} e negli appunti.",
+ "It is in {0}.": "È in {0}.",
+ "The screenshot is on the clipboard": "Lo screenshot è negli appunti",
+ "It could not be saved in {0}.": "Non è stato possibile salvarlo in {0}.",
+ "Open": "Apri"
 }
