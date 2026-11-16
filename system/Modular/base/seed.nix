@@ -80,7 +80,12 @@ let
 
       rev=$(/run/current-system/sw/bin/nixos-version --configuration-revision 2>/dev/null || true)
       rev=''${rev%-dirty}
-      if [[ "$rev" =~ ^[0-9a-f]{40}$ ]] && git -C "$tmp" cat-file -e "$rev^{commit}" 2>/dev/null; then
+      # Asked AS THE OWNER too: root asking a checkout that is the owner's
+      # gets git's "dubious ownership" refusal (only the final folder is on
+      # root's safe list, selfrebuild.nix), which read here as "not known" —
+      # so every install took the branch's head, known revision or not
+      # (seen 2026-11-15).
+      if [[ "$rev" =~ ^[0-9a-f]{40}$ ]] && asowner git -C "$tmp" cat-file -e "$rev^{commit}" 2>/dev/null; then
         asowner git -C "$tmp" checkout -q -B "$branch" "$rev"
         asowner git -C "$tmp" branch -q --set-upstream-to="origin/$branch" "$branch"
         echo "golem-seed-adopt: at the installed revision $rev; autoupdate fast-forwards from here"
