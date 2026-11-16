@@ -7,12 +7,15 @@
 #   2. the password just typed opened the keyring too (Secret Service);
 #   3. the desktop portal answers (file chooser, look, screen share);
 #   4. Shift+Print leaves a picture in Pictures/Screenshots;
-#   5. a desktop that crashes comes back LOCKED, and the password opens it.
+#   5. Ctrl+Print records the screen (only with a dock that has `record`);
+#   6. a desktop that crashes comes back LOCKED, and the password opens it.
 #
 # NOT a flake check: the lane runs every check before it publishes, and a
 # test that types on a software-rendered screen is the kind that can fail
 # for its own reasons. Run by hand before a merge that touches the session:
 #   nix build .#session-test -L
+# and with a dock that is not the pinned one:
+#   nix build .#session-test -L --override-input waverunner git+file://<launcher checkout>
 { pkgs, modules, specialArgs }:
 
 pkgs.testers.runNixOSTest {
@@ -69,6 +72,21 @@ pkgs.testers.runNixOSTest {
           machine.send_key("shift-print")
           machine.wait_until_succeeds("ls /home/${owner}/*/Screenshots/*.png", timeout=60)
           print(machine.succeed("ls -la /home/${owner}/*/Screenshots/"))
+
+      # Only with a dock that records (the pinned one may be older than the key).
+      if machine.execute(asowner % "waverunner-ctl record state")[0] == 0:
+          with subtest("Ctrl+Print records the screen until it is pressed again"):
+              films = "ls /home/${owner}/*/Screencasts/*.mp4"
+              machine.send_key("ctrl-print")
+              machine.wait_until_succeeds("pgrep -u ${owner} -x wf-recorder", timeout=30)
+              machine.sleep(5)
+              machine.send_key("ctrl-print")
+              machine.wait_until_fails("pgrep -u ${owner} -x wf-recorder", timeout=30)
+              machine.wait_until_succeeds(films, timeout=30)
+              print(machine.succeed("ls -la /home/${owner}/*/Screencasts/"))
+              machine.succeed("test $(stat -c %s /home/${owner}/*/Screencasts/*.mp4) -gt 2048")
+      else:
+          print("this dock has no `record`: the recording key is not tried")
 
       with subtest("a desktop that crashes comes back locked"):
           old = machine.succeed(hyprland).split()[0]
