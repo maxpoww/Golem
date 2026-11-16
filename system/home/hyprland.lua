@@ -519,6 +519,11 @@ end
 -- pill's clicks (waverunner ranks by decayed focus frequency).
 hl.bind(mainMod .. " + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
 hl.bind(mainMod .. " + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
+-- The reflexes a hand brings from every other desktop: Alt+Tab is Super+Tab
+-- (the same walk, the same order), Alt+F4 is Super+Q.
+hl.bind("ALT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-next"))
+hl.bind("ALT + SHIFT + TAB", hl.dsp.exec_cmd("/home/max/launcher/target/debug/waverunner-ctl focus-other"))
+hl.bind("ALT + F4", hl.dsp.window.close())
 -- The same walk one level up, round the SCREENS: the first press goes to the
 -- screen last worked on; pressed again with nothing touched it goes on to the
 -- next one and wraps home; touching the screen commits it.
