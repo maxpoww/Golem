@@ -599,7 +599,11 @@ hl.bind(mainMod .. " + SHIFT + W", hl.dsp.window.move({ direction = "up" }))
 -- Tool chord: the keyboard itself types Super+Shift+S, all three inside a few
 -- ms (only Fn+PrtSc sends a real Print). A hand never gets S in within 40 ms
 -- of Super, so a burst that fast is the key: a screenshot, not a move.
-local screenshot = hl.dsp.exec_cmd("golem-screenshot region")
+-- The key opens the dock's CAPTURE TOOL (Max, 2026-11-16: "una herramienta,
+-- que tenga todo lo que un usuario necesite"): region, window or screen, a
+-- picture or a film. A dock that does not answer, or one from before the
+-- tool, leaves the key what it was: drag a region.
+local screenshot = hl.dsp.exec_cmd("sh -c '/home/max/launcher/target/debug/waverunner-ctl capture || golem-screenshot region'")
 hl.bind(mainMod .. " + SHIFT + S", function()
     if superBurst then
         hl.dispatch(screenshot)
@@ -827,9 +831,10 @@ hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = tr
 hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, submap_universal = true })
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd("playerctl previous"),   { locked = true })
 
--- PrtSc: drag a region. Shift: the whole screen. Alt: the window. Each shot is
--- a file in Pictures → Screenshots, on the clipboard, and shown in a
--- notification (golem-screenshot, system/home/screenshot.nix).
+-- PrtSc: the capture tool (above). Shift: the whole screen at once. Alt: the
+-- window at once. Each shot is a file in Pictures → Screenshots, on the
+-- clipboard, and shown in a notification (golem-screenshot,
+-- system/home/screenshot.nix; the tool does the same).
 hl.bind("Print", screenshot, { submap_universal = true })
 hl.bind("SHIFT + Print", hl.dsp.exec_cmd("golem-screenshot screen"), { submap_universal = true })
 hl.bind("ALT + Print", hl.dsp.exec_cmd("golem-screenshot window"), { submap_universal = true })

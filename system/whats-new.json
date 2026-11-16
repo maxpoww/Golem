@@ -1,0 +1,39 @@
+[
+  {
+    "id": "2026-11-16-versions",
+    "en": "Updates lists the versions kept and can go back to the one before",
+    "es": "Actualizaciones muestra las versiones guardadas y puede volver a la anterior",
+    "pt": "Atualizações mostra as versões guardadas e pode voltar à anterior",
+    "fr": "Mises à jour montre les versions gardées et peut revenir à la précédente",
+    "de": "Updates zeigt die behaltenen Versionen und kann zur vorherigen zurückgehen",
+    "it": "Aggiornamenti mostra le versioni conservate e può tornare alla precedente"
+  },
+  {
+    "id": "2026-11-16-record",
+    "en": "Ctrl + Print Screen records the screen",
+    "es": "Ctrl + Impr Pant graba la pantalla",
+    "pt": "Ctrl + Print Screen grava a tela",
+    "pt_PT": "Ctrl + Print Screen grava o ecrã",
+    "fr": "Ctrl + Impr écran enregistre l'écran",
+    "de": "Strg + Druck nimmt den Bildschirm auf",
+    "it": "Ctrl + Stamp registra lo schermo"
+  },
+  {
+    "id": "2026-11-16-screenshots",
+    "en": "Screenshots are saved in Pictures, copied and shown",
+    "es": "Las capturas se guardan en Imágenes, se copian y se muestran",
+    "pt": "As capturas ficam em Imagens, são copiadas e mostradas",
+    "fr": "Les captures sont gardées dans Images, copiées et montrées",
+    "de": "Bildschirmfotos landen in Bilder, in der Zwischenablage und werden gezeigt",
+    "it": "Le catture vanno in Immagini, vengono copiate e mostrate"
+  },
+  {
+    "id": "2026-11-16-alt-tab",
+    "en": "Alt + Tab changes window and Alt + F4 closes it",
+    "es": "Alt + Tab cambia de ventana y Alt + F4 la cierra",
+    "pt": "Alt + Tab muda de janela e Alt + F4 fecha",
+    "fr": "Alt + Tab change de fenêtre et Alt + F4 la ferme",
+    "de": "Alt + Tab wechselt das Fenster, Alt + F4 schließt es",
+    "it": "Alt + Tab cambia finestra e Alt + F4 la chiude"
+  }
+]

@@ -31,6 +31,7 @@
                             # File Roller) + system-wide emoji input — from golem-apps.nix
     ./session.nix           # gvfs, dconf, udisks2, gsettings: what those apps assume
     ./home-boot.nix         # home-manager activates only when something changed
+    ./whats-new.nix         # what each update changed, written by hand (Controls → Updates reads it)
     ./update-notice.nix     # "Golem has an update ready" after 2 days waiting for a restart
     ./crash-recovery.nix    # a crash loop → back to the previous version; never Hyprland's safe mode
     ./app-setup.nix         # an installed app arrives with the system it needs (Steam's 32-bit

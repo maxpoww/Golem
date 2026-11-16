@@ -138,6 +138,9 @@ in
     grim
     slurp
     wf-recorder       # screen recording (the OPTIONS record control)
+    # The capture tool's "Copy text": reads the words in a region of the
+    # screen. Only the shell's six languages' data (all of them is 600 MB+).
+    (tesseract.override { enableLanguages = [ "eng" "spa" "por" "fra" "deu" "ita" ]; })
     hyprsunset        # the SUNSET option's warm screen (daemon screen.rs runs it);
                       # only the dev box had it until 2026-09-30, so "turn on" did
                       # nothing on an install (found by the P1 diff)
