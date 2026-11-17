@@ -1,0 +1,27 @@
+--- a/src/helpers/Monitor.cpp
++++ b/src/helpers/Monitor.cpp
+@@ -765,6 +765,24 @@
+ 
+         if (m_output->preferredMode())
+             requestedModes.push_back(m_output->preferredMode());
++
++        // Golem: the preferred SIZE at its top refresh rate, tried first. Many
++        // fast screens flag a 60 Hz mode as preferred for compatibility (the
++        // Slim Pro 9i's 3200x2000 panel: 60 flagged, 165 only in a DisplayID
++        // block), so a 165 Hz screen came up at 60. KWin picks the same way.
++        // The preferred mode stays the fallback if the faster one fails its
++        // test (a link without the bandwidth); never another size.
++        if (const auto PREF = m_output->preferredMode()) {
++            SP<Aquamarine::SOutputMode> top;
++            for (auto const& mode : m_output->modes) {
++                if (!mode || mode->pixelSize != PREF->pixelSize || mode->refreshRate <= PREF->refreshRate + 500 /* mHz */)
++                    continue;
++                if (!top || mode->refreshRate > top->refreshRate)
++                    top = mode;
++            }
++            if (top)
++                requestedModes.push_back(top);
++        }
+     } else if (RULE->m_resolution == Vector2D(-1, -1)) {
+         requestedStr = "highrr";
+ 
