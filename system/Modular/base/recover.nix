@@ -14,7 +14,9 @@
 #      ~/Golem-local-edits/<when>/ (never lost);
 #   2. git goes to the system's revision (reset --hard on the owner's branch);
 #   3. hosts/target comes back from the system's own copy and is staged
-#      (a flake only sees tracked or staged files);
+#      (a flake only sees tracked or staged files), and the STANDING files
+#      (lab.nix: a choice of the machine, not of a version) stay
+#      (recover-standing.sh);
 #   4. the tree is sealed again.
 # Afterwards a rebuild reproduces the system. Used by the crash rollback
 # (desktop/crash-recovery.nix), by a failed update (base/autoupdate.nix), and
@@ -28,7 +30,7 @@ let
   recover = pkgs.writeShellApplication {
     name = "golem-recover";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.git pkgs.util-linux pkgs.diffutils pkgs.gnugrep ];
-    text = ''
+    text = builtins.readFile ./recover-standing.sh + ''
       sys=$(readlink -f "''${1:-/run/current-system}")
       dir=${lib.escapeShellArg dir}
       owner=${lib.escapeShellArg owner}
@@ -108,6 +110,12 @@ let
         fi
       done
       rm -rf "$held"
+      # …and what belongs to the MACHINE stays, whatever version it goes to:
+      # the lab flag the system being left carried (Max, 2026-11-16: the lab
+      # door and network stay on the notebooks; going back took it away).
+      trusted=$(mktemp -d)
+      if [ -d "$snap" ]; then cp -rL "$snap/." "$trusted/"; fi
+      keep_standing /run/booted-system hosts/target "$trusted" "$owner"
 
       # 4. sealed again — but only what root can vouch for: upstream's code
       #    (checked against root's own fetch, never the owner's .git, whose
@@ -116,11 +124,12 @@ let
       #    this blessed whatever the reset produced, and golem-rollback (no
       #    password) runs it: rewritten objects, then root built them.
       if ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
-         || GOLEM_SEAL_TRUSTED_MACHINE="$snap" ${config.golem.seal.heal}/bin/golem-seal-heal; then
+         || GOLEM_SEAL_TRUSTED_MACHINE="$trusted" ${config.golem.seal.heal}/bin/golem-seal-heal; then
         :
       else
         echo "golem-recover: the source is reset but not sealed (not upstream's, or offline); the next update checks it again" >&2
       fi
+      rm -rf "$trusted"
       echo "golem-recover: the source now matches $(basename "$sys") (revision ''${rev:0:8}) — a rebuild reproduces it"
     '';
   };

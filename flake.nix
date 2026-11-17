@@ -464,6 +464,17 @@
         # nvidia machines pinned to their loud refusal until their
         # leaves land. A rule change in Modular/choose.nix that moves a
         # machine's list fails here.
+        # Going back a version keeps what belongs to the machine, not to a
+        # version (lab.nix): golem-recover's own helper, run on made-up trees.
+        recover-standing = nixpkgs.legacyPackages.${system}.runCommand "golem-recover-standing"
+          { nativeBuildInputs = [ nixpkgs.legacyPackages.${system}.git ]; } ''
+          export HOME=$TMPDIR
+          mkdir t && cp ${./system/Modular/base/recover-standing.sh} t/recover-standing.sh \
+            && cp ${./system/Modular/base/recover-standing-test.sh} t/recover-standing-test.sh
+          bash t/recover-standing-test.sh > $TMPDIR/log || { cat $TMPDIR/log; exit 1; }
+          cp $TMPDIR/log $out
+        '';
+
         chooser-matrix = import ./system/Modular/matrix.nix {
           lib = nixpkgs.lib;
           inherit pkgs;
