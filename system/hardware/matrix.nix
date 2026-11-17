@@ -79,7 +79,9 @@ let
     }
     {
       name = "intel-legacy"; # the 2013-Air class (Haswell and older)
-      facts.golem.hardware = { gpu = "intel"; intelLegacy = true; ramMB = 4096; cores = 4; cpuVendor = "intel"; chassis = "laptop"; };
+      # (lightSensor: the Air has one, and every fact golem-hw-detect can
+      # write must evaluate here — this one did not, 2026-11-17.)
+      facts.golem.hardware = { gpu = "intel"; intelLegacy = true; ramMB = 4096; cores = 4; cpuVendor = "intel"; chassis = "laptop"; lightSensor = true; };
       expect = cfg: [
         (ex "legacy picks i965" (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
         (ex "H.264 fallback policy shipped"

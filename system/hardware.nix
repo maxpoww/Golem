@@ -223,6 +223,23 @@ in
         until its owner enrolls a finger, so default false is safe.
       '';
     };
+    # An ambient light sensor (golem-hw-detect writes it where it sees one).
+    # Declared here as in the modular profile (base/options.nix): the
+    # installer's census and its post-install questions evaluate THIS
+    # profile, and a fact it does not declare is an evaluation error. A
+    # machine with a light sensor (the dev box, the MacBook Air) failed the
+    # census on the install screen, and failed the install itself, after
+    # the disk was wiped, at the post-install questions (found 2026-11-17
+    # writing docs/installing/install.md; the option dates from the auto
+    # brightness work, which declared it on the modular side only).
+    lightSensor = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        The machine has an ambient light sensor: auto brightness
+        (golem-brightness.nix) is installed only where the probe saw one.
+      '';
+    };
     panelDpi = lib.mkOption {
       type = lib.types.int;
       default = 0;
