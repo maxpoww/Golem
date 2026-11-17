@@ -30,9 +30,11 @@
 # 60 Hz panels) are left exactly as they were. The floor only counts while
 # the chip is awake: asleep (RC6), it draws what it always did.
 #
-# A screen's top rate is read from the first block of its EDID (its range of
-# rates, else its listed timings): a screen that names its fast modes only in
-# an extension block is taken for a 60 Hz one, and nothing is done.
+# A screen's top rate is read from its whole EDID (edid-top-hz.awk): the
+# first block's range of rates and timings, and every extension's — CTA-861
+# timings and video codes, DisplayID timings and ranges. The dev box's own
+# panel flags 3200x2000@60 and lists 165 only in a DisplayID block; the first
+# block alone found it there only through its range of rates.
 #
 # WHEN — at boot, after every wake, on every power-supply event and when a
 # screen is plugged in or out. No polling. Other graphics (AMD, NVIDIA, a
@@ -44,7 +46,7 @@ let
 
   floor = pkgs.writeShellApplication {
     name = "golem-gpu-floor";
-    runtimeInputs = [ pkgs.coreutils ];
+    runtimeInputs = [ pkgs.coreutils pkgs.gawk ];
     text = ''
       # On the charger — or no battery at all (a desktop, a battery taken out).
       on_mains() {
@@ -60,27 +62,10 @@ let
         [ "$battery" = no ]
       }
 
-      # The highest refresh rate a panel's EDID names in its first block (its
-      # range of rates, else its listed timings), in Hz; 0 when it cannot be read.
+      # The highest refresh rate a panel's EDID names anywhere, in Hz; 0 when
+      # it cannot be read.
       edid_top_hz() {
-        local b at top=0 hz pclk htot vtot
-        mapfile -t b < <(od -An -v -tu1 -w1 -N128 "$1" 2>/dev/null | tr -d ' ')
-        [ "''${#b[@]}" -eq 128 ] || { echo 0; return; }
-        for at in 54 72 90 108; do
-          pclk=$(( b[at] + b[at+1] * 256 ))
-          if [ "$pclk" -eq 0 ]; then
-            [ "''${b[at+3]}" -eq 253 ] || continue
-            hz=''${b[at+6]}
-            if [ $(( b[at+4] & 2 )) -ne 0 ]; then hz=$(( hz + 255 )); fi
-          else
-            htot=$(( b[at+2] + (b[at+4] >> 4) * 256 + b[at+3] + (b[at+4] & 15) * 256 ))
-            vtot=$(( b[at+5] + (b[at+7] >> 4) * 256 + b[at+6] + (b[at+7] & 15) * 256 ))
-            if [ "$htot" -eq 0 ] || [ "$vtot" -eq 0 ]; then continue; fi
-            hz=$(( (pclk * 10000 + htot * vtot / 2) / (htot * vtot) ))
-          fi
-          if [ "$hz" -gt "$top" ]; then top=$hz; fi
-        done
-        echo "$top"
+        od -An -v -tu1 -w1 "$1" 2>/dev/null | awk -f ${./edid-top-hz.awk}
       }
 
       # A connected screen that can show more than 75 frames a second.
