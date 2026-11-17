@@ -1,7 +1,8 @@
 # preinstall — the Golem installer (MiniGolem)
 
 This directory is the **implementation**: the flake the installer ISO is
-built from. The spec (WHAT and WHY) is `../../docs/installing/GolemInstall.md`.
+built from. How the install works today, from this code, is
+`../../docs/installing/install.md`.
 
 **GRADUATED 2026-09-10.** The preinstall lab program — six rounds,
 eight machines, ~70 findings — proved the census, the surface, the ask
@@ -12,7 +13,7 @@ and where:
   (PLAN.md with the scoreboard, changes.md the finding ledger, the
   per-machine files, the constitution and the lab playbook).
 - **Maintainer documentation** (architecture, operations, debugging,
-  extending, testing): `~/Golem/docs/installing/preinstall/`.
+  extending, testing): `~/Golem/docs/installing/install.md`.
 - **The live program continues** in `../installing/` — the installing
   rounds, on the first-install dogfood's foundation.
 

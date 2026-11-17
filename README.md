@@ -40,7 +40,7 @@ its documentation and worklog.
 | `docs/shell/actions/` | ACTIONS (Golem speaks first): constitution, conditions, the research agent + its `work/` output |
 | `docs/shell/dockmenu/` | Dock + menu box maintainer program: README, INVARIANTS, SECURITY, AUDIT, harness, machines |
 | `docs/shell/` | onboarding design, keyboard audit |
-| `docs/installing/` | `GolemInstall.md` (the install spec), `postinstall.md`, `preinstall/` (maintainer docs: ARCHITECTURE, OPERATIONS, DEBUGGING, EXTENDING, TESTING, HISTORY + the six-round lab archive) |
+| `docs/installing/` | **`install.md`: how a Golem install works today** (the media, the screens, the disk, first boot, updates, the lab door, testing, limits). The older files there point to it; `preinstall/HISTORY.md` + `preinstall/testing/` keep the six-round lab archive |
 | `docs/system/` | `GolemModules.md` (the module/app-bundle design) |
 | `docs/security/` | `GolemSecurity.md` |
 | `docs/omarchy.md` | What was taken from Omarchy for speed, what was not, and what each was measured at |
