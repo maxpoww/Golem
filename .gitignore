@@ -35,6 +35,12 @@ hosts/target/hardware-configuration.nix
 hosts/target/machine.nix
 hosts/target/modules.nix
 hosts/target/postinstall-questions.json
+# The lab testbed's flag (system/Modular/lab/lab-door.nix): one committed
+# by mistake would reach every install through the first-boot clone and
+# open its door. Machines stage it with `git add -f`, so ignoring it here
+# costs them nothing. (apps.nix is not listed: waverunner-apply stages it
+# with a plain `git add`.)
+hosts/target/lab.nix
 
 # deliver-live.sh working files (per-run logs and scratch state)
 Installer/installing/tools/deliver-live.log
