@@ -1,5 +1,15 @@
 [
   {
+    "id": "2026-11-16-screenshots-page",
+    "en": "The control panel has a Screenshots page: what Print takes and what goes in the picture",
+    "es": "El panel de control tiene una página Capturas de pantalla: qué toma Impr Pant y qué sale en la imagen",
+    "pt": "O painel de controle tem uma página Capturas de tela: o que o Print Screen captura e o que entra na imagem",
+    "pt_PT": "O painel de controlo tem uma página Capturas de ecrã: o que o Print Screen captura e o que entra na imagem",
+    "fr": "Le panneau de réglages a une page Captures d’écran : ce que prend Impr écran et ce qui figure dans l’image",
+    "de": "Die Einstellungen haben eine Seite Bildschirmfotos: was Druck aufnimmt und was ins Bild kommt",
+    "it": "Il pannello di controllo ha una pagina Schermate: che cosa cattura Stamp e che cosa entra nell’immagine"
+  },
+  {
     "id": "2026-11-16-capture",
     "en": "Print Screen takes the screen at once; click its preview to cut a region or a window",
     "es": "Impr Pant captura la pantalla al instante; haz clic en la vista previa para recortar una región o una ventana",
