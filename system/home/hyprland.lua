@@ -1,8 +1,9 @@
 
 
 ---- MONITORS ----
--- Distro default FIRST: every panel auto-configures to its preferred mode and
--- a DPI-appropriate scale. Do NOT hardcode a specific panel as the default. A
+-- Distro default FIRST: every panel auto-configures to its preferred size at
+-- its top refresh rate (Golem's preferred-top-rate patch: many fast screens
+-- flag a 60 Hz mode as preferred) and a DPI-appropriate scale. Do NOT hardcode a specific panel as the default. A
 -- fixed 3200x2000@165 / scale 1.60 (the dev's Slim Pro) shipped in the ISO
 -- and, on a 1366x768 Acer, the mode didn't exist so Hyprland fell to scale
 -- 2.0 — a cramped desktop on first boot (2026-09-02). Verified live on that
