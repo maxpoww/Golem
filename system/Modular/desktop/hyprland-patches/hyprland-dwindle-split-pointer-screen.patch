@@ -1,0 +1,85 @@
+Golem: a new tile splits the window where the pointer is, on every screen.
+
+With dwindle:use_active_for_splits off (Golem, 2026-11-17: a new window opens
+beside the window under the pointer, on its side, and nothing is focused for
+it), stock decides whether the pointer counts by asking if the new window's
+workspace is the one shown on the FOCUSED screen. When it is not (another
+screen has the focus, or the workspace is not showing: an app that opens its
+window on a desk you left, a slow app that maps after you moved to the other
+screen), and also when the pointer is over no tile and not on a reserved edge,
+stock splits the workspace's FIRST tile, the oldest window, which then halves
+again with every such window.
+
+Now the pointer counts where it is: over this workspace's own screen while
+that screen shows it, the tile under it or else the tile nearest it. With the
+pointer elsewhere, or the workspace not showing, the new tile splits the
+window last used on that workspace (else the tile nearest the pointer). A
+window moved with a focal point (a drop, a move between workspaces) and
+use_active_for_splits on are stock. With force_split 0 the new tile takes the
+pointer's side only when the pointer is on that screen; otherwise it goes
+right or below. The new window is never its own split target: one brought
+back from another workspace (Golem's minimize, a move) kept its old box, often
+under the pointer, and stock then fell to the first tile too. Golem's own;
+keep.
+
+--- a/src/layout/algorithm/tiled/dwindle/DwindleAlgorithm.cpp	2026-11-17 01:53:19.940950380 +0000
++++ b/src/layout/algorithm/tiled/dwindle/DwindleAlgorithm.cpp	2026-11-17 04:42:17.247425385 +0000
+@@ -76,14 +76,39 @@
+     SP<SDwindleNodeData> OPENINGON;
+ 
+     const auto           MOUSECOORDS = m_overrideFocalPoint.value_or(g_pInputManager->getMouseCoordsInternal());
+-    const auto           ACTIVE_MON  = Desktop::focusState()->monitor();
+ 
+-    if ((PWORKSPACE == ACTIVE_MON->m_activeWorkspace || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace)) && !*PUSEACTIVE) {
+-        OPENINGON = getNodeFromWindow(
+-            g_pCompositor->vectorToWindowUnified(MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY));
++    // Golem: with use_active_for_splits off, the pointer chooses the window to
++    // split only where it IS: on this workspace's own screen, while that screen
++    // shows it. Stock asked instead whether this workspace was the one shown on
++    // the FOCUSED screen, and otherwise (another screen focused, the workspace
++    // not showing) split the workspace's FIRST tile, as it also did with the
++    // pointer in a spot no tile covers. Now:
++    //  - the pointer over this workspace: the tile under it, else the tile
++    //    nearest it (a gap, the bar);
++    //  - the pointer on another screen, or this workspace not showing: the
++    //    window last used on this workspace, else the tile nearest the pointer;
++    //  - a moved window with a focal point, and use_active_for_splits on: stock.
++    const auto MOUSEMON     = g_pCompositor->getMonitorFromVector(MOUSECOORDS);
++    const bool SHOWN        = PMONITOR && (PMONITOR->m_activeWorkspace == PWORKSPACE || (PWORKSPACE->m_isSpecialWorkspace && PMONITOR->m_activeSpecialWorkspace == PWORKSPACE));
++    const bool POINTER_HERE = SHOWN && MOUSEMON && MOUSEMON == PMONITOR.lock();
++
++    if (!*PUSEACTIVE && POINTER_HERE) {
++        // The new window itself is skipped: one brought back (from the
++        // minimized special workspace, another desk) still has the box it had
++        // there, often under the pointer, and finding itself sent stock to the
++        // fail-safe below, the workspace's first tile.
++        OPENINGON = getNodeFromWindow(g_pCompositor->vectorToWindowUnified(
++            MOUSECOORDS, Desktop::View::RESERVED_EXTENTS | Desktop::View::INPUT_EXTENTS | Desktop::View::SKIP_FULLSCREEN_PRIORITY, target->window()));
+ 
+-        if (!OPENINGON && g_pCompositor->isPointOnReservedArea(MOUSECOORDS, ACTIVE_MON))
+-            OPENINGON = getClosestNode(MOUSECOORDS);
++        if (!OPENINGON)
++            OPENINGON = getClosestNode(MOUSECOORDS, target);
++
++    } else if (!*PUSEACTIVE && !m_overrideFocalPoint) {
++        if (const auto LAST = PWORKSPACE->getLastFocusedWindow(); LAST && !LAST->m_isFloating && LAST != target->window())
++            OPENINGON = getNodeFromWindow(LAST);
++
++        if (!OPENINGON)
++            OPENINGON = getClosestNode(MOUSECOORDS, target);
+ 
+     } else if (*PUSEACTIVE || m_overrideFocalPoint) {
+         const auto ACTIVE_WINDOW = Desktop::focusState()->window();
+@@ -203,7 +228,11 @@
+                 NEWPARENT->children[1] = OPENINGON;
+             }
+         }
+-    } else if (*PFORCESPLIT == 0 || m_overrideFocalPoint || g_layoutManager->dragController()->wasDraggingWindow()) {
++    } else if ((*PFORCESPLIT == 0 && (POINTER_HERE || *PUSEACTIVE)) || m_overrideFocalPoint || g_layoutManager->dragController()->wasDraggingWindow()) {
++        // Golem: force_split 0 takes the side the pointer is on, but a pointer
++        // on another screen says nothing about this one: with
++        // use_active_for_splits off and the pointer elsewhere, the new tile
++        // goes right or below, as force_split 2 would put it.
+         if ((SIDEBYSIDE && MOUSECOORDS.x < NEWPARENT->box.x + (NEWPARENT->box.w / 2.F)) || (!SIDEBYSIDE && MOUSECOORDS.y < NEWPARENT->box.y + (NEWPARENT->box.h / 2.F))) {
+             // we are hovering over the first node, make PNODE first.
+             NEWPARENT->children[1] = OPENINGON;

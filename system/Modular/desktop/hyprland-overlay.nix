@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus twenty-three patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus twenty-four patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -192,6 +192,23 @@
 #                         for screens whose range is not adaptive sync. Only
 #                         `hyprctl systeminfo` said it, and that runs lspci,
 #                         which wakes a sleeping NVIDIA card. Golem's own; keep.
+#   dwindle-split-pointer-screen  with dwindle:use_active_for_splits off (Golem:
+#                         a new tile opens beside the window under the
+#                         pointer, Max 2026-11-17), stock counts the pointer
+#                         only when the new window's workspace is the one the
+#                         FOCUSED screen shows, and otherwise splits the
+#                         workspace's FIRST tile (also with the pointer over
+#                         no tile): a window that maps on a desk you left, or
+#                         on one screen while the pointer is on the other,
+#                         kept halving the oldest window. Now the pointer
+#                         counts on the workspace's own screen while it shows
+#                         it (the tile under it, else the nearest); elsewhere
+#                         the new tile splits the window last used on that
+#                         workspace, right or below. The new window is never
+#                         its own split target (one brought back from the
+#                         minimized workspace kept its old box under the
+#                         pointer, and stock fell to the first tile again).
+#                         Golem's own; keep.
 #
 # Alphabetical on purpose, like the dev box's list: the same patch list in the
 # same order gives the same Hyprland derivation, so the plugin and the system
@@ -202,6 +219,7 @@ final: prev: {
     patches = (old.patches or [ ]) ++ [
       ./hyprland-patches/hyprland-crash-restart-normal.patch
       ./hyprland-patches/hyprland-dnd-hold-raise.patch
+      ./hyprland-patches/hyprland-dwindle-split-pointer-screen.patch
       ./hyprland-patches/hyprland-floating-resize-limits.patch
       ./hyprland-patches/hyprland-gesture-null-deref.patch
       ./hyprland-patches/hyprland-keep-work-buffers.patch
