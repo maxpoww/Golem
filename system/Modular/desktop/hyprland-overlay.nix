@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus seventeen patches, the same build Max's dev box
+# Golem's Hyprland: stock 0.55.4 plus twenty-three patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -172,6 +172,26 @@
 #                         the other screen's coordinates (Max, 2026-11-07:
 #                         "la ventana ... no esta en un WS"). Windows now move
 #                         through the layout, and from the placeholder too.
+#   preferred-top-rate    a screen with no mode of its own ("preferred", Golem's
+#                         default for every screen) runs at the preferred
+#                         SIZE's top refresh rate. Many fast screens flag a
+#                         60 Hz mode as preferred for compatibility: the Slim
+#                         Pro 9i's panel flags 3200x2000@60 and lists 165 only
+#                         in a DisplayID block, so on a fresh install it came
+#                         up at 60 (Max, 2026-11-15: "if a user have a 240hz
+#                         monitor, they dont want 120hz… they want their 240").
+#                         KWin picks the same way. The flagged mode stays the
+#                         fallback when the faster one fails its test (a link
+#                         short of bandwidth); never another size. On the
+#                         battery the dock still brings a screen down
+#                         (waverunner's refresh.rs). Golem's own; keep.
+#   monitors-vrr-capable  `hyprctl monitors -j` says whether each screen CAN do
+#                         adaptive sync (`vrrCapable`: the kernel's word, the
+#                         connector's vrr_capable). The Monitors page offers
+#                         Dynamic only there; the EDID alone also claims it
+#                         for screens whose range is not adaptive sync. Only
+#                         `hyprctl systeminfo` said it, and that runs lspci,
+#                         which wakes a sleeping NVIDIA card. Golem's own; keep.
 #
 # Alphabetical on purpose, like the dev box's list: the same patch list in the
 # same order gives the same Hyprland derivation, so the plugin and the system
@@ -187,6 +207,8 @@ final: prev: {
       ./hyprland-patches/hyprland-keep-work-buffers.patch
       ./hyprland-patches/hyprland-layer-commit-damage.patch
       ./hyprland-patches/hyprland-monitor-move-floating.patch
+      ./hyprland-patches/hyprland-monitors-vrr-capable.patch
+      ./hyprland-patches/hyprland-preferred-top-rate.patch
       ./hyprland-patches/hyprland-pseudo-real-box.patch
       ./hyprland-patches/hyprland-screen-focus-catch-up.patch
       ./hyprland-patches/hyprland-screenshare-exit.patch
