@@ -42,8 +42,8 @@
   # generated system/postinstall-generated.nix. Declared here so the
   # gpu2/failing leaf evaluates on stage-0 minimal (no desktop to ask
   # at) and defaults to its safe branch. The ask/apply pipeline itself
-  # (postinstall.nix, asked at graphical login) arrives with the desktop
-  # stage. Lifted from system/postinstall.nix.
+  # (system/postinstall.nix, asked at graphical login) is imported by the
+  # desktop stage (desktop/default.nix, 2026-11-17).
   options.golem.postinstall.answers = lib.mkOption {
     type = lib.types.attrsOf lib.types.str;
     default = { };

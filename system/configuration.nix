@@ -31,6 +31,16 @@
     ./golem-seal.nix
     ./waverunner-apply.nix
     ./postinstall.nix
+    # (golem.postinstall.answers, declared for the old profile; the modular
+    # one declares it in base/options.nix)
+    ({ lib, ... }: {
+      options.golem.postinstall.answers = lib.mkOption {
+        type = lib.types.attrsOf lib.types.str;
+        default = { };
+        internal = true;
+        description = "Applied post-install question answers (system/postinstall.nix).";
+      };
+    })
     # GolemModules.md's software module library: same pattern as the
     # hardware family above, gated on a user CHOICE instead of a hardware
     # fact. One file per category, permanently imported, off by default.

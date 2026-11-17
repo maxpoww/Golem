@@ -559,6 +559,11 @@ let
             && lockScreen != null
             # the second start of a boot is told from the first by a marker
             && lib.hasInfix ''[ -e "$run/desktop-started" ] && returning=1'' (lockScreen.text or "")))
+        (ex "F2.3: what the install left to the owner is asked at the desktop and applied by a rebuild"
+          (c.home-manager.users.${owner}.systemd.user.services ? golem-postinstall-ask
+           && c.systemd.paths ? golem-postinstall-apply
+           && c.systemd.services ? golem-postinstall-apply
+           && lib.any (p: (p.name or "") == "golem-postinstall-apply") c.environment.systemPackages))
         (ex "real desktop: the menubox hides the plumbing (foot, yazi, xterm…)"
           (lib.all (id: c.home-manager.users.${owner}.xdg.dataFile ? "applications/${id}.desktop")
             [ "foot" "yazi" "xterm" "nixos-manual" ]))

@@ -50,6 +50,9 @@
                             #   GTK's for the rest (file chooser, look), nobody for Secret
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
+    ../../postinstall.nix       # the post-install questions (F2.3): what Golem left for the
+                                #   owner to judge (the ASUS's failing second GPU) is asked
+                                #   once at the desktop, and the answer applied by a rebuild
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
                             # waverunner's packages.list into hosts/target/apps.nix
                             # and rebuilds (without it installs fail silently —
