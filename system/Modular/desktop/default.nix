@@ -50,12 +50,10 @@
                             #   GTK's for the rest (file chooser, look), nobody for Secret
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
-    # ../../postinstall.nix is NOT imported here (F2.3 waits): its answers
-    # land in system/postinstall-generated.nix, a channel the seal exempts,
-    # and postinstall.nix imports that file as a SYSTEM module, so anything
-    # running as the owner could write code root's next build runs. It comes
-    # back when root regenerates the file in its own copy from validated
-    # answers (17-Nov, found in review).
+    ../../postinstall.nix       # the post-install questions (F2.3): what Golem left for the
+                                #   owner to judge (the ASUS's failing second GPU) is asked
+                                #   once at the desktop, and the answer applied by a rebuild
+                                #   of root's own copy; the answers file is read as data
     ../../waverunner-apply.nix  # drag-to-install: the root helper that turns
                             # waverunner's packages.list into hosts/target/apps.nix
                             # and rebuilds (without it installs fail silently —
