@@ -32,6 +32,7 @@ let
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
   # Root, speaking to the owner: in their language, from their settings.
   ownerSettings = "${config.users.users.${owner}.home}/.config/golem/settings.json";
+  ownerPut = import ../../owner-put.nix pkgs;
 
   adopt = pkgs.writeShellApplication {
     name = "golem-seed-adopt";
@@ -51,8 +52,10 @@ let
       blessed=/var/lib/golem/blessed
       if [ ! -d "$dir" ] && [ -f "$blessed/flake.nix" ]; then
         cp -a "$blessed" "$dir"
-        chown -R "$owner": "$dir"
-        chmod 755 "$dir"
+        # Never through a link: the owner can rename the new folder away and
+        # leave a link in its place while the copy runs (18-Nov).
+        chown -hR "$owner": "$dir"
+        runuser -u "$owner" -- chmod 755 "$dir"
         echo "golem-seed-adopt: $dir was missing — rebuilt from the sealed snapshot"
         uid=$(id -u "$owner")
         if [ -S "/run/user/$uid/bus" ]; then
@@ -95,12 +98,26 @@ let
 
       # This machine's own files, never upstream's: the installer's drops,
       # the answers, the owner's app list (and their last-good twins).
+      # All of it AS THE OWNER (18-Nov): the clone is theirs, made by their
+      # git with their hooks, so a link planted in it led root's copy to any
+      # file on the machine, and the chown after it handed that file to the
+      # owner. The files are the owner's own. One that cannot be carried
+      # stops the adoption, leaving the seed as it is: dropped, it would be
+      # lost with the old folder.
       carry() {
         local f="$1"
         [ -e "$dir/$f" ] || return 0
-        mkdir -p "$tmp/$(dirname "$f")"
-        cp -p "$dir/$f" "$tmp/$f"
-        chown "$owner:" "$tmp/$f"
+        local t
+        t=$(mktemp)
+        if ! asowner mkdir -p "$tmp/$(dirname "$f")" \
+           || ! asowner cat -- "$dir/$f" > "$t" \
+           || ! asowner ${ownerPut} "$tmp/$f" < "$t"; then
+          rm -f "$t"
+          echo "golem-seed-adopt: could not carry $f as its owner — the seed stays as it is" >&2
+          rm -rf "$tmp"
+          exit 1
+        fi
+        rm -f "$t"
         asowner git -C "$tmp" add -f "$f"
       }
       for f in $(cd "$dir" && find hosts/target -maxdepth 1 -type f 2>/dev/null); do

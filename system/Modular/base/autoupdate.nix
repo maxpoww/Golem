@@ -43,6 +43,7 @@
 { config, pkgs, lib, ... }:
 
 let
+  ownerPut = import ../../owner-put.nix pkgs;
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
 
   # THE CONNECTIVITY GATE — verbatim from the rice (waverunner-apply.nix), so
@@ -185,10 +186,10 @@ lib.mkIf (config.golem.flakeDir != null) {
       if [ -f "$mf" ] && [ -s /var/lib/golem/secrets/owner-password-hash ] \
          && grep -q '\.hashedPassword = ' "$mf"; then
         mold=$(mktemp); mnew=$(mktemp)
-        cat "$mf" > "$mold"
+        runuser -u "$owner" -- cat -- "$mf" > "$mold"   # read as the owner (18-Nov)
         sed '/users\.users\.[^ ]*\.hashedPassword = /d' "$mold" > "$mnew"
         if ${config.golem.seal.adopt}/bin/golem-seal-adopt hosts/target/machine.nix "$mnew" "$mold"; then
-          cat "$mnew" > "$mf"   # into the owner's existing file: keeps its owner
+          runuser -u "$owner" -- ${ownerPut} "$mf" < "$mnew"   # written as the owner (18-Nov)
           runuser -u "$owner" -- git -C "$dir" add -f hosts/target/machine.nix || true
           migrated=1
           echo "golem-autoupdate: removed the owner's password hash from the system source (it stays in /etc/shadow)."
@@ -204,10 +205,18 @@ lib.mkIf (config.golem.flakeDir != null) {
       # stops updating for good. Set it aside, pull, and put it back only if
       # it is still the newer one (never step the browser down: Firefox
       # refuses a profile a newer version has used).
+      # The pin is read and written back AS THE OWNER (18-Nov): the pull in
+      # between runs as the owner, with their git config, so whatever they
+      # run can swap the file for a link, and root writing it back by name
+      # then wrote the owner's bytes into any file on the machine.
       pin=seam/sources.json; heldpin=""
       if ! runuser -u "$owner" -- git -C "$dir" diff --quiet HEAD -- "$pin" 2>/dev/null; then
-        heldpin=$(mktemp); cp "$dir/$pin" "$heldpin"
-        runuser -u "$owner" -- git -C "$dir" checkout -q HEAD -- "$pin"
+        heldpin=$(mktemp)
+        if runuser -u "$owner" -- cat -- "$dir/$pin" > "$heldpin"; then
+          runuser -u "$owner" -- git -C "$dir" checkout -q HEAD -- "$pin"
+        else
+          rm -f "$heldpin"; heldpin=""
+        fi
       fi
 
       # The owner's edits to Golem's OWN files must not freeze the machine.
@@ -314,7 +323,8 @@ lib.mkIf (config.golem.flakeDir != null) {
         if ! runuser -u "$owner" -- git -C "$dir" pull --ff-only --quiet; then
           echo "golem-autoupdate: seed cannot fast-forward (local commits?) — leaving the current generation; run rebuild-golem yourself." >&2
           if [ -n "$heldpin" ]; then   # leave the tree exactly as we found it
-            cat "$heldpin" > "$dir/$pin"; runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
+            runuser -u "$owner" -- ${ownerPut} "$dir/$pin" < "$heldpin" || true
+            runuser -u "$owner" -- git -C "$dir" add "$pin" || true; rm -f "$heldpin"
           fi
           # FAILED, not success: a machine that can no longer update must show
           # up in systemctl --failed and every probe, not look healthy forever.
@@ -324,9 +334,9 @@ lib.mkIf (config.golem.flakeDir != null) {
       after=$(runuser -u "$owner" -- git -C "$dir" rev-parse HEAD)
       if [ -n "$heldpin" ]; then
         held=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$heldpin")
-        up=$(sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$dir/$pin")
+        up=$(runuser -u "$owner" -- sed -n 's/.*"version": *"\([0-9.]*\)".*/\1/p' "$dir/$pin")
         if [ "$(printf '%s\n%s\n' "$held" "$up" | sort -V | tail -1)" = "$held" ] && [ "$held" != "$up" ]; then
-          cat "$heldpin" > "$dir/$pin"   # into the owner's existing file: keeps its owner
+          runuser -u "$owner" -- ${ownerPut} "$dir/$pin" < "$heldpin"   # as the owner: theirs either way
           runuser -u "$owner" -- git -C "$dir" add "$pin"
           echo "golem-autoupdate: kept this machine's newer Seam pin ($held over upstream's $up)."
         else
