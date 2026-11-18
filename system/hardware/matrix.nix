@@ -376,6 +376,22 @@ let
            && cfg.security.sudo.wheelNeedsPassword))
       ];
     }
+    {
+      # The app list waverunner-apply generates sits in the owner's checkout,
+      # outside the seal, and was imported as a home module: one that renames
+      # its user made root run its activation (18-Nov).
+      name = "app list with code in it";
+      facts = { golem.appsListPath = ../home/app-list-hostile.fixture; };
+      expect = cfg:
+        let owner = cfg.golem.owner; home = cfg.home-manager.users.${owner}; in [
+          (ex "the app in it arrives (read as data)"
+            (lib.any (p: lib.getName p == "hello") home.home.packages))
+          (ex "the code in it does not run: no activation as root, none planted"
+            (!(cfg.systemd.services ? home-manager-root)
+             && cfg.systemd.services."home-manager-${owner}".serviceConfig.User == owner
+             && !(home.home.activation ? golemPlanted)))
+        ];
+    }
   ];
 
   ex = name: ok: { inherit name ok; };

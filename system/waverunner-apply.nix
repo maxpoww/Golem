@@ -377,6 +377,15 @@ in
     default = "system/home/waverunner-packages.nix";
     description = "Path (relative to golem.flakeDir) of the Nix file waverunner-apply generates from packages.list.";
   };
+  # The same file as the build sees it (a path in the flake's source, set by
+  # each profile), READ AS DATA by system/home/app-list.nix: it is the
+  # owner's and outside the seal, so it is never imported as a module.
+  options.golem.appsListPath = lib.mkOption {
+    type = lib.types.nullOr lib.types.path;
+    default = null;
+    internal = true;
+    description = "The generated app list in the flake's source, read as data (never imported).";
+  };
 
   config = lib.mkIf (flakeDir != null) {
     systemd.services.waverunner-apply = {

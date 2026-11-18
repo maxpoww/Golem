@@ -649,7 +649,9 @@
               # waverunner-apply generates hosts/target/apps.nix from
               # packages.list (desktop/default.nix sets golem.appsFile), and it
               # rides the home layer only once it exists. Never the dev box's
-              # system/home/waverunner-packages.nix.
+              # system/home/waverunner-packages.nix. Read as data
+              # (system/home/app-list.nix), never imported: the file is the
+              # owner's, outside the seal.
               waverunner.nixosModules.notification-service
               ({ config, ... }: {
                 # The notification server (org.freedesktop.Notifications). It
@@ -659,11 +661,13 @@
                 # A stray ~/.bashrc or ~/.profile must not fail the whole
                 # switch: home-manager backs it up instead.
                 home-manager.backupFileExtension = "before-golem";
+                golem.appsListPath = nixpkgs.lib.mkDefault
+                  (if builtins.pathExists ./hosts/target/apps.nix then ./hosts/target/apps.nix else null);
                 home-manager.users.${config.golem.owner} = {
-                  imports = [ ./system/home/home.nix ]
-                    ++ nixpkgs.lib.optional
-                      (builtins.pathExists ./hosts/target/apps.nix)
-                      ./hosts/target/apps.nix;
+                  imports = [
+                    ./system/home/home.nix
+                    (import ./system/home/app-list.nix config.golem.appsListPath)
+                  ];
                 };
                 home-manager.extraSpecialArgs = { inherit waverunner waveview; };
               })
