@@ -266,6 +266,16 @@ pkgs.writeShellApplication {
       echo "golem-install: encryption on a BIOS/legacy machine is not supported yet" >&2
       exit 2
     fi
+    # BIOS ONTO ANOTHER DISK THAN THE FIRST (2026-11-18, the install
+    # document's finding): the baked systems install GRUB to /dev/sda
+    # (system/Modular/boot/grub-bios.nix's default; machine.nix's by-id disk
+    # takes over only at the first-boot rebuild). Onto any other disk that
+    # writes GRUB into the FIRST disk's boot code — another system's, on a
+    # machine with two — or, with no /dev/sda at all (virtio, NVMe), fails
+    # at the very end, after the wipe. Refuse before anything is written.
+    if [[ "$firmware" == "bios" ]] && [[ "$(readlink -f "$disk")" != /dev/sda ]]; then
+      check_fail "on a BIOS machine this release installs only to the first disk (/dev/sda); $disk is another"
+    fi
 
     # R5-2: the --skip-prepare resume never gets --answers, so this header
     # printed the DEFAULT hostname ("Golem") while the seed's machine.nix
