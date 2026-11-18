@@ -7,6 +7,9 @@
 #                                        drive it entirely over SSH
 #   ./run-vm.sh --disk golem.qcow2:40G   attach a target disk, creating it
 #                                        at that size if absent
+#   ./run-vm.sh --sata --disk …          the target disk on the IDE bus
+#                                        (/dev/sda) instead of virtio
+#                                        (/dev/vda): a BIOS install test
 #
 # The VM deliberately gets 4096 MB: that is the lab's tight-RAM class (row
 # 1, the Acer, has 3833 MB usable). Testing the census at 8 GB would hide
@@ -23,15 +26,17 @@ ISO="result/iso/golem-installer.iso"
 HEADLESS=false
 UEFI=false
 NOCD=false
+SATA=false
 DISK=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --headless) HEADLESS=true; shift ;;
     --uefi)     UEFI=true; shift ;;
     --no-cd)    NOCD=true; shift ;;
+    --sata)     SATA=true; shift ;;
     --disk)     DISK="${2:?--disk needs FILE[:SIZE]}"; shift 2 ;;
     --iso)      ISO="${2:?--iso needs a path}"; shift 2 ;;
-    -h|--help)  sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help)  sed -n '2,21p' "$0"; exit 0 ;;
     *)          echo "run-vm.sh: unknown argument '$1'" >&2; exit 2 ;;
   esac
 done
@@ -89,8 +94,17 @@ if [ -n "$DISK" ]; then
   # look like hardware, but keep the no-serial case in mind when #19's
   # engine fix needs verifying. (qemu removed -drive serial=; it lives on
   # the -device now.)
-  args+=(-drive "file=$file,if=none,id=target,format=qcow2"
-         -device "virtio-blk-pci,drive=target,serial=golemtarget")
+  # --sata: the baked BIOS systems put GRUB on /dev/sda (grub-bios.nix),
+  # and the engine refuses a BIOS copy onto any other disk, so a BIOS
+  # install test needs its disk where a real PC's first disk is. The IDE
+  # primary master is /dev/sda in the guest; -cdrom stays ide1-cd0.
+  if [ "$SATA" = true ]; then
+    args+=(-drive "file=$file,if=none,id=target,format=qcow2"
+           -device "ide-hd,drive=target,bus=ide.0,unit=0,serial=golemtarget")
+  else
+    args+=(-drive "file=$file,if=none,id=target,format=qcow2"
+           -device "virtio-blk-pci,drive=target,serial=golemtarget")
+  fi
 fi
 
 if [ "$HEADLESS" = true ]; then

@@ -28,7 +28,7 @@
 # either way — so the answer is there whichever one gets pressed.
 # `golem.install` stays reserved for the disk flow, which is a separate
 # question from "what would Golem decide here".
-{ pkgs, lib, hw-decide, hw-detect, hw-evidence, ... }:
+{ config, pkgs, lib, hw-decide, hw-detect, hw-evidence, ... }:
 
 {
   systemd.services.golem-audit = {
@@ -143,9 +143,16 @@
   # "rehearse", not "install", while setup.nix's wrapper carries
   # GOLEM_REHEARSE=1 — the two flip together when the lab graduates to
   # real installs (the mode ladder, documented in setup.nix).
-  services.getty.helpLine = lib.mkForce ''
+  # The SSH line only where SSH is up: a lab medium (iso.nix). The public
+  # medium has no sshd since 2026-11-14 and its console still offered
+  # `ssh nixos@…` (the install document's finding, 2026-11-17).
+  services.getty.helpLine = lib.mkForce (
+    lib.optionalString config.services.openssh.enable ''
 
-    ssh nixos@\4  (key-only)
-    census:   cat /var/log/golem-audit/summary.txt
-    rehearse: sudo golem-setup   (runs the install flow, writes nothing)'';
+      ssh nixos@\4  (key-only)''
+    + ''
+
+      census:   cat /var/log/golem-audit/summary.txt
+      rehearse: sudo golem-setup   (runs the install flow, writes nothing)''
+  );
 }

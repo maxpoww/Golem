@@ -266,6 +266,20 @@ pkgs.writeShellApplication {
       echo "golem-install: encryption on a BIOS/legacy machine is not supported yet" >&2
       exit 2
     fi
+    # BIOS ONTO ANOTHER DISK THAN THE FIRST (2026-11-18, the install
+    # document's finding): the baked systems install GRUB to /dev/sda
+    # (system/Modular/boot/grub-bios.nix's default; machine.nix's by-id disk
+    # takes over only at the first-boot rebuild). Onto any other disk that
+    # writes GRUB into the FIRST disk's boot code — another system's, on a
+    # machine with two — or, with no /dev/sda at all (virtio, NVMe), fails
+    # at the very end, after the wipe. Refuse before anything is written.
+    # Only the COPY of a baked system has this: a system built here (no
+    # manifest on the medium, golem-minimal from the seed) reads machine.nix
+    # and installs GRUB on the chosen disk.
+    if [[ "$firmware" == "bios" && -z "$system" && -r /etc/golem/baked-manifest.json ]] \
+       && [[ "$(readlink -f "$disk")" != /dev/sda ]]; then
+      check_fail "on a BIOS machine this release installs only to the first disk (/dev/sda); $disk is another"
+    fi
 
     # R5-2: the --skip-prepare resume never gets --answers, so this header
     # printed the DEFAULT hostname ("Golem") while the seed's machine.nix
@@ -1192,6 +1206,16 @@ pkgs.writeShellApplication {
     # just falls back to the old dirty path, never blocks the reboot. Same clean
     # -sync-before-reboot the SSH-driven lab installs already relied on (changes.md
     # "sync; umount -R /mnt before quit"), now on the product path.
+    # THE LOGS GO WITH THE MACHINE (2026-11-18: they lived only in the
+    # medium's RAM — a problem seen after the first boot had nothing to
+    # read). Root only, in the new system's /var/log; the screen's copy of
+    # this run's output (output.txt) is there up to this line.
+    if [[ "$rehearse" != true ]]; then
+      { mkdir -p /mnt/var/log/golem-install \
+          && cp -a "$logdir"/. /mnt/var/log/golem-install/ \
+          && chmod 0700 /mnt/var/log/golem-install; } 2>/dev/null || true
+    fi
+
     sync
     umount -R /mnt 2>/dev/null || true
 

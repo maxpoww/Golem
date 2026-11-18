@@ -453,7 +453,9 @@ S[en:dev_keys]='ENTER to go back'
 S[en:go_keys]='ENTER to install  ·  ESC back'
 S[en:go_ing]='installing'
 S[en:go_done]='Installed'
-S[en:go_fail]='The install stopped — the log is above.'
+S[en:go_fail]='The install stopped.'
+S[en:go_log]='Its whole log is in /var/log/golem-install (Ctrl+Alt+F2 opens a console).'
+S[en:go_again]='ENTER — start again'
 S[en:v_ing]='verifying'
 S[en:v_sana]='the installation is healthy'
 S[en:v_done]='installation finished'
@@ -471,6 +473,7 @@ S[en:adv_part]='Install on a partition'
 S[en:adv_dual]='Dual-Boot'
 S[en:adv_back]='Back'
 S[en:adv_soon]='not in this release yet'
+S[en:adv_luks_bios]='needs a UEFI machine; this one starts with BIOS'
 S[en:t_luks]='Encrypt this Drive'
 S[en:luks_yes]='Yes — a password will be asked at every start'
 S[en:luks_no]='No'
@@ -539,7 +542,9 @@ S[es:dev_keys]='ENTER para volver'
 S[es:go_keys]='ENTER para instalar  ·  ESC volver'
 S[es:go_ing]='instalando'
 S[es:go_done]='Instalado'
-S[es:go_fail]='La instalación se detuvo — el registro está arriba.'
+S[es:go_fail]='La instalación se detuvo.'
+S[es:go_log]='El registro completo está en /var/log/golem-install (Ctrl+Alt+F2 abre una consola).'
+S[es:go_again]='ENTER — empezar de nuevo'
 S[es:v_ing]='comprobando'
 S[es:v_sana]='la instalación está sana'
 S[es:v_done]='instalación terminada'
@@ -557,6 +562,7 @@ S[es:adv_part]='Instalar en una partición'
 S[es:adv_dual]='Dual-Boot'
 S[es:adv_back]='Volver'
 S[es:adv_soon]='todavía no está en esta versión'
+S[es:adv_luks_bios]='necesita una máquina UEFI; esta arranca con BIOS'
 S[es:t_luks]='Cifrar este disco'
 S[es:luks_yes]='Sí — se pedirá una contraseña en cada arranque'
 S[es:luks_no]='No'
@@ -616,7 +622,9 @@ S[fr:dev_keys]='ENTER pour revenir'
 S[fr:go_keys]='ENTER pour installer  ·  ESC retour'
 S[fr:go_ing]='installation'
 S[fr:go_done]='Installé'
-S[fr:go_fail]='L’installation s’est arrêtée — le journal est au-dessus.'
+S[fr:go_fail]='L’installation s’est arrêtée.'
+S[fr:go_log]='Le journal complet est dans /var/log/golem-install (Ctrl+Alt+F2 ouvre une console).'
+S[fr:go_again]='ENTER — recommencer'
 S[fr:v_ing]='vérification'
 S[fr:v_sana]='l’installation est saine'
 S[fr:v_done]='installation terminée'
@@ -634,6 +642,7 @@ S[fr:adv_part]='Installer sur une partition'
 S[fr:adv_dual]='Dual-Boot'
 S[fr:adv_back]='Retour'
 S[fr:adv_soon]='pas encore dans cette version'
+S[fr:adv_luks_bios]='demande une machine UEFI ; celle-ci démarre en BIOS'
 S[fr:t_luks]='Chiffrer ce disque'
 S[fr:luks_yes]='Oui — un mot de passe sera demandé à chaque démarrage'
 S[fr:luks_no]='Non'
@@ -693,7 +702,9 @@ S[de:dev_keys]='ENTER zum Zurückgehen'
 S[de:go_keys]='ENTER zum Installieren  ·  ESC zurück'
 S[de:go_ing]='installiere'
 S[de:go_done]='Installiert'
-S[de:go_fail]='Die Installation hielt an — das Protokoll steht oben.'
+S[de:go_fail]='Die Installation hielt an.'
+S[de:go_log]='Das ganze Protokoll liegt in /var/log/golem-install (Strg+Alt+F2 öffnet eine Konsole).'
+S[de:go_again]='ENTER — neu beginnen'
 S[de:v_ing]='Überprüfung'
 S[de:v_sana]='die Installation ist in Ordnung'
 S[de:v_done]='Installation abgeschlossen'
@@ -711,6 +722,7 @@ S[de:adv_part]='Auf einer Partition installieren'
 S[de:adv_dual]='Dual-Boot'
 S[de:adv_back]='Zurück'
 S[de:adv_soon]='in dieser Version noch nicht'
+S[de:adv_luks_bios]='braucht einen UEFI-Rechner; dieser startet mit BIOS'
 S[de:t_luks]='Diesen Datenträger verschlüsseln'
 S[de:luks_yes]='Ja — bei jedem Start wird ein Passwort abgefragt'
 S[de:luks_no]='Nein'
@@ -770,7 +782,9 @@ S[it:dev_keys]='ENTER per tornare'
 S[it:go_keys]='ENTER per installare  ·  ESC indietro'
 S[it:go_ing]='installazione'
 S[it:go_done]='Installato'
-S[it:go_fail]='L’installazione si è fermata — il log è sopra.'
+S[it:go_fail]='L’installazione si è fermata.'
+S[it:go_log]='Il log completo è in /var/log/golem-install (Ctrl+Alt+F2 apre una console).'
+S[it:go_again]='ENTER — ricomincia'
 S[it:v_ing]='verifica'
 S[it:v_sana]='l’installazione è integra'
 S[it:v_done]='installazione terminata'
@@ -788,6 +802,7 @@ S[it:adv_part]='Installa su una partizione'
 S[it:adv_dual]='Dual-Boot'
 S[it:adv_back]='Indietro'
 S[it:adv_soon]='non ancora in questa versione'
+S[it:adv_luks_bios]='richiede una macchina UEFI; questa si avvia con il BIOS'
 S[it:t_luks]='Cifra questo disco'
 S[it:luks_yes]='Sì — a ogni avvio verrà chiesta una password'
 S[it:luks_no]='No'
@@ -847,7 +862,9 @@ S[pt:dev_keys]='ENTER para voltar'
 S[pt:go_keys]='ENTER para instalar  ·  ESC voltar'
 S[pt:go_ing]='a instalar'
 S[pt:go_done]='Instalado'
-S[pt:go_fail]='A instalação parou — o registo está acima.'
+S[pt:go_fail]='A instalação parou.'
+S[pt:go_log]='O registo completo está em /var/log/golem-install (Ctrl+Alt+F2 abre uma consola).'
+S[pt:go_again]='ENTER — começar de novo'
 S[pt:v_ing]='a verificar'
 S[pt:v_sana]='a instalação está saudável'
 S[pt:v_done]='instalação terminada'
@@ -865,6 +882,7 @@ S[pt:adv_part]='Instalar numa partição'
 S[pt:adv_dual]='Dual-Boot'
 S[pt:adv_back]='Voltar'
 S[pt:adv_soon]='ainda não nesta versão'
+S[pt:adv_luks_bios]='precisa de uma máquina UEFI; esta arranca com BIOS'
 S[pt:t_luks]='Cifrar este disco'
 S[pt:luks_yes]='Sim — será pedida uma palavra-passe em cada arranque'
 S[pt:luks_no]='Não'
@@ -2634,6 +2652,12 @@ valid_lpass() {
 # that quietly does nothing costs more trust than one that says so." The
 # two that are not built are listed, selectable, and answer honestly.
 ADV_MSG=''
+# How this machine starts, read where the engine reads it (install.nix:
+# /sys/firmware/efi). The engine REFUSES encryption on BIOS — GRUB would
+# have to open the container, which is not built — and it refused only
+# after the whole flow was answered, with the reason off the screen. So on
+# BIOS the row says so where it stands (GOLEM_FIRMWARE=bios|uefi: a test).
+FIRMWARE=${GOLEM_FIRMWARE:-$([ -d /sys/firmware/efi ] && echo uefi || echo bios)}
 step_advanced() {
   local seed_row=0
   while :; do
@@ -2644,6 +2668,7 @@ step_advanced() {
     # (Max, round 2): encryption is the one irreversible-if-you-lose-the-key
     # choice, so its state stands out on the row that carries it.
     [ "$LUKS" = yes ] && luks_row="$luks_row — ${C_RED}$(t luks_on)${NORM}"
+    [ "$FIRMWARE" = bios ] && luks_row="$luks_row — ${C_DIM}$(t adv_luks_bios)${NORM}"
     # Order per Max, 2026-09-05. Not by how finished they are — dual boot
     # and partition installs are the two that are not built — but by how
     # a person thinks about the disk: what else is on it, then which part
@@ -2670,7 +2695,11 @@ step_advanced() {
       # After turning encryption on, reopen with Back highlighted (Max,
       # round 2): the person sees "— LOCKED" and one ENTER returns them to
       # the drive list, rather than landing back on Dual-Boot.
-      2)   step_luks; [ "$LUKS" = yes ] && seed_row=3 ;;
+      2)   if [ "$FIRMWARE" = bios ]; then
+             LUKS=no; ADV_MSG=$(t adv_luks_bios)
+           else
+             step_luks; [ "$LUKS" = yes ] && seed_row=3
+           fi ;;
       3)   return 0 ;;
     esac
   done
@@ -2980,6 +3009,9 @@ step_you() {
 # script ended would restart a machine that has no system on it.
 FAKE_CENSUS=no
 FAKE_INSTALL=no
+# --fake-fail: the fake install stops as the engine does on a refusal (a
+# test of the failure screen).
+FAKE_FAIL=no
 
 # The reveal has TWO halves that answer the two questions a burned Linux
 # user actually asks. The config half — "what did Golem set up" — comes from
@@ -3669,7 +3701,18 @@ step_go() {
   # terminada. The reboot no longer fires at 100% — it waits for ENTER on the
   # verdict, so an unattended install HOLDS instead of looping back into the USB.
   local installed=no verify_started=no verdict="" vrest vfrac vcur vmax vname
-  if [ "$FAKE_INSTALL" = yes ]; then
+  # The engine's last word that is not a marker: on a failure, the reason
+  # (`golem-install: …`) is shown rather than lost off the screen. And its
+  # whole output goes into its log folder, which the engine copies onto the
+  # new disk (a medium's RAM dies at the restart).
+  local reason="" said="" tee_to=/dev/null
+  if [ "$FAKE_INSTALL" != yes ] && mkdir -p /var/log/golem-install 2>/dev/null \
+     && : >> /var/log/golem-install/output.txt 2>/dev/null; then
+    tee_to=/var/log/golem-install/output.txt
+  fi
+  if [ "$FAKE_FAIL" = yes ]; then
+    cmd='for p in "5/100 format" "10/100 fs"; do echo "##golem $p"; sleep 0.4; done; echo "nix: some noise"; echo "golem-install: encryption on a BIOS/legacy machine is not supported yet" >&2; exit 2'
+  elif [ "$FAKE_INSTALL" = yes ]; then
     cmd='for p in "5/100 format" "10/100 fs" "14/100 seed" "18/100 probe" "20/100 eval" "60/100 copying glibc-2.40" "90/100 copying python3-3.11" "100/100 done"; do echo "##golem $p"; sleep 0.4; done; for v in "12/100 bootloader" "28/100 system" "44/100 kernel" "60/100 fstab" "76/100 seed" "92/100 account" "100/100 done"; do echo "##verify $v"; sleep 0.7; done; echo "##verify-verdict sana"'
   else
     # The surface runs as root on the medium (helpLine says sudo); the
@@ -3757,11 +3800,12 @@ step_go() {
         vfrac=${vrest%% *}; vcur=${vfrac%%/*}; vmax=${vfrac##*/}; vname=${vrest#* }
         [ "$vname" = done ] && vname=""
         paint_bar "$vcur" "$vmax" "$(t v_ing)" "$vname" ;;
-      *) ;;                      # the log itself stays off the screen —
-                                 # it is on the terminal scrollback if a
-                                 # phase dies and someone needs it
+      # The log itself stays off the screen; its last words are kept, the
+      # engine's own `golem-install: …` line first.
+      golem-install:*) reason=$line ;;
+      ?*) said=$line ;;
     esac
-  done < <(eval "$cmd" 2>&1) || rc=1
+  done < <(eval "$cmd" 2>&1 | tee -a "$tee_to") || rc=1
 
   printf '\n'
   if [ -n "$verdict" ]; then
@@ -3832,8 +3876,19 @@ step_go() {
     show_cursor
     return 0
   fi
+  # A FAILURE says why and waits (it restarted at the language screen with
+  # one line shown for a moment, the reason only in a file on tty2).
   printf '%s%s%s%s\n' "$IND" "$C_ACCENT" "$(t go_fail)" "$NORM"
+  reason=${reason:-$said}
+  [ -n "$reason" ] && printf '%s%s%s%s\n' "$IND" "$C_VALUE" "$reason" "$NORM"
+  printf '%s\n' "$(t go_log)" | fold -s -w 64 | while IFS= read -r l; do
+    printf '%s%s%s%s\n' "$IND" "$C_DIM" "$l" "$NORM"
+  done
+  printf '\n%s  %s%s %s%s%s\n' "$IND" "$C_ACCENT" "$CARET" "$C_ACCENT_TX" "$(t go_again)" "$NORM"
   show_cursor
+  if [ "$TTY" = yes ]; then
+    while :; do read_key || break; [ "$KEY" = ENTER ] && break; done
+  fi
   return 0
 }
 
@@ -3985,6 +4040,7 @@ while [ $# -gt 0 ]; do
     --fake-disks) FAKE_DISKS=yes; shift ;;
     --fake-census)  FAKE_CENSUS=yes; shift ;;
     --fake-install) FAKE_INSTALL=yes; shift ;;
+    --fake-fail) FAKE_INSTALL=yes; FAKE_FAIL=yes; shift ;;
     --no-loadkeys) LOADKEYS=no; shift ;;
     --out)      OUT="${2:?}"; shift 2 ;;
     --write)    WRITE="${2:?}"; shift 2 ;;

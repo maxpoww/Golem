@@ -557,6 +557,8 @@ The script runs from `Installer/preinstall` and boots
 `result/iso/golem-installer.iso`, or the file given with `--iso PATH`. The VM
 gets 4096 MB of RAM on purpose: the weak class. The target disk is virtio
 with a serial number, so it has a `/dev/disk/by-id` name like a real disk.
+`--sata` puts it on the IDE bus instead, where it is `/dev/sda`: what a BIOS
+install needs (section 8).
 
 ```
 cd Installer/preinstall
@@ -564,7 +566,8 @@ cd Installer/preinstall
 ./run-vm.sh                                       # look at the medium, in a window
 ./run-vm.sh --uefi --disk ~/VMs/golem/t1.qcow2:40G   # install on UEFI (disk made if absent)
 ./run-vm.sh --uefi --no-cd --disk ~/VMs/golem/t1.qcow2  # boot the installed disk
-./run-vm.sh --disk ~/VMs/golem/b1.qcow2:40G          # BIOS (see the BIOS limit, section 8)
+./run-vm.sh --disk ~/VMs/golem/b1.qcow2:40G          # BIOS on /dev/vda: refused (the BIOS limit, section 8)
+./run-vm.sh --sata --disk ~/VMs/golem/b1.qcow2:40G   # BIOS on /dev/sda: installs and boots
 ./run-vm.sh --headless --uefi --disk ...             # no window; a virtio GPU so the census still sees one
 
 # The monitor socket drives the VM without a window:
@@ -628,8 +631,8 @@ awk '{print $5}' /sys/block/sdX/stat      # writes completed: must not move
 | Limit | Detail |
 |---|---|
 | Whole disk only | Dual-Boot and Install on a partition answer "not in this release yet". |
-| Encryption is UEFI only | On a BIOS machine the screen still offers it. The engine refuses before writing anything, and the installer starts over without saying why. |
-| A failed install says nothing | Any failure, including a refusal before the first write (a disk too small, encryption on BIOS), shows its line for a moment and the installer restarts at the language screen. The reason is only in `/var/log/golem-install/` on tty2. |
+| Encryption is UEFI only | On a BIOS machine the screen's encryption row says it needs a UEFI machine and cannot be chosen (18-Nov). The engine refuses it too, before writing anything. |
+| A failed install | The screen shows the engine's reason (its `golem-install: …` line, in English) and where the whole log is, and waits for ENTER before starting over at the language screen (18-Nov; it used to restart after a moment, the reason only on tty2). |
 | Secure Boot must be off | the medium and the system are not signed |
 | English is the only baked language | Another language installs the English system. The desktop speaks the chosen language from the first session; the system language arrives with the first-boot rebuild, after a restart. |
 | Unknown hardware gets the floor | A machine whose leaf list matches no baked class installs the floor: GPU `auto`, no microcode, the lowest zram tier, no laptop power leaves, Bluetooth off. Its own leaves arrive with the first-boot rebuild. |
@@ -640,10 +643,10 @@ awk '{print $5}' /sys/block/sdX/stat      # writes completed: must not move
 | Post-install questions are never asked | The engine writes `postinstall-questions.json`, but the services that ask and apply (`system/postinstall.nix`) are only in the old all-in-one profile, not in the modular system installs run. A second GPU that failed its wake test stays on the safe default, `hold`: available, never autosuspended. |
 | The confirm screen's decisions come from the old profile | `golem-hw-decide` evaluates `lib.golem.mkTarget`, the all-in-one composition, not the modular system that is copied. Its rows can drift from what is installed. |
 | A light sensor (suspected, not yet seen) | `golem-hw-detect` writes `lightSensor = true` when it finds an ambient light sensor. The old profile (`system/hardware.nix`) does not declare that fact, and both `golem-hw-decide` and `golem-postinstall-questions` evaluate the old profile. On such a machine the census should report `FAILED at: golem-hw-decide`, and the install should stop at the hardware profile phase, after the disk was wiped. No fixture carries the fact, so the flake checks never met it. |
-| The install logs die with the medium | They live in the medium's RAM (`/var/log/golem-install/`). None of them is copied to the disk. Read them on tty2 before pressing ENTER. |
-| The BIOS GRUB disk | The baked BIOS systems install GRUB to `/dev/sda`, the default in `system/Modular/boot/grub-bios.nix`. The chosen disk's `by-id` name in `machine.nix` takes effect only with the first-boot rebuild. A BIOS install onto a disk that is not `/dev/sda` is untested; the September BIOS proof used an IDE disk (`/dev/sda`), while `run-vm.sh` gives the VM a virtio disk (`/dev/vda`). |
+| The logs of a FAILED install die with the medium | A finished install copies `/var/log/golem-install/` into the new system (18-Nov, below). A failed one keeps them only in the medium's RAM: read them on tty2 before pressing ENTER. |
+| The BIOS GRUB disk | The baked BIOS systems install GRUB to `/dev/sda`, the default in `system/Modular/boot/grub-bios.nix`; the chosen disk's `by-id` name in `machine.nix` takes effect only with the first-boot rebuild. So since 18-Nov a BIOS install that COPIES a baked system onto any other disk is REFUSED before anything is written (a system built on the machine, with no manifest on the medium, reads `machine.nix` and is not refused) (it would have put GRUB into the first disk's boot code, or failed after the wipe where there is no `/dev/sda`); the screen shows the reason. Both cases were installed in VMs on 18-Nov from a test medium of the branch: on a virtio disk the install stopped with that reason and the disk stayed empty; on `run-vm.sh --sata` (`/dev/sda`) it installed and booted. The real fix is a baked BIOS system that installs GRUB where it is told (`nodev` plus the engine's own `grub-install` on the chosen disk), tested on a BIOS VM install. |
 | The lab Wi-Fi name | The installed door always joins the open network named in `lab-door.nix`. A lab medium built for another network does not change that. |
-| The public Start console | Its help line says `ssh nixos@<address>`, but the public medium has no SSH server. |
+| The public Start console | Fixed 18-Nov: the `ssh nixos@<address>` line shows only on a medium that runs SSH (a lab medium); the public one no longer offers it. |
 
 ## 9. Where the logs are
 
@@ -656,7 +659,7 @@ On the medium. They live in RAM and are gone at the restart.
 | `/var/log/golem-audit/summary.txt`, `decision.json` | what the facts decided |
 | `/var/log/golem-audit/detect.log`, `decide.log`, `evidence.log` | the tools' errors |
 | `/var/log/golem-audit/evidence/`, `evidence.tar.gz` | the raw dump, ready for `fixtures/<machine>/` |
-| `/var/log/golem-install/` | a real install: `plan.txt`, `checks.txt`, `transcript.txt` (every command, as `run`), `nixos-install.log`, `verify.txt`, `choose.err`, `personalize.err`, and `status` (only when it failed) |
+| `/var/log/golem-install/` | a real install: `plan.txt`, `checks.txt`, `transcript.txt` (every command, as `run`), `nixos-install.log`, `verify.txt`, `choose.err`, `personalize.err`, `output.txt` (everything the engine printed, kept by the screen), and `status` (only when it failed) |
 | `/var/log/golem-rehearsal/` | a rehearsal: `status` (`ok` or `findings: N`), `checks.txt` (read it first), `transcript.txt` (`would` lines), `plan.txt`, `target/` (the machine's files), `answers`, `rehearsal.tar.gz` |
 | `/tmp/golem-answers`, `/tmp/golem-machine.nix` | the screen's answers (the password's hash, never the password) |
 | `/tmp/golem-drv.*`, `/tmp/golem-kb-orig.*`, `/run/golem-setup.owns-console` | temporary files; gone on any exit |
@@ -665,6 +668,7 @@ On an installed machine:
 
 | Where | What |
 |---|---|
+| `/var/log/golem-install/` | the install's own logs, copied from the medium at its end (root only; `output.txt` up to the verify) |
 | `journalctl -u golem-first-boot` | the first-boot step |
 | `journalctl -u golem-autoupdate` | the nightly update |
 | `journalctl -u waverunner-apply` | the dock's installs |
