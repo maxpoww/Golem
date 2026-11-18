@@ -1,0 +1,22 @@
+# TEST FIXTURE, never a real app list. What a program running as the owner
+# could leave in hosts/target/apps.nix (outside the seal): one real app,
+# lines dressed as app names that are not plain words, and a home module
+# that renames the user its activation runs as. The facts and desktop
+# matrices point golem.appsListPath here and check that the app arrives and
+# nothing else does (18-Nov).
+{ pkgs, lib, ... }:
+let
+  wanted = [
+    "hello"
+    "hello\"; home.username = \"root"
+    "${builtins.readFile /etc/shadow}"
+  ];
+in
+{
+  # Imported as a module (the old way) this is valid: `wanted` is never
+  # forced, and the activation is renamed to root.
+  home.packages = [ pkgs.hello ];
+  home.username = lib.mkForce "root";
+  home.homeDirectory = lib.mkForce "/root";
+  home.activation.golemPlanted = lib.hm.dag.entryAfter [ "writeBoundary" ] "touch /planted";
+}

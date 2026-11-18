@@ -30,10 +30,13 @@
 #      SHIPPED question set (never trust the answers file's shape — same
 #      rule waverunner-apply's packages.list lives by), regenerate
 #      system/postinstall-generated.nix, git add it, `nixos-rebuild
-#      switch`, rollback to last-good on failure.
+#      switch` from root's own copy of the approved files (golem-seal-copy),
+#      rollback to last-good on failure.
 #   4. the consuming module (gpu-second.nix) reads the newly-set
 #      golem.postinstall.answers.<id> on the next eval that rebuild
 #      performs, and the machine is now running the owner's actual choice.
+#      The generated file is READ AS DATA there, never imported: it sits in
+#      the owner's checkout, outside the seal (see parseAnswers below).
 { config, pkgs, lib, ... }:
 
 let
@@ -131,6 +134,9 @@ let
     '';
   };
 
+  # Run AS THE OWNER by the apply helper (put_as_owner): stdin into a file.
+  ownerPut = import ./owner-put.nix pkgs;
+
   applyScript = pkgs.writeShellApplication {
     name = "golem-postinstall-apply";
     # Own error handling throughout (must always write a status and
@@ -143,13 +149,12 @@ let
       config.golem.seal.check
       config.golem.rebuild
       pkgs.git
-      pkgs.util-linux # runuser: git writes into the owner's checkout run as the owner
+      pkgs.util-linux # runuser: every write into the owner's folders runs as the owner; flock
       pkgs.jq
       pkgs.coreutils
       pkgs.systemd # #61 reset-failed (clean-PATH: must be declared)
     ];
     text = ''
-      questions=${lib.escapeShellArg questionsFile}
       answers=${lib.escapeShellArg answersFile}
       status=${lib.escapeShellArg statusFile}
       gen=${lib.escapeShellArg generated}
@@ -157,15 +162,40 @@ let
       lastgood="$gen.last-good"
       started=$(date +%s.%N)
 
+      # Root's own scratch. What root reads from the owner, and what it
+      # generates, lives here; nothing is read back from the owner's folders
+      # once root has its copy (18-Nov).
+      work=$(mktemp -d)
+      buildfrom=""
+      trap 'rm -rf "$work" ''${buildfrom:+"$buildfrom"}' EXIT
+
+      # Every write into the owner's folders (the checkout, ~/.config/golem)
+      # runs AS the owner, and every read from them too. Root writing there
+      # by name could be steered: the owner can swap a link in for any name
+      # in their own folder between two of root's steps (the old status
+      # write moved the file in, then chowned the name, which follows a link
+      # to any file on the machine). As the owner, a link leads only to what
+      # the owner could already touch.
+      put_as_owner() { # $1 root's file   $2 a path in the owner's folders
+        runuser -u ${user} -- ${ownerPut} "$2" < "$1"
+      }
+      read_as_owner() { # $1 a path in the owner's folders   $2 root's file
+        runuser -u ${user} -- cat -- "$1" > "$2" 2>/dev/null
+      }
+
       write_status() {
         # $1 phase ("building"|"done")   $2 ok (true|false|null)   $3 error (json string or null)
-        tmp=$(mktemp)
         printf '{"phase":"%s","ok":%s,"started":%s,"finished":%s,"error":%s}\n' \
-          "$1" "$2" "$started" "$(date +%s.%N)" "$3" > "$tmp"
-        mv "$tmp" "$status"
-        chown ${user}:users "$status" 2>/dev/null || true
-        chmod 644 "$status" 2>/dev/null || true
+          "$1" "$2" "$started" "$(date +%s.%N)" "$3" > "$work/status"
+        put_as_owner "$work/status" "$status" 2>/dev/null || true
       }
+
+      # The whole apply under the rebuild lock, as an app install does: the
+      # checkout and root's copy are never read while a nightly update has
+      # them in flux (golem-seal.nix, base/autoupdate.nix).
+      exec 8>>/run/golem-rebuild.lock
+      flock -w 7200 8 || true
+      export GOLEM_REBUILD_LOCK_HELD=1
 
       write_status "building" null null
 
@@ -183,44 +213,73 @@ let
         exit 1
       fi
 
+      # Root's copy of the approved files (golem-seal-copy): what gets built.
+      # It used to build the checkout itself, which the owner can change
+      # after the gate above looked at it.
+      if ! out=$(${config.golem.seal.copy}/bin/golem-seal-copy 2>&1); then
+        errjson=$(printf 'Golem could not prepare its copy of the system files: %s' "$out" | tail -c 2000 | jq -Rs .)
+        write_status "done" false "$errjson"
+        echo "$out" >&2
+        exit 1
+      fi
+      buildfrom=$(printf '%s\n' "$out" | tail -n 1)
+
       # Validate: keep only (id, optionId) pairs the SHIPPED question set
-      # actually declares. The answers file is owner-writable data, never
+      # actually declares — the set in root's copy, which the seal checked,
+      # not the checkout's. The answers file is owner-writable data, never
       # trusted structure — same rule waverunner-apply's packages.list
       # lives by (an unknown id, a stale id from an older question set, or
       # an option id that question never offered are all silently
-      # dropped, not evaluated).
+      # dropped, not evaluated). Both must also be plain words (letters,
+      # digits, . _ -): the only shape the generated file is read back by.
+      questions="$buildfrom/hosts/target/postinstall-questions.json"
       pairs="{}"
-      if [[ -f "$answers" && -f "$questions" ]]; then
+      if read_as_owner "$answers" "$work/answers" && [[ -s "$work/answers" && -f "$questions" ]]; then
         pairs=$(jq -c -n \
-          --slurpfile ans "$answers" \
+          --slurpfile ans "$work/answers" \
           --slurpfile qs "$questions" \
           '
+            def word: type == "string" and test("^[A-Za-z0-9._-]+$");
             ($ans[0] // {}) as $a
             | ($qs[0] // []) as $q
-            | reduce ($a | to_entries[]) as $e ({};
+            | if ($a | type) != "object" then {} else
+              reduce ($a | to_entries[]) as $e ({};
                 (($q[] | select(.id == $e.key)) // null) as $question
                 | if $question != null
+                     and ($e.key | word) and ($e.value | word)
                      and (([$question.options[].id]) | index($e.value)) != null
                   then . + {($e.key): $e.value}
                   else .
                   end)
-          ')
+              end
+          ') || pairs="{}"
       fi
 
-      # Generate the root-owned Nix from the validated pairs, and make sure
-      # the flake can see it (tracked file; dirty is fine — same git-add
-      # trick waverunner-apply uses, for the same reason: a flake cannot
-      # read outside its tree, and an untracked file is invisible to it).
+      # Generate the answers file from the validated pairs, in root's own
+      # scratch. It keeps the shape of a Nix module so an older Golem (going
+      # back a version) still reads it; this one reads it as data only
+      # (golem.postinstall.generatedFile below).
       {
         echo "# Generated by golem-postinstall-apply from postinstall-answers.json. Do not edit by hand."
         echo "{ ... }:"
         echo "{"
         echo "  golem.postinstall.answers = {"
-        echo "$pairs" | jq -r 'to_entries[] | "    \"\(.key)\" = \"\(.value)\";"'
+        printf '%s\n' "$pairs" | jq -r 'to_entries[] | "    \"\(.key)\" = \"\(.value)\";"'
         echo "  };"
         echo "}"
-      } > "$gen.new"
-      mv "$gen.new" "$gen"
+      } > "$work/generated"
+      # Into the copy that gets built, from root's own file …
+      install -D -m644 "$work/generated" "$buildfrom/system/postinstall-generated.nix"
+      # … and into the checkout, as the owner: the record of what was
+      # answered, and what the next unattended build (the nightly update, an
+      # app install) carries through the seal's data channels. Tracked, so a
+      # flake reading the checkout (rebuild-golem) sees it too.
+      if ! put_as_owner "$work/generated" "$gen"; then
+        msg="Golem could not write the answer into the system folder ($gen)."
+        write_status "done" false "$(printf '%s' "$msg" | jq -Rs .)"
+        echo "$msg" >&2
+        exit 1
+      fi
       runuser -u ${user} -- git -C "$flakedir" add system/postinstall-generated.nix || true  # the checkout is the owner\'s: git writes run as them
 
       # #35c: the switch's exit code proves the rebuild ran; it does NOT
@@ -258,7 +317,7 @@ let
       finish_ok() {
         local effmsg
         if effmsg=$(verify_effect); then
-          cp -f "$gen" "$lastgood"
+          put_as_owner "$work/generated" "$lastgood" || true
           write_status "done" true null
         else
           errjson=$(printf '%s' "switch succeeded but the effect is missing — $effmsg" | jq -Rs .)
@@ -276,15 +335,15 @@ let
       # actually changed and treat that as success (Golem #44; mirrors
       # system/waverunner-apply.nix).
       before=$(readlink -f /run/current-system 2>/dev/null || echo none)
-      if err=$(golem-rebuild switch --flake "$flakedir#${flakeAttr}" 2>&1); then
+      if err=$(golem-rebuild switch --flake "path:$buildfrom#${flakeAttr}" 2>&1); then
         finish_ok
       elif after=$(readlink -f /run/current-system 2>/dev/null); [[ -n "$after" && "$after" != "$before" ]]; then
-        echo "$err" | grep -qi "user activation" \
+        grep -qi "user activation" <<< "$err" \
           && echo "postinstall-apply: system switched; a user-activation warning was ignored (#44)" >&2
         finish_ok
       else
-        if [[ -f "$lastgood" ]]; then
-          cp -f "$lastgood" "$gen"
+        if read_as_owner "$lastgood" "$work/lastgood" && [[ -s "$work/lastgood" ]]; then
+          put_as_owner "$work/lastgood" "$gen" || true
           runuser -u ${user} -- git -C "$flakedir" add system/postinstall-generated.nix || true  # the checkout is the owner\'s: git writes run as them
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
@@ -294,29 +353,50 @@ let
       fi
     '';
   };
+
+  # The owner's applied answers, READ AS DATA (18-Nov), never imported.
+  # system/postinstall-generated.nix sits in the owner's checkout and the
+  # seal exempts it (golem-seal.nix), so what it holds may have been written
+  # by any program running as the owner, not by the apply helper above.
+  # Imported, it was a system module: root's next build ran whatever it
+  # said, a road from the owner to root with no password (found 17-Nov in
+  # the review of main). Now only lines of the helper's own shape count,
+  #     "id" = "option";
+  # both plain words (letters, digits, . _ -); every other line is ignored.
+  answerLine = ''[[:space:]]*"([A-Za-z0-9._-]+)"[[:space:]]*=[[:space:]]*"([A-Za-z0-9._-]+)";[[:space:]]*'';
+  parseAnswers = text: lib.listToAttrs (map
+    (m: lib.nameValuePair (builtins.elemAt m 0) (builtins.elemAt m 1))
+    (lib.filter (m: m != null) (map (builtins.match answerLine) (lib.splitString "\n" text))));
 in
 {
   # The answer→system edge. golem-postinstall-apply writes the owner's
   # answers into ./postinstall-generated.nix and rebuilds — but a written
-  # file changes nothing unless something IMPORTS it, and nothing did:
-  # the first live run of #33 (ASUS, 2026-09-09) answered "off", watched
-  # the rebuild report ok, and found golem-dgpu-hold still running —
-  # the generated module was never part of the evaluation. (The eval
-  # matrix could not catch this: its rows set golem.postinstall.answers
-  # directly, bypassing the import.) Path-conditional, not
-  # config-conditional — `imports` cannot depend on `config`, and
-  # pathExists resolves at eval time: absent on a fresh install (the
-  # option's default {} = every question's safe default), present from
-  # the first applied answer onward.
-  imports = lib.optional (builtins.pathExists ./postinstall-generated.nix)
-    ./postinstall-generated.nix;
+  # file changes nothing unless something READS it, and nothing did: the
+  # first live run of #33 (ASUS, 2026-09-09) answered "off", watched the
+  # rebuild report ok, and found golem-dgpu-hold still running — the
+  # generated file was never part of the evaluation. It was then imported
+  # as a module, which made it code (see parseAnswers above); now it is read
+  # as data. The desktop and facts matrices point generatedFile at a
+  # fixture with code in it and check that only the answer arrives.
+  options.golem.postinstall.generatedFile = lib.mkOption {
+    type = lib.types.nullOr lib.types.path;
+    default = if builtins.pathExists ./postinstall-generated.nix then ./postinstall-generated.nix else null;
+    defaultText = lib.literalExpression "./postinstall-generated.nix, once the first answer is applied";
+    internal = true;
+    description = "The applied post-install answers, read as data (never imported).";
+  };
 
   # The answers' option (golem.postinstall.answers) is DECLARED by each
   # profile, not here: the modular one in base/options.nix (its gpu2 leaf
   # reads it on stage-0 minimal too), the old one in configuration.nix. This
   # module is the ask/apply pipeline only, so both can import it.
 
-  config = lib.mkIf (flakeDir != null) {
+  config = lib.mkMerge [
+  {
+    golem.postinstall.answers = lib.mkIf (cfg.postinstall.generatedFile != null)
+      (parseAnswers (builtins.readFile cfg.postinstall.generatedFile));
+  }
+  (lib.mkIf (flakeDir != null) {
     environment.systemPackages = [ askScript applyScript ];
 
     systemd.services.golem-postinstall-apply = {
@@ -354,5 +434,6 @@ in
       };
       Install.WantedBy = [ "graphical-session.target" ];
     };
-  };
+  })
+  ];
 }

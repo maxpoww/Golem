@@ -361,6 +361,37 @@ let
         (ex "NO owner's timezone leaks either" (cfg.time.timeZone == "UTC"))
       ];
     }
+    {
+      # The post-install answers file sits in the owner's checkout, outside
+      # the seal. It was imported as a system module: whatever a program
+      # running as the owner wrote there, root's next build ran (17-Nov).
+      name = "post-install answers file with code in it";
+      facts = { golem.postinstall.generatedFile = ../postinstall-hostile.fixture; };
+      expect = cfg: [
+        (ex "the answer in it arrives, and only it (read as data)"
+          (cfg.golem.postinstall.answers == { "gpu2-failing-action" = "off"; }))
+        (ex "the code in it does not run"
+          (!(cfg.environment.etc ? "golem-planted")
+           && !(lib.elem "ssh-ed25519 AAAAplanted" cfg.users.users.root.openssh.authorizedKeys.keys)
+           && cfg.security.sudo.wheelNeedsPassword))
+      ];
+    }
+    {
+      # The app list waverunner-apply generates sits in the owner's checkout,
+      # outside the seal, and was imported as a home module: one that renames
+      # its user made root run its activation (18-Nov).
+      name = "app list with code in it";
+      facts = { golem.appsListPath = ../home/app-list-hostile.fixture; };
+      expect = cfg:
+        let owner = cfg.golem.owner; home = cfg.home-manager.users.${owner}; in [
+          (ex "the app in it arrives (read as data)"
+            (lib.any (p: lib.getName p == "hello") home.home.packages))
+          (ex "the code in it does not run: no activation as root, none planted"
+            (!(cfg.systemd.services ? home-manager-root)
+             && cfg.systemd.services."home-manager-${owner}".serviceConfig.User == owner
+             && !(home.home.activation ? golemPlanted)))
+        ];
+    }
   ];
 
   ex = name: ok: { inherit name ok; };

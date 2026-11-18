@@ -17,7 +17,7 @@
 # and fails on a GRUB machine).
 #
 # TRIGGER: a systemd.path watches packages.list; writing it runs this once.
-# FEEDBACK: result is written to apply-status.json (chowned back to the user).
+# FEEDBACK: result is written to apply-status.json (as the user, 18-Nov).
 # ATOMIC: a failed switch never activates; last-good is restored so the tree
 # always stays buildable.
 #
@@ -37,6 +37,7 @@ let
   appsFile = config.golem.appsFile;
   generated = "${flakeDir}/${appsFile}";
   golemSay = pkgs.callPackage ./i18n/golem-say.nix { };
+  ownerPut = import ./owner-put.nix pkgs;
 
   applyScript = pkgs.writeShellApplication {
     name = "waverunner-apply";
@@ -68,15 +69,24 @@ let
       gen=${lib.escapeShellArg generated}
       flakedir=${lib.escapeShellArg flakeDir}
       lastgood="$gen.last-good"
-      # Root writing into the owner's checkout or home: never through a name
-      # given in advance (a link planted at "$gen.new" would have made root
-      # overwrite whatever it pointed at). A fresh temp file, then a rename
-      # over the destination, which replaces a link instead of following it.
-      put() {   # put SRC DEST
-        local t
-        t=$(mktemp --suffix=.tmp "$2.XXXXXX") || return 1
-        if cat "$1" > "$t" && chmod 644 "$t" && mv -f "$t" "$2"; then return 0; fi
-        rm -f "$t"; return 1
+      # Root never writes into the owner's checkout or home itself, and never
+      # reads from them (18-Nov). The owner can swap any name in their own
+      # folders for a link between two of root's steps: root's fresh temp
+      # file was still reopened by name, and the status was moved in and then
+      # chowned by name, which follows a link to any file on the machine; a
+      # list or last-good read as root through a link could copy a root-only
+      # file to the owner (and its rejected lines went to the journal). So
+      # every write and every read there runs AS the owner, and root keeps
+      # what it read and what it generates in its own scratch.
+      work=$(mktemp -d)
+      buildfrom=""
+      trap 'rm -rf "$work" ''${buildfrom:+"$buildfrom"}' EXIT
+      put() {   # put SRC DEST: root's file SRC into DEST in the owner's folders
+        runuser -u ${user} -- ${ownerPut} "$2" < "$1"
+      }
+      take() {  # take SRC DEST: SRC in the owner's folders, read as the owner, into root's DEST
+        if runuser -u ${user} -- cat -- "$1" > "$2" 2>/dev/null; then return 0; fi
+        rm -f "$2"; return 1
       }
       started=$(date +%s.%N)
       # What the owner is told, in their language (root: their settings, named).
@@ -93,12 +103,9 @@ let
 
       write_status() {
         # $1 phase ("building"|"done")   $2 ok (true|false|null)   $3 error (json string or null)
-        tmp=$(mktemp)
         printf '{"phase":"%s","ok":%s,"started":%s,"finished":%s,"error":%s}\n' \
-          "$1" "$2" "$started" "$(date +%s.%N)" "$3" > "$tmp"
-        mv "$tmp" "$status"
-        chown ${user}:users "$status" 2>/dev/null || true
-        chmod 644 "$status" 2>/dev/null || true
+          "$1" "$2" "$started" "$(date +%s.%N)" "$3" > "$work/status"
+        put "$work/status" "$status" 2>/dev/null || true
       }
 
       # A CUT-OFF list is not "uninstall everything". The dock writes the list
@@ -108,13 +115,25 @@ let
       # with a newline; a list without both is a broken write: the last list
       # this installer applied comes back, and the owner is told.
       listgood="$list.last-good"
-      listok() { [ -s "$list" ] && head -n 1 "$list" | grep -q '^# waverunner declarative packages' && [ -z "$(tail -c 1 "$list")" ]; }
-      if [ -e "$list" ] && ! listok; then
+      # The list as this pass sees it, read as the owner: everything below
+      # reads this copy, never the owner's file. One that is there but cannot
+      # be read changes nothing (read as nothing, it would remove every app).
+      haslist=false
+      if take "$list" "$work/list"; then
+        haslist=true
+      elif [ -e "$list" ] || [ -L "$list" ]; then
+        echo "waverunner-apply: the app list cannot be read as its owner — changing nothing" >&2
+        write_status "done" false "\"the app list could not be read; nothing changed\""
+        exit 0
+      fi
+      listok() { [ -s "$work/list" ] && head -n 1 "$work/list" | grep -q '^# waverunner declarative packages' && [ -z "$(tail -c 1 "$work/list")" ]; }
+      if [ "$haslist" = true ] && ! listok; then
         if [ -f "$listgood" ]; then
           echo "waverunner-apply: the app list is cut off (a full disk?) — restoring the last one applied" >&2
-          # In place (the path unit watches that inode), so as its owner: root
-          # writing there would follow a link planted in its place.
-          runuser -u ${user} -- tee "$list" < "$listgood" > /dev/null || true
+          # In place (the path unit watches that inode), as its owner: root
+          # writing there would follow a link planted in its place, and root
+          # opening the last-good by name could be led to a root-only file.
+          runuser -u ${user} -- cp -- "$listgood" "$list" || true
           uid=$(id -u ${user})
           if [ -S "/run/user/$uid/bus" ]; then
             runuser -u ${user} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
@@ -136,8 +155,11 @@ let
       #    the machine rebuilding forever.
       again_if_list_changed() {
         local pass="''${GOLEM_APPLY_PASS:-1}"
-        if [[ "$(sha256sum < "$list" 2>/dev/null || echo none)" != "$listsum" && "$pass" -lt 5 ]]; then
+        local now=none
+        if take "$list" "$work/list.now"; then now=$(sha256sum < "$work/list.now"); fi
+        if [[ "$now" != "$listsum" && "$pass" -lt 5 ]]; then
           echo "waverunner-apply: the list changed during the rebuild — applying again (pass $((pass + 1)))" >&2
+          rm -rf "$work"   # the exec skips the trap
           GOLEM_APPLY_PASS=$((pass + 1)) exec "$0"
         fi
       }
@@ -175,12 +197,12 @@ let
       # seen by systemd (the path watch drops triggers while the service is
       # running — measured on the ThinkPad, 2026-10-01: four edits, one run),
       # so the end of a successful pass looks again (step 4).
-      listsum=$(sha256sum < "$list" 2>/dev/null || echo none)
+      listsum=$(sha256sum < "$work/list" 2>/dev/null || echo none)
 
       # 1. Validate: keep only strict nixpkgs attr tokens; anything else is
       #    dropped (never interpreted).
       attrs=()
-      if [[ -f "$list" ]]; then
+      if [[ -f "$work/list" ]]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
           line="''${line%%#*}"
           line="$(printf '%s' "$line" | tr -d '[:space:]')"
@@ -192,12 +214,12 @@ let
           else
             echo "waverunner-apply: rejected invalid entry: $line" >&2
           fi
-        done < "$list"
+        done < "$work/list"
       fi
 
       # 2. Generate the root-owned Nix from the validated tokens, and make
       #    sure the flake can see it (tracked file; dirty is fine).
-      gentmp=$(mktemp --suffix=.tmp "$gen.XXXXXX")
+      gentmp="$work/generated"
       {
         echo "# Generated by waverunner-apply from packages.list. Do not edit by hand."
         # lowPrio: an app the owner adds must never fail the whole batch by
@@ -227,7 +249,12 @@ let
         echo "}"
       } > "$gentmp"
       chmod 644 "$gentmp"
-      mv -f "$gentmp" "$gen"
+      if ! put "$gentmp" "$gen"; then
+        msg="Golem could not write its app list into the system checkout ($gen)."
+        write_status "done" false "$(printf '%s' "$msg" | jq -Rs .)"
+        echo "$msg" >&2
+        exit 1
+      fi
       # Root inside the user's checkout: /etc/gitconfig carries the
       # safe.directory entry (configuration.nix) for git AND nix's libgit2.
       # It MUST be tracked: a flake only sees tracked files, and on a fresh
@@ -272,15 +299,15 @@ let
       # A RUNNING unit is not "failed", so this never touches a live switch.
       systemctl reset-failed nixos-rebuild-switch-to-configuration.service 2>/dev/null || true
       # Root's copy of the approved files + this list (see the gate).
-      if ! buildfrom=$(${config.golem.seal.copy}/bin/golem-seal-copy 2>&1); then
-        msg="Golem could not prepare its copy of the system files: $buildfrom"
+      if ! out=$(${config.golem.seal.copy}/bin/golem-seal-copy 2>&1); then
+        msg="Golem could not prepare its copy of the system files: $out"
         write_status "done" false "$(printf '%s' "$msg" | jq -Rs .)"
         echo "$msg" >&2
         exit 1
       fi
-      buildfrom=$(printf '%s\n' "$buildfrom" | tail -n 1)
-      trap 'rm -rf "$buildfrom"' EXIT
-      install -D -m644 "$gen" "$buildfrom/${appsFile}"
+      buildfrom=$(printf '%s\n' "$out" | tail -n 1)
+      # Root's own generated file, never the checkout's copy read back.
+      install -D -m644 "$gentmp" "$buildfrom/${appsFile}"
       flakeref="path:$buildfrom#${flakeAttr}"
 
       # Transient failures are retried, never reported: the network went
@@ -330,13 +357,14 @@ let
       rm -rf "$buildfrom"   # before a second pass's exec, which skips the trap
 
       if [[ "$ok" == yes ]]; then
-        put "$gen" "$lastgood"
-        if listok && put "$list" "$listgood"; then chown ${user}: "$listgood" 2>/dev/null || true; fi
+        put "$gentmp" "$lastgood" || true
+        # The list this pass applied, as its owner's file.
+        if listok; then put "$work/list" "$listgood" || true; fi
         again_if_list_changed
         write_status "done" true null
       else
-        if [[ -f "$lastgood" ]]; then
-          put "$lastgood" "$gen"
+        if take "$lastgood" "$work/lastgood"; then
+          put "$work/lastgood" "$gen" || true
           runuser -u ${user} -- git -C "$flakedir" add ${lib.escapeShellArg appsFile} || true  # the checkout is the owner\'s: git writes run as them
         fi
         errjson=$(printf '%s' "$err" | tail -c 4000 | jq -Rs .)
@@ -376,6 +404,15 @@ in
     type = lib.types.str;
     default = "system/home/waverunner-packages.nix";
     description = "Path (relative to golem.flakeDir) of the Nix file waverunner-apply generates from packages.list.";
+  };
+  # The same file as the build sees it (a path in the flake's source, set by
+  # each profile), READ AS DATA by system/home/app-list.nix: it is the
+  # owner's and outside the seal, so it is never imported as a module.
+  options.golem.appsListPath = lib.mkOption {
+    type = lib.types.nullOr lib.types.path;
+    default = null;
+    internal = true;
+    description = "The generated app list in the flake's source, read as data (never imported).";
   };
 
   config = lib.mkIf (flakeDir != null) {

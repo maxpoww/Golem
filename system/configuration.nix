@@ -188,9 +188,12 @@
   config = {
     # The owner's launcher-installed app list rides the home layer only on
     # non-lean systems (see options.golem.lean above; home/home.nix says why
-    # the import lives here and not there).
+    # it lives here and not there). Read as data (home/app-list.nix), never
+    # imported: the file is the owner's, outside the seal.
+    golem.appsListPath = lib.mkDefault
+      (if builtins.pathExists ./home/waverunner-packages.nix then ./home/waverunner-packages.nix else null);
     home-manager.users.${config.golem.owner}.imports =
-      lib.optional (!config.golem.lean) ./home/waverunner-packages.nix;
+      lib.optional (!config.golem.lean) (import ./home/app-list.nix config.golem.appsListPath);
 
     # /bin/sh and /usr/bin/env on FRESH roots (found booting the ISO in qemu,
     # 2026-09-01). This nixpkgs boots stage 2 through nixos-init (toplevel
