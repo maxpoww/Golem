@@ -163,6 +163,20 @@ Deployed to both map machines and verified live:
 
 ## 2026-09-10 — #59 (OPEN, renderer): the loop can block FOREVER on a GPU fence
 
+> **CLOSED 2026-11-18, by reading the code (not reproduced since 09-10).**
+> The invariant asked for below holds in the dock of today (launcher
+> `3c3bf037`): the loop never waits on the GPU without a bound. A frame
+> starts only when the last one is done (`Renderer::gpu_ready`: a
+> non-blocking `device.poll(Maintain::Poll)`; otherwise a short timer looks
+> again and IPC keeps flowing); a present no longer waits for the vertical
+> blank (`NoVblankWait`, Mailbox, else Fifo with the wait removed); taking
+> a swapchain image is bounded and a timeout or a lost surface skips the
+> frame instead of ending the dock (`dock-gpu-error-not-fatal`). The only
+> `Maintain::Wait` left is in `check_damage`, a test aid that runs only with
+> `WAVERUNNER_DAMAGE_CHECK` set. The plate-era pipeline the wedge was caught
+> in is gone. If a frozen dock is ever seen again, `waverunner-ctl debug-perf`
+> and the "loop: stalled" lines say where; reopen with that.
+
 Caught live on the dev box (Vulkan/Iris Xe, the plate-refactor build):
 the main thread blocked in `drm_syncobj_array_wait_timeout` — a fence
 wait that never signaled — freezing the single-threaded loop: IPC dead
