@@ -112,11 +112,11 @@
     "waveview-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1794877847,
-        "narHash": "sha256-BV+UmYfaTBXdifba/NC0JwijgEUUWkf3/7h4+/dD8WI=",
+        "lastModified": 1795039033,
+        "narHash": "sha256-6MduiM2QPhMGTXHhmeg7MVDJdRy0Ag5t2uR7U0Ze3y4=",
         "owner": "maxpoww",
         "repo": "waveview",
-        "rev": "d18d57012be11083780ae26042a07638cf9c1df9",
+        "rev": "d6338594b6f684e768abfda21ddf9efea3e10ad8",
         "type": "github"
       },
       "original": {
