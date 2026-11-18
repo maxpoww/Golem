@@ -15,11 +15,21 @@ LANGPACKS="es-ES es-MX fr de it pt-BR pt-PT"
 
 log(){ echo "seam-update: $*"; }
 
-pinned=$(jq -r .version "$SRC")
+# The checkout is the OWNER's (18-Nov): root reads and writes there only AS the owner. By
+# name, root can be steered by a link the owner swaps in between two of root's steps (a
+# chown through it gave the owner any file: /etc/shadow); as the owner, a link leads only
+# where the owner could go already. (--check, run by anyone, reads as itself.)
+owner=$(stat -c %U "${SEAM_FLAKE:-$SEAM_DIR}")
+asowner(){ if [ "$(id -u)" = 0 ]; then runuser -u "$owner" -- "$@"; else "$@"; fi; }
+# A FIFO put in place of a file must not hang the lane: it holds the rebuild lock.
+readown(){ asowner timeout 20 cat "$1"; }
+
+pinjson=$(readown "$SRC") || { log "could not read $SRC"; exit 1; }
+pinned=$(jq -r .version <<<"$pinjson")
 # the packs pinned FOR the pinned version, against the ones wanted (a pin written before
 # 2026-11-10, or kept back by a machine whose lane was ahead of upstream, has none)
 packs_pinned=$(jq -r --arg v "$pinned" '[.langpacks // {} | to_entries[]
-  | select(.value.url | contains("/releases/" + $v + "/")) | .key] | sort | join(" ")' "$SRC")
+  | select(.value.url | contains("/releases/" + $v + "/")) | .key] | sort | join(" ")' <<<"$pinjson")
 packs_wanted=$(printf '%s\n' $LANGPACKS | sort | paste -sd' ')
 running=""
 for b in /run/current-system/sw/bin/seam /etc/profiles/per-user/*/bin/seam; do
@@ -100,9 +110,8 @@ log "updating $pinned -> $want"
 exec 9>>/run/golem-rebuild.lock
 flock 9
 
-# The checkout is the OWNER's: git writes run as them (root-written index/object files
-# are ones the owner can no longer touch).
-asowner(){ runuser -u "$(stat -c %U "$SEAM_FLAKE")" -- "$@"; }
+# The checkout is the OWNER's: git writes run as them too (root-written index/object
+# files are ones the owner can no longer touch) — asowner, at the top.
 
 # THE SEAL, checked BEFORE writing (the security study's road 3, 2026-11-12): root
 # rebuilds the checkout only when it can vouch for it — the blessed tree, or that tree
@@ -126,13 +135,11 @@ unseal(){ if [ -n "${SEAM_SEAL_ADOPT:-}" ]; then "$SEAM_SEAL_ADOPT" seam/sources
 
 # The pin as it was, for a failed rebuild: in a root-only file, never beside the pin —
 # a file left in the checkout is one more thing the seal would have to answer for.
-prev=$(mktemp); cat "$SRC" > "$prev"
-tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX")
+prev=$(mktemp); readown "$SRC" > "$prev" || { log "could not read $SRC"; rm -f "$prev" "$pincopy"; exit 1; }
 jq -n --arg v "$want" --arg u "$url" --arg s "$sha" --argjson p "$packs" \
   '{version:$v,url:$u,sha256:$s,langpacks:$p}' > "$pincopy"
-cat "$pincopy" > "$tmp"
-chown --reference="$SRC" "$tmp"; chmod --reference="$SRC" "$tmp"
-mv "$tmp" "$SRC"
+# Written AS THE OWNER, by a fresh file renamed over the pin (golem-owner-put).
+asowner "$SEAM_OWNER_PUT" "$SRC" < "$pincopy" || { log "could not write $SRC"; rm -f "$prev" "$pincopy"; exit 1; }
 
 if [ -n "${SEAM_FLAKE:-}" ]; then
   # flake system: the build only sees git-TRACKED files — stage the new pin, then
@@ -155,9 +162,8 @@ else
 fi
 if ! rebuild; then
   log "rebuild FAILED — restoring pin $pinned"
-  # A fresh file renamed over the pin: a link swapped in for it is replaced, not followed.
-  tmp=$(mktemp --suffix=.tmp "$SRC.XXXXXX"); cat "$prev" > "$tmp"
-  chown --reference="$SRC" "$tmp" 2>/dev/null || true; chmod 644 "$tmp"; mv -f "$tmp" "$SRC"
+  # As the owner, a fresh file renamed over the pin (golem-owner-put).
+  asowner "$SEAM_OWNER_PUT" "$SRC" < "$prev" || log "could not put pin $pinned back"
   [ -n "${SEAM_FLAKE:-}" ] && asowner git -C "$SEAM_FLAKE" add seam/sources.json
   unseal   # the seal back on the old pin, if it had moved to the new one
   rm -f "$pincopy" "$prev"
@@ -172,9 +178,13 @@ log "Seam is now $want"
 mkdir -p /var/lib/seam
 extra=""
 # nobody can't read the owner's home, so hand the test a world-readable copy of the two
-# files it needs (the pin → which build; the chrome script → what to test)
+# files it needs (the pin → which build; the chrome script → what to test), READ AS THE
+# OWNER: root copying them by name made a link there a copy of any root file, readable
+# by all in /tmp (18-Nov).
 stdir=$(mktemp -d /tmp/seam-selftest.XXXX)
-cp "$SEAM_DIR/sources.json" "$SEAM_DIR/golem-chrome.js" "$stdir/"; chmod 755 "$stdir"; chmod 644 "$stdir"/*
+readown "$SEAM_DIR/sources.json" > "$stdir/sources.json" || true
+readown "$SEAM_DIR/golem-chrome.js" > "$stdir/golem-chrome.js" || true
+chmod 755 "$stdir"; chmod 644 "$stdir"/*
 if st=$(runuser -u nobody -- env SEAM_DIR="$stdir" SEAM_SCRIPT="$stdir/golem-chrome.js" TMPDIR=/tmp seam-selftest 2>&1); then
   log "selftest: ALL PASS"
 elif printf '%s' "$st" | grep -q '"steps"'; then
@@ -199,7 +209,10 @@ for bus in /run/user/*/bus; do
   [ -S "$bus" ] || continue
   u=$(stat -c %U "$bus")
   home=$(getent passwd "$u" | cut -d: -f6) || home=   # (none: the system's language)
-  say() { GOLEM_SETTINGS="$home/.config/golem/settings.json" golem-say "$@"; }
+  # their settings read AS THEM (a file in their home is theirs to aim anywhere);
+  # if that fails, the English line
+  say() { runuser -u "$u" -- env GOLEM_SETTINGS="$home/.config/golem/settings.json" golem-say "$@" 2>/dev/null \
+          || { s=$1; printf '%s' "${s//\{0\}/${2:-}}"; }; }
   body=$(say "Security update installed. Restart Seam to apply it — your tabs come back.")
   case "$extra" in
     paused) body="$body $(say "The Golem tab overview is paused on this version (browsing unaffected).")" ;;

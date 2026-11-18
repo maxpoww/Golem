@@ -39,6 +39,8 @@ let
   src = builtins.fromJSON (builtins.readFile ./sources.json);
   # "Seam updated": said to each logged-in user in their own language.
   golemSay = pkgs.callPackage ../system/i18n/golem-say.nix { };
+  # Every write into the owner's checkout goes through this, run AS the owner (18-Nov).
+  ownerPut = import ../system/owner-put.nix pkgs;
 
   selftest = pkgs.writeShellApplication {
     name = "seam-selftest";
@@ -74,6 +76,7 @@ let
     '';
     text = ''
       export SEAM_DIR=${lib.escapeShellArg seamDir}
+      export SEAM_OWNER_PUT=${ownerPut}
       ${flakeEnv}
       ${builtins.readFile ./update.sh}
     '';
