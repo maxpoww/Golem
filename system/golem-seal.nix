@@ -87,7 +87,7 @@ let
           ! -name '*.tmp' \
           ! -name 'result' ! -name 'result-*' \
           ${exemptArgs} \
-          -print0 | sort -z | xargs -0 -r sha256sum
+          -print0 | sort -z | xargs -0 -r timeout 300 sha256sum
         find . -type l \
           ! -path './.git/*' \
           ! -name '*.tmp' \
@@ -100,13 +100,21 @@ let
 
   # The commit the checkout is at, read from the files themselves (git run
   # inside the owner's repository would obey its config, as root).
+  # (18-Nov) Each read is bounded: a FIFO the owner puts in place of a file
+  # (HEAD, a ref, or one swapped in after `find` listed a file) hung a root
+  # helper forever, holding the one rebuild lock — no app installs, no
+  # updates. And a ref is a branch name, never a path out of .git. A read cut
+  # short gives no commit or a wrong sum: the seal does not hold, nothing is
+  # built.
   headFn = ''
     read_head() {
       local seed=${lib.escapeShellArg flakeDir} headref ref
-      headref=$(cat "$seed/.git/HEAD" 2>/dev/null || true)
+      headref=$(timeout 5 cat "$seed/.git/HEAD" 2>/dev/null || true)
       if [[ "$headref" == ref:\ * ]]; then
         ref=''${headref#ref: }
-        cat "$seed/.git/$ref" 2>/dev/null || awk -v r="$ref" '$2 == r { print $1 }' "$seed/.git/packed-refs" 2>/dev/null || true
+        if [[ "$ref" != refs/heads/?* || "$ref" == *..* || "$ref" == *[[:space:][:cntrl:]]* ]]; then return 0; fi
+        # shellcheck disable=SC2016 # (awk's own $2 and $1, behind timeout)
+        timeout 5 cat "$seed/.git/$ref" 2>/dev/null || timeout 5 awk -v r="$ref" '$2 == r { print $1 }' "$seed/.git/packed-refs" 2>/dev/null || true
       else
         printf '%s\n' "$headref"
       fi

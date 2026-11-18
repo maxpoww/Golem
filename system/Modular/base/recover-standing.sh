@@ -18,13 +18,15 @@ standing_files=(lab.nix)
 #   For each standing file the left system carried that the machine layer
 #   lacks now: put it back from the left system's copy, stage it, and add it
 #   to <trusted dir> (what golem-seal-heal may take as the machine's own).
+#   (<owner> is no longer read: the writes go through asowner, 18-Nov.)
 keep_standing() {
-  local from="$1/etc/golem/machine" layer="$2" trusted="$3" owner="$4" b
+  local from="$1/etc/golem/machine" layer="$2" trusted="$3" b
   for b in "${standing_files[@]}"; do
     if [ ! -f "$from/$b" ] || [ -e "$layer/$b" ]; then
       continue
     fi
-    install -m 0644 -o "$owner" -g "$(id -gn "$owner")" "$from/$b" "$layer/$b"
+    # as the owner (18-Nov): the layer is theirs, a link in it theirs to aim
+    asowner install -m 0644 "$from/$b" "$layer/$b"
     asowner git add -f "$layer/$b"
     cp -L "$from/$b" "$trusted/$b"
     echo "golem-recover: kept $layer/$b (a choice of this machine, not of a version)"

@@ -34,6 +34,11 @@ let
       sys=$(readlink -f "''${1:-/run/current-system}")
       dir=${lib.escapeShellArg dir}
       owner=${lib.escapeShellArg owner}
+      # EVERY read and write in the checkout runs as the owner (18-Nov): it
+      # is theirs, so a path in it is theirs to swap for a link between two
+      # of root's steps — `cp -a` of hosts/target, `install` and `chown -R`
+      # there, as root, could be steered to any file on the machine. As the
+      # owner, a link leads only where the owner could go already.
       asowner() { runuser -u "$owner" -- "$@"; }
 
       rev=$("$sys/sw/bin/nixos-version" --configuration-revision 2>/dev/null || true)
@@ -60,7 +65,7 @@ let
       # 1. the owner's edits are kept, never lost
       keep="${home}/Golem-local-edits/$(date +%Y-%m-%d-%H%M%S)-recover"
       edited=$(asowner git diff --name-only HEAD 2>/dev/null | grep -v '^hosts/target/' || true)
-      if [ -n "$edited" ] || { [ -d "$snap" ] && ! diff -rq "$snap" hosts/target >/dev/null 2>&1; }; then
+      if [ -n "$edited" ] || { [ -d "$snap" ] && ! asowner diff -rq "$snap" hosts/target >/dev/null 2>&1; }; then
         asowner mkdir -p "$keep"
         # (if, not `a && b`: under set -e + pipefail a false test as a
         #  loop's last command ended the whole script, silently)
@@ -79,9 +84,10 @@ let
 
       # 2. the code: exactly the system's revision. `reset --hard` DELETES
       #    files that are staged but not in the commit — every machine file —
-      #    so the current ones are held aside first.
-      held=$(mktemp -d)
-      cp -a hosts/target/. "$held/" 2>/dev/null || true
+      #    so the current ones are held aside first: in the OWNER's own temp
+      #    folder (they only ever go back into the owner's checkout).
+      held=$(asowner mktemp -d)
+      asowner cp -a hosts/target/. "$held/" 2>/dev/null || true
       asowner git reset --quiet --hard "$rev"
 
       # 3. the machine layer: the system's own copy (or, from a generation
@@ -90,10 +96,13 @@ let
       # -L: /etc/golem/machine is a symlink into the store, and find does not
       # follow a symlinked starting point by itself (it copied NOTHING once,
       # and reset had already removed the machine files — MacBook, 2026-10-03)
-      find -L "$src/" -maxdepth 1 -type f -print0 | while IFS= read -r -d "" f; do
+      # (a link the owner cannot follow is no file to them: left out, quietly)
+      { asowner find -L "$src/" -maxdepth 1 -type f -print0 2>/dev/null || true; } | while IFS= read -r -d "" f; do
         b=$(basename "$f")
         if [ "$b" = default.nix ]; then continue; fi
-        install -m 0644 -o "$owner" -g "$(id -gn "$owner")" "$f" "hosts/target/$b"
+        # (a file the owner cannot read or write is left out; the check
+        #  below puts the whole layer back if an essential one is missing)
+        asowner install -m 0644 "$f" "hosts/target/$b" || { echo "golem-recover: could not put back hosts/target/$b" >&2; continue; }
         asowner git add -f "hosts/target/$b"
       done
       # Never leave a machine without its machine layer: if the essential
@@ -101,15 +110,14 @@ let
       for need in machine.nix hardware-configuration.nix; do
         if [ ! -f "hosts/target/$need" ]; then
           echo "golem-recover: hosts/target/$need did not come back — restoring the machine layer as it was" >&2
-          cp -a "$held/." hosts/target/
-          chown -R "$owner": hosts/target
-          find hosts/target -maxdepth 1 -type f ! -name default.nix -print0 \
+          asowner cp -a "$held/." hosts/target/
+          { asowner find hosts/target -maxdepth 1 -type f ! -name default.nix -print0 2>/dev/null || true; } \
             | while IFS= read -r -d "" f; do asowner git add -f "$f"; done
-          rm -rf "$held"
+          asowner rm -rf "$held"
           exit 1
         fi
       done
-      rm -rf "$held"
+      asowner rm -rf "$held"
       # …and what belongs to the MACHINE stays, whatever version it goes to:
       # the lab flag the system being left carried (Max, 2026-11-16: the lab
       # door and network stay on the notebooks; going back took it away).
@@ -150,19 +158,24 @@ let
     text = ''
       d="''${1:-${dir}}"; g="$d/.git"
       [ -d "$g" ] || exit 0
-      asowner() { runuser -u ${lib.escapeShellArg owner} -- "$@"; }
+      # Every change to the checkout is made AS THE OWNER (18-Nov): root
+      # removing, installing or moving files there by name could be steered
+      # by a link the owner swaps in (a lock file's folder aimed at /etc,
+      # hosts/target aimed at a root folder). Only golem-seed-adopt, at the
+      # end, needs root, and it carries the machine's files as the owner.
+      asowner() { if [ "$(id -u)" = 0 ]; then runuser -u ${lib.escapeShellArg owner} -- "$@"; else "$@"; fi; }
 
       boot=$(awk '/^btime/ {print $2}' /proc/stat)
       now=$(date +%s)
       gitrunning=0
       if pgrep -x git >/dev/null; then gitrunning=1; fi
-      find "$g" -maxdepth 5 -name '*.lock' -not -path '*/objects/*' -print0 \
+      asowner find "$g" -maxdepth 5 -name '*.lock' -not -path '*/objects/*' -print0 \
         | while IFS= read -r -d "" l; do
-            m=$(stat -c %Y "$l")
+            m=$(stat -c %Y "$l" 2>/dev/null) || continue
             # never while git runs: a clock that was AHEAD at boot puts the
             # boot time after a live lock's mtime
             if [ "$gitrunning" = 0 ] && { [ "$m" -lt "$boot" ] || [ $(( now - m )) -gt 600 ]; }; then
-              rm -f "$l"
+              asowner rm -f "$l" || continue
               echo "golem-git-heal: removed a stale lock left by an interrupted git: ''${l#"$g"/}"
             fi
           done
@@ -173,12 +186,12 @@ let
       # for an empty remote-tracking ref: the next fetch writes it again.
       for r in ORIG_HEAD FETCH_HEAD MERGE_HEAD CHERRY_PICK_HEAD REVERT_HEAD REBASE_HEAD AUTO_MERGE; do
         if [ -f "$g/$r" ] && ! asowner git -C "$d" rev-parse -q --verify "$r" >/dev/null 2>&1; then
-          rm -f "$g/$r"
+          asowner rm -f "$g/$r"
           echo "golem-git-heal: removed a broken $r left by an interrupted git"
         fi
       done
       if [ -d "$g/refs/remotes" ]; then
-        find "$g/refs/remotes" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty ref |'
+        asowner find "$g/refs/remotes" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty ref |'
       fi
 
       # The machine layer, cut to nothing by the same kind of stop
@@ -191,7 +204,7 @@ let
         for f in "$d"/hosts/target/*; do
           b=$(basename "$f")
           if [ -f "$f" ] && [ ! -s "$f" ] && [ -s "$snap/$b" ]; then
-            install -m 0644 -o ${lib.escapeShellArg owner} -g "$(id -gn ${lib.escapeShellArg owner})" "$snap/$b" "$f"
+            asowner install -m 0644 "$snap/$b" "$f" || continue
             echo "golem-git-heal: hosts/target/$b was empty — restored from the running system"
           fi
         done
@@ -202,14 +215,14 @@ let
       healthy && exit 0
 
       echo "golem-git-heal: the checkout's git data is damaged (an interrupted write?) — repairing"
-      find "$g/objects" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty object |'
+      asowner find "$g/objects" -type f -empty -print -delete | sed 's|^|golem-git-heal: removed empty object |'
       asowner git -C "$d" fetch --quiet origin 2>/dev/null || true
       if healthy; then
         echo "golem-git-heal: repaired from the upstream"
         exit 0
       fi
       echo "golem-git-heal: still damaged — a fresh checkout of the upstream, keeping this machine's files" >&2
-      mv "$g" "$g.damaged-$now"
+      asowner mv "$g" "$g.damaged-$now"
       ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
       healthy || { echo "golem-git-heal: could not repair the checkout (offline?)" >&2; exit 1; }
     '';
