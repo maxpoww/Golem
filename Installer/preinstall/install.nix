@@ -1192,6 +1192,16 @@ pkgs.writeShellApplication {
     # just falls back to the old dirty path, never blocks the reboot. Same clean
     # -sync-before-reboot the SSH-driven lab installs already relied on (changes.md
     # "sync; umount -R /mnt before quit"), now on the product path.
+    # THE LOGS GO WITH THE MACHINE (2026-11-18: they lived only in the
+    # medium's RAM — a problem seen after the first boot had nothing to
+    # read). Root only, in the new system's /var/log; the screen's copy of
+    # this run's output (output.txt) is there up to this line.
+    if [[ "$rehearse" != true ]]; then
+      { mkdir -p /mnt/var/log/golem-install \
+          && cp -a "$logdir"/. /mnt/var/log/golem-install/ \
+          && chmod 0700 /mnt/var/log/golem-install; } 2>/dev/null || true
+    fi
+
     sync
     umount -R /mnt 2>/dev/null || true
 
