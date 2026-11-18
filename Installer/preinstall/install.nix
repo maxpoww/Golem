@@ -273,7 +273,11 @@ pkgs.writeShellApplication {
     # writes GRUB into the FIRST disk's boot code — another system's, on a
     # machine with two — or, with no /dev/sda at all (virtio, NVMe), fails
     # at the very end, after the wipe. Refuse before anything is written.
-    if [[ "$firmware" == "bios" ]] && [[ "$(readlink -f "$disk")" != /dev/sda ]]; then
+    # Only the COPY of a baked system has this: a system built here (no
+    # manifest on the medium, golem-minimal from the seed) reads machine.nix
+    # and installs GRUB on the chosen disk.
+    if [[ "$firmware" == "bios" && -z "$system" && -r /etc/golem/baked-manifest.json ]] \
+       && [[ "$(readlink -f "$disk")" != /dev/sda ]]; then
       check_fail "on a BIOS machine this release installs only to the first disk (/dev/sda); $disk is another"
     fi
 
