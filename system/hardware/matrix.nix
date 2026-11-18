@@ -361,6 +361,21 @@ let
         (ex "NO owner's timezone leaks either" (cfg.time.timeZone == "UTC"))
       ];
     }
+    {
+      # The post-install answers file sits in the owner's checkout, outside
+      # the seal. It was imported as a system module: whatever a program
+      # running as the owner wrote there, root's next build ran (17-Nov).
+      name = "post-install answers file with code in it";
+      facts = { golem.postinstall.generatedFile = ../postinstall-hostile.fixture; };
+      expect = cfg: [
+        (ex "the answer in it arrives, and only it (read as data)"
+          (cfg.golem.postinstall.answers == { "gpu2-failing-action" = "off"; }))
+        (ex "the code in it does not run"
+          (!(cfg.environment.etc ? "golem-planted")
+           && !(lib.elem "ssh-ed25519 AAAAplanted" cfg.users.users.root.openssh.authorizedKeys.keys)
+           && cfg.security.sudo.wheelNeedsPassword))
+      ];
+    }
   ];
 
   ex = name: ok: { inherit name ok; };
