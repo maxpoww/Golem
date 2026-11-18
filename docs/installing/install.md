@@ -643,7 +643,7 @@ awk '{print $5}' /sys/block/sdX/stat      # writes completed: must not move
 | The logs of a FAILED install die with the medium | A finished install copies `/var/log/golem-install/` into the new system (18-Nov, below). A failed one keeps them only in the medium's RAM: read them on tty2 before pressing ENTER. |
 | The BIOS GRUB disk | The baked BIOS systems install GRUB to `/dev/sda`, the default in `system/Modular/boot/grub-bios.nix`. The chosen disk's `by-id` name in `machine.nix` takes effect only with the first-boot rebuild. A BIOS install onto a disk that is not `/dev/sda` is untested; the September BIOS proof used an IDE disk (`/dev/sda`), while `run-vm.sh` gives the VM a virtio disk (`/dev/vda`). |
 | The lab Wi-Fi name | The installed door always joins the open network named in `lab-door.nix`. A lab medium built for another network does not change that. |
-| The public Start console | Its help line says `ssh nixos@<address>`, but the public medium has no SSH server. |
+| The public Start console | Fixed 18-Nov: the `ssh nixos@<address>` line shows only on a medium that runs SSH (a lab medium); the public one no longer offers it. |
 
 ## 9. Where the logs are
 
