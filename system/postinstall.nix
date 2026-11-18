@@ -134,15 +134,8 @@ let
     '';
   };
 
-  # Run AS THE OWNER by the apply helper (put_as_owner): stdin into $1, by
-  # a fresh temp file and a rename, so a reader never sees half a file.
-  ownerPut = pkgs.writeShellScript "golem-postinstall-owner-put" ''
-    set -eu
-    t=$(${pkgs.coreutils}/bin/mktemp --suffix=.tmp "$1.XXXXXX")
-    if ${pkgs.coreutils}/bin/cat > "$t" && ${pkgs.coreutils}/bin/chmod 644 "$t" && ${pkgs.coreutils}/bin/mv -f "$t" "$1"; then exit 0; fi
-    ${pkgs.coreutils}/bin/rm -f "$t"
-    exit 1
-  '';
+  # Run AS THE OWNER by the apply helper (put_as_owner): stdin into a file.
+  ownerPut = import ./owner-put.nix pkgs;
 
   applyScript = pkgs.writeShellApplication {
     name = "golem-postinstall-apply";
