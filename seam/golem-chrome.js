@@ -307,12 +307,35 @@ try {
     GS_RGB=p.rgb; GS_DARK=p.dark; OV_BACKDROP=p.backdrop; OV_CARD=p.card; OV_CARD_HOV=p.cardHov; OV_FOOTER=p.footer;
     OV_THUMB_BG=p.thumb; OV_TEXT=p.text; OV_MUTED=p.muted; OV_SNAP_BG=p.snap; GS_ERR_FG=p.errFg; GS_ERR_DIM=p.errDim; GS_ACCENT=p.accent||"";
   }
+  // THE CORNERS (2026-11-19, Max: "hacé los casos de golem" — Controls → Rounded corners;
+  // the dock writes `corners` into the same file): Seam's own window buttons (the traffic
+  // lights) square with the app windows, every corner of its chrome square with the switch
+  // for all. An AGENT sheet — its !important outranks the chrome's inline and author
+  // styles — kept to Seam's own windows (chrome://browser/), never a web page. Pure.
+  function gsCornersCss(n){
+    if(!n) return "";
+    return '@-moz-document url-prefix("chrome://browser/") { #golem-traffic>div>i { border-radius: 0 !important; }'+
+      ((n&2) ? ' *, *::before, *::after { border-radius: 0 !important; }' : '')+' }';
+  }
+  var GS_CORNERS=0, gsCornersUri=null;
+  function gsCornersSet(k){
+    var n=(k&&k.windows?1:0)|(k&&k.all?2:0); if(n===GS_CORNERS) return; GS_CORNERS=n;
+    try{
+      var sss=Components.classes["@mozilla.org/content/style-sheet-service;1"].getService(Components.interfaces.nsIStyleSheetService);
+      if(gsCornersUri && sss.sheetRegistered(gsCornersUri,sss.AGENT_SHEET)) sss.unregisterSheet(gsCornersUri,sss.AGENT_SHEET);
+      gsCornersUri=null;
+      if(!n) return;
+      var uri=Services.io.newURI("data:text/css,"+encodeURIComponent(gsCornersCss(n)));
+      sss.loadAndRegisterSheet(uri,sss.AGENT_SHEET); gsCornersUri=uri;
+    }catch(e){ OVLOG("corners:"+e); }
+  }
   // Read the file if it moved. True when the Golem colour changed.
   function gsRead(){
     try{
       var f=gsFile(); if(!f.exists()) return false;
       var t=f.lastModifiedTime; if(t===gsSeen) return false; gsSeen=t;
-      var p=gsDerive(JSON.parse(ovReadText(f))); if(!p) return false;
+      var cj=JSON.parse(ovReadText(f)); gsCornersSet(cj.corners);
+      var p=gsDerive(cj); if(!p) return false;
       var was=OV_BACKDROP+OV_TEXT; gsSet(p); return was!==OV_BACKDROP+OV_TEXT;
     }catch(e){ return false; }
   }

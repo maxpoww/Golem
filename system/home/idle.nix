@@ -204,6 +204,10 @@ in
       # The field's word, in the owner's language: the dock writes it into
       # the same file (tr("Password")); English until it has.
       "$golem_password" = "Password";
+      # THE CORNERS (Controls → Rounded corners): the field and its dots are
+      # hyprlock's own pill (-1); the dock's file says 0 while every corner
+      # is off (2026-11-19, Max: "hacé los casos de golem").
+      "$golem_rounding" = "-1";
       source = [ "${config.home.homeDirectory}/.local/state/golem/theme/hyprlock.conf" ];
       general = {
         hide_cursor = true;
@@ -227,7 +231,9 @@ in
         size = "260, 44";
         position = "0, -40";
         outline_thickness = 2;
+        rounding = "$golem_rounding";
         dots_size = 0.25;
+        dots_rounding = "$golem_rounding";
         fade_on_empty = true;
         placeholder_text = "<i>$golem_password</i>";
         outer_color = "$golem_accent";
