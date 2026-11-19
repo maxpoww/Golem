@@ -1,0 +1,13 @@
+# A machine's selection, as the dock would write it (modules-matrix reads it).
+gaming                      # the module, with its recommended programs
+development.docker
+development.direnv
+privacy-security.1password-gui
+
+# Lines that name nothing, or are not names at all: each is skipped with a
+# warning, and none of them is ever evaluated.
+gaming.no-such-game
+not-a-module
+not-a-module.thing
+gaming.steam; boot.kernelParams = [ "planted" ];
+{ users.users.root.password = "planted"; }

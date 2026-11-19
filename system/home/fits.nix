@@ -56,7 +56,7 @@
 #   laptop this is the iGPU: the NVIDIA stays asleep, the battery lasts.
 # - NVIDIA only → Simple output, NVENC (needs the driver's libnvidia-encode
 #   on OBS's library path — see the obs-studio wrapper in
-#   system/Modular/desktop/app-setup.nix; without it OBS's NVENC self-test
+#   system/modules/content-creation.nix; without it OBS's NVENC self-test
 #   fails and it silently falls back to x264).
 # - neither → x264 stays.
 { config, lib, pkgs, ... }:

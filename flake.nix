@@ -507,6 +507,14 @@
           inherit pkgs mkMinimal waverunner waveview;
         };
 
+        # THE MODULES (system/modules: Gaming, Development…): nothing is on
+        # until asked, each program comes with the system it needs, no
+        # selection makes the owner root, the selection file is data.
+        modules-matrix = import ./system/modules/matrix.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs mkMinimal waverunner;
+        };
+
         # The keyboard table's names, against the packages that consume
         # them. facts-matrix proves an evaluated config says what we meant;
         # it cannot prove `console.keyMap = "gb"` is a keymap that exists.

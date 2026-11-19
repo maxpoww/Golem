@@ -1,0 +1,20 @@
+{
+  "_about": "A small catalog for modules-matrix: a program nixpkgs lacks, a site and an app of one name, a paid placement.",
+  "version": 1,
+  "modules": [
+    {
+      "name": "Gaming",
+      "groups": [
+        {
+          "name": "Test",
+          "programs": [
+            { "name": "Hello", "what": "a real package", "pkg": "hello", "recommended": true },
+            { "name": "Not There", "what": "nixpkgs has no such attribute", "pkg": "golem-this-is-not-in-nixpkgs", "recommended": true },
+            { "name": "Hello", "what": "the same name, as a site", "web": "https://example.org/hello" },
+            { "name": "Paid Spot", "what": "recommended, but a paid placement", "pkg": "cowsay", "recommended": true, "placement": "sponsored" }
+          ]
+        }
+      ]
+    }
+  ]
+}

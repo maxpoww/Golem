@@ -34,8 +34,10 @@
     ./whats-new.nix         # what each update changed, written by hand (Controls → Updates reads it)
     ./update-notice.nix     # "Golem has an update ready" after 2 days waiting for a restart
     ./crash-recovery.nix    # a crash loop → back to the previous version; never Hyprland's safe mode
-    ./app-setup.nix         # an installed app arrives with the system it needs (Steam's 32-bit
-                            #   graphics, Docker's daemon and group, LocalSend's port…)
+    ../../modules           # THE MODULES (Gaming, Development, Music Production…): the dock's
+                            #   Modules as options, and the system each installed program needs
+                            #   (Steam's 32-bit graphics, rootless Docker, LocalSend's port…);
+                            #   was desktop/app-setup.nix until 2026-11-19
     ./disk-care.nix         # the home cleans itself (old Trash, stale build caches, old pins)
     ./printing.nix          # plug a printer or a scanner in and it works: CUPS + drivers +
                             # driverless (IPP/AirPrint/eSCL), the queue made by itself

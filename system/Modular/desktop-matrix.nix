@@ -133,7 +133,8 @@ let
     then "test-chrome cut ${builtins.unsafeDiscardStringContext c.system.build.toplevel.drvPath}"
     else throw "desktop-matrix test-chrome failed: ${lib.concatMapStringsSep "; " (e: e.name) failed}";
 
-  # APP SETUP (desktop/app-setup.nix, 2026-10-13): a clean machine carries
+  # APP SETUP (2026-10-13; since 2026-11-19 the program setup of
+  # system/modules, whose own matrix is modules/matrix.nix): a clean machine carries
   # none of it, and a machine with the programs installed has the system each
   # needs — in the one evaluation that installs them.
   appSetup =

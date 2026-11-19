@@ -44,7 +44,7 @@
     # GolemModules.md's software module library: same pattern as the
     # hardware family above, gated on a user CHOICE instead of a hardware
     # fact. One file per category, permanently imported, off by default.
-    ./modules/music-production.nix
+    ./modules/legacy/music-production.nix
   ];
 
   options.golem.flakeDir = lib.mkOption {

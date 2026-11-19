@@ -7,8 +7,19 @@
 > of this exact idea, already shipped) and `apps.md` (the app set this
 > extends). Everything cited to a file in this repo is checkable.
 >
-> Status: SPEC. Nothing below is built yet — this is the catalog/scope pass
-> before any Nix or UI work starts.
+> Status (2026-11-19): the SYSTEM SIDE IS BUILT, in `system/modules/`
+> (README there): one file per module of the dock's catalog, the option shape
+> below (`golem.modules.<module>.<tool>.enable`, plus the module's own
+> `enable` and `install`), each program's system setup keyed on the installed
+> program (what was `desktop/app-setup.nix`), `checks.modules-matrix`.
+> The catalog itself is the dock's `modules.json` (§4 below is the first
+> scoping pass, kept as history). What differs from this text: the tools are
+> not hand-declared options but the catalog's entries, checked at evaluation;
+> no group that is root is ever given (§4.2's `libvirtd`/`docker` groups
+> became the owner's own libvirt session and rootless Docker). NOT built:
+> §6's apply pipeline for a selection file (`golem.modules.listPath` reads
+> one; nothing writes it yet — the dock's Apply installs the programs through
+> the app list, and their setup follows from that).
 
 ## 1. The idea
 
@@ -63,7 +74,9 @@ not reconstructed per install the way a forum answer is.
 
 Confirmed categories (named directly): **Gaming, Virtualization, Video
 Editing, Office, Security, Image Editing, Artificial Intelligence, Local
-AI, Music Production** (the last one added and BUILT 2026-09-08, §4.9).
+AI, Music Production** (the last one added and built first, 2026-09-08, §4.9;
+that first cut is `system/modules/legacy/music-production.nix`, the older
+profile's; the modular desktop has `system/modules/music-production.nix`).
 Below is a first pass at what each contains and, honestly, what's
 known vs. still needs research — the same "unknown means the safe default,
 not a guess" ethos `GolemInstall.md` §7 applies to hardware applies here to
