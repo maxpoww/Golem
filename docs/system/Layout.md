@@ -258,6 +258,23 @@ session).
 | **4** | Machines installed before it move by themselves: `golem-relocate` (run by the update) makes `/etc/nixos` from `~/Golem/hosts/target`, builds, switches, and leaves `~/Golem` for the owner to delete. Lab laptops first. | to do |
 | **5** | The repository's rename (§6) and the older profile's retirement. | to do |
 
+### Checked against the latest (2026-11-19)
+
+"Check them against the latest documentation of NixOS and Hyprland": both
+documentations are generated from source, so the source was read, by a
+program that stays in the repository (`tools/latest/check.sh`, to run before
+either pin moves):
+
+- **NixOS** — the 55 NixOS options that the app modules, the loopback camera
+  and this layout define are all in nixos-unstable (26.11pre), visible and of
+  the same type; with all 25 modules and every program on, the pinned 26.05
+  evaluates with no failed assertion and no deprecation warning.
+- **Hyprland** — the 63 options the configuration sets and every `hl.*`
+  function, rule key, bind option, event and animation it names are in 0.57.0
+  (main of that day) as in the 0.55.4 Golem runs. One option changes type
+  there (`decoration:shadow:color`, a colour → a gradient) and still takes
+  Golem's value.
+
 ### Decisions for Max
 
 1. **Golem as a read-only link** (`/etc/nixos/golem` → the store), changed
