@@ -184,10 +184,10 @@ input instead of GitHub's `stable`).
 | add something of your own that deserves a file | drop `/etc/nixos/modules/printer.nix`, rebuild |
 | switch a whole module on by hand | `golem.modules.gaming.enable = true;` in `configuration.nix`, or the line `gaming` in `machine/modules.list` (what the dock's Modules page will write) |
 | take one program of a module, or refuse one | `golem.modules.gaming.lutris.enable = true;` · `golem.modules.gaming.steam.enable = false;` |
-| add a key or a window rule of your own to Hyprland | `~/.config/hypr/user.lua` (yours, loaded after Golem's; saving it reloads) — or `golem.home.hyprlandExtra` in `configuration.nix` for the whole machine |
+| add a key or a window rule of your own to Hyprland | `~/.config/hypr/user.lua` (yours, loaded after Golem's; `hyprctl reload` the first time, from then on saving it reloads) — or `golem.home.hyprlandExtra` in `configuration.nix` for the whole machine |
 | see what Golem does for this hardware, and why | `cat /etc/golem/layout.json`; the modules themselves are in `/etc/nixos/golem/system/` |
 | read or copy one of Golem's modules | `/etc/nixos/golem/…` |
-| update now | `sudo golem-update` (the nightly update does it for you) |
+| update now | `sudo golem-update` (built; the nightly update doing it for you is stage 2) |
 | go back a version | Controls → Updates → Go back (the pin goes back with the system: `golem-recover`) |
 | reinstall and keep the machine as it was | keep `/etc/nixos` (it is small, and holds no secret) |
 
@@ -205,7 +205,10 @@ Hyprland follows the same three (system/home/hypr/README.md): Golem's Lua
 modules (one file a concern, the same text on every machine, with ONE
 generated file of this machine's facts), then the Lua of the app modules that
 are on, then the machine's own (`golem.home.hyprlandExtra`), then the
-person's `~/.config/hypr/user.lua`, then the live settings last.
+person's `~/.config/hypr/user.lua`, then the live settings last. All of
+Golem's part is one folder in the store, and the home holds ONE link to it
+(`~/.config/hypr/hyprland.lua`): a rebuild swaps the whole configuration in
+one step, and the running session reloads into it by itself.
 
 ## 6. The repository
 
@@ -252,7 +255,7 @@ session).
 
 | | What | State |
 |---|---|---|
-| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold` (a new machine's folder from the installer's answers); `golem-relocate` (an old install's folder); facts and lists as data; the chooser at evaluation; `rebuild-golem`, `golem-update`, `golem-recover` for the layout; the check `machine-layout` (two fixture machines, 23 assertions). Hyprland in Lua modules with one generated facts file; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **built** — branch `layout-1119` (and `hypr-modular-1119`, `app-modules-1119`). Proven: every check of the repository; the real `nixos-rebuild`, with no arguments, on a scaffolded `/etc/nixos`, before and after a change made by hand; a fixture machine built whole and its files read. Nothing installs this way yet |
+| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold` (a new machine's folder from the installer's answers); `golem-relocate` (an old install's folder); facts and lists as data; the chooser at evaluation; `rebuild-golem`, `golem-update`, `golem-recover` for the layout; the check `machine-layout` (two fixture machines, 23 assertions). Hyprland in Lua modules with one generated facts file; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **built** — branch `layout-1119` (and `hypr-modular-1119`, `app-modules-1119`). Proven: every check of the repository; the real `nixos-rebuild`, with no arguments, on a scaffolded `/etc/nixos`, before and after a change made by hand; a fixture machine built whole and its files read; in a VM, the desktop on the new Hyprland tree (no configuration error, every key) and the switch of a RUNNING session from today's one file to the tree and back with home-manager's real activation (it reloads by itself, whole, each way). Nothing installs this way yet |
 | **2** | The services on the new layout, each a port of a root helper that today writes into the checkout: the nightly update (today's `autoupdate.nix` — waves, notices, held versions — with "pull the checkout, heal the seal" replaced by `golem-update`); the dock's app installs and the Modules page (`waverunner-apply` writing `machine/apps.list` and `machine/modules.list` instead of `hosts/target/apps.nix`); the post-install questions (`machine/answers.list` is already read); Seam's update lane (`seam/sources.json` is part of Golem's source: on this layout a Seam update is a Golem update, or moves to a list of its own); the session's re-seed of the dock's list (`desktop/home-boot.nix` reads `/etc/golem/machine/apps.nix`); the version's binary cache for a hand-run `nixos-rebuild` (`golem-cache-args` reads the checkout's `.git`; here the pin is `flake.lock`). | to do — VM-tested one by one |
 | **3** | The installer writes this layout: `/etc/nixos` from the template, `facts.json` from the census, the pin from the medium; first boot builds from it. `golem-desktop` and `hosts/target` retire. | to do |
 | **4** | Machines installed before it move by themselves: `golem-relocate` (run by the update) makes `/etc/nixos` from `~/Golem/hosts/target`, builds, switches, and leaves `~/Golem` for the owner to delete. Lab laptops first. | to do |
