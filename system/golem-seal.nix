@@ -195,7 +195,17 @@ let
           prev=$a
         done
         if [ -n "$flake" ]; then
-          mapfile -t extra < <(${config.golem.update.cacheArgs}/bin/golem-cache-args "''${flake%%#*}" || true)
+          cargs=""; crc=0
+          cargs=$(${config.golem.update.cacheArgs}/bin/golem-cache-args "''${flake%%#*}") || crc=$?
+          # 75: GitHub could not be asked whether the cache exists. A caller
+          # that must not compile blind (the nightly update) stops here and
+          # tries again later; any other build goes on without it, as before
+          # (a dock install builds the version the machine already runs).
+          if [ "$crc" = 75 ] && [ "''${GOLEM_REBUILD_NEED_CACHE:-}" = 1 ]; then
+            echo "golem-rebuild: not building — whether this version's published cache exists is unknown (no network, or no GitHub), and without it the build would compile what the lane already built" >&2
+            exit 75
+          fi
+          if [ -n "$cargs" ]; then mapfile -t extra <<< "$cargs"; fi
         fi
       ''}
       nixos-rebuild "$@" "''${extra[@]}"

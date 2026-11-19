@@ -94,6 +94,13 @@ lib.mkIf (config.golem.flakeDir != null) {
     serviceConfig.IOSchedulingClass = "idle";
     serviceConfig.CPUWeight = 20;
     serviceConfig.ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
+    # Exit 75 = THE NETWORK, not the version: no connection after 15 min, or
+    # GitHub could not be asked for the version's published pieces. Nothing
+    # was built; the run comes back in an hour instead of tomorrow night
+    # (2026-11-19: the ASUS lost a whole night to a bad network, and until
+    # then such a night also set it compiling the whole system).
+    serviceConfig.RestartForceExitStatus = "75";
+    serviceConfig.RestartSec = "1h";
     restartIfChanged = false;   # a switch never waits on it (base/nix.nix, nix-gc)
     # git (+ ssh/https transports), nix for the rebuild, coreutils for the flow.
     path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];
@@ -142,8 +149,9 @@ lib.mkIf (config.golem.flakeDir != null) {
         return 1
       }
 
-      # 1) real connectivity or a loud give-up (never a stale-cache no-op).
-      ${golemWaitOnline}/bin/golem-wait-online || exit 1
+      # 1) real connectivity or a loud give-up (never a stale-cache no-op);
+      #    the give-up comes back in an hour (75, RestartForceExitStatus).
+      ${golemWaitOnline}/bin/golem-wait-online || exit 75
 
       # A seed still in its installed form (a plain copy) becomes a checkout of
       # the upstream first (base/seed.nix; a no-op once it is one).
@@ -290,6 +298,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       since=/var/lib/golem/update-behind-since
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
       pull=1
+      asked_now=0; [ -e /run/golem-update-now ] && asked_now=1
       runuser -u "$owner" -- git -C "$dir" fetch --quiet || true
       upstream=$(runuser -u "$owner" -- git -C "$dir" rev-parse '@{u}' 2>/dev/null || true)
       if [ -z "$upstream" ] || runuser -u "$owner" -- git -C "$dir" merge-base --is-ancestor "$upstream" HEAD 2>/dev/null; then
@@ -388,10 +397,24 @@ lib.mkIf (config.golem.flakeDir != null) {
         exit 1
       fi
       echo "golem-autoupdate: $before -> $after, rebuilding (boot)…"
-      built_ok=1
-      ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || built_ok=0
+      # NEED_CACHE: when GitHub cannot be asked whether this version's
+      # published pieces exist, golem-rebuild builds nothing and says 75
+      # (updates/client.nix). Compiling blind cost the ASUS a night (19-Nov):
+      # hours of compiling on a network that then failed the build anyway.
+      rrc=0
+      GOLEM_REBUILD_NEED_CACHE=1 ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || rrc=$?
       rm -rf "$src"
-      if [ "$built_ok" = 0 ]; then
+      if [ "$rrc" = 75 ]; then
+        # Nothing was built. The source goes back like a failed build's, so
+        # no other rebuild (a dock install) builds the new version without
+        # its pieces meanwhile; the next run pulls it again.
+        echo "golem-autoupdate: GitHub could not be reached for $after's published pieces — nothing compiled, trying again in an hour" >&2
+        ${config.golem.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
+        # "Update now" stays asked for the hour's retry (not its wave).
+        if [ "$asked_now" = 1 ]; then touch /run/golem-update-now; fi
+        exit 75
+      fi
+      if [ "$rrc" != 0 ]; then
         # The pulled source does not build. Leave it there and every later
         # rebuild — dock installs included — fails too: put the source back to
         # what built the newest system (base/recover.nix). The next run tries

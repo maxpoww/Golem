@@ -176,6 +176,15 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   `client.nix` signed it, so a wrong URL can only make a build slower.
   No release (a local commit, a lab branch) means it compiles, as before.
   cache.nixos.org stays first: it answers for everything NixOS builds.
+- **When GitHub cannot be asked** (no network, DNS, a timeout, a server
+  error, a captive portal's page), `golem-cache-args` says so (exit 75)
+  instead of answering "no release". The nightly update
+  (`GOLEM_REBUILD_NEED_CACHE=1`) then builds nothing, puts the source back
+  and comes back in an hour (`RestartForceExitStatus=75`, `RestartSec=1h`);
+  so does a run whose network check gave up. Every other rebuild goes on
+  without the cache, as before. Until 2026-11-19 a bad network read as "no
+  release": the ASUS set out to compile the whole system that night and
+  failed anyway.
 
 ## The moment and the wave
 

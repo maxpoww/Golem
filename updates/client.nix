@@ -54,17 +54,46 @@ let
       fi
       [[ "$rev" =~ ^[0-9a-f]{40}$ ]] || exit 0
       url="https://github.com/${cfg.cache.repo}/releases/download/g-''${rev:0:12}"
+      # THREE answers, kept apart (2026-11-19):
+      #   the cache answers                  → its arguments;
+      #   GitHub says there is none (404)    → nothing: a commit the lane
+      #                                        never published compiles;
+      #   GitHub could not be asked (no answer, DNS, a timeout, a server
+      #   error, a page that is not the cache: a captive portal)
+      #                                      → nothing, and EXIT 75.
+      # Until then the third read as the second: the ASUS's nightly update
+      # (19-Nov, 03:13) met a night of failing DNS and GitHub downloads,
+      # took the published version for an unpublished one, set out to
+      # compile the whole system, and failed anyway. golem-rebuild decides
+      # what 75 means for its caller: the nightly update stops and tries
+      # again later; anything else goes on without the cache, as before.
       # GitHub can answer 404 for a moment right after an upload, so a
-      # miss is retried before the build goes on without the cache.
-      for _ in 1 2 3; do
-        if curl -fsSL --max-time 15 "$url/nix-cache-info" 2>/dev/null | grep -q '^StoreDir: /nix/store$'; then
+      # miss is asked again too. GOLEM_REBUILD_NEED_CACHE=1 (the nightly
+      # update) asks for longer when there is no answer: about 3 min, not 1.
+      tries=3; pause=0
+      if [ "''${GOLEM_REBUILD_NEED_CACHE:-}" = 1 ]; then tries=6; pause=10; fi
+      body=$(mktemp); trap 'rm -f "$body"' EXIT
+      code=""; missing=0
+      for t in $(seq 1 "$tries"); do
+        code=$(curl -sSL --max-time 15 -o "$body" -w '%{http_code}' "$url/nix-cache-info" 2>/dev/null || true)
+        if [ "$code" = 200 ] && grep -q '^StoreDir: /nix/store$' "$body"; then
           printf '%s\n' --option extra-substituters "$url"
           echo "golem-cache-args: using the published cache of ''${rev:0:12} ($url)" >&2
           exit 0
         fi
-        sleep 2
+        if [ "$code" = 404 ]; then
+          missing=$((missing + 1))
+          [ "$missing" -ge 3 ] && break
+        fi
+        [ "$t" -lt "$tries" ] || break
+        if [ "$code" = 404 ]; then sleep 2; else sleep $(( 2 + (t - 1) * pause )); fi
       done
-      echo "golem-cache-args: no published cache for ''${rev:0:12} — this build compiles what it needs" >&2
+      if [ "$code" = 404 ]; then
+        echo "golem-cache-args: no published cache for ''${rev:0:12} — this build compiles what it needs" >&2
+        exit 0
+      fi
+      echo "golem-cache-args: GitHub could not be asked whether ''${rev:0:12} has a published cache (last answer: ''${code:-none}) — the network is down or GitHub is" >&2
+      exit 75
     '';
   };
 
