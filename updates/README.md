@@ -87,7 +87,13 @@ next day.
    not have, that are heavy, and that we may share go into release
    `g-<first 12 of the commit>` of golem-cache, signed. Uploaded as a draft,
    made public when complete, then every file is read back until GitHub
-   serves it, and one piece is proven against the key.
+   serves it, and one piece is proven against the key. The upload RESUMES:
+   four files at a time, each tried four times (`GOLEM_LANE_UPLOAD_PARALLEL`,
+   `_TRIES`); a draft left by a run that stopped keeps what landed (a NAR is
+   named by its content: same name and size = same bytes, not sent again;
+   the narinfos always go). One HTTP 408 no longer fails the cache, and a
+   slow night's partial upload is the next run's start (2026-11-18: 144 of
+   409 files at 0.03–0.1 MB/s, then everything thrown away).
 7. **Publish**: push the commit to `main` if it is not there yet, then to
    `stable`. If `main` moved meanwhile, nothing is pushed: tomorrow's run
    builds the new `main`.

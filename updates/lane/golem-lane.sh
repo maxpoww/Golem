@@ -31,6 +31,9 @@ KEEP=${GOLEM_LANE_KEEP:-6}
 BUMP_DAYS=${GOLEM_LANE_BUMP_DAYS:-7}
 PUBLISH_DAYS=${GOLEM_LANE_PUBLISH_DAYS:-7}
 RELEASE_WAIT_DAYS=${GOLEM_LANE_RELEASE_WAIT_DAYS:-28}
+# The cache's upload: files at once, and tries for each (see upload_release).
+UPLOAD_PARALLEL=${GOLEM_LANE_UPLOAD_PARALLEL:-4}
+UPLOAD_TRIES=${GOLEM_LANE_UPLOAD_TRIES:-4}
 LIB=${GOLEM_LANE_LIB:-$(dirname "$(readlink -f "$0")")}
 SYSTEM=x86_64-linux
 
@@ -187,17 +190,24 @@ report() {  # one line per system: its kernel
 # release g-<rev12> of $CACHE_REPO, uploaded as a draft and made public only
 # when complete, then read back until GitHub serves every file.
 cache() {
-  local rev=$1 tag=g-${1:0:12} work sel n notes f
+  local rev=$1 tag=g-${1:0:12} work sel n notes f draft left
   # A fresh directory per version: nix remembers what it saw in a binary
   # cache by its URL, and the placeholders below must never be remembered.
   rm -rf "$STATE/export"
   work=$STATE/export/${rev:0:12}; EXPORT_OUT=$work/out; mkdir -p "$EXPORT_OUT"
-  if gh release view "$tag" --repo "$CACHE_REPO" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx false \
-     && verify "$tag" quiet; then
+  draft=$(gh release view "$tag" --repo "$CACHE_REPO" --json isDraft --jq '.isDraft' 2>/dev/null || true)
+  if [ "$draft" = false ] && verify "$tag" quiet; then
     say "cache $tag already published and complete"
     return 0
   fi
-  gh release delete "$tag" --repo "$CACHE_REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+  # A DRAFT is a run that stopped on its way up (a slow or broken upload,
+  # 2026-11-18: 144 of 409 files in, two lost to HTTP 408, and the next try
+  # began again from none): it is kept and RESUMED (upload_release). Only a
+  # release that was made public and is not served whole starts again.
+  if [ "$draft" = false ]; then
+    gh release delete "$tag" --repo "$CACHE_REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+    draft=
+  fi
 
   nix "${NIXF[@]}" path-info -r --json --json-format 1 "$GATE_OUT" > "$work/closure.json"
   jq -r 'if type == "array" then .[].path else keys[] end' "$work/closure.json" \
@@ -250,14 +260,72 @@ cache() {
 Kernel of every Golem system in this version:
 
 $(report | sed 's/^/    /')"
-  gh release create "$tag" --repo "$CACHE_REPO" --draft --target main \
-     --title "Golem ${rev:0:12}" --notes "$notes" \
-     >/dev/null || fail cache "creating release $tag failed"
-  find "$EXPORT_OUT" -maxdepth 1 -type f -print0 \
-    | xargs -0 -n 40 gh release upload "$tag" --repo "$CACHE_REPO" --clobber >> "$LOG" 2>&1 \
-    || fail cache "uploading to release $tag failed"
+  if [ "$draft" = true ]; then
+    say "cache: resuming the draft $tag"
+    gh release edit "$tag" --repo "$CACHE_REPO" --notes "$notes" >/dev/null || true
+  else
+    gh release create "$tag" --repo "$CACHE_REPO" --draft --target main \
+       --title "Golem ${rev:0:12}" --notes "$notes" \
+       >/dev/null || fail cache "creating release $tag failed"
+  fi
+  left=$(upload_release "$tag" "$EXPORT_OUT") \
+    || fail cache "uploading to release $tag: $left file(s) did not land; the next run resumes the draft"
   gh release edit "$tag" --repo "$CACHE_REPO" --draft=false >/dev/null || fail cache "publishing release $tag failed"
   verify "$tag" || fail cache "release $tag is not served completely after 10 minutes"
+}
+
+# Every file of export dir $2 into the DRAFT release $1, resumable. A NAR is
+# named by its compressed content's hash, so one the draft already holds at
+# the same size is those same bytes and is not sent again; a narinfo (small,
+# its lines say which NAR) is always sent. What the draft holds that this
+# export does not (an older try's NARs) is taken out. UPLOAD_PARALLEL files
+# go at once, each tried UPLOAD_TRIES times: one HTTP 408 no longer fails the
+# whole cache, and what still did not land after its tries is counted (on
+# stdout; exit 1) for the next run to resume.
+upload_one() {  # upload_one <tag> <dir> <file>: prints the file's name if it never landed
+  local t
+  for t in $(seq 1 "$UPLOAD_TRIES"); do
+    if gh release upload "$1" "$2/$3" --repo "$CACHE_REPO" --clobber >> "$LOG" 2>&1; then
+      return 0
+    fi
+    [ "$t" -lt "$UPLOAD_TRIES" ] && sleep $(( t * ${GOLEM_LANE_UPLOAD_BACKOFF:-15} ))
+  done
+  printf '%s\n' "$3"
+}
+upload_release() {
+  local tag=$1 dir=$2 have todo failed name size all n_have
+  have=$(mktemp) todo=$(mktemp) failed=$(mktemp)
+  gh release view "$tag" --repo "$CACHE_REPO" --json assets \
+     --jq '.assets[] | "\(.name)\t\(.size)"' > "$have" 2>/dev/null || : > "$have"
+  # what the draft holds that this export does not: an older try's
+  while IFS=$'\t' read -r name size; do
+    [ -n "$name" ] || continue
+    if [ ! -e "$dir/$name" ]; then
+      gh release delete-asset "$tag" "$name" --repo "$CACHE_REPO" --yes >> "$LOG" 2>&1 || true
+    fi
+  done < "$have"
+  all=0 n_have=0
+  while IFS=$'\t' read -r name size; do
+    all=$((all + 1))
+    case "$name" in
+      *.narinfo) printf '%s\n' "$name" ;;
+      *) if grep -qxF "$name"$'\t'"$size" "$have"; then n_have=$((n_have + 1)); else printf '%s\n' "$name"; fi ;;
+    esac
+  done < <(find "$dir" -maxdepth 1 -type f -printf '%f\t%s\n') > "$todo"
+  say "cache: $(wc -l < "$todo") of $all files to upload ($n_have already in the draft), $UPLOAD_PARALLEL at a time"
+  export -f upload_one
+  export CACHE_REPO LOG UPLOAD_TRIES
+  # (sorted: the NARs, the heavy part, before their narinfos)
+  # shellcheck disable=SC2016  # $1 $2 $3 belong to the inner bash
+  sort -t. -k2 "$todo" \
+    | xargs -r -d '\n' -P "$UPLOAD_PARALLEL" -I{} "$BASH" -c 'upload_one "$1" "$2" "$3"' _ "$tag" "$dir" {} > "$failed"
+  if [ -s "$failed" ]; then
+    wc -l < "$failed" | tr -d ' '
+    say "cache: $(wc -l < "$failed") file(s) did not land: $(head -3 "$failed" | tr '\n' ' ')"
+    rm -f "$have" "$todo" "$failed"
+    return 1
+  fi
+  rm -f "$have" "$todo" "$failed"
 }
 
 # Every file of a release, read back from the public URL (GitHub may answer
