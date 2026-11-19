@@ -1,11 +1,12 @@
--- test/check.lua <root> <layers root>: what must hold of Golem's Hyprland
--- configuration, checked with the recording mock (mock.lua) and no
--- compositor. Run through check.sh, which makes the two roots:
+-- test/check.lua <root> <layers root> <gaming root>: what must hold of
+-- Golem's Hyprland configuration, checked with the recording mock (mock.lua)
+-- and no compositor. Run through check.sh, which makes the roots:
 --   <root>         the tree with a machine's real generated facts;
 --   <layers root>  the tree with the sample facts, an app module's file
 --                  (golem/modules/demo.lua), a machine's own tail
 --                  (golem/extra.lua) and an owner's file (user.lua), each
---                  setting general.gaps_in to a number of its own.
+--                  setting general.gaps_in to a number of its own;
+--   <gaming root>  the first root with the Gaming module on (facts.modules).
 -- XDG_CONFIG_HOME/golem/settings.lua (the live settings) sets it to 7.
 
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -100,6 +101,30 @@ check("the live settings are run", live ~= nil)
 check("in order: Golem's modules, the app modules', the machine's, the owner's, the live settings last",
     golem and module and extra and user and live and golem < module and module < extra and extra < user and user < live
     and live == #layers)
+
+---- 3. an app module's own Lua: Gaming ----
+local function rule(list, name)
+    local found, count
+    for i, line in ipairs(list) do
+        if line:sub(1, 12) == "window_rule(" and line:find('name = "' .. name .. '"', 1, true) then
+            found, count = found or i, (count or 0) + 1
+        end
+    end
+    return found, count or 0
+end
+local on = false
+for _, name in ipairs(facts.modules or {}) do
+    if name == "gaming" then on = true end
+end
+check("Gaming's rule is there on this machine only if the module is on", (rule(lines, "golem-gaming-awake") ~= nil) == on)
+check("a module that is off brings nothing (the sample machine has no Gaming)", rule(layers, "golem-gaming-awake") == nil)
+local gaming = run(arg[3], false)
+local awake, times = rule(gaming, "golem-gaming-awake")
+check("Gaming on: a game that fills the screen keeps the computer awake",
+    awake ~= nil and times == 1 and gaming[awake]:find('idle_inhibit = "fullscreen"', 1, true) ~= nil
+    and gaming[awake]:find("steam_app_", 1, true) ~= nil, awake and gaming[awake])
+check("Gaming's rule comes after every rule Golem declares",
+    awake ~= nil and (index_of(gaming, 'name = "move-hyprland-run"') or math.huge) < awake)
 
 print(failed == 0 and "hypr-config: all good" or ("hypr-config: " .. failed .. " FAILED"))
 os.exit(failed == 0 and 0 or 1)

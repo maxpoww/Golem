@@ -13,6 +13,11 @@ tree() { # <root> <machine.lua>
 }
 tree "$work/real" "${1:-$here/machine.sample.lua}"
 tree "$work/layers" "$here/machine.sample.lua"
+# The same machine with the Gaming module on: its facts, "gaming" among the modules.
+tree "$work/gaming" "${1:-$here/machine.sample.lua}"
+mv "$work/gaming/golem/machine.lua" "$work/gaming/golem/machine.facts.lua"
+printf 'local M = dofile("%s")\nM.modules = { "gaming" }\nreturn M\n' \
+  "$work/gaming/golem/machine.facts.lua" > "$work/gaming/golem/machine.lua"
 echo 'hl.config({ general = { gaps_in = 21 } })' > "$work/layers/golem/modules/demo.lua"
 echo 'hl.config({ general = { gaps_in = 22 } })' > "$work/layers/golem/extra.lua"
 echo 'hl.config({ general = { gaps_in = 23 } })' > "$work/layers/user.lua"
@@ -20,4 +25,4 @@ mkdir -p "$work/config/golem" "$work/state" "$work/home"
 echo 'hl.config({ general = { gaps_in = 7 } })' > "$work/config/golem/settings.lua"
 # (The screens' blocks are WRITTEN under XDG_STATE_HOME: never the owner's.)
 HOME="$work/home" XDG_STATE_HOME="$work/state" XDG_CONFIG_HOME="$work/config" \
-  "$LUA" "$here/check.lua" "$work/real" "$work/layers"
+  "$LUA" "$here/check.lua" "$work/real" "$work/layers" "$work/gaming"
