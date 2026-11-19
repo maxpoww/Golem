@@ -153,6 +153,21 @@ lays it out:
 The compositor survives all of them. Until the switch is made atomic, a
 rebuild on a running session must be followed by `hyprctl reload`.
 
+A way to make it atomic, tried in the same rig and NOT built: the home holds
+one link only, the entry, and the entry is generated. It puts this build's
+tree (the modules and the facts, one folder in the store) first in
+`package.path` and runs the tree's own entry:
+
+    local tree = "/nix/store/…-golem-hypr"
+    package.path = tree .. "/?.lua;" .. tree .. "/?/init.lua;" .. package.path
+    dofile(tree .. "/hyprland.lua")
+
+Replacing that one link took the compositor from the one file to a tree,
+between two trees and back to the one file, each time by itself, whole and
+with no error (96 and 100 binds, one tree carrying four more); `user.lua`
+was still found beside the entry and watched. Hyprland sets `package.path`
+anew at every reload, so nothing piles up in it.
+
 ## How the split was proven (2026-11-19)
 
 The one file as deployed on `main` c702f73 and this tree were both run under
