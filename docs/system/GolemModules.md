@@ -173,6 +173,13 @@ actually supports it (nvidia CUDA / ROCm), and a plain "this will be slow
 on this machine" note rather than silence, matching the reveal-and-affirm
 posture already set for hardware.
 
+*Built 2026-11-19 (system/modules/ai.nix) with the plain build only:
+nixpkgs' CUDA build of Ollama is in no cache (CUDA is unfree), so on an
+owner's machine it would compile for tens of minutes at an install or inside
+a nightly update, and a build that fails there stops every update after it.
+GPU acceleration waits for Golem's own cache to carry that build (the update
+lane); until then it is one line by hand in a machine's configuration.*
+
 ### 4.9 Music Production — BUILT (first real category, 2026-09-08)
 
 Max's request directly: "check all, one click, add" — no per-tool picks in

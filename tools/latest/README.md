@@ -27,7 +27,7 @@ what moved; this narrows them to what Golem touches.
 ## 2026-11-19
 
 NixOS 26.05 (pinned, rev f1e5c35) against nixos-unstable 26.11pre (0490633):
-the 55 NixOS options Golem's files define are all there, visible, of the same
+the 54 NixOS options Golem's files define are all there, visible, of the same
 type; the 7 packages named outright exist; none of the catalog's 343 package
 attributes is missing from either (9 are there and do not evaluate in the
 pin: system/modules' warnings name them).

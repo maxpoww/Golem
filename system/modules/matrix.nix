@@ -164,9 +164,9 @@ let
         && !(lib.any (p: lib.getName p == "corefonts") clean.fonts.packages)))
 
     # ── local AI by the machine ────────────────────────────────────────────
-    (ex "Ollama on an NVIDIA machine (RTX 20 or newer): its service, the CUDA build"
-      (aiNvidia.services.ollama.enable
-        && aiNvidia.services.ollama.package.drvPath == aiNvidiaSys.pkgs.ollama-cuda.drvPath))
+    (ex "Ollama on an NVIDIA machine too: its service, the plain build (the CUDA one is in no cache: it would compile on the owner's computer)"
+      (aiNvidia.services.ollama.enable && lib.getName aiNvidia.services.ollama.package == "ollama"
+        && aiNvidia.services.ollama.package.drvPath != aiNvidiaSys.pkgs.ollama-cuda.drvPath))
     (ex "Ollama on any other machine: its service, the plain build; Open WebUI: local only"
       (aiAmd.services.ollama.enable && lib.getName aiAmd.services.ollama.package == "ollama"
         && aiAmd.services.ollama.package.drvPath != aiNvidiaSys.pkgs.ollama-cuda.drvPath

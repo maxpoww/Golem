@@ -268,7 +268,7 @@ documentations are generated from source, so the source was read, by a
 program that stays in the repository (`tools/latest/check.sh`, to run before
 either pin moves):
 
-- **NixOS** — the 55 NixOS options that the app modules, the loopback camera
+- **NixOS** — the 54 NixOS options that the app modules, the loopback camera
   and this layout define are all in nixos-unstable (26.11pre), visible and of
   the same type; with all 25 modules and every program on, the pinned 26.05
   evaluates with no failed assertion and no deprecation warning.
