@@ -71,6 +71,6 @@
   services.gnome.evolution-data-server.enable = !config.golem.lean;
 
   # libadwaita apps read their settings — including the dark/accent
-  # preference home.nix's theming pass writes — from dconf.
+  # preference home/look.nix's theming pass writes — from dconf.
   programs.dconf.enable = true;
 }

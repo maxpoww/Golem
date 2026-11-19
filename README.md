@@ -19,7 +19,9 @@ its documentation and worklog.
 | `flake.nix`, `flake.lock` | Every build output: machines, ISO, checks | Pins for the component repos live here |
 | `system/Modular/` | **The distro**: one leaf per concern (base, boot, cpu, gpu, disk, desktop…), `composition.nix` + the `choose.nix` chooser | ⚠ Path is rendered into installed machines' `modules.nix`. Never rename |
 | `system/` (other files) | The older all-in-one profile (`configuration.nix`, `home/`, `golem-apps.nix`…), ported into `Modular/` leaf by leaf | Port, don't grow |
-| `system/home/` | The home layer (home-manager): `hypr/` (Hyprland's configuration, in modules: its README is the map), waverunner, zsh | |
+| `system/home/` | The home layer (home-manager), one file a concern: `hypr/` (Hyprland's configuration, in Lua modules: its README is the map) and `hyprland.nix` (this machine's generated facts), `dock.nix`, `look.nix`, `terminal.nix`, `editor.nix`, `files.nix`, `default-apps.nix`, `idle.nix`, `fits.nix`, zsh… `home.nix` is the list | |
+| `system/modules/` | **The app modules** — the dock's Modules (Gaming, Development, Music Production… 25): one file per module, the programs the owner switched on AND the system each needs. The catalog is the dock's own `modules.json`; its README is the map | A module's id is its option's name (`golem.modules.<id>`) and what a machine's selection file names: never rename one |
+| `system/machine/` | **One computer, from its own folder**: the `/etc/nixos` layout (`lib.golem.machine`, the folder's template, the readers of its data lists, `golem-relocate`). Stage 1 of [docs/system/Layout.md](docs/system/Layout.md): installs do not use it yet | The template is what `nix flake new -t` and the installer write: its file names are a contract |
 | `system/i18n/` | Golem's own messages (notifications, the greeter, the last-resort screen) in the owner's language: `golem-say` + one catalogue per language, keyed by the English like the shell's | A message changed in a script is a new key: run `bash system/i18n/check.sh` |
 | `hosts/` | Per-machine instances: `target/` (installed Golem), `golem/`, `vm.nix`, `iso.nix` | |
 | `Installer/preinstall/` | The installer ISO's implementation (the flake the ISO is built from, `fixtures/` for the eval matrix, `run-vm.sh`) | `fixtures/` is read by the build. Don't move it |
@@ -41,7 +43,7 @@ its documentation and worklog.
 | `docs/shell/dockmenu/` | Dock + menu box maintainer program: README, INVARIANTS, SECURITY, AUDIT, harness, machines |
 | `docs/shell/` | onboarding design, keyboard audit |
 | `docs/installing/` | **`install.md`: how a Golem install works today** (the media, the screens, the disk, first boot, updates, the lab door, testing, limits). The older files there point to it; `preinstall/HISTORY.md` + `preinstall/testing/` keep the six-round lab archive |
-| `docs/system/` | `GolemModules.md` (the module/app-bundle design) |
+| `docs/system/` | **`Layout.md`: where everything lives** (the machine in `/etc/nixos`, Golem pinned and read-only, nothing of the system in a home; the stages to get there), `GolemModules.md` (the module/app-bundle design) |
 | `docs/security/` | `GolemSecurity.md` |
 | `docs/omarchy.md` | What was taken from Omarchy for speed, what was not, and what each was measured at |
 | `docs/release/` | `release-checklist.md` |
@@ -75,6 +77,7 @@ flake only sees **git-tracked** files, so `git add` a new file before building.
 G=git+file:///home/max/Golem
 nix build --no-link "$G#checks.x86_64-linux.minimal-matrix"   # base composes, all classes
 nix build --no-link "$G#checks.x86_64-linux.desktop-matrix"   # the desktop stage composes
+nix build --no-link "$G#checks.x86_64-linux.machine-layout"   # a machine composes from its own folder (/etc/nixos)
 nix build --no-link "$G#nixosConfigurations.golem.pkgs.golem-seam"
 ~/Golem/seam/selftest.sh                                      # Seam, headless (~10 min)
 nix build "$G#iso"                                            # the OLD live medium (fat profile) — not the installer

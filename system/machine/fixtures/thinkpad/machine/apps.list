@@ -1,0 +1,8 @@
+# The programs installed from the dock (a test fixture).
+htop
+kdePackages.kate     # a path inside nixpkgs
+
+this-program-does-not-exist-in-nixpkgs
+lib
+"; import /etc/passwd; "
+$(touch /tmp/planted)

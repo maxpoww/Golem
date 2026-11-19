@@ -1,0 +1,13 @@
+{
+  "chassis": "laptop",
+  "cores": 8,
+  "cpuModel": "AMD Ryzen 7 4700U with Radeon Graphics",
+  "cpuVendor": "amd",
+  "firmware": "uefi",
+  "gpu": "amd",
+  "hasBluetooth": true,
+  "intelLegacy": false,
+  "panelDpi": 143,
+  "ramMB": 7159,
+  "threads": 8
+}

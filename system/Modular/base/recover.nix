@@ -236,10 +236,11 @@ in
     default = heal;
     description = "golem-git-heal: undo what an interrupted git leaves in the checkout (stale locks, damaged objects).";
   };
+  # (Not read-only: the /etc/nixos layout has no checkout to reset and gives
+  # its own, which puts the machine folder's pin back — machine/layout.nix.)
   options.golem.recover = lib.mkOption {
     type = lib.types.package;
     internal = true;
-    readOnly = true;
     default = recover;
     description = "golem-recover: put the source back to what built a given system.";
   };

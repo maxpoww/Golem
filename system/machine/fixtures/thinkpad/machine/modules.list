@@ -1,0 +1,7 @@
+# The app modules switched on in the dock (a test fixture).
+gaming                 # the module, with its recommended programs
+development.docker     # one program of a module
+
+not-a-module
+gaming.not-a-program
+{ evil = import /etc/passwd; }

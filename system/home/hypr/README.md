@@ -6,7 +6,7 @@ strings in it; since 2026-11-19 it is this folder: one file a concern, the
 same text on every machine, and ONE generated file that says what differs.
 
 On a machine it is `~/.config/hypr/` (links into the store, made by
-`system/home/home.nix`).
+`system/home/hyprland.nix`).
 
 ## The map
 
@@ -14,7 +14,7 @@ On a machine it is `~/.config/hypr/` (links into the store, made by
 |---|---|
 | `hyprland.lua` | The entry. Configures nothing: it loads the modules in order, then the layers after Golem's (below). |
 | `golem/lib.lua` | What the modules share: this machine's facts (`machine`), the names the binds use (programs, main modifier, the windows' corner), the one piece of state two files touch (`superBurst`). A table, never globals. |
-| `golem/machine.lua` | **Generated, not in this folder.** The machine's facts as a Lua table: `dev`, `ctl`, `plugin`, `dock`, `shell`, `keyboard`, `panel_dpi`, `panel_scale`, `bluetooth`, `effects`, `lab`, `modules`. Written by `home.nix` (`xdg.configFile."hypr/golem/machine.lua"`). Without it (a copy run by hand) `lib.lua` answers as a plain install would. |
+| `golem/machine.lua` | **Generated, not in this folder.** The machine's facts as a Lua table: `dev`, `ctl`, `plugin`, `dock`, `shell`, `keyboard`, `panel_dpi`, `panel_scale`, `bluetooth`, `effects`, `lab`, `modules`. Written by `../hyprland.nix` (`xdg.configFile."hypr/golem/machine.lua"`). Without it (a copy run by hand) `lib.lua` answers as a plain install would. |
 | `golem/monitors.lua` | Every screen at its preferred size and a scale for its density; the laptop panel's own scale (`machine.panel_scale`). |
 | `golem/layers.lua` | The shell's surfaces (dock, bar, desktop, its menus): blurred behind, frosted glass. |
 | `golem/autostart.lua` | What starts with the session: the lock screen FIRST (it is the login), the overview plugin, the cursor, the dock on the dev box, the wallpaper daemon, Bluetooth where there is an adapter. |
@@ -34,7 +34,7 @@ On a machine it is `~/.config/hypr/` (links into the store, made by
 | `golem/rules.lua` | The windows' look by state: floating corners, the browser's hairline, floats raised on focus, smart gaps, shadows, the pseudo and stage frames. |
 | `golem/effects.lua` | A weak GPU (`machine.effects == "light"`): compositor blur off. |
 | `golem/lab.lua` | A lab machine (`machine.lab`): the whole log. |
-| `golem/modules/` | The app modules' own Lua (`<name>.lua`): rules and keys a module of programs brings. Loaded for the names in `machine.modules` (`golem.home.hyprlandModules`). Today: `gaming.lua` (a game that fills the screen keeps the computer awake). |
+| `golem/modules/` | The app modules' own Lua (`<name>.lua`): rules and keys a module of programs brings. Loaded for the names in `machine.modules`: the app modules that are on (`golem.modules.active`, read by `../hyprland.nix`). Today: `gaming.lua` (a game that fills the screen keeps the computer awake). |
 | `golem/extra.lua` | **Generated when set:** this machine's own Lua (`golem.home.hyprlandExtra`). |
 | `test/` | The recording mock, the comparison tool, the check (below). Not deployed. |
 
@@ -83,13 +83,14 @@ on the SAME key matters (kept: `test/compare.lua` checks it).
 - **A setting, a rule, a key**: in the module of its concern. Keep the
   comment that says why with the line it explains.
 - **Something that differs per machine**: a fact in `machine.lua`. Add it in
-  `home.nix` (the generated text), give it its default and one line of
+  `../hyprland.nix` (the generated text), give it its default and one line of
   meaning in `golem/lib.lua`, read it where it is used. Never a path under a
-  home folder in a module: `home.nix` refuses to build with one.
+  home folder in a module: `../hyprland.nix` refuses to build with one.
 - **A new module**: a file under `golem/`, one `require` line in
   `hyprland.lua` at its place in the order, one row in the map above.
 - **An app module's rules or keys**: `golem/modules/<name>.lua`, and the
-  module sets `golem.home.hyprlandModules = [ "<name>" ]` when it is on.
+  file is loaded while the module is on: nothing to wire (`../hyprland.nix`
+  reads `golem.modules.active`).
 
 ## Testing
 

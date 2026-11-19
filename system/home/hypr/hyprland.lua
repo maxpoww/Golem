@@ -8,7 +8,7 @@
 -- chosen in the control panel last of all.
 --
 -- Golem's modules are the same text on every machine. What differs is in
--- golem/machine.lua (generated: system/home/home.nix), read by golem/lib.lua.
+-- golem/machine.lua (generated: system/home/hyprland.nix), read by golem/lib.lua.
 
 require("golem.monitors")       -- every screen at its own size and scale
 require("golem.layers")         -- the shell's surfaces: frosted glass

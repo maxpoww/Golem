@@ -46,7 +46,7 @@
       "wayland-session-bindpid@.service" = guard;
       # …and the compositor is the LAST thing oomd may put down: losing it is
       # the freeze oomd exists to prevent (base/nix.nix; the dock is spared
-      # the same way, home/home.nix).
+      # the same way, home/dock.nix).
       "wayland-wm@.service" = guard // {
         text = guard.text + "ManagedOOMPreference=avoid\n";
       };

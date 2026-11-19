@@ -2202,7 +2202,7 @@ kb_derive() {                    # $1 row → sets the six values above
 # THE HANDOFF TO golem-install. These four flags are the whole contract
 # between this surface and the installer: the surface asks one question and
 # derives, `golem-install` writes golem.keyboard into machine.nix, and
-# system/configuration.nix + system/home/home.nix fan it out to the three
+# system/configuration.nix + system/home/hyprland.nix fan it out to the three
 # sinks. Printed by --dump settings so the derivation is inspectable
 # without touching a disk.
 kb_emit() {

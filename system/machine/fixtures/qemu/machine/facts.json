@@ -1,0 +1,12 @@
+{
+  "chassis": "unknown",
+  "cores": 4,
+  "cpuModel": "13th Gen Intel(R) Core(TM) i9-13905H",
+  "cpuVendor": "intel",
+  "gpu": "virtio",
+  "hasBluetooth": false,
+  "intelLegacy": false,
+  "ramMB": 3917,
+  "threads": 4,
+  "vmGuest": "qemu"
+}

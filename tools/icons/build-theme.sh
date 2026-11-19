@@ -1,6 +1,6 @@
 #!/bin/sh
 # Writes the Golem icon themes into $1 (default system/home/icons, what
-# home.nix installs): each the scalable drawing plus the 24 and 16 px
+# home/look.nix installs): each the scalable drawing plus the 24 and 16 px
 # versions, and its index.theme (index.theme here, named and inherited per
 # tone). Golem's own icons (folders, files, devices) only; everything else —
 # apps above all — comes from Papirus / Papirus-Dark, which they inherit.

@@ -116,6 +116,9 @@ in
       internal = true;
       type = lib.types.listOf lib.types.str;
       default = [ ];
+      # (Also read by the home layer: a module that is on may bring window
+      # rules and keys of its own — system/home/hypr/golem/modules/<module>.lua,
+      # loaded by system/home/hyprland.nix's facts.)
       description = "The modules that are on (what a module's plumbing is keyed on).";
     };
 

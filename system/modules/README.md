@@ -30,7 +30,7 @@ ones that are.
 |---|---|
 | The dock: Modules → Apply, or a drag into the grid | The programs land in the owner's installed apps (`hosts/target/apps.nix`). Each file's **program setup** is keyed on the *installed program's name*, so the system side comes with it. |
 | By hand, in the machine's configuration | The options above. The programs go to the same place the dock's go (the owner's home packages, low priority). |
-| The machine's selection file: `golem.modules.listPath` | One `<module>` or `<module>.<tool>` per line, `#` for comments. Read as **data**: a line is a name that is looked up, never evaluated. A line that names nothing is skipped with a warning. |
+| The machine's selection file: `golem.modules.listPath` — `/etc/nixos/machine/modules.list` on a machine of the new layout (`system/machine`) | One `<module>` or `<module>.<tool>` per line, `#` for comments. Read as **data**: a line is a name that is looked up, never evaluated. A line that names nothing is skipped with a warning. |
 
 ## The two rules
 
@@ -78,6 +78,9 @@ in
   `environment.systemPackages`.
 - A new module: its file, a line in `default.nix`'s imports and one in
   `lib.nix`'s `categories` (id → the catalog's name).
+- A module's own Hyprland rules or keys: `system/home/hypr/golem/modules/<id>.lua`.
+  Nothing to wire: the home layer loads the file of every module that is on
+  (`golem.modules.active`, read by `system/home/hyprland.nix`).
 
 ## Testing
 

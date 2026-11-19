@@ -385,7 +385,7 @@
     # SINKS, and they are not interchangeable: the TTY reads console.keyMap,
     # X11/XWayland clients read services.xserver.xkb, and the actual desktop
     # reads NEITHER — Hyprland has its own input block, wired in
-    # home/home.nix. Setting only the two here leaves the session on us,
+    # home/hyprland.nix. Setting only the two here leaves the session on us,
     # which is exactly the bug this replaces.
     console.keyMap = lib.mkDefault config.golem.keyboard.consoleKeyMap;
     console.font   = lib.mkIf (config.golem.keyboard.consoleFont != null)
@@ -541,7 +541,7 @@
     # indistinguishable from the freeze we are preventing. greetd is a system
     # service; the waverunner daemon is a home-manager USER service, so its
     # avoid-preference has to be set in the home layer (a NixOS-level
-    # systemd.user unit is shadowed by ~/.config), see home/home.nix.
+    # systemd.user unit is shadowed by ~/.config), see home/dock.nix.
     systemd.services.greetd.serviceConfig.ManagedOOMPreference = "avoid";
 
     nix.settings.experimental-features = [ "nix-command" "flakes" ];

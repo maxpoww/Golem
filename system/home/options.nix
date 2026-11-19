@@ -69,10 +69,11 @@
       default = [ ];
       example = [ "gaming" ];
       description = ''
-        The app modules whose own Lua the Hyprland configuration loads
+        More app modules whose own Lua the Hyprland configuration loads
         (hypr/golem/modules/<name>.lua: the window rules and keys a module
-        of programs brings with it). Set by the module that is switched on;
-        a name with no file is fine.
+        of programs brings with it), beside the ones that are switched on
+        (golem.modules.active, read by hyprland.nix). A name with no file
+        is fine.
       '';
     };
   };

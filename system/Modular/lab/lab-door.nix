@@ -67,7 +67,8 @@ in
     # The lab's Hyprland keeps its full log, with times (Hyprland's default
     # drops its own lines once the config is in; only aquamarine's remain):
     # a start's 3.4 s on the 2013 MacBook Air can be read. In /run, tmpfs. The line
-    # is in home/home.nix, which knows a lab machine by the heartbeat below: ahead
+    # is home/hypr/golem/lab.lua's, on when home/hyprland.nix's facts say so (it
+    # knows a lab machine by the heartbeat below): ahead
     # of the owner's live settings, which stay last (desktop-matrix holds it).
 
     # THE HEARTBEAT: a ping to the gateway every 20 s keeps the lab machine

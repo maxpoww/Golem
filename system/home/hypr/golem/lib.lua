@@ -1,7 +1,7 @@
 -- golem/lib.lua: what the modules share.
 --
 -- 1. THIS MACHINE'S FACTS (`machine`): golem/machine.lua, a table the home
---    layer generates for the machine it is built for (system/home/home.nix):
+--    layer generates for the machine it is built for (system/home/hyprland.nix):
 --    where the dock's command is, which keyboard the installer was told, the
 --    panel's scale, whether there is Bluetooth. It is the ONE generated file;
 --    every other module is the same text on every Golem machine and reads

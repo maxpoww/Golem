@@ -18,7 +18,7 @@ in {
   home-manager.users.${owner} = {
     home.packages = [ pkgs.xdg-user-dirs ];
 
-    # mkDefault: the desktop's home layer (system/home/home.nix) defines this
+    # mkDefault: the desktop's home layer (system/home/user-dirs.nix) defines this
     # SAME service (After graphical-session instead of default.target). When
     # that layer is wired in (golem-desktop), let ITS version win; this base
     # one applies on the headless minimal, which has no home layer. (2026-09-26)

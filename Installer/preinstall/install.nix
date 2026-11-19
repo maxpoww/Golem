@@ -768,7 +768,7 @@ pkgs.writeShellApplication {
       echo "  # The keyboard step's one answer. Four values, three sinks:"
       echo "  # console.keyMap, services.xserver.xkb.*, and Hyprland's own"
       echo "  # input block — wired from these in system/configuration.nix"
-      echo "  # and system/home/home.nix. A comma in layout means a second"
+      echo "  # and system/home/hyprland.nix. A comma in layout means a second"
       echo "  # Latin group so a non-Latin script can still type a URL."
       echo "  golem.keyboard = {"
       echo "    layout = \"$kb_layout\";"

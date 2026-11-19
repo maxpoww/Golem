@@ -13,7 +13,7 @@ hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" 
 -- native mode, eDP only): the laptop's own panel gets a scale for its
 -- density, right after the catch-all, so a 4K 13" laptop does not boot at
 -- ant size while external screens stay at the catch-all's. The tiers are in
--- system/home/home.nix (machine.panel_scale); nil on an ordinary panel.
+-- system/home/hyprland.nix (machine.panel_scale); nil on an ordinary panel.
 if M.panel_scale then
     hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = M.panel_scale })
 end

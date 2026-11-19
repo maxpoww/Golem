@@ -44,7 +44,7 @@
 
 let
   # The dock's command: on the PATH on an install, the live checkout's on
-  # the dev box (as hyprland.lua's binds — home.nix `shellNeedles`).
+  # the dev box (as the Hyprland binds' — hyprland.nix's `ctl` fact).
   dockCtl =
     if config.golem.home.devCheckout then "/home/max/launcher/target/debug/waverunner-ctl" else "waverunner-ctl";
   # The display's power by ACTION: Golem's Hyprland takes
@@ -194,7 +194,7 @@ in
     settings = {
       # THE PALETTE (Controls → Colours): Golem's own colours first, then the
       # dock's file redefines them (hyprlock reads it at every lock). The
-      # file is seeded empty (home.nix), so a lock before the dock's first
+      # file is seeded empty (look.nix), so a lock before the dock's first
       # write still has every colour.
       "$golem_bg" = "rgb(20, 20, 24)";
       "$golem_surface" = "rgb(30, 30, 36)";

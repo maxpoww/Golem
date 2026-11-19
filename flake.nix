@@ -147,6 +147,16 @@
         ++ extra;
       };
 
+      # ONE COMPUTER, FROM ITS OWN FOLDER (/etc/nixos; docs/system/Layout.md).
+      # `machine dir` composes what golem-desktop composes, with the machine's
+      # files taken from `dir` instead of hosts/target, its facts and lists
+      # read as data, and the chooser run at evaluation. Exported as
+      # lib.golem.machine: a machine's /etc/nixos/flake.nix is one call to it.
+      machine = import ./system/machine {
+        inherit nixpkgs home-manager waverunner waveview golemRev;
+        golemSrc = self.outPath;
+      };
+
       # 8e — THE ALL-IN BAKED MATRIX (Max, 2026-09-18, the Omarchy model).
       # Every lab hardware class's minimal toplevel, so the installer ISO can
       # carry the whole matrix and install by LOCAL COPY — no network. Its
@@ -393,11 +403,21 @@
         iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;
       };
 
+      # The machine's folder as the installer writes it (/etc/nixos):
+      #   nix flake new -t github:maxpoww/Golem /etc/nixos
+      templates.default = {
+        path = ./system/machine/template;
+        description = "A Golem machine's own folder (/etc/nixos): flake.nix, configuration.nix, modules/, machine/";
+      };
+
       # Policy the install flow consumes as code, not copies (the one
       # rule, spec §2). Hibernation is locked in, so every install carries
       # disk swap sized by THIS rule — the flow asks the flake:
       #   nix eval <src>#lib.golem.swapForHibernationMB --apply "f: f $ram_mb"
       lib.golem = {
+        # A machine from its folder: { nixosConfigurations; system; }.
+        inherit machine;
+
         # The hibernation image is capped by RAM, but at hibernate time the
         # disk swap also absorbs what zram held — RAM plus a tenth (2 GiB
         # floor), rounded up to whole GiB, keeps both with room to spare.
@@ -531,6 +551,12 @@
           lib = nixpkgs.lib;
           inherit pkgs;
           inherit (self.lib.golem) timezones;
+        };
+        # The /etc/nixos layout: the template made into machines from the lab
+        # fixtures' facts, composed by lib.golem.machine and asserted.
+        machine-layout = import ./system/machine/check.nix {
+          lib = nixpkgs.lib;
+          inherit pkgs machine;
         };
 
         # The Hyprland configuration (system/home/hypr), run with no
