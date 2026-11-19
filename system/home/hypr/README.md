@@ -5,8 +5,16 @@ Golem's Hyprland configuration. It was one file of a thousand lines
 strings in it; since 2026-11-19 it is this folder: one file a concern, the
 same text on every machine, and ONE generated file that says what differs.
 
-On a machine it is `~/.config/hypr/` (links into the store, made by
-`system/home/hyprland.nix`).
+On a machine it is ONE folder in the store, this build's **tree**: these
+files as they are, and the generated facts beside them. The home holds ONE
+link of it, `~/.config/hypr/hyprland.lua`: a generated entry of three lines
+that puts the tree first in `package.path` and runs the tree's own entry
+(`system/home/hyprland.nix`; why one link: "A rebuild while the session
+runs", below).
+
+    local tree = "/nix/store/…-golem-hypr"
+    package.path = tree .. "/?.lua;" .. tree .. "/?/init.lua;" .. package.path
+    dofile(tree .. "/hyprland.lua")
 
 ## The map
 
@@ -14,7 +22,7 @@ On a machine it is `~/.config/hypr/` (links into the store, made by
 |---|---|
 | `hyprland.lua` | The entry. Configures nothing: it loads the modules in order, then the layers after Golem's (below). |
 | `golem/lib.lua` | What the modules share: this machine's facts (`machine`), the names the binds use (programs, main modifier, the windows' corner), the one piece of state two files touch (`superBurst`). A table, never globals. |
-| `golem/machine.lua` | **Generated, not in this folder.** The machine's facts as a Lua table: `dev`, `ctl`, `plugin`, `dock`, `shell`, `keyboard`, `panel_dpi`, `panel_scale`, `bluetooth`, `effects`, `lab`, `modules`. Written by `../hyprland.nix` (`xdg.configFile."hypr/golem/machine.lua"`). Without it (a copy run by hand) `lib.lua` answers as a plain install would. |
+| `golem/machine.lua` | **Generated, not in this folder.** The machine's facts as a Lua table: `dev`, `ctl`, `plugin`, `dock`, `shell`, `keyboard`, `panel_dpi`, `panel_scale`, `bluetooth`, `effects`, `lab`, `modules`. Written into the tree by `../hyprland.nix`; its text is also the option `golem.home.hyprFacts`, which the checks read by evaluation. Without it (a copy run by hand) `lib.lua` answers as a plain install would. |
 | `golem/monitors.lua` | Every screen at its preferred size and a scale for its density; the laptop panel's own scale (`machine.panel_scale`). |
 | `golem/layers.lua` | The shell's surfaces (dock, bar, desktop, its menus): blurred behind, frosted glass. |
 | `golem/autostart.lua` | What starts with the session: the lock screen FIRST (it is the login), the overview plugin, the cursor, the dock on the dev box, the wallpaper daemon, Bluetooth where there is an adapter. |
@@ -35,7 +43,7 @@ On a machine it is `~/.config/hypr/` (links into the store, made by
 | `golem/effects.lua` | A weak GPU (`machine.effects == "light"`): compositor blur off. |
 | `golem/lab.lua` | A lab machine (`machine.lab`): the whole log. |
 | `golem/modules/` | The app modules' own Lua (`<name>.lua`): rules and keys a module of programs brings. Loaded for the names in `machine.modules`: the app modules that are on (`golem.modules.active`, read by `../hyprland.nix`). Today: `gaming.lua` (a game that fills the screen keeps the computer awake). |
-| `golem/extra.lua` | **Generated when set:** this machine's own Lua (`golem.home.hyprlandExtra`). |
+| `golem/extra.lua` | **Generated when set, in the tree:** this machine's own Lua (`golem.home.hyprlandExtra`). |
 | `test/` | The recording mock, the comparison tool, the check (below). Not deployed. |
 
 ## The order is the contract
@@ -66,10 +74,18 @@ on the SAME key matters (kept: `test/compare.lua` checks it).
 
 ## How this Hyprland loads it
 
-- `package.path` is `<config dir>/?.lua;<config dir>/?/init.lua`, so
-  `require("golem.look")` is `~/.config/hypr/golem/look.lua`.
-- Every required file is watched: saving one reloads the configuration, and a
-  reload runs every module again (no bind is doubled).
+- Hyprland sets `package.path` to `<config dir>/?.lua;<config dir>/?/init.lua`
+  before every load and reload; the generated entry puts the tree in front
+  of it. So `require("golem.look")` is `<tree>/golem/look.lua`, and
+  `require("user")`, which the tree does not have, is
+  `~/.config/hypr/user.lua`. A file under `~/.config/hypr/golem/` can no
+  longer shadow one of Golem's modules: the tree is asked first. What an
+  owner wants changed goes in `user.lua`, which runs after all of them.
+- The entry (the link in the home) and every required file are watched. The
+  tree's files are in the store and never change; what changes is the link:
+  a rebuild replaces it, Hyprland reloads once, by itself, into the new
+  tree. Saving `user.lua` reloads too. A reload runs every module again (no
+  bind is doubled).
 - A required file that is not there raises an error `pcall` can catch (that is
   how the optional layers are optional). A required file with a mistake in it
   does NOT raise: Hyprland lists it among the configuration errors, hands back
@@ -100,10 +116,15 @@ No compositor is needed for the first two.
   `hl` (`test/mock.lua`): it loads, no key is bound twice the same way in one
   keymap, no window rule's name is used twice, the lock screen is the first
   thing started, an install runs nothing from `/home/max`, the layers come in
-  their order, Gaming's rule is there with the module on and not without. `lua` 5.4 from PATH or `$LUA`.
-- `nix build .#checks.x86_64-linux.hypr-config` — the same, with the facts the
-  desktop VM's own build generates. `desktop-matrix` and `facts-matrix` assert
-  the generated facts (keyboard, panel scale, light effects, the dev shape).
+  their order, Gaming's rule is there with the module on and not without.
+  `lua` 5.4 from PATH or `$LUA`. With `<built tree> <generated entry>` in
+  place of the facts it checks what a machine really loads, through the one
+  file its home holds: every call the same as the tree run directly,
+  `user.lua` beside the entry loaded, a stray `golem/look.lua` beside it not.
+- `nix build .#checks.x86_64-linux.hypr-config` — that last form, on the tree
+  and the entry the desktop VM's own build makes. `desktop-matrix`,
+  `facts-matrix` and `machine-layout` assert the generated facts (keyboard,
+  panel scale, light effects, the dev shape, the one link).
 - `lua test/mock.lua <config root> handlers > a.log` writes down everything a
   configuration DOES (every `hl.*` call with its arguments, then what its
   handlers and Lua binds do when run); `lua test/compare.lua a.log b.log` says
@@ -112,7 +133,7 @@ No compositor is needed for the first two.
   `XDG_CONFIG_HOME` at scratch folders: `screens.lua` WRITES the screens'
   blocks under the first.
 - **In a real compositor** (a nested Hyprland with a runtime folder of its
-  own; never the live one): start it with `-c <a copy of this tree>/hyprland.lua`,
+  own; never the live one): start it with `-c <a copy of this folder>/hyprland.lua`,
   a `machine.lua` in its `golem/`, `XDG_CONFIG_HOME` and `XDG_STATE_HOME` at
   scratch folders, and a `PATH` that begins with a folder of do-nothing
   stand-ins for `golem-lock-screen`, `awww-daemon`, `bluetoothctl`, `hyprctl`
@@ -125,49 +146,56 @@ No compositor is needed for the first two.
   ⚠ `-c` makes the path canonical: given a LINK, Hyprland looks for the
   modules beside the link's target, and never reads the folder the link is
   in. A session passes no `-c` and takes `~/.config/hypr/hyprland.lua` as it
-  is; to test the layout home-manager makes (links into the store), set
-  `XDG_CONFIG_HOME` to a folder holding `hypr/` and pass no `-c`.
+  is; to test what a machine has (the generated entry, a link into a
+  generation's folder), set `XDG_CONFIG_HOME` to a folder holding
+  `hypr/hyprland.lua` and pass no `-c`. A line appended to a file by the
+  rig's own `golem/settings.lua` (the live settings run last, every time)
+  counts the configuration's runs exactly; Hyprland's log lags.
 
-## A rebuild while the session runs (measured 2026-11-19, not solved)
+## A rebuild while the session runs: solved, and how (2026-11-19)
 
 Hyprland watches the entry and every file it required, and a link that is
 replaced or removed counts as a change: it reloads at once, by itself.
-home-manager's activation first removes the links the new generation does
-not have, then places the new ones one after another, in the order `find`
-gives in the store (on ext4 the order of the names' hashes: it differs from
-one machine's disk to the next, and on the dev box `hyprland.lua` comes
-before `golem/`). Measured in a nested Hyprland, laid out as home-manager
-lays it out:
 
-- **From the one file to this tree, the entry placed before `golem/`**: the
-  reload it triggers finds no module (`module 'golem.monitors' not found`).
-  The configuration is then EMPTY (an error banner, none of Golem's keys or
-  rules) and stays so: the modules that arrive next are not watched yet.
-  `hyprctl reload` puts everything back (96 binds, no error).
-- **The same, `golem/` placed before the entry**: nothing happens until the
-  entry is replaced, and the reload it triggers loads the whole tree. Clean.
-- **Back to the one file** ("go back a version"): the modules are removed
-  first, so the same empty configuration shows for as long as it takes the
-  activation to reach the entry; replacing the entry reloads into the one
-  file. Clean by itself.
+**What went wrong with a folder of links** (the first layout of the modules:
+`~/.config/hypr/golem/`, one link a module, never shipped). home-manager's
+activation first removes the links the new generation does not have, then
+places the new ones one after another, in the order `find` gives in the
+store (on ext4 the order of the names' hashes: it differs from one machine's
+disk to the next, and on the dev box `hyprland.lua` comes before `golem/`).
+Measured in a nested Hyprland laid out as home-manager lays it out:
 
-The compositor survives all of them. Until the switch is made atomic, a
-rebuild on a running session must be followed by `hyprctl reload`.
+- from the one file to that folder of links, the entry placed before
+  `golem/`: the reload it triggers finds no module
+  (`module 'golem.monitors' not found`), the configuration is EMPTY (an
+  error banner, none of Golem's keys or rules) and stays so, because the
+  modules that arrive next are not watched yet. Only `hyprctl reload` put it
+  back;
+- `golem/` placed before the entry: clean;
+- back to the one file: the modules are removed first, so the same empty
+  configuration showed until the activation reached the entry.
 
-A way to make it atomic, tried in the same rig and NOT built: the home holds
-one link only, the entry, and the entry is generated. It puts this build's
-tree (the modules and the facts, one folder in the store) first in
-`package.path` and runs the tree's own entry:
+**What is built instead: one link.** All of Golem's configuration is one
+folder in the store, and the home holds a single link, the generated entry
+that names it. A rebuild replaces that one link; there is no order to get
+wrong and nothing half placed: the reload Hyprland does by itself finds the
+whole new tree. Measured the same way (the entry a link into a generation's
+folder, the real built trees, no reload asked anywhere), each step one
+replaced link:
 
-    local tree = "/nix/store/…-golem-hypr"
-    package.path = tree .. "/?.lua;" .. tree .. "/?/init.lua;" .. package.path
-    dofile(tree .. "/hyprland.lua")
+| Step | Binds | Errors | Runs of the configuration |
+|---|---|---|---|
+| the one file as deployed on `main`, started | 96 | none | 1 (the start) |
+| → the tree | 96 | none | 1 |
+| the owner writes `user.lua` (one key) | 96 | none | 0: not read until the next load |
+| → a second tree, one module changed (one more key) | 98 | none | 1: the module's key and `user.lua`'s first |
+| `user.lua` saved again (a second key) | 99 | none | 1: it is watched now |
+| → the tree with the Gaming module on | 98 (96 and `user.lua`'s two) | none | 1; a fullscreen `steam_app_1` holds the idle clock |
+| → back to the one file ("go back a version") | 96 | none | 1 |
+| → the tree again | 98 | none | 1 |
 
-Replacing that one link took the compositor from the one file to a tree,
-between two trees and back to the one file, each time by itself, whole and
-with no error (96 and 100 binds, one tree carrying four more); `user.lua`
-was still found beside the entry and watched. Hyprland sets `package.path`
-anew at every reload, so nothing piles up in it.
+The compositor lived through all of it, and `package.path` held the last
+tree and the config folder, nothing piled up.
 
 ## How the split was proven (2026-11-19)
 

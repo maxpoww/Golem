@@ -9,6 +9,10 @@
 --
 -- Golem's modules are the same text on every machine. What differs is in
 -- golem/machine.lua (generated: system/home/hyprland.nix), read by golem/lib.lua.
+--
+-- On a machine this file, its modules and the facts are ONE folder in the
+-- store, and ~/.config/hypr/hyprland.lua is a generated file of three lines
+-- that puts that folder first in package.path and runs this file.
 
 require("golem.monitors")       -- every screen at its own size and scale
 require("golem.layers")         -- the shell's surfaces: frosted glass
@@ -41,7 +45,8 @@ end
 -- after everything Golem declares: golem/extra.lua, there only when set.
 pcall(require, "golem.extra")
 
--- THE OWNER'S OWN FILE: ~/.config/hypr/user.lua, written by hand, optional.
+-- THE OWNER'S OWN FILE: ~/.config/hypr/user.lua, written by hand, optional
+-- (found beside the generated entry: that folder stays in package.path).
 -- After Golem's and the machine's, so it wins over both; saving it reloads
 -- the configuration. A mistake in it is shown as a configuration error and
 -- stops nothing else.

@@ -92,16 +92,20 @@ s="${henv[SHELL]:-}"
 if [[ -n "$s" && -x "$s" ]]; then echo "ok $s"; else echo "MISSING ${s:-<unset>}"; fi
 
 # The config the session actually loaded: one file on a Golem from before
-# the modules (system/home/hypr); since them, the entry, every module beside
-# it, the machine's generated facts, and the owner's own file if there is one.
+# the modules (system/home/hypr); since them, a generated entry that names
+# this build's tree (one folder in the store: the tree's entry, every module,
+# the machine's generated facts), and the owner's own file if there is one.
 hyprdir="$HOME/.config/hypr"
+hyprtree=$(sed -n 's/^local tree = "\(.*\)"$/\1/p' "$hyprdir/hyprland.lua" 2>/dev/null | head -1)
+[[ -n "$hyprtree" && -d "$hyprtree" ]] || hyprtree=$hyprdir
 lua=$(mktemp)
 { cat "$hyprdir/hyprland.lua"
-  find -L "$hyprdir/golem" -name '*.lua' 2>/dev/null | sort | while IFS= read -r f; do cat "$f"; done
+  [[ "$hyprtree" == "$hyprdir" ]] || cat "$hyprtree/hyprland.lua"
+  find -L "$hyprtree/golem" -name '*.lua' 2>/dev/null | sort | while IFS= read -r f; do cat "$f"; done
   cat "$hyprdir/user.lua"; } > "$lua" 2>/dev/null
 section lua; cat "$lua" 2>/dev/null
 # The dock's tool as the binds call it (the modules read it from the facts).
-ctl=$(sed -n 's/^ *ctl = "\(.*\)",$/\1/p' "$hyprdir/golem/machine.lua" 2>/dev/null | head -1)
+ctl=$(sed -n 's/^ *ctl = "\(.*\)",$/\1/p' "$hyprtree/golem/machine.lua" 2>/dev/null | head -1)
 
 # Every command the config can run: does its program exist in the session PATH?
 section commands
@@ -133,7 +137,7 @@ if [[ -n "$installed" && "$running" != "$installed" ]]; then
 else echo "ok hyprland"; fi
 so=$(grep -oE 'plugin load [^"]+' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null | head -1 | cut -d' ' -f3)
 # (Since the modules, the plugin's path is one of the machine's facts.)
-[[ -n "$so" ]] || so=$(sed -n 's/^ *plugin = "\(.*\)",$/\1/p' "$hyprdir/golem/machine.lua" 2>/dev/null | head -1)
+[[ -n "$so" ]] || so=$(sed -n 's/^ *plugin = "\(.*\)",$/\1/p' "$hyprtree/golem/machine.lua" 2>/dev/null | head -1)
 if [[ -n "$so" ]]; then
   want=$(tr '\0' '\n' < "$so" 2>/dev/null | grep -xE '[0-9]+\.[0-9]{2}' | sort -u | head -1)
   have=$("$hyprctl" -j plugin list 2>/dev/null | grep -oE '"version": "[^"]+"' | head -1 | cut -d'"' -f4)

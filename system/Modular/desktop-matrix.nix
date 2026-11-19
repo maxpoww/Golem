@@ -310,9 +310,12 @@ let
       hyprEntry = builtins.readFile (hyprDir + "/hyprland.lua");
       staticLua = lib.concatMapStrings builtins.readFile
         (lib.filter (p: lib.hasSuffix ".lua" (toString p)) (lib.filesystem.listFilesRecursive (hyprDir + "/golem")));
-      hyprOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile;
-      factsOf = cfg: (hyprOf cfg)."hypr/golem/machine.lua".text;
-      extraOf = cfg: if (hyprOf cfg) ? "hypr/golem/extra.lua" then (hyprOf cfg)."hypr/golem/extra.lua".text else "";
+      # (The facts are an option of the home layer, read here by evaluation:
+      # nothing is built. On a machine they are golem/machine.lua in the one
+      # store folder ~/.config/hypr/hyprland.lua points at.)
+      hyprOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.golem.home;
+      factsOf = cfg: (hyprOf cfg).hyprFacts;
+      extraOf = cfg: (hyprOf cfg).hyprlandExtra;
       luaOf = cfg: staticLua + factsOf cfg + extraOf cfg + hyprEntry;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;

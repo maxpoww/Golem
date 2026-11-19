@@ -565,19 +565,20 @@
         # install runs nothing from /home/max, the lock screen is the first
         # thing started, and the layers come in their order (Golem's, the app
         # modules', the machine's, the owner's, the live settings last). Run
-        # with the facts the desktop VM's own build generates, so the
-        # generated file is checked with the modules that read it. (The
-        # plugin's store path is only a string here: the check must not have
-        # to build the plugin.)
+        # on what a machine really loads: the tree the desktop VM's own build
+        # makes (one store folder: the modules, its facts), through the
+        # generated entry its home holds (~/.config/hypr/hyprland.lua), with
+        # an owner's user.lua beside it. (Building the tree needs what its
+        # facts name: the overview plugin's store path is one of them.)
         hypr-config =
           let
             cfg = self.nixosConfigurations.golem-desktop-vm.config;
-            facts = pkgs.writeText "machine.lua" (builtins.unsafeDiscardStringContext
-              cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text);
+            home = cfg.home-manager.users.${cfg.golem.owner};
+            entry = pkgs.writeText "hyprland.lua" home.xdg.configFile."hypr/hyprland.lua".text;
           in
           pkgs.runCommand "golem-hypr-config" { nativeBuildInputs = [ pkgs.lua5_4 ]; } ''
-            cp -r ${./system/home/hypr} hypr && chmod -R u+w hypr
-            bash hypr/test/check.sh ${facts} > log || { cat log; exit 1; }
+            cp -r ${./system/home/hypr/test} test && chmod -R u+w test
+            bash test/check.sh ${home.golem.home.hyprTree} ${entry} > log || { cat log; exit 1; }
             cp log $out
           '';
       };

@@ -65,7 +65,7 @@ let
         (ex "4GB tier: one build job" (cfg.nix.settings.max-jobs == 1))
         (ex "102 DPI panel: NO generated scale rule (the 2026-09-02 lesson)"
           (lib.hasInfix "panel_scale = nil,"
-            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text))
+            cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts))
       ];
     }
     {
@@ -164,7 +164,7 @@ let
         (ex "hasBluetooth → bluez/blueman on" cfg.services.blueman.enable)
         (ex "239 DPI panel: generated eDP scale rule at 1.6"
           (lib.hasInfix "panel_scale = 1.6,"
-            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text))
+            cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts))
       ];
     }
     {
@@ -266,7 +266,7 @@ let
       name = "hidpi-panel"; # 239 = the Slim Pro's probe-measured DPI (34cm/3200px)
       facts.golem.hardware = { gpu = "intel"; panelDpi = 239; chassis = "laptop"; ramMB = 16384; cores = 8; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
         in [
           (ex "generated eDP scale rule at 1.6"
             (lib.hasInfix "panel_scale = 1.6," lua
@@ -298,7 +298,7 @@ let
       name = "install-answer-colemak"; # a variant layout, single group
       facts = { golem.keyboard = keyboards.derive "colemak"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
         in [
           (ex "console keymap is kbd's name, not xkb's"
             (cfg.console.keyMap == "colemak"))
@@ -318,7 +318,7 @@ let
       name = "install-answer-russian"; # non-latin: the second group + font
       facts = { golem.keyboard = keyboards.derive "ru"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
             xkb = cfg.services.xserver.xkb;
         in [
           (ex "a latin group is appended, or the owner cannot type a URL"

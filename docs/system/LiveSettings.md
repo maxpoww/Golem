@@ -11,8 +11,8 @@ Built so far: **Scale** and **Resolution** (per screen).
 
 | Layer | File | Written by | Changes when |
 |---|---|---|---|
-| Golem's defaults | `~/.config/hypr/hyprland.lua` and `~/.config/hypr/golem/` (store links) | the system (`system/home/hypr/`, in modules, + the machine's facts `home.nix` generates as `golem/machine.lua`) | the system updates |
-| The machine's own | `~/.config/hypr/golem/extra.lua` (a store link) | the machine's configuration (`golem.home.hyprlandExtra`) | the machine is rebuilt |
+| Golem's defaults | `~/.config/hypr/hyprland.lua` (the one store link: a generated entry that points at this build's tree, one folder in the store) | the system (`system/home/hypr/`, in modules, + the machine's facts `hyprland.nix` writes into the tree as `golem/machine.lua`) | the system updates |
+| The machine's own | `golem/extra.lua` in the tree | the machine's configuration (`golem.home.hyprlandExtra`) | the machine is rebuilt |
 | The owner's own Lua | `~/.config/hypr/user.lua` (optional) | the owner, by hand | the owner saves it (Hyprland reloads) |
 | The owner's choices | `~/.config/golem/settings.json` | the control panel (the dock) | the owner changes a setting |
 | The compositor's copy of them | `~/.config/golem/settings.lua` | the dock, generated from the JSON | same moment |

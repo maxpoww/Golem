@@ -57,9 +57,11 @@ let
         && q.networking.hostName == "golem-vm" && q.golem.hardware.vmGuest == "qemu"))
 
     # ── Hyprland, in modules ─────────────────────────────────────────────
-    (ex "Hyprland: Golem's modules as they are, and ONE generated file with this machine's facts"
-      (let facts = home.xdg.configFile."hypr/golem/machine.lua".text; in
-        home.xdg.configFile ? "hypr/golem"
+    (ex "Hyprland: ONE link in the home (the entry, pointing at this build's tree), and this machine's facts in the tree"
+      (let facts = home.golem.home.hyprFacts; in
+        home.xdg.configFile ? "hypr/hyprland.lua" && !(home.xdg.configFile ? "hypr/golem")
+        && lib.hasInfix (builtins.unsafeDiscardStringContext "${home.golem.home.hyprTree}")
+          home.xdg.configFile."hypr/hyprland.lua".text
         && lib.hasInfix ''layout  = "latam"'' facts
         && lib.hasInfix ''ctl = "waverunner-ctl"'' facts
         && lib.hasInfix "dev = false" facts
@@ -91,8 +93,8 @@ let
         && c.virtualisation.docker.rootless.enable
         && !(lib.elem "docker" c.users.users.${owner}.extraGroups)))
     (ex "modules.list: what is on is told to Hyprland (the modules' own Lua)"
-      (lib.hasInfix ''modules = { "gaming", "development" }'' home.xdg.configFile."hypr/golem/machine.lua".text
-        || lib.hasInfix ''modules = { "development", "gaming" }'' home.xdg.configFile."hypr/golem/machine.lua".text))
+      (lib.hasInfix ''modules = { "gaming", "development" }'' home.golem.home.hyprFacts
+        || lib.hasInfix ''modules = { "development", "gaming" }'' home.golem.home.hyprFacts))
     (ex "modules.list: a name that is no module or no program, and a line that is not a name, are warnings"
       (lib.any (w: lib.hasInfix "'not-a-module' is not a module" w) c.warnings
         && lib.any (w: lib.hasInfix "'gaming.not-a-program' is not a program" w) c.warnings

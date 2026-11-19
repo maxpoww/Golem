@@ -58,7 +58,7 @@
       default = "";
       description = ''
         This machine's own Lua for Hyprland, loaded after everything Golem
-        declares, so it wins (hypr/golem/extra.lua): a look it keeps, a
+        declares, so it wins (golem/extra.lua in the tree): a look it keeps, a
         panel. Keep it short; anything more than one machine would want
         belongs in a module of system/home/hypr/golem.
       '';
@@ -70,10 +70,37 @@
       example = [ "gaming" ];
       description = ''
         More app modules whose own Lua the Hyprland configuration loads
-        (hypr/golem/modules/<name>.lua: the window rules and keys a module
+        (golem/modules/<name>.lua: the window rules and keys a module
         of programs brings with it), beside the ones that are switched on
         (golem.modules.active, read by hyprland.nix). A name with no file
         is fine.
+      '';
+    };
+
+    # The two below are SET by hyprland.nix and only read: by the checks
+    # (the matrices assert on the facts by evaluation, with nothing built;
+    # the flake's hypr-config runs the built tree) and by a rig.
+    hyprFacts = lib.mkOption {
+      type = lib.types.str;
+      internal = true;
+      readOnly = true;
+      description = ''
+        The text of this machine's generated facts for Hyprland
+        (golem/machine.lua in the tree): what differs from one machine to
+        the next, as a Lua table the modules read.
+      '';
+    };
+
+    hyprTree = lib.mkOption {
+      type = lib.types.package;
+      internal = true;
+      readOnly = true;
+      description = ''
+        This build's Hyprland configuration, one folder in the store: the
+        tree's entry (hyprland.lua), Golem's modules (golem/), the facts
+        (golem/machine.lua) and the machine's own tail when set
+        (golem/extra.lua). ~/.config/hypr/hyprland.lua, the one link in the
+        home, points Hyprland at it.
       '';
     };
   };

@@ -1,12 +1,15 @@
--- test/check.lua <root> <layers root> <gaming root>: what must hold of
--- Golem's Hyprland configuration, checked with the recording mock (mock.lua)
--- and no compositor. Run through check.sh, which makes the roots:
+-- test/check.lua <root> <layers root> <gaming root> [<home>]: what must hold
+-- of Golem's Hyprland configuration, checked with the recording mock
+-- (mock.lua) and no compositor. Run through check.sh, which makes the roots:
 --   <root>         the tree with a machine's real generated facts;
 --   <layers root>  the tree with the sample facts, an app module's file
 --                  (golem/modules/demo.lua), a machine's own tail
 --                  (golem/extra.lua) and an owner's file (user.lua), each
 --                  setting general.gaps_in to a number of its own;
---   <gaming root>  the first root with the Gaming module on (facts.modules).
+--   <gaming root>  the first root with the Gaming module on (facts.modules);
+--   <home>         ~/.config/hypr as a machine has it: the generated entry
+--                  (it points at <root>, the built tree), the owner's
+--                  user.lua (gaps_in 23) and a stray golem/look.lua (24).
 -- XDG_CONFIG_HOME/golem/settings.lua (the live settings) sets it to 7.
 
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -125,6 +128,26 @@ check("Gaming on: a game that fills the screen keeps the computer awake",
     and gaming[awake]:find("steam_app_", 1, true) ~= nil, awake and gaming[awake])
 check("Gaming's rule comes after every rule Golem declares",
     awake ~= nil and (index_of(gaming, 'name = "move-hyprland-run"') or math.huge) < awake)
+
+---- 4. the home as a machine has it: one generated entry ----
+if arg[4] then
+    local direct, deployed = run(arg[1], false), run(arg[4], false)
+    local own = index_of(deployed, "config({ general = { gaps_in = 23 } })")
+    check("the owner's user.lua, beside the entry, is loaded", own ~= nil)
+    check("a file under golem/ beside the entry does not shadow Golem's module",
+        index_of(deployed, "config({ general = { gaps_in = 24 } })") == nil)
+    local same = own ~= nil and #deployed == #direct + 1
+    if same then
+        table.remove(deployed, own)
+        for i = 1, #direct do
+            if deployed[i] ~= direct[i] then same = false break end
+        end
+    end
+    check("the generated entry loads this build's tree: every call, in order (" .. #direct .. " lines)", same,
+        #deployed .. " lines through the entry")
+    check("the owner's file comes after everything Golem declares, before the live settings",
+        own ~= nil and (index_of(direct, 'name = "move-hyprland-run"') or math.huge) < own and own == #direct)
+end
 
 print(failed == 0 and "hypr-config: all good" or ("hypr-config: " .. failed .. " FAILED"))
 os.exit(failed == 0 and 0 or 1)
