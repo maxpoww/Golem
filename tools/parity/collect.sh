@@ -91,9 +91,17 @@ section shell
 s="${henv[SHELL]:-}"
 if [[ -n "$s" && -x "$s" ]]; then echo "ok $s"; else echo "MISSING ${s:-<unset>}"; fi
 
-# The config the session actually loaded.
-lua="$HOME/.config/hypr/hyprland.lua"
+# The config the session actually loaded: one file on a Golem from before
+# the modules (system/home/hypr); since them, the entry, every module beside
+# it, the machine's generated facts, and the owner's own file if there is one.
+hyprdir="$HOME/.config/hypr"
+lua=$(mktemp)
+{ cat "$hyprdir/hyprland.lua"
+  find -L "$hyprdir/golem" -name '*.lua' 2>/dev/null | sort | while IFS= read -r f; do cat "$f"; done
+  cat "$hyprdir/user.lua"; } > "$lua" 2>/dev/null
 section lua; cat "$lua" 2>/dev/null
+# The dock's tool as the binds call it (the modules read it from the facts).
+ctl=$(sed -n 's/^ *ctl = "\(.*\)",$/\1/p' "$hyprdir/golem/machine.lua" 2>/dev/null | head -1)
 
 # Every command the config can run: does its program exist in the session PATH?
 section commands
@@ -107,6 +115,11 @@ grep -oE 'exec_cmd\("([^"\\]|\\.)*"\)' "$lua" 2>/dev/null \
     fi
     printf '%s\t%s\n' "$r" "$cmd"
   done
+if [[ -n "$ctl" ]]; then
+  if [[ "$ctl" == /* ]]; then [[ -x "$ctl" ]] && r=ok || r=MISSING
+  else PATH="${henv[PATH]:-$PATH}" command -v "$ctl" >/dev/null 2>&1 && r=ok || r=MISSING; fi
+  printf '%s\t%s\n' "$r" "$ctl (the binds' dock tool)"
+fi
 
 # Is the RUNNING session using what is INSTALLED? A deploy updates the system,
 # but the compositor, its plugin and the dock keep what they loaded at start —
@@ -119,6 +132,8 @@ if [[ -n "$installed" && "$running" != "$installed" ]]; then
   echo "STALE hyprland running=$running installed=$installed"
 else echo "ok hyprland"; fi
 so=$(grep -oE 'plugin load [^"]+' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null | head -1 | cut -d' ' -f3)
+# (Since the modules, the plugin's path is one of the machine's facts.)
+[[ -n "$so" ]] || so=$(sed -n 's/^ *plugin = "\(.*\)",$/\1/p' "$hyprdir/golem/machine.lua" 2>/dev/null | head -1)
 if [[ -n "$so" ]]; then
   want=$(tr '\0' '\n' < "$so" 2>/dev/null | grep -xE '[0-9]+\.[0-9]{2}' | sort -u | head -1)
   have=$("$hyprctl" -j plugin list 2>/dev/null | grep -oE '"version": "[^"]+"' | head -1 | cut -d'"' -f4)

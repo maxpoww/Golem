@@ -64,8 +64,8 @@ let
         (ex "intel laptop: thermald on" cfg.services.thermald.enable)
         (ex "4GB tier: one build job" (cfg.nix.settings.max-jobs == 1))
         (ex "102 DPI panel: NO generated scale rule (the 2026-09-02 lesson)"
-          (!lib.hasInfix ''output = "eDP-1"''
-            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text))
+          (lib.hasInfix "panel_scale = nil,"
+            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text))
       ];
     }
     {
@@ -163,8 +163,8 @@ let
           (cfg.services.logind.settings.Login.HandleLidSwitch == "suspend-then-hibernate"))
         (ex "hasBluetooth → bluez/blueman on" cfg.services.blueman.enable)
         (ex "239 DPI panel: generated eDP scale rule at 1.6"
-          (lib.hasInfix ''output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6''
-            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text))
+          (lib.hasInfix "panel_scale = 1.6,"
+            cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text))
       ];
     }
     {
@@ -266,10 +266,13 @@ let
       name = "hidpi-panel"; # 239 = the Slim Pro's probe-measured DPI (34cm/3200px)
       facts.golem.hardware = { gpu = "intel"; panelDpi = 239; chassis = "laptop"; ramMB = 16384; cores = 8; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
         in [
           (ex "generated eDP scale rule at 1.6"
-            (lib.hasInfix ''output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6'' lua))
+            (lib.hasInfix "panel_scale = 1.6," lua
+             # …and the module that reads the fact makes the rule of it
+             && lib.hasInfix ''hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = M.panel_scale })''
+               (builtins.readFile ../home/hypr/golem/monitors.lua)))
         ];
     }
 
@@ -295,7 +298,7 @@ let
       name = "install-answer-colemak"; # a variant layout, single group
       facts = { golem.keyboard = keyboards.derive "colemak"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
         in [
           (ex "console keymap is kbd's name, not xkb's"
             (cfg.console.keyMap == "colemak"))
@@ -305,17 +308,17 @@ let
           (ex "no second group, so no toggle" (cfg.services.xserver.xkb.options == ""))
           (ex "latin script keeps the default console font" (cfg.console.font == null))
           (ex "HYPRLAND carries the variant (it does not read xkb.*)"
-            (lib.hasInfix ''kb_variant = "colemak"'' lua))
-          (ex "HYPRLAND is not left on the dev-checkout literal"
-            (!lib.hasInfix ''kb_layout  = "us",
-        kb_variant = "",'' lua))
+            (lib.hasInfix ''variant = "colemak",'' lua))
+          (ex "HYPRLAND is not left on the default (us, no variant), and its input block reads the answer"
+            (!lib.hasInfix ''variant = "",'' lua
+             && lib.hasInfix "kb_variant = keyboard.variant," (builtins.readFile ../home/hypr/golem/input.lua)))
         ];
     }
     {
       name = "install-answer-russian"; # non-latin: the second group + font
       facts = { golem.keyboard = keyboards.derive "ru"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+        let lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
             xkb = cfg.services.xserver.xkb;
         in [
           (ex "a latin group is appended, or the owner cannot type a URL"
@@ -326,9 +329,9 @@ let
           (ex "cyrillic console gets a font that can draw it"
             (cfg.console.font == "LatArCyrHeb-16"))
           (ex "ISO board is pc105, not the pc104 default" (xkb.model == "pc105"))
-          (ex "HYPRLAND carries both groups" (lib.hasInfix ''kb_layout  = "ru,us"'' lua))
+          (ex "HYPRLAND carries both groups" (lib.hasInfix ''layout  = "ru,us",'' lua))
           (ex "HYPRLAND carries the toggle"
-            (lib.hasInfix ''kb_options = "grp:alt_shift_toggle"'' lua))
+            (lib.hasInfix ''options = "grp:alt_shift_toggle",'' lua))
         ];
     }
     {

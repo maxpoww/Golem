@@ -11,7 +11,9 @@ Built so far: **Scale** and **Resolution** (per screen).
 
 | Layer | File | Written by | Changes when |
 |---|---|---|---|
-| Golem's defaults | `~/.config/hypr/hyprland.lua` (a store link) | the system (`system/home/hyprland.lua` + `home.nix`) | the system updates |
+| Golem's defaults | `~/.config/hypr/hyprland.lua` and `~/.config/hypr/golem/` (store links) | the system (`system/home/hypr/`, in modules, + the machine's facts `home.nix` generates as `golem/machine.lua`) | the system updates |
+| The machine's own | `~/.config/hypr/golem/extra.lua` (a store link) | the machine's configuration (`golem.home.hyprlandExtra`) | the machine is rebuilt |
+| The owner's own Lua | `~/.config/hypr/user.lua` (optional) | the owner, by hand | the owner saves it (Hyprland reloads) |
 | The owner's choices | `~/.config/golem/settings.json` | the control panel (the dock) | the owner changes a setting |
 | The compositor's copy of them | `~/.config/golem/settings.lua` | the dock, generated from the JSON | same moment |
 
@@ -20,9 +22,10 @@ part of Golem owns its own keys and must write the others back untouched (the
 dock does). `settings.lua` is derived: never edit it, it is rewritten on every
 change.
 
-Golem's `hyprland.lua` **ends** by running `settings.lua` (`home.nix`, the
-`LIVE SETTINGS` block): after Golem's defaults, after a weak GPU's light
-effects, after the machine's own `hyprlandExtra`. So a choice
+Golem's `hyprland.lua` (the entry, `system/home/hypr/hyprland.lua`) **ends**
+by running `settings.lua` (its `LIVE SETTINGS` block): after Golem's modules,
+after a weak GPU's light effects, after the machine's own `hyprlandExtra`,
+after the owner's `user.lua`. So a choice
 
 - wins over everything declared,
 - is on the screen from the compositor's first frame (no flash, and it does

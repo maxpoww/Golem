@@ -6,8 +6,9 @@
 # On an install (golem.home.devCheckout = false, the default):
 #   • waverunner runs from its flake package via programs.waverunner
 #     (systemd user service), not /home/max/launcher/waverunner-dev
-#   • hyprland.lua's plugin-load / waverunner-ctl lines are rewritten to
-#     store paths / PATH bins at build time (see the replaceStrings below)
+#   • the Hyprland modules (./hypr) load the plugin from its store path and
+#     call waverunner-ctl from PATH: the facts in the generated
+#     hypr/golem/machine.lua (see xdg.configFile."hypr/golem/machine.lua")
 # On the dev box (devCheckout = true) both stay pointed at the live checkouts.
 { config, osConfig, pkgs, lib, waverunner, waveview, ... }:
 
@@ -435,23 +436,28 @@ in
     };
   };
 
-  # Hyprland raw Lua file — the /etc/nixos copy's three homedir assumptions
-  # rewritten at build time: waveview loads from its store path, waverunner
-  # autostarts via its systemd unit, waverunner-ctl comes from PATH.
-  # GUARD (release-checklist §2.6): replaceStrings never errors on a missed
-  # needle — if hyprland.lua is edited so a needle no longer matches, a
-  # stranger's machine would silently load the plugin from /home/max and come
-  # up without the overview. So a missing needle is an EVAL failure, not a
-  # silent ship.
-  xdg.configFile."hypr/hyprland.lua".text =
+  # HYPRLAND, IN MODULES (system/home/hypr/README.md). Golem's configuration
+  # is ./hypr: the entry (hyprland.lua) and one file a concern under golem/,
+  # linked as they are, the same text on every machine. What differs per
+  # machine is ONE generated file, golem/machine.lua: a table of facts that
+  # the modules read (golem/lib.lua). It replaces the rewrite this file made
+  # of the one-file hyprland.lua (needles swapped by replaceStrings), where a
+  # needle that stopped matching would silently have shipped /home/max paths.
+  xdg.configFile."hypr/hyprland.lua".source = ./hypr/hyprland.lua;
+  xdg.configFile."hypr/golem" = {
+    source = ./hypr/golem;
+    recursive = true; # linked file by file: the generated ones sit beside them
+  };
+  xdg.configFile."hypr/golem/machine.lua".text =
     let
-      raw = builtins.readFile ./hyprland.lua;
+      luaString = s: "\"" + lib.replaceStrings [ "\\" "\"" "\n" ] [ "\\\\" "\\\"" "\\n" ] s + "\"";
+      luaBool = b: if b then "true" else "false";
 
       # HiDPI from the census (golem.hardware.panelDpi — EDID width vs
-      # native mode, eDP only): a generated monitor rule for the internal
-      # panel lands right after the catch-all, so a 4K-13" stranger's
-      # laptop doesn't boot at ant size while externals stay at the
-      # catch-all's scale. Tiers calibrated against the one measured
+      # native mode, eDP only): the internal panel's own monitor rule
+      # (golem/monitors.lua, right after the catch-all), so a 4K-13"
+      # stranger's laptop doesn't boot at ant size while externals stay at
+      # the catch-all's scale. Tiers calibrated against the one measured
       # point: the Slim Pro 9i's 260 DPI panel, hand-tuned to 1.60 (the
       # desc override below it — which still wins there, agreeing).
       # 0 (unknown) or ordinary panels: no rule, catch-all behavior —
@@ -462,145 +468,109 @@ in
         else if panelDpi >= 210 then "1.6"
         else if panelDpi >= 170 then "1.25"
         else null;
-      monitorNeedle =
-        ''hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })'';
 
       # KEYBOARD, from the installer's one question (golem.keyboard).
       # Hyprland does NOT read services.xserver.xkb — it has its own input
-      # block, so this is the sink that decides what the owner actually
-      # types into. The other two (console.keyMap, services.xserver.xkb)
-      # are set in system/configuration.nix; all three come from the same
-      # option so they cannot drift.
-      #
-      # The literal below is what a dev checkout wants (us, no variant);
-      # the needle swaps in the machine's real answer. A stranger who picked
+      # block (golem/input.lua), so this is the sink that decides what the
+      # owner actually types into. The other two (console.keyMap,
+      # services.xserver.xkb) are set in system/configuration.nix; all three
+      # come from the same option so they cannot drift. A stranger who picked
       # Colemak gets layout us / variant colemak here, and a Russian gets
       # "ru,us" with grp:alt_shift_toggle so they can still type a URL.
-      # Double-quoted, not ''-quoted: an indented string strips its common
-      # leading whitespace, which would silently produce a needle that can
-      # never match the eight-space indent inside hyprland.lua's input
-      # block. The guard below caught exactly that; the pad is named once
-      # so it cannot drift from the file.
       kb = osConfig.golem.keyboard;
-      kbPad = "        ";
-      kbNeedle = lib.concatStringsSep "\n" [
-        "${kbPad}kb_layout  = \"us\","
-        "${kbPad}kb_variant = \"\","
-        "${kbPad}kb_model   = \"\","
-        "${kbPad}kb_options = \"\","
-      ];
 
-      # SHELL follows the owner's REAL login shell. The literal in
-      # hyprland.lua is the dev box's zsh; on a Golem install the login
-      # shell is plain bash (base/shell.nix) and no system zsh exists, so
-      # every bare `foot` (Super+E) exec'd a missing $SHELL and died
-      # instantly — "failed to execute zsh: No such file" (thinkpad,
-      # 2026-09-29). Derived from users.users.<owner>.shell, it stays zsh
-      # wherever the owner's shell IS zsh.
+      # SHELL follows the owner's REAL login shell: zsh on the dev box; on a
+      # Golem install the login shell is plain bash (base/shell.nix) and no
+      # system zsh exists, so every bare `foot` (Super+E) exec'd a missing
+      # $SHELL and died instantly — "failed to execute zsh: No such file"
+      # (thinkpad, 2026-09-29). Derived from users.users.<owner>.shell.
       ownerShell =
         let s = osConfig.users.users.${osConfig.golem.owner}.shell; in
         if builtins.isString s then s else "/run/current-system/sw${s.shellPath}";
-      shellNeedle = ''hl.env("SHELL",          "/run/current-system/sw/bin/zsh")'';
 
       # BLUETOOTH autostart only where there IS Bluetooth: the census turns
       # the stack off on a machine without an adapter (desktop/bluetooth.nix),
-      # and the session still exec'd bluetoothctl — two
-      # commands with no program (ASUS X550LC parity, 2026-10-02).
-      btNeedle = lib.concatStringsSep "\n" [
-        ''hl.exec_cmd("bluetoothctl power on")''
-        ''hl.exec_cmd("sleep 2 && bluetoothctl devices Trusted | awk '{print $2}' | xargs -I {} bluetoothctl connect {}")''
-      ];
+      # and the session still exec'd bluetoothctl — two commands with no
+      # program (ASUS X550LC parity, 2026-10-02).
       hasBluetooth = osConfig.hardware.bluetooth.enable or true;
 
-      # The shell's three live-checkout paths become store paths / PATH bins
-      # on an install; the dev box keeps them (golem.home.devCheckout), which
-      # is its whole edit-build-restart loop. Built as conditional lists, so a
-      # dev eval never forces the waveview input.
-      shellNeedles = lib.optionals (!dev) [
-        "hyprctl plugin load /home/max/waveview/result/lib/libwaveview.so"
-        ''hl.exec_cmd("/home/max/launcher/waverunner-dev")''
-        "/home/max/launcher/target/debug/waverunner-ctl"
-      ];
-      shellReplacements = lib.optionals (!dev) [
-        "hyprctl plugin load ${waveview}/lib/libwaveview.so"
-        "-- waverunner autostarts via systemd (programs.waverunner)"
-        "waverunner-ctl"
-      ];
-      needles = shellNeedles ++ [
-        monitorNeedle
-        kbNeedle
-        shellNeedle
-        btNeedle
-      ];
-      replacements = shellReplacements ++ [
-        (if edpScale == null then monitorNeedle else ''
-          ${monitorNeedle}
-          -- generated from the panelDpi fact (${toString panelDpi} DPI)
-          hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = ${edpScale} })'')
-        (lib.concatStringsSep "\n" [
-          "${kbPad}-- generated from golem.keyboard (the installer's keyboard step)"
-          "${kbPad}kb_layout  = \"${kb.layout}\","
-          "${kbPad}kb_variant = \"${kb.variant}\","
-          "${kbPad}kb_model   = \"${kb.model}\","
-          "${kbPad}kb_options = \"${kb.options}\","
-        ])
-        ''hl.env("SHELL",          "${ownerShell}")''
-        (if hasBluetooth then btNeedle else "-- no Bluetooth adapter on this machine (census): no Bluetooth autostart")
-      ];
-      missing = builtins.filter (n: !(lib.hasInfix n raw)) needles;
+      # The shell's three live-checkout paths are store paths / PATH bins on
+      # an install; the dev box keeps them (golem.home.devCheckout), which is
+      # its whole edit-build-restart loop: waveview loads from its store
+      # path, waverunner autostarts via its systemd unit (no dock command),
+      # waverunner-ctl comes from PATH. Each is an `if`, so a dev eval never
+      # forces the waveview input.
+      ctl = if dev then "/home/max/launcher/target/debug/waverunner-ctl" else "waverunner-ctl";
+      plugin = if dev then "/home/max/waveview/result/lib/libwaveview.so" else "${waveview}/lib/libwaveview.so";
+      dock = if dev then luaString "/home/max/launcher/waverunner-dev" else "nil";
+
+      modules = config.golem.home.hyprlandModules;
+
+      text = ''
+        -- GENERATED by Golem's home layer (system/home/home.nix) for this
+        -- machine; written again at every rebuild, never edited by hand.
+        -- What each line means: golem/lib.lua.
+        return {
+            dev = ${luaBool dev},
+            ctl = ${luaString ctl},
+            plugin = ${luaString plugin},
+            dock = ${dock},
+            shell = ${luaString ownerShell},
+            keyboard = {
+                layout  = ${luaString kb.layout},
+                variant = ${luaString kb.variant},
+                model   = ${luaString kb.model},
+                options = ${luaString kb.options},
+            },
+            panel_dpi = ${toString panelDpi},
+            panel_scale = ${if edpScale == null then "nil" else edpScale},
+            bluetooth = ${luaBool hasBluetooth},
+            -- Weak GPU (golem.desktop.effects = "light", set by
+            -- gpu/intel-legacy): no compositor blur (golem/effects.lua).
+            effects = ${luaString (osConfig.golem.desktop.effects or "full")},
+            -- A lab machine keeps Hyprland's whole log (golem/lab.lua).
+            lab = ${luaBool (osConfig.systemd.services ? golem-lab-heartbeat)},
+            modules = { ${lib.concatMapStringsSep ", " luaString modules} },
+        }
+      '';
+
+      # GUARD (release-checklist §2.6): a stranger's machine must never load
+      # the plugin or call the dock from /home/max and come up without the
+      # overview. The modules carry no home path at all (they read these
+      # facts), and on an install the facts carry none either; a path that
+      # creeps into either is an EVAL failure, not a silent ship.
+      staticLua = lib.filter (p: lib.hasSuffix ".lua" (toString p))
+        (lib.filesystem.listFilesRecursive ./hypr/golem ++ [ ./hypr/hyprland.lua ]);
+      homePaths = lib.filter (p: lib.hasInfix "/home/max" (builtins.readFile p)) staticLua;
+      badModules = lib.filter (m: builtins.match "[a-z0-9][a-z0-9-]*" m == null) modules;
     in
-    assert lib.assertMsg (missing == [ ]) ''
-      hyprland.lua rewrite needle(s) no longer match — a built system would
-      silently keep the /home/max path(s) and boot without the overview.
-      Update the needles in system/home/home.nix to match hyprland.lua:
-      ${lib.concatMapStrings (n: "  MISSING: " + n + "\n") missing}'';
-    builtins.replaceStrings needles replacements raw
-    # Weak GPU (golem.desktop.effects = "light", set by gpu/intel-legacy):
-    # no compositor blur. Appended last, so it wins over the decoration block.
-    # `or`: the fat profile doesn't declare the option and keeps full effects.
-    + lib.optionalString ((osConfig.golem.desktop.effects or "full") == "light") ''
+    assert lib.assertMsg (homePaths == [ ]) ''
+      A Hyprland module names a path under /home/max: a built system would
+      carry it to every machine. What differs per machine belongs in the
+      generated golem/machine.lua (system/home/home.nix), read through
+      golem/lib.lua:
+      ${lib.concatMapStrings (p: "  " + toString p + "\n") homePaths}'';
+    assert lib.assertMsg (dev || !(lib.hasInfix "/home/max" text)) ''
+      hypr/golem/machine.lua names a path under /home/max on an install
+      (golem.home.devCheckout is off): the desktop would load the overview
+      plugin or call the dock from a folder that is not there.'';
+    assert lib.assertMsg (badModules == [ ]) ''
+      golem.home.hyprlandModules: not a module's name (a-z, 0-9, -):
+      ${lib.concatStringsSep ", " badModules}'';
+    text;
 
-      ---- LIGHT EFFECTS (golem.desktop.effects = "light") ----
-      -- Generated for a weak GPU: Hyprland's blur off. On the 2013 MacBook
-      -- Air it held the 3D engine at 98% during video; the rest of the look
-      -- (shadows, dimming, rounding) costs nothing measurable and stays.
-      hl.config({ decoration = { blur = { enabled = false } } })
-    ''
-    # A lab machine keeps Hyprland's whole log (Modular/lab/lab-door.nix).
-    + lib.optionalString (osConfig.systemd.services ? golem-lab-heartbeat) ''
-      hl.config({ debug = { disable_logs = false } })
-    ''
-    # This machine's own Lua (golem.home.hyprlandExtra), after everything
-    # Golem declares.
-    + lib.optionalString (config.golem.home.hyprlandExtra != "") (
-      "\n" + config.golem.home.hyprlandExtra)
-    # The owner's LIVE SETTINGS, truly last: what was chosen in the control
-    # panel wins over everything declared above (docs/system/LiveSettings.md).
-    + ''
-
-      ---- LIVE SETTINGS (the control panel) ----
-      -- What the owner chose in the control panel (a screen's scale and
-      -- resolution so far). The dock sets a choice live and saves it to
-      -- ~/.config/golem/settings.json, with a copy as Lua beside it. That
-      -- copy runs here, last: a choice wins over every default above, is on
-      -- the screen from the compositor's first frame, and comes back on
-      -- every reload, whether or not the dock is running.
-      -- dofile, not require: a required file is watched, and each click in
-      -- the panel would reload this whole config. A missing or broken file
-      -- changes nothing.
-      do
-          local dir = os.getenv("XDG_CONFIG_HOME") or (os.getenv("HOME") .. "/.config")
-          local path = dir .. "/golem/settings.lua"
-          local file = io.open(path, "r")
-          if file then
-              file:close()
-              local ok, err = pcall(dofile, path)
-              if not ok then
-                  print("golem: live settings not applied: " .. tostring(err))
-              end
-          end
-      end
-    '';
+  # This machine's own Lua (golem.home.hyprlandExtra), after everything
+  # Golem declares and before the owner's own file: golem/extra.lua, there
+  # only when set. It was a tail of the one file, so it could use that file's
+  # local names; they are handed to it here.
+  xdg.configFile."hypr/golem/extra.lua" = lib.mkIf (config.golem.home.hyprlandExtra != "") {
+    text = ''
+      -- GENERATED from golem.home.hyprlandExtra (this machine's configuration).
+      local G = require("golem.lib")
+      local terminal, fileManager, Suspend, mainMod, windowCorner =
+          G.terminal, G.fileManager, G.Suspend, G.mainMod, G.windowCorner
+    '' + config.golem.home.hyprlandExtra + "\n";
+  };
 
   # Waverunner config
   xdg.configFile."waverunner/config.toml".text = ''

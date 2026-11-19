@@ -300,7 +300,19 @@ let
       unshipped = builtins.filter (id: !(shippedBy ? ${id}) || installedNamed shippedBy.${id} == null) defaultIds;
       defaultFiles = lib.optionalString (unshipped == [ ])
         (lib.concatMapStringsSep "\n" (id: "desktop-file ${id} ${installedNamed shippedBy.${id}}/share/applications/${id}") defaultIds);
-      luaOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
+      # THE HYPRLAND CONFIGURATION AS DEPLOYED (system/home/hypr): Golem's
+      # modules are the same text on every machine (`staticLua`, read from the
+      # tree), what differs is the generated table of facts (`factsOf`) and
+      # the machine's own tail (`extraOf`). `luaOf` is all of it as one text,
+      # the entry last (it is what runs last).
+      hyprDir = ../home/hypr;
+      hyprEntry = builtins.readFile (hyprDir + "/hyprland.lua");
+      staticLua = lib.concatMapStrings builtins.readFile
+        (lib.filter (p: lib.hasSuffix ".lua" (toString p)) (lib.filesystem.listFilesRecursive (hyprDir + "/golem")));
+      hyprOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile;
+      factsOf = cfg: (hyprOf cfg)."hypr/golem/machine.lua".text;
+      extraOf = cfg: if (hyprOf cfg) ? "hypr/golem/extra.lua" then (hyprOf cfg)."hypr/golem/extra.lua".text else "";
+      luaOf = cfg: staticLua + factsOf cfg + extraOf cfg + hyprEntry;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
       dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;
       checks = [
@@ -404,14 +416,15 @@ let
         # as it is on an install, and is still a shot of the screen where the
         # dock does not answer; the text reader ships.
         (ex "Print tells the dock its press and its release, falls back to a screen shot, and tesseract ships"
-          (lib.hasInfix "exec_cmd(\"sh -c 'waverunner-ctl capture press || golem-screenshot screen'\")" (luaOf c)
-           && lib.hasInfix "exec_cmd(\"waverunner-ctl capture release\"), { release = true" (luaOf c)
-           && lib.hasInfix "exec_cmd(\"sh -c 'waverunner-ctl capture shot || golem-screenshot screen'\")" (luaOf c)
+          (lib.hasInfix "ctl = \"waverunner-ctl\"," (factsOf c)
+           && lib.hasInfix "exec_cmd(\"sh -c '\" .. ctl .. \" capture press || golem-screenshot screen'\")" staticLua
+           && lib.hasInfix "exec_cmd(ctl .. \" capture release\"), { release = true" staticLua
+           && lib.hasInfix "exec_cmd(\"sh -c '\" .. ctl .. \" capture shot || golem-screenshot screen'\")" staticLua
            && lib.any (p: (p.pname or "") == "tesseract") c.home-manager.users.${owner}.home.packages))
         (ex "what each update changed is written by hand and carried by the system"
           (c.environment.etc ? "golem/whats-new.json"))
         (ex "F3.3: Ctrl+Print asks the dock to record, and the recorder ships in the home layer"
-          (lib.hasInfix "waverunner-ctl record\")" (luaOf c)
+          (lib.hasInfix "ctl .. \" record\")" staticLua
            && lib.any (p: (p.pname or "") == "wf-recorder") c.home-manager.users.${owner}.home.packages))
         # The control panel's Default apps (2026-10-13): the owner's file is theirs.
         (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
@@ -437,13 +450,19 @@ let
           (!(c.home-manager.users.${owner}.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
         # P1: the dev box runs this same home layer in its dev shape.
         (ex "P1 dev shape: live checkouts kept, no waverunner unit, never a store rewrite"
-          (lib.hasInfix ''hl.exec_cmd("/home/max/launcher/waverunner-dev")'' (luaOf cDev)
-           && lib.hasInfix "/home/max/waveview/result/lib/libwaveview.so" (luaOf cDev)
+          (lib.hasInfix ''dock = "/home/max/launcher/waverunner-dev",'' (factsOf cDev)
+           && lib.hasInfix ''plugin = "/home/max/waveview/result/lib/libwaveview.so",'' (factsOf cDev)
+           && lib.hasInfix ''ctl = "/home/max/launcher/target/debug/waverunner-ctl",'' (factsOf cDev)
            && !(devHome.programs.waverunner.enable or false)
            && !(devHome.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
         (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes after Golem's, right before the live settings"
           (!devHome.services.hypridle.enable && devHome.programs.hyprlock.enable
-           && lib.hasInfix "-- DEV-LAYER-TAIL\n---- LIVE SETTINGS" (luaOf cDev)))
+           && lib.hasInfix "-- DEV-LAYER-TAIL" (extraOf cDev)
+           && (let around = lib.splitString "pcall(require, \"golem.extra\")" hyprEntry; in
+               builtins.length around == 2
+               && lib.hasInfix "require(\"golem.lab\")" (builtins.elemAt around 0)
+               && !(lib.hasInfix "require(\"golem." (builtins.elemAt around 1))
+               && lib.hasInfix "---- LIVE SETTINGS" (builtins.elemAt around 1))))
         # Fits (system/home/fits.nix): an app the owner installs works the
         # moment it lands. OBS: a first-run scene that already holds the
         # screen-capture source, in OBS's relative form (any canvas), with
@@ -483,7 +502,7 @@ let
         # Live settings (the control panel's scale and resolution): the dock
         # saves the owner's choices as ~/.config/golem/settings.lua and the
         # compositor runs that file last, guarded, never watched.
-        (ex "live settings: hyprland.lua ends by running the owner's settings.lua, guarded (every tier, the dev shape too)"
+        (ex "live settings: hyprland.lua (the entry) ends by running the owner's settings.lua, guarded (every tier, the dev shape too)"
           (lib.all (cfg:
             let
               lua = luaOf cfg;
@@ -511,12 +530,13 @@ let
         (ex "P1: the menubox debloat is on for installs and off in the dev shape"
           ((c.home-manager.users.${owner}.xdg.dataFile ? "applications/xterm.desktop")
            && !(devHome.xdg.dataFile ? "applications/xterm.desktop")))
-        (ex "P1 install shape: no live-checkout path survives the rewrite"
+        (ex "P1 install shape: no live-checkout path in anything deployed"
           (!(lib.hasInfix "/home/max/launcher" (luaOf c)) && !(lib.hasInfix "/home/max/waveview" (luaOf c))))
         (ex "real desktop: full effects by default (no light block)"
-          (c.golem.desktop.effects == "full" && !(lib.hasInfix lightBlock (luaOf c))))
+          (c.golem.desktop.effects == "full" && lib.hasInfix ''effects = "full",'' (factsOf c)))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"
-          (cLight.golem.desktop.effects == "light" && lib.hasInfix lightBlock (luaOf cLight)))
+          (cLight.golem.desktop.effects == "light" && lib.hasInfix ''effects = "light",'' (factsOf cLight)
+           && lib.hasInfix ("if M.effects == \"light\" then\n    " + lightBlock) staticLua))
         # No blur behind the shell → denser glass (90%), and only there.
         (ex "light effects: the dock's glass is denser (no blur behind it); full effects keep the default"
           (lib.hasInfix ''background = "#050709e6"'' (dockCfgOf cLight)
@@ -551,13 +571,14 @@ let
         # spread/overview, F4 Launchpad → the apps box, the keyboard-light
         # keys. hid_apple sends them on every classic-F-row MacBook.
         (ex "real desktop: the MacBook keys are bound (F3, F4, keyboard light)"
-          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
+          (let lua = luaOf c; in
             lib.all (k: lib.hasInfix ''hl.bind("${k}"'' lua)
               [ "XF86LaunchA" "XF86LaunchB" "XF86KbdBrightnessUp" "XF86KbdBrightnessDown" ]))
         # The power key (2026-11-03): short = the banner's pills, long = off.
         (ex "real desktop: the power key's short press is the banner's, a long one powers off"
-          (let lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text; in
-            lib.hasInfix ''hl.bind("XF86PowerOff", hl.dsp.exec_cmd("waverunner-ctl power")'' lua
+          (let lua = luaOf c; in
+            lib.hasInfix ''hl.bind("XF86PowerOff", hl.dsp.exec_cmd(ctl .. " power")'' lua
+            && lib.hasInfix ''ctl = "waverunner-ctl",'' (factsOf c)
             && c.services.logind.settings.Login.HandlePowerKey == "ignore"
             && c.services.logind.settings.Login.HandlePowerKeyLongPress == "poweroff"
             # the kernel's tiny driver asks for the pills too, never a poweroff
@@ -565,7 +586,7 @@ let
             && lib.elem "golem-power-key.service" c.systemd.targets.kbrequest.wants))
         (ex "real desktop: a desktop that comes back after a crash comes back locked (2026-11-12)"
           (let
-            lua = c.home-manager.users.${owner}.xdg.configFile."hypr/hyprland.lua".text;
+            lua = luaOf c;
             lockScreen = lib.findFirst (p: (p.name or "") == "golem-lock-screen")
               null c.home-manager.users.${owner}.home.packages;
           in

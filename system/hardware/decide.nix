@@ -76,8 +76,10 @@ let
 
   panelScale =
     let
-      lua = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/hyprland.lua".text;
-      m = builtins.match ".*output = \"eDP-1\".*scale = ([0-9.]+).*" lua;
+      # (The scale the laptop's panel gets: a fact the home layer generates
+      # for Hyprland's monitors module, hypr/golem/machine.lua.)
+      facts = cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."hypr/golem/machine.lua".text;
+      m = builtins.match ".*panel_scale = ([0-9.]+),.*" facts;
     in
     if m == null then "none (normal density)" else lib.head m;
 in

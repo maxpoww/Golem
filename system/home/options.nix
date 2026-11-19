@@ -57,9 +57,22 @@
       type = lib.types.lines;
       default = "";
       description = ''
-        Lua appended to hyprland.lua, last, so it wins: this machine's own
-        deltas (a look it keeps, a panel). Keep it short; anything more than
-        one machine would want belongs in hyprland.lua itself.
+        This machine's own Lua for Hyprland, loaded after everything Golem
+        declares, so it wins (hypr/golem/extra.lua): a look it keeps, a
+        panel. Keep it short; anything more than one machine would want
+        belongs in a module of system/home/hypr/golem.
+      '';
+    };
+
+    hyprlandModules = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "gaming" ];
+      description = ''
+        The app modules whose own Lua the Hyprland configuration loads
+        (hypr/golem/modules/<name>.lua: the window rules and keys a module
+        of programs brings with it). Set by the module that is switched on;
+        a name with no file is fine.
       '';
     };
   };

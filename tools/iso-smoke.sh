@@ -50,14 +50,18 @@ tool() { # tool <flake-attr> <binary>
   return 1
 }
 
-# 2. hyprland.lua parses as Lua. `nix eval` never touches this — the config is
-#    read at runtime, so a stray brace ships silently and greets the user with
-#    an error banner. Parse it with a real Lua compiler.
+# 2. The Hyprland configuration parses as Lua (system/home/hypr: the entry and
+#    every module). `nix eval` never touches it — the config is read at
+#    runtime, so a stray brace ships silently and greets the user with an
+#    error banner. Parse each file with a real Lua compiler. (What the
+#    configuration DOES is the flake's check `hypr-config`.)
 LUAC="$(tool nixpkgs#lua5_4 luac)"
-[ -x "$LUAC" ] || fail "could not get luac to check hyprland.lua"
-"$LUAC" -p system/home/hyprland.lua 2>/dev/null \
-  || fail "hyprland.lua has a Lua syntax error (would banner on the user's screen)"
-ok "hyprland.lua parses"
+[ -x "$LUAC" ] || fail "could not get luac to check the Hyprland configuration"
+while IFS= read -r f; do
+  "$LUAC" -p "$f" 2>/dev/null \
+    || fail "$f has a Lua syntax error (would banner on the user's screen)"
+done < <(find system/home/hypr -name '*.lua' | sort)
+ok "the Hyprland configuration parses (every module)"
 
 # 3. /bin/sh will exist on a fresh root. greetd (and libc system()) exec a
 #    hardcoded /bin/sh; nixos-init no longer creates it, so we do via tmpfiles.
@@ -82,7 +86,7 @@ ok "wpa_supplicant present (wifi can work)"
 ok "greetd + oomd enabled"
 
 # 6. No specific panel hardcoded as the default (the catch-all must be present).
-grep -q 'output = ""' system/home/hyprland.lua \
+grep -q 'output = ""' system/home/hypr/golem/monitors.lua \
   || fail "no generic monitor catch-all — a hardcoded panel will misconfigure others"
 ok "monitors auto-configure (generic catch-all present)"
 
