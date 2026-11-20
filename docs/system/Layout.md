@@ -278,10 +278,10 @@ session).
 
 | | What | State |
 |---|---|---|
-| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold`; `golem-relocate`; facts and lists as data; the chooser at evaluation; the check `machine-layout`. Hyprland in Lua modules behind one link; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **on `main`** since 2026-11-19 (b83f8fd) |
-| **2** | Golem as root's editable copy (`machine.nix`, `from-lock.nix`, `golem-machine-checkout`); the update that keeps the edits (`golem-update`, `golem-recover`, `golem-status`) and its nightly service, waves and held versions; the dock's installs into `machine/apps.list`; the first-boot build. | **built and run on a machine** (`stage2-1119`): the checks `machine-layout` and `machine-update` (the update driven on a made-up upstream, 101 assertions) and a VM installed from the medium — see below |
-| **3** | The installer writes this layout: the medium's baked systems are systems of the layout; `golem-install` gathers the machine's files in a root-only stage, makes `/etc/nixos` from them and Golem beside it, and asks for the first-boot build. `golem-desktop` and `hosts/target` stay only for machines installed before. | **built and run in a VM** (`stage2-1119`): install, first boot, first restart, see below; the lab's MacBook next |
-| **4** | Machines installed before are REINSTALLED from the first medium that writes the layout (Max, 2026-11-19), the lab's first. `golem-relocate` stays as a tool, not as a migration. | waits for stage 3 |
+| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold`; `golem-relocate`; facts and lists as data; the chooser at evaluation; the check `machine-layout`. Hyprland in Lua modules behind one link; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **on `main`** (19-Nov) |
+| **2** | Golem as root's editable copy (`machine.nix`, `from-lock.nix`, `golem-machine-checkout`); the update that keeps the edits (`golem-update`, `golem-recover`, `golem-status`) and its nightly service, waves and held versions; the dock's installs into `machine/apps.list`; the first-boot build. | **on `main`** (20-Nov): the checks `machine-layout`, `machine-update` (the update driven on a made-up upstream, 101 assertions) and `idle-suspend`, and real installs — see below |
+| **3** | The installer writes this layout: the medium's baked systems are systems of the layout; `golem-install` gathers the machine's files in a root-only stage, makes `/etc/nixos` from them and Golem beside it, and asks for the first-boot build. `golem-desktop` and `hosts/target` stay only for machines installed before. | **on `main`** (20-Nov): installed in a VM from the medium four times, the last from the commit that was merged — see below |
+| **4** | Machines installed before are REINSTALLED from the first medium that writes the layout (Max, 2026-11-19), the lab's first. `golem-relocate` stays as a tool, not as a migration. | the lab's MacBook runs the layout since 20-Nov (moved in place with `golem-relocate` to try it on real hardware; its reinstall from the medium is next). The others wait for the first medium |
 | **5** | The repository's rename (§6) and the older profile's retirement. | after stage 3 (Max: yes) |
 
 ### Tried on a machine (2026-11-20)
@@ -323,6 +323,30 @@ first session.
 - **A post-install answer**: the one valid answer in `machine/answers.list`.
 - **Going back** to the files that built an earlier generation, and forward
   again (`golem-recover`).
+
+On the day it was merged, from the commit that was merged:
+
+- **The idle suspend, end to end.** A VM left alone after its install: at
+  its 15th idle minute the suspend found Seam's update running and waited;
+  the update was staged, the first-boot build ran and ended, and eight
+  minutes later the machine went to sleep by itself.
+- **After the first restart**: Seam's lane and an app from the dock both
+  switch the running system (no staging once the account has its name).
+- **The older layout with this code** (a medium of the checkout-in-a-home
+  layout whose first boot took the new commit): the first boot adopts and
+  builds it, the restart renames the account, and from then on an app from
+  the dock, Seam's lane (through the seal) and the nightly update all work.
+  In its FIRST session, with the medium's own older helper, an app from
+  the dock is refused with the reason in the dock's error (the account is
+  not split); it installs after the restart.
+- **The lab's MacBook Air (2013, 4 GB)**, moved in place: it evaluates its
+  own folder in about a minute and computes the system the build machine
+  built for it; the hardware modules chosen from its facts are the ten it
+  had; it restarts into the layout in 70 s with its desktop, Wi-Fi and no
+  failed unit; `golem-update` says it is ahead of `stable` and takes
+  nothing; a file dropped in `/etc/nixos/modules/` and a plain
+  `nixos-rebuild switch` take 40 s under the running session; an app from
+  the dock, 109 s.
 
 What that install taught, and is now enforced:
 
