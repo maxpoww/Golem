@@ -30,27 +30,39 @@ let
 
   cacheArgs = pkgs.writeShellApplication {
     name = "golem-cache-args";
-    runtimeInputs = [ pkgs.curl pkgs.coreutils pkgs.gawk pkgs.gnugrep ];
+    runtimeInputs = [ pkgs.curl pkgs.coreutils pkgs.gawk pkgs.gnugrep pkgs.gnused ];
     text = ''
       # golem-cache-args <flake dir>  →  nixos-rebuild arguments, one per line
       # (nothing at all when this version has no published cache).
       dir=''${1:-}
       dir=''${dir#path:}; dir=''${dir#git+file://}
-      # A build from the root-only snapshot (/var/lib/golem/build, no .git)
-      # is the seed's blessed version plus the owner's app list: the seed's
-      # HEAD names its cache.
-      ${lib.optionalString (config.golem.flakeDir != null) ''
-        [ -d "$dir/.git" ] || dir=${lib.escapeShellArg config.golem.flakeDir}
+      rev=""
+      ${lib.optionalString (config.golem.flakeDir == null) ''
+        # A machine of the /etc/nixos layout (system/machine): Golem is the
+        # folder's golem/, and the upstream commit its files are made of is
+        # written beside them (.golem-rev; a root-only try of an update is a
+        # copy of the same folder).
+        if [ -f "$dir/golem/.golem-rev" ]; then
+          rev=$(sed 's/-dirty$//' "$dir/golem/.golem-rev")
+        fi
       ''}
-      [ -n "$dir" ] && [ -d "$dir/.git" ] || exit 0
-      # The commit, read from the files: this runs as root, and git run inside
-      # the owner's repository would obey its config (golem-seal.nix, heal).
-      headref=$(cat "$dir/.git/HEAD" 2>/dev/null || true)
-      if [[ "$headref" == ref:\ * ]]; then
-        ref=''${headref#ref: }
-        rev=$(cat "$dir/.git/$ref" 2>/dev/null || awk -v r="$ref" '$2 == r { print $1 }' "$dir/.git/packed-refs" 2>/dev/null || true)
-      else
-        rev=$headref
+      if [ -z "$rev" ]; then
+        # A build from the root-only snapshot (/var/lib/golem/build, no .git)
+        # is the seed's blessed version plus the owner's app list: the seed's
+        # HEAD names its cache.
+        ${lib.optionalString (config.golem.flakeDir != null) ''
+          [ -d "$dir/.git" ] || dir=${lib.escapeShellArg config.golem.flakeDir}
+        ''}
+        [ -n "$dir" ] && [ -d "$dir/.git" ] || exit 0
+        # The commit, read from the files: this runs as root, and git run inside
+        # the owner's repository would obey its config (golem-seal.nix, heal).
+        headref=$(cat "$dir/.git/HEAD" 2>/dev/null || true)
+        if [[ "$headref" == ref:\ * ]]; then
+          ref=''${headref#ref: }
+          rev=$(cat "$dir/.git/$ref" 2>/dev/null || awk -v r="$ref" '$2 == r { print $1 }' "$dir/.git/packed-refs" 2>/dev/null || true)
+        else
+          rev=$headref
+        fi
       fi
       [[ "$rev" =~ ^[0-9a-f]{40}$ ]] || exit 0
       url="https://github.com/${cfg.cache.repo}/releases/download/g-''${rev:0:12}"

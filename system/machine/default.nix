@@ -34,10 +34,26 @@
 # installer writes this layout and `golem-desktop` retires.
 { nixpkgs, home-manager, waverunner, waveview, golemRev, golemSrc }:
 
-dir:
-
 let
   lib = nixpkgs.lib;
+
+  # THE LAYOUT'S OWN LEAVES, for whoever composes a system that lives in it:
+  # a machine from its folder (below), and the install medium's baked systems
+  # (flake.nix, mkBakedEntry), which are this layout's first generation.
+  layoutModules = profile:
+    [
+      ./layout.nix
+      ./update.nix       # the nightly update
+      ./first-boot.nix   # the one build after an install, where the installer asked for it
+    ]
+    ++ lib.optionals (profile == "desktop") [
+      ./apps.nix      # the dock's installs → machine/apps.list
+      ./answers.nix   # the post-install answers → machine/answers.list
+    ];
+
+  machine = dir:
+
+let
 
   has = rel: builtins.pathExists (dir + "/${rel}");
   json = rel: builtins.fromJSON (builtins.readFile (dir + "/${rel}"));
@@ -79,7 +95,10 @@ let
     # `golemSource`: the Golem source, for the owner's modules — the one use
     # is naming a Golem module to replace (disabledModules needs it before
     # the configuration exists, so it cannot be an ordinary module argument).
-    specialArgs = { golemSource = golemSrc; };
+    # A STRING, never a path value: "''${path}/x" of a path inside a flake's
+    # source copies it to a store path of its own, which is not where the
+    # modules are imported from, and the replacement would then match nothing.
+    specialArgs = { golemSource = toString golemSrc; };
     modules =
       [
         { system.configurationRevision = golemRev; }
@@ -89,7 +108,9 @@ let
           home-manager.useUserPackages = true;
         }
         ../Modular/composition.nix
-        ./layout.nix
+      ]
+      ++ layoutModules profile
+      ++ [
         {
           golem.hardware = facts;
           golem.machine = {
@@ -133,12 +154,23 @@ let
   # it), to the name it was installed with, and to `default`: after a rename,
   # one `sudo nixos-rebuild switch --flake /etc/nixos#default` and the new
   # name answers from then on.
+  # And to "Golem": the system the installer copied is called that
+  # (base/core.nix) and is the one running until the first restart, so a
+  # plain `nixos-rebuild boot` in that first session finds the machine too.
   names = lib.unique (
     [ "default" system.config.networking.hostName ]
     ++ lib.optional (install ? hostname && builtins.isString install.hostname && install.hostname != "") install.hostname
+    ++ [ "Golem" ]
   );
 in
 {
   inherit system;
   nixosConfigurations = lib.genAttrs names (_: system);
+};
+in
+# Called with a folder, it is the machine; asked for `layoutModules`, it is
+# the layout's leaves.
+{
+  __functor = _: machine;
+  inherit layoutModules;
 }

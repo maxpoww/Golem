@@ -19,17 +19,23 @@ Then `sudo nixos-rebuild switch`.
 
 ## Changing one of Golem's modules
 
-Golem's own modules are in `../golem/` and are read-only. To change one,
-copy it here and tell the system to use your copy instead of Golem's:
+Most of the time you do not need to: an option set in `configuration.nix`
+already wins over Golem's default (`lib.mkForce` when Golem insists).
+
+When you do, Golem's own files are in `../golem/`, and they are yours to
+edit as root: change the file, `sudo nixos-rebuild switch`. An update keeps
+your change: it merges the new Golem into the files as you left them. Only
+where you and the new version changed the same lines does Golem's win, and
+then your file is set aside, not lost (`/var/lib/golem/local-edits/`).
+`sudo golem-status` lists what this computer changed.
+
+Or leave Golem's file alone and carry a whole version of your own here:
 
 ```nix
 # /etc/nixos/modules/gaming.nix  — my version of Golem's Gaming module
-{ golemSource, ... }:   # the Golem this computer runs (what ../golem points at)
+{ golemSource, ... }:   # where this computer's Golem is
 {
   disabledModules = [ "${golemSource}/system/modules/gaming.nix" ];
   # ... the contents of ../golem/system/modules/gaming.nix, edited ...
 }
 ```
-
-Most of the time you do not need this: an option set in `configuration.nix`
-already wins over Golem's default (`lib.mkForce` when Golem insists).

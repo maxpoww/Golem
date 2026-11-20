@@ -22,6 +22,13 @@ let
   home = c.home-manager.users.${owner};
   homeNames = map lib.getName home.home.packages;
 
+  # The same two folders through machine.nix: Golem called with the pins of
+  # its own flake.lock, the way a machine's /etc/nixos/flake.nix calls it.
+  viaLock = dir: (import ../../machine.nix dir).nixosConfigurations.default.config;
+  tl = viaLock ./fixtures/thinkpad;
+  ql = viaLock ./fixtures/qemu;
+  drv = x: builtins.unsafeDiscardStringContext x.drvPath;
+
   facts = builtins.fromJSON (builtins.readFile ./fixtures/thinkpad/machine/facts.json);
   chosen = (import ../Modular/choose.nix { inherit facts; }).leaves;
 
@@ -101,8 +108,17 @@ let
         && lib.any (w: lib.hasInfix "import /etc/passwd" w && lib.hasInfix "skipped" w) c.warnings))
 
     # ── where things live ────────────────────────────────────────────────
-    (ex "/etc/nixos/golem is the Golem this system was built from"
-      (c.environment.etc ? "nixos/golem" && toString c.environment.etc."nixos/golem".source == toString c.golem.machine.source))
+    (ex "Golem is root's own folder (/etc/nixos/golem), no link into the store is laid over it"
+      (!(c.environment.etc ? "nixos/golem")))
+    (ex "machine.nix (Golem from its OWN flake.lock, as a machine's flake calls it) is the same Golem as the flake: kernel, dock, Hyprland, the whole home"
+      (ql.networking.hostName == "golem-vm" && tl.networking.hostName == "thinkpad-ana"
+        && drv ql.system.build.kernel == drv q.system.build.kernel
+        && tl.system.nixos.version == c.system.nixos.version
+        && drv tl.programs.hyprland.package == drv c.programs.hyprland.package
+        && drv tl.home-manager.users.${owner}.programs.waverunner.package == drv home.programs.waverunner.package
+        && drv tl.home-manager.users.${owner}.home.activationPackage == drv home.home.activationPackage))
+    (ex "…and there a Golem module is still replaced by the owner's copy (the source is named as a string)"
+      (tl.services.journald.extraConfig == "SystemMaxUse=42M"))
     (ex "every generation keeps the machine folder it was built from (/etc/golem/machine)"
       (c.environment.etc ? "golem/machine"))
     (ex "the owner's password stays in root's own file, outside the folder and the store"
@@ -112,15 +128,27 @@ let
     # ── nothing of the home-checkout layout is left ─────────────────────
     (ex "no checkout in a home: flakeDir is null"
       (c.golem.flakeDir == null && q.golem.flakeDir == null))
-    (ex "…so no seal, no seed adoption, no pull as the owner, no root copy of a checkout"
-      (!(c.systemd.services ? golem-autoupdate)
-        && !(c.systemd.services ? golem-seed-adopt)
-        && !(c.systemd.services ? golem-first-boot)
-        && !(c.systemd.services ? waverunner-apply)
-        && !(c.systemd.paths ? waverunner-apply)
+    (ex "…so no seal and no seed adoption"
+      (!(c.systemd.services ? golem-seed-adopt)
         && !(lib.any (p: (p.name or "") == "golem-bless") c.environment.systemPackages)))
-    (ex "the commands of this layout are there: rebuild-golem, golem-update"
-      (lib.all (n: lib.any (p: (p.name or "") == n) c.environment.systemPackages) [ "rebuild-golem" "golem-update" ]))
+    (ex "the first-boot build is this layout's own: only where the installer asked for it, and it is the update's --converge"
+      (c.systemd.services.golem-first-boot.unitConfig.ConditionPathExists == "/var/lib/golem/first-boot.pending"
+        && lib.hasInfix "golem-update --converge" c.systemd.services.golem-first-boot.script
+        && !(lib.hasInfix "golem-seal" c.systemd.services.golem-first-boot.script)
+        && q.systemd.services ? golem-first-boot))
+    (ex "the dock's installs are this layout's own: the owner's list is watched, and what it becomes is machine/apps.list (the base alone has no dock)"
+      (c.systemd.paths.waverunner-apply.pathConfig.PathChanged == "/home/ana/.config/waverunner/packages.list"
+        && c.systemd.services.waverunner-apply.restartIfChanged == false
+        && !(q.systemd.services ? waverunner-apply)))
+    (ex "the nightly update is this layout's own, under the names the desktop knows: it runs golem-update, and nothing of the seal"
+      (c.systemd.timers ? golem-autoupdate && c.systemd.services ? golem-update-now
+        && lib.hasInfix "golem-update --nightly" c.systemd.services.golem-autoupdate.script
+        && !(lib.hasInfix "golem-seal" c.systemd.services.golem-autoupdate.script)
+        && !(lib.hasInfix "git -C" c.systemd.services.golem-autoupdate.script)
+        && q.systemd.timers ? golem-autoupdate))
+    (ex "the commands of this layout are there: rebuild-golem, golem-update, golem-recover, golem-status, golem-machine-checkout"
+      (lib.all (n: lib.any (p: (p.name or "") == n) c.environment.systemPackages)
+        [ "rebuild-golem" "golem-update" "golem-recover" "golem-status" "golem-machine-checkout" ]))
   ];
 
   failed = builtins.filter (e: !e.ok) checks;

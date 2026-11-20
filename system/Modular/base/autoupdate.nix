@@ -46,30 +46,9 @@ let
   ownerPut = import ../../owner-put.nix pkgs;
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
 
-  # THE CONNECTIVITY GATE — verbatim from the rice (waverunner-apply.nix), so
-  # the two systems share one behaviour. 90 x 10s = 15 min ceiling, then a
-  # loud non-zero exit rather than a silent cache no-op.
-  golemWaitOnline = pkgs.writeShellApplication {
-    name = "golem-wait-online";
-    runtimeInputs = [ pkgs.curl pkgs.coreutils ];
-    text = ''
-      hosts=( "https://channels.nixos.org/" "https://cache.nixos.org/nix-cache-info" )
-      tries=90   # 90 x 10s = 15 min ceiling
-      for i in $(seq 1 "$tries"); do
-        for u in "''${hosts[@]}"; do
-          if curl -fsS --max-time 8 -o /dev/null "$u"; then
-            if [ "$i" -gt 1 ]; then
-              echo "golem-wait-online: reachable after ~$(( (i - 1) * 10 ))s"
-            fi
-            exit 0
-          fi
-        done
-        sleep 10
-      done
-      echo "golem-wait-online: still offline after $(( tries * 10 / 60 )) min — giving up" >&2
-      exit 1
-    '';
-  };
+  # THE CONNECTIVITY GATE (./wait-online.nix, shared with the /etc/nixos
+  # layout's nightly update).
+  golemWaitOnline = import ./wait-online.nix pkgs;
   # A system without one (the VMs boot their kernel directly) has no boot
   # entry to check.
   bootMenu = config.boot.loader.grub.enable || config.boot.loader.systemd-boot.enable;

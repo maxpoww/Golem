@@ -109,6 +109,11 @@ if [ -f "$from/system/postinstall-generated.nix" ]; then
   } > "$new/machine/answers.list"
 fi
 
+# ── the questions Golem is deliberately not answering for this machine ──
+if [ -f "$target/postinstall-questions.json" ]; then
+  install -m 644 "$target/postinstall-questions.json" "$new/machine/questions.json"
+fi
+
 # ── in place, whole ──
 # (An /etc/nixos that holds only what the installer left — a stray
 # hardware-configuration.nix — is kept beside the new one, never deleted.)
@@ -119,4 +124,4 @@ chmod 755 "$new"
 mv "$new" "$to"
 trap - EXIT
 echo "golem-relocate: $to is this machine's folder now."
-echo "golem-relocate: next: pin the Golem it runs (nix flake lock, or the update), then nixos-rebuild boot --flake $to#default"
+echo "golem-relocate: next: Golem beside it ($to/golem: golem-machine-checkout), then nixos-rebuild boot --flake $to#default"

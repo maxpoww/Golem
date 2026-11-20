@@ -52,10 +52,17 @@ let
   heal = pkgs.writeShellScript "golem-home-heal" ''
     list="${home}/.config/waverunner/packages.list"
     snap=/etc/golem/machine/apps.nix
-    if [ ! -e "$list" ] && [ -f "$snap" ]; then
+    # (A machine of the /etc/nixos layout keeps the same names as plain
+    # lines: system/machine/apps.nix.)
+    names=/etc/golem/machine/machine/apps.list
+    if [ ! -e "$list" ] && { [ -f "$snap" ] || [ -f "$names" ]; }; then
       mkdir -p "$(dirname "$list")"
       { echo "# waverunner declarative packages — one nixpkgs attr per line."
-        ${pkgs.gnugrep}/bin/grep -oE '^    "[A-Za-z0-9._-]+"' "$snap" | ${pkgs.coreutils}/bin/tr -d ' "'
+        if [ -f "$names" ]; then
+          ${pkgs.gnugrep}/bin/grep -oE '^[A-Za-z0-9][A-Za-z0-9._-]*' "$names" || true
+        else
+          ${pkgs.gnugrep}/bin/grep -oE '^    "[A-Za-z0-9._-]+"' "$snap" | ${pkgs.coreutils}/bin/tr -d ' "'
+        fi
       } > "$list.golem-heal" && mv "$list.golem-heal" "$list"
       echo "golem-home-heal: the app list was missing — rebuilt from the running system"
     fi

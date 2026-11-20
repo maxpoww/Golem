@@ -1,16 +1,15 @@
 {
-  description = "This computer. Golem is the system; the files beside this one are the machine.";
+  description = "This computer. Its own files are beside this one; Golem is in golem/.";
 
-  # WHICH GOLEM this computer runs. `stable` is the branch every install
-  # follows; flake.lock (beside this file) pins the exact version. The update
-  # moves the pin (golem-update, and the nightly update); nothing else in
-  # this folder is ever rewritten by Golem.
-  inputs.golem.url = "github:maxpoww/Golem/stable";
-
+  # No inputs: GOLEM IS THE FOLDER golem/ beside this file. It is root's own
+  # copy, a git checkout you may edit, and the versions of everything it is
+  # built with (NixOS, the dock…) are pinned in ITS flake.lock. An update
+  # merges the new Golem into that folder and keeps what you changed there
+  # (golem-update, and the nightly update); nothing else in /etc/nixos is
+  # ever rewritten by Golem.
+  #
   # The machine is this folder: configuration.nix (yours), modules/ (yours),
   # hardware-configuration.nix (this hardware), machine/ (what Golem's tools
-  # recorded: data, never code). Nothing here needs editing.
-  outputs = { golem, ... }: {
-    inherit (golem.lib.golem.machine ./.) nixosConfigurations;
-  };
+  # recorded: data, never code). This file needs no editing.
+  outputs = { self }: import ./golem/machine.nix ./.;
 }

@@ -166,7 +166,10 @@
       # driver/kernel/firmware paths are present, so its toplevel assembles
       # from baked components.
       bakedFacts = path: (import path { }).golem.hardware;
-      bakedFixtures = [
+      # (A test medium bakes less: GOLEM_BAKE_ONLY=qemu,thinkpad with --impure
+      # keeps only those machines, and the floor. A pure build reads "": all.)
+      bakeOnly = bakedLib.filter (n: n != "") (bakedLib.splitString "," (builtins.getEnv "GOLEM_BAKE_ONLY"));
+      bakedFixtures = bakedLib.filter (f: bakeOnly == [ ] || builtins.elem f.name bakeOnly) [
         { name = "acer";     path = ./Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix; }
         { name = "asus";     path = ./Installer/preinstall/fixtures/asus/golem-hardware.nix; }
         { name = "comodore"; path = ./Installer/preinstall/fixtures/comodore-gm45/facts.nix; }
@@ -299,7 +302,25 @@
           toplevel = (mkMinimal facts ([
             (bakedFakeDisk firmware)
             { golem.locale.defaultLocale = locale; }
-          ] ++ bakedLib.optionals bakeDesktop [
+          ]
+          # THE /etc/nixos LAYOUT FROM THE FIRST GENERATION (2026-11-19,
+          # docs/system/Layout.md): the baked system is what an install
+          # boots, so it is a system of the layout the installer lays down —
+          # no checkout in a home, the layout's own update, dock installs and
+          # first-boot step. What it keeps as "the folder I was built from"
+          # is Golem as the medium carries it: what golem-recover puts back
+          # in /etc/nixos/golem when a machine goes back to this system.
+          ++ machine.layoutModules (if bakeDesktop then "desktop" else "minimal")
+          ++ [
+            ({ pkgs, ... }: {
+              golem.machine = {
+                source = self.outPath;
+                profile = if bakeDesktop then "desktop" else "minimal";
+                folder = pkgs.linkFarm "golem-baked-folder" [ { name = "golem"; path = self.outPath; } ];
+              };
+            })
+          ]
+          ++ bakedLib.optionals bakeDesktop [
             # THE REAL OPTIONS DESKTOP baked into gen-1 — the golem-desktop
             # wiring (Hyprland + waverunner's bar/dock + options-notify,
             # hyprland.lua, Beam), so a reflash boots straight into the real
@@ -312,7 +333,6 @@
               home-manager.backupFileExtension = "before-golem";
               home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
               home-manager.extraSpecialArgs = { inherit waverunner waveview; };
-              golem.flakeAttr = "golem-desktop";
             })
           ])).config.system.build.toplevel;
         };
@@ -558,6 +578,53 @@
           lib = nixpkgs.lib;
           inherit pkgs machine;
         };
+
+        # The layout's UPDATE, run for real on a made-up upstream: Golem
+        # checked out as root's own copy, updated with this machine's edits
+        # kept and the conflicting ones set aside, a build that fails, a
+        # network that fails, the nightly wave, going back. The machine's
+        # own commands, the rebuild alone replaced by a stand-in
+        # (system/machine/test).
+        machine-update =
+          let cmds = import ./system/machine/test/commands.nix { inherit machine; }; in
+          pkgs.runCommand "golem-machine-update" { } ''
+            ${cmds}/bin/bash ${./system/machine/test/update.sh} ${cmds} > log 2>&1 || { cat log; exit 1; }
+            tail -n 1 log >&2
+            cp log $out
+          '';
+
+        # THE INSTALLER'S PINS ARE THIS FLAKE'S. Installer/preinstall has a
+        # lock of its own that holds a COPY of the pins of this one (its
+        # inputs follow `golem`'s), refreshed only by `nix flake update
+        # golem` run there. A commit that moves a pin here and not there
+        # cuts media whose baked systems hold the old dock, and the machine
+        # they install (which builds from this lock) compiles the new one on
+        # its first start (found in the layout's VM test, 2026-11-20: the
+        # copy was two days behind). Every pin, and the pins of the pins.
+        installer-lock =
+          let
+            lib = nixpkgs.lib;
+            ours = builtins.fromJSON (builtins.readFile ./flake.lock);
+            theirs = builtins.fromJSON (builtins.readFile ./Installer/preinstall/flake.lock);
+            differ = a: b: at:
+              let
+                na = ours.nodes.${a}; nb = theirs.nodes.${b};
+                deeper = lib.concatMap
+                  (n:
+                    let sa = na.inputs.${n}; sb = (nb.inputs or { }).${n} or null; in
+                    if builtins.isString sa && builtins.isString sb then differ sa sb "${at}/${n}"
+                    else lib.optional (builtins.isString sa != builtins.isString sb) "${at}/${n}")
+                  (builtins.attrNames (na.inputs or { }));
+              in lib.optional ((na.locked.narHash or null) != (nb.locked.narHash or null)) at ++ deeper;
+            rootInputs = ours.nodes.${ours.root}.inputs;
+            stale = lib.concatMap
+              (n: differ rootInputs.${n} (theirs.nodes.golem.inputs.${n} or (throw "the installer's lock has no ${n}")) n)
+              (builtins.attrNames rootInputs);
+          in
+          assert stale == [ ] || throw ''
+            Installer/preinstall/flake.lock is behind flake.lock: ${builtins.concatStringsSep ", " stale}.
+            In Installer/preinstall run `nix flake update golem` and commit the lock with the pin.'';
+          pkgs.runCommand "golem-installer-lock" { } "echo the installer's pins are Golem's > $out";
 
         # The Hyprland configuration (system/home/hypr), run with no
         # compositor against a recording `hl` (hypr/test): it loads, no key

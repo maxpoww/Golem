@@ -49,7 +49,10 @@ let
   answersFile = "${configDir}/postinstall-answers.json";
   shownFile = "${configDir}/postinstall-shown.json";
   statusFile = "${configDir}/postinstall-apply-status.json";
-  questionsFile = "${flakeDir}/hosts/target/postinstall-questions.json";
+  # Where the installer left this machine's questions: in the checkout's
+  # machine layer here; a machine of the /etc/nixos layout says its own
+  # (system/machine/answers.nix).
+  questionsFile = cfg.postinstall.questionsFile;
   generated = "${flakeDir}/system/postinstall-generated.nix";
 
   askScript = pkgs.writeShellApplication {
@@ -316,6 +319,14 @@ let
       # ok:true; effect missing → ok:false with the reason (#35c).
       finish_ok() {
         local effmsg
+        # Staged for the next start (golem-rebuild: the first session after
+        # an install): the effect is not in the running system to be found.
+        if [ -e /run/golem-rebuild-staged ]; then
+          rm -f /run/golem-rebuild-staged
+          put_as_owner "$work/generated" "$lastgood" || true
+          write_status "done" true null
+          return 0
+        fi
         if effmsg=$(verify_effect); then
           put_as_owner "$work/generated" "$lastgood" || true
           write_status "done" true null
@@ -386,6 +397,14 @@ in
     description = "The applied post-install answers, read as data (never imported).";
   };
 
+  options.golem.postinstall.questionsFile = lib.mkOption {
+    type = lib.types.nullOr lib.types.str;
+    default = if flakeDir != null then "${flakeDir}/hosts/target/postinstall-questions.json" else null;
+    defaultText = lib.literalExpression ''"''${config.golem.flakeDir}/hosts/target/postinstall-questions.json"'';
+    internal = true;
+    description = "The questions the installer left for this machine's owner (a JSON list), on the machine's disk; null: nothing is asked.";
+  };
+
   # The answers' option (golem.postinstall.answers) is DECLARED by each
   # profile, not here: the modular one in base/options.nix (its gpu2 leaf
   # reads it on stage-0 minimal too), the old one in configuration.nix. This
@@ -397,7 +416,7 @@ in
       (parseAnswers (builtins.readFile cfg.postinstall.generatedFile));
   }
   (lib.mkIf (flakeDir != null) {
-    environment.systemPackages = [ askScript applyScript ];
+    environment.systemPackages = [ applyScript ];
 
     systemd.services.golem-postinstall-apply = {
       description = "Apply the owner's post-install answers (nixos-rebuild switch --flake)";
@@ -420,6 +439,12 @@ in
         Unit = "golem-postinstall-apply.service";
       };
     };
+
+  })
+  # THE ASKING is the same on both layouts: it only needs to know where the
+  # questions are (the applying is each layout's own).
+  (lib.mkIf (cfg.postinstall.questionsFile != null) {
+    environment.systemPackages = [ askScript ];
 
     # Runs on every graphical session start; exits in milliseconds with no
     # window at all unless something is actually pending (see the script).
