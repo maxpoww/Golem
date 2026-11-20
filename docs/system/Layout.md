@@ -7,13 +7,12 @@
 > manual voy a /etc/nixos, pero ahí no hay nada."*
 >
 > This is the design for where Golem's files live on an installed machine and
-> in the repository, and the plan to get there. **Stage 1 is built** on branch
-> `layout-1119` (it holds everything; Hyprland in modules and the app modules
-> are also branches of their own, `hypr-modular-1119` and `app-modules-1119`,
-> and can go to `main` before the rest); the stages after it are written here
-> and wait for a go. No machine is installed this way yet. Supersedes the 2026-10-01
-> proposal (`/etc/golem`) and GolemSecurity.md's "Phase 2 — root-owned seed":
-> same idea, in the place NixOS already has for it.
+> in the repository, and the plan to get there. Max decided its open points
+> the same day (the last section). Stage 1 is on `main` since 2026-11-19;
+> stages 2 and 3 (the services and the installer on the new layout) are
+> being built on branch `stage2-1119`. Supersedes the 2026-10-01 proposal
+> (`/etc/golem`) and GolemSecurity.md's "Phase 2 — root-owned seed": same
+> idea, in the place NixOS already has for it.
 
 ## 1. What is wrong today
 
@@ -68,7 +67,9 @@ is where today's Golem got its shape):
    and touches nothing else.
 2. **The vendor's part is read-only and verified.** Nobody edits `/System`,
    `C:\Windows` or `/usr` in place. You change the system's behaviour from
-   the admin's layer, which wins.
+   the admin's layer, which wins. (Golem keeps the two things this rule
+   buys — an update that cannot be blocked by a local change, and a way
+   back — and lets root edit its copy all the same: §3.)
 3. **One well-known place to change the machine.** `/etc`, `/Library`,
    `gpedit`. On NixOS that place is `/etc/nixos`: every manual, forum answer
    and habit says "edit `/etc/nixos/configuration.nix`, run `nixos-rebuild
@@ -94,18 +95,21 @@ Three owners, three places, and one door between the person and the system.
 │   ├── install.json             the shape chosen at install ({"profile": "desktop"})
 │   ├── apps.list                the programs installed from the dock
 │   ├── modules.list             the app modules switched on in the dock
-│   └── answers.list             what was answered to Golem's questions after the install
-├── flake.nix                    the entry point: "this folder + the pinned Golem" (never needs editing)
-├── flake.lock                   WHICH Golem this computer runs (the update moves it; going back restores it)
-└── golem → /nix/store/…         GOLEM, exactly as the running system was built from it. Read-only.
+│   ├── answers.list             what was answered to Golem's questions after the install
+│   └── questions.json           what Golem deliberately left for the owner to decide
+├── flake.nix                    the entry point: "this folder, and Golem in golem/" (never needs editing)
+└── golem/                       GOLEM — root's own copy, a git checkout. You may edit it.
     ├── system/                    the computer:  base, boot, cpu, gpu, disk, memory, power, quirks…
     ├── desktop/                   the desktop:   session, hyprland, audio, bluetooth, printing…
     ├── modules/                   the modules:   gaming.nix, media.nix, development.nix… (programs + the system they need)
     ├── home/                      the person's layer, one file a concern: hypr/ (Hyprland), terminal, editor, look, dock…
+    ├── flake.lock                 the versions of everything Golem is built with (NixOS, the dock…)
     └── docs/, updates/, seam/, installer/
 
 /var/lib/golem/                  what the system keeps for itself (root-only)
 ├── secrets/                     the owner's password hash, the boot password — never in /etc/nixos
+├── golem.git/                   git's own data for /etc/nixos/golem (out of the folder a rebuild copies)
+├── local-edits/                 files you had changed in golem/ that an update had to set aside
 └── update state                 what is held back, tries of a new version
 
 ~/.config/golem/                 THE PERSON — settings chosen in Controls (live, no rebuild)
@@ -124,22 +128,20 @@ onto them.)
 | `/etc/nixos/configuration.nix`, `modules/*.nix` | root (the admin) | you; the installer once | never touches it | Nix modules (it is the admin's code) |
 | `/etc/nixos/hardware-configuration.nix` | root | `nixos-generate-config` | never | Nix module |
 | `/etc/nixos/machine/*.json`, `*.list` | root | Golem's tools, through the one door | never | **data**: parsed, validated, looked up |
-| `/etc/nixos/flake.lock` | root | the update (`golem-update`) | this is what it moves | the pin |
-| `/etc/nixos/golem` | the store | the build | replaced whole | (it *is* the build's source) |
+| `/etc/nixos/golem/**` | root | the update; you, when you want to change Golem here | merges the new version into it, your edits kept | Golem itself (Nix, and everything it ships) |
 | `/var/lib/golem/secrets/*` | root, 0600 | the installer, `passwd` | never | a file path (`hashedPasswordFile`) |
 | `~/.config/golem/settings.json` | the person | Controls | never | not by the build at all (applied live) |
 
 ### The one door
 
 A person's click reaches the system in exactly one way: a root helper takes a
-**request written as data** in the person's home (`~/.config/waverunner/packages.list`,
-`~/.config/golem/modules.list`), validates every line against a closed set
-(a name nixpkgs has; a module the catalog has), writes the accepted lines to
-`/etc/nixos/machine/*.list`, and rebuilds. Those lists are read as text and
-looked up (`system/machine/lists.nix`, `system/modules/lib.nix`); none is ever
-imported as Nix. (Built: the build reads the lists this way, and a hostile
-line is a warning — the check plants some. To do, stage 2: the helper that
-writes them.)
+**request written as data** in the person's home (`~/.config/waverunner/packages.list`),
+validates every line against a closed set (a name nixpkgs has; a module the
+catalog has), writes the accepted lines to `/etc/nixos/machine/*.list`, and
+rebuilds. Those lists are read as text and looked up (`system/machine/lists.nix`,
+`system/modules/lib.nix`); none is ever imported as Nix. The new list is
+built first in a root-only copy of the folder: the one in `/etc/nixos`
+changes only when that system built (`system/machine/apps.nix`).
 
 So nothing a program running as the person can write is ever *code* for
 root, and nothing root builds from is writable by the person. The seal, the
@@ -147,22 +149,44 @@ blessed copy, the root mirror, the pulls "as the owner" and the six November
 fixes have nothing left to protect: with no checkout in a home they are
 switched off, not ported.
 
-### Why Golem is a link and not a checkout
+### Golem is root's copy, and it stays editable
 
-`/etc/nixos/golem` points into the Nix store: the exact source of the running
-system. It is not a git checkout you edit, for the reasons rule 2 exists:
+Max, 2026-11-19: *"copia editable por root."* `/etc/nixos/golem` is a git
+checkout that belongs to root. You may change any file of Golem's there and
+rebuild; `sudo nixos-rebuild switch` builds what the folder holds at that
+moment, an edit in `golem/` as much as one in `configuration.nix`.
 
-- it **cannot drift** from what runs — what you read there is what was built;
-- an update replaces it whole, with nothing to merge and nothing to set aside;
-- going back a version brings back the Golem that version was built from.
+What makes that safe to live with:
 
-To change something of Golem's on one machine you do what systemd and macOS
-have you do — put your version in your layer:
+- **One set of pins.** The machine's `flake.nix` has no inputs: it calls
+  `golem/machine.nix`, which evaluates Golem with the versions named in
+  Golem's OWN `flake.lock` (`system/machine/from-lock.nix`). As a flake
+  *input*, Golem would have been locked twice — Nix copies an input's pins
+  into the outer lock once and never looks again — and after a pull the
+  machine would have built the new Golem with the old NixOS (measured).
+- **An update keeps your edits.** `golem-update` is a three-way merge of the
+  files as they are with the new version, against the version they started
+  from. Where you and the new version changed the same lines, Golem's wins
+  and your file is set aside in `/var/lib/golem/local-edits/<when>/` — never
+  lost, and never a reason to stop updating (an edited checkout that could
+  no longer fast-forward once froze a lab machine for a month).
+- **The folder moves only when the new system builds.** The merged files are
+  built from a root-only copy first. A version that does not build, or a
+  network that fails, leaves `/etc/nixos` exactly as it was.
+- **Never backwards.** If the branch a machine follows is behind what the
+  machine has, nothing is taken from it.
+- **Going back.** Every generation keeps the folder it was built from, Golem
+  with your edits included; `golem-recover` puts those files back when the
+  machine goes back a version.
+- **What you changed is one command away:** `sudo golem-status`, or plain
+  `git status` / `git diff` in the folder.
+
+The other way to change one of Golem's modules still works and touches
+nothing of Golem's: carry your version in your own layer.
 
 ```nix
 # /etc/nixos/configuration.nix — an option of Golem's set differently
 golem.desktop.effects = "light";
-services.pipewire.extraConfig.pipewire."92-golem-low-latency" = lib.mkForce { };
 
 # /etc/nixos/modules/gaming.nix — or a whole module of Golem's replaced by your copy
 { golemSource, ... }:
@@ -173,8 +197,7 @@ services.pipewire.extraConfig.pipewire."92-golem-low-latency" = lib.mkForce { };
 ```
 
 To change Golem *for everyone* you work in the repository (the dev box keeps
-its `~/Golem` checkout; its `/etc/nixos/flake.nix` names it as the `golem`
-input instead of GitHub's `stable`).
+its `~/Golem` checkout).
 
 ## 4. Everyday
 
@@ -186,9 +209,9 @@ input instead of GitHub's `stable`).
 | take one program of a module, or refuse one | `golem.modules.gaming.lutris.enable = true;` · `golem.modules.gaming.steam.enable = false;` |
 | add a key or a window rule of your own to Hyprland | `~/.config/hypr/user.lua` (yours, loaded after Golem's; `hyprctl reload` the first time, from then on saving it reloads) — or `golem.home.hyprlandExtra` in `configuration.nix` for the whole machine |
 | see what Golem does for this hardware, and why | `cat /etc/golem/layout.json`; the modules themselves are in `/etc/nixos/golem/system/` |
-| read or copy one of Golem's modules | `/etc/nixos/golem/…` |
-| update now | `sudo golem-update` (built; the nightly update doing it for you is stage 2) |
-| go back a version | Controls → Updates → Go back (the pin goes back with the system: `golem-recover`) |
+| read or change one of Golem's own files | `/etc/nixos/golem/…` (root's copy: edit, rebuild; `sudo golem-status` says what this computer changed) |
+| update now | `sudo golem-update` (the nightly update does it for you; `--now` switches at once) |
+| go back a version | Controls → Updates → Go back (Golem's files go back with the system: `golem-recover`) |
 | reinstall and keep the machine as it was | keep `/etc/nixos` (it is small, and holds no secret) |
 
 ## 5. The layers, from the bottom
@@ -255,11 +278,99 @@ session).
 
 | | What | State |
 |---|---|---|
-| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold` (a new machine's folder from the installer's answers); `golem-relocate` (an old install's folder); facts and lists as data; the chooser at evaluation; `rebuild-golem`, `golem-update`, `golem-recover` for the layout; the check `machine-layout` (two fixture machines, 23 assertions). Hyprland in Lua modules with one generated facts file; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **built** — branch `layout-1119` (and `hypr-modular-1119`, `app-modules-1119`). Proven: every check of the repository; the real `nixos-rebuild`, with no arguments, on a scaffolded `/etc/nixos`, before and after a change made by hand; a fixture machine built whole and its files read; in a VM, the desktop on the new Hyprland tree (no configuration error, every key) and the switch of a RUNNING session from today's one file to the tree and back with home-manager's real activation (it reloads by itself, whole, each way). Nothing installs this way yet |
-| **2** | The services on the new layout, each a port of a root helper that today writes into the checkout: the nightly update (today's `autoupdate.nix` — waves, notices, held versions — with "pull the checkout, heal the seal" replaced by `golem-update`); the dock's app installs and the Modules page (`waverunner-apply` writing `machine/apps.list` and `machine/modules.list` instead of `hosts/target/apps.nix`); the post-install questions (`machine/answers.list` is already read); Seam's update lane (`seam/sources.json` is part of Golem's source: on this layout a Seam update is a Golem update, or moves to a list of its own); the session's re-seed of the dock's list (`desktop/home-boot.nix` reads `/etc/golem/machine/apps.nix`); the version's binary cache for a hand-run `nixos-rebuild` (`golem-cache-args` reads the checkout's `.git`; here the pin is `flake.lock`). | to do — VM-tested one by one |
-| **3** | The installer writes this layout: `/etc/nixos` from the template, `facts.json` from the census, the pin from the medium; first boot builds from it. `golem-desktop` and `hosts/target` retire. | to do |
-| **4** | Machines installed before it move by themselves: `golem-relocate` (run by the update) makes `/etc/nixos` from `~/Golem/hosts/target`, builds, switches, and leaves `~/Golem` for the owner to delete. Lab laptops first. | to do |
-| **5** | The repository's rename (§6) and the older profile's retirement. | to do |
+| **1** | The layout itself: `lib.golem.machine` composes a machine from its folder; the `/etc/nixos` template and `golem-machine-scaffold`; `golem-relocate`; facts and lists as data; the chooser at evaluation; the check `machine-layout`. Hyprland in Lua modules behind one link; the 25 app modules, switched on from `machine/modules.list`; the home layer one file a concern. | **on `main`** since 2026-11-19 (b83f8fd) |
+| **2** | Golem as root's editable copy (`machine.nix`, `from-lock.nix`, `golem-machine-checkout`); the update that keeps the edits (`golem-update`, `golem-recover`, `golem-status`) and its nightly service, waves and held versions; the dock's installs into `machine/apps.list`; the first-boot build. | **built and run on a machine** (`stage2-1119`): the checks `machine-layout` and `machine-update` (the update driven on a made-up upstream, 101 assertions) and a VM installed from the medium — see below |
+| **3** | The installer writes this layout: the medium's baked systems are systems of the layout; `golem-install` gathers the machine's files in a root-only stage, makes `/etc/nixos` from them and Golem beside it, and asks for the first-boot build. `golem-desktop` and `hosts/target` stay only for machines installed before. | **built and run in a VM** (`stage2-1119`): install, first boot, first restart, see below; the lab's MacBook next |
+| **4** | Machines installed before are REINSTALLED from the first medium that writes the layout (Max, 2026-11-19), the lab's first. `golem-relocate` stays as a tool, not as a migration. | waits for stage 3 |
+| **5** | The repository's rename (§6) and the older profile's retirement. | after stage 3 (Max: yes) |
+
+### Tried on a machine (2026-11-20)
+
+A VM (4 cores, 4 GB, UEFI) installed four times from lab media cut from the
+branch, its upstream a local mirror standing in for GitHub. The last pass
+was left alone from the installer's last line to the first restart, but for
+one thing a person does: installing an app from the dock a minute into the
+first session.
+
+- **The install** (5 min, nothing built on the target) leaves `/etc/nixos`
+  as §3 draws it, Golem's files beside it at the medium's commit, git's data
+  in `/var/lib/golem/golem.git`, and nothing of the system in a home.
+- **The first boot** builds this machine's own system from that folder (its
+  owner, name, language, measured hardware). The machine computes exactly
+  the system another computer computes from a copy of the folder: what is
+  built does not depend on where it is evaluated, so the published cache
+  serves every machine.
+- **In that first session**, before any restart: the app asked for from the
+  dock and Seam's own update (160.0 → 160.0.1, its timer) are both built
+  and staged for the next start — neither switches the installer's system
+  out from under the session (see below) — and the first-boot build takes a
+  newer Golem that the branch had by then.
+- **The first restart** starts it: the owner's account under the owner's
+  name with the same uid and the first session's home, the language, the
+  time zone, the keyboard, the desktop, the app, the newer browser; no
+  failed unit.
+- **By hand**: `nixos-rebuild` with no arguments, as root, in `/etc/nixos`.
+- **An update** across 12 commits with two of Golem's files edited by root
+  and a module of the owner's in `modules/`: 2.5 min, switched under the
+  running session (same compositor, no configuration error), the edits
+  still there and built in, nothing set aside.
+- **The browser's own update** (Seam 160.0 → 160.0.1) wrote its pin into
+  root's copy and rebuilt from the folder; `golem-status` shows it for what
+  it is.
+- **An install from the dock** (the owner's list, with two hostile lines in
+  it): the two names written to `machine/apps.list`, the programs in the
+  owner's profile, the hostile lines refused.
+- **A post-install answer**: the one valid answer in `machine/answers.list`.
+- **Going back** to the files that built an earlier generation, and forward
+  again (`golem-recover`).
+
+What that install taught, and is now enforced:
+
+- **No system of another owner's name starts under the old account's
+  session.** The installer copies a system built for everybody (its account
+  has the medium's name); the owner's own name arrives with the first system
+  built from `/etc/nixos`, and the account is renamed at the restart that
+  starts it. A live `switch` in that first session did not wait: NixOS made
+  the new name a second, empty account and dropped the first, and the
+  restart found nothing to rename — the first session's files left in
+  `/home/<the medium's name>`, owned by nobody. Seam updating itself did
+  exactly that eleven minutes into the test install; an app from the dock or
+  an answer to a post-install question would have. (This is in the
+  checkout-in-a-home layout too, since the rename exists: 2026-11-15.) Now
+  such a switch is refused before it begins, whoever asks
+  (`system.preSwitchChecks`, `base/users.nix`), and `golem-rebuild` stages
+  the system for the next start instead and says so; the dock's helper
+  tells the owner their apps arrive at the restart.
+
+- The installer keeps a COPY of Golem's pins in a lock of its own. Two days
+  stale, it baked the old dock, and the new machine compiled the new one,
+  the overview and the compositor's headers on its first start. The
+  installer no longer evaluates with pins that are not Golem's, and
+  `checks.installer-lock` fails a commit that moves one without the other.
+- A medium cut from a commit the branch does not know builds its first
+  system from the files as they are (it no longer guesses that the branch
+  is newer). For its nightly updates to work, the commit has to be
+  reachable upstream — any branch will do: a machine ahead of `stable`
+  waits for it.
+
+- **The idle suspend waits for a running install or update.** It was meant
+  to and never had: the units are one-shots, "activating" while they run,
+  and `systemctl is-active` says no to that. On a machine of the weak tier
+  the first-boot build opens at the same 15th minute the idle suspend
+  fires: the test VM went to sleep as its build began (and went on when
+  woken). Now the suspend waits for the job, two hours at most, and happens
+  when it ends, unless the owner came back meanwhile (`home/idle.nix`,
+  `checks.idle-suspend`).
+
+A test machine's own trap, for whoever repeats this: QEMU's virtio-gpu does
+not survive a suspend (after the idle suspend, at 15 minutes, the next
+shutdown waits for ever on the display). Golem's caffeine switch, in the
+VM's session, keeps the test honest.
+
+Known and not done: a baked system does not say which commit it was built
+from (`nixos-version --configuration-revision` is "unknown" until the first
+boot's build); the first evaluation on a new machine downloads nixpkgs'
+source (the medium has it, the installed disk does not).
 
 ### Checked against the latest (2026-11-19)
 
@@ -278,14 +389,18 @@ either pin moves):
   there (`decoration:shadow:color`, a colour → a gradient) and still takes
   Golem's value.
 
-### Decisions for Max
+### Decided (Max, 2026-11-19)
 
-1. **Golem as a read-only link** (`/etc/nixos/golem` → the store), changed
-   from your own layer — as built — or a root-owned git checkout you can edit
-   in place? The link is what §2's rule 2 says and what makes updates and
-   going back trivial; the checkout is more "hackable" on one machine and
-   brings back merges and drift.
-2. **Stage 4 for the lab laptops**: move them with `golem-relocate`, or
-   reinstall them from the first ISO that writes the new layout?
-3. **The rename** (§6): after stage 3, in one commit — every open branch of
-   every session has to be rebased across it.
+1. **Golem on a machine is an editable copy that belongs to root**
+   (`/etc/nixos/golem`), not a read-only link into the store. §3 says what
+   keeps updates and going back working with it.
+2. **Machines installed before are reinstalled**, the lab's MacBook first;
+   they are not moved in place.
+3. **The rename** of the repository's folders (§6): yes, in one commit after
+   stage 3.
+4. **Stage 1 went to `main` at once**; stages 2 and 3 follow.
+
+What that order asks for: a medium that writes this layout takes its first
+update from the branch installs follow (`stable`), so the layout has to be
+ON that branch before such a medium is given to anyone — as with every
+medium before it.
