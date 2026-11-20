@@ -8,8 +8,10 @@
 #   1. size the hibernation swap by ASKING THE FLAKE for the rule
 #      (lib.golem.swapForHibernationMB) rather than reimplementing it here
 #   2. partition GPT: ESP + swap + root, labelled ESP / swap / golem
-#   3. seed the flake checkout into the owner's home on the new root
-#   4. drop the four per-machine files into its hosts/target/:
+#   3. gather Golem and this machine's files in a root-only stage on the
+#      new root (until 2026-11-19 they were seeded into the owner's home and
+#      stayed there: the system lived in ~/Golem)
+#   4. drop the four per-machine files into the stage's hosts/target/:
 #        golem-hardware.nix           the probe's facts
 #        hardware-configuration.nix   nixos-generate-config's filesystems
 #        machine.nix                  the human choices
@@ -18,7 +20,12 @@
 #                                      changes.md #33), for the installed
 #                                      system's golem-postinstall-ask to
 #                                      read back after first login
-#   5. build (or accept) the toplevel and nixos-install it
+#   5. make the machine's FOLDER from them — /etc/nixos (configuration.nix,
+#      hardware-configuration.nix, machine/ data) with Golem as root's own
+#      editable copy in /etc/nixos/golem (docs/system/Layout.md,
+#      system/machine/{relocate,checkout}.sh) — and ask for the first-boot
+#      build (/var/lib/golem/first-boot.pending)
+#   6. build (or accept) the toplevel and nixos-install it
 #
 # LUKS is a branch of step 2, exactly as this header predicted it would be
 # (built 2026-09-05). --luks gives ESP + one LUKS2 container with LVM
@@ -54,13 +61,13 @@
 # DESTRUCTIVE (unless --rehearse). The named disk is repartitioned without
 # recovery. --yes is required for a non-interactive run precisely so that
 # a mistyped device in a script cannot quietly eat a machine.
-{ pkgs, golemSrc, overrideArgs }:
+{ pkgs, golemSrc, overrideArgs, golemRev ? "" }:
 
 pkgs.writeShellApplication {
   name = "golem-install";
   runtimeInputs = with pkgs; [
     coreutils gptfdisk dosfstools e2fsprogs util-linux
-    nix nixos-install-tools gnused jq
+    nix nixos-install-tools gnused jq git
     cryptsetup lvm2
     diffutils gnutar gzip
   ];
@@ -291,7 +298,7 @@ pkgs.writeShellApplication {
     # preflight right after the plan still enforces both).
     hostname_src=""
     if [[ "$skip_prepare" == true && "$hostname" == "Golem" ]]; then
-      seed_machine="/mnt/home/$owner/Golem/hosts/target/machine.nix"
+      seed_machine="/mnt/var/lib/golem/install-stage/hosts/target/machine.nix"
       if [[ -r "$seed_machine" ]]; then
         seed_host=$(sed -n 's/.*networking\.hostName *= *"\([^"]*\)".*/\1/p' "$seed_machine" | head -1)
         [[ -n "$seed_host" ]] && { hostname="$seed_host"; hostname_src="  (from seed)"; }
@@ -438,7 +445,64 @@ pkgs.writeShellApplication {
       mnt="$logdir/mnt"
       mkdir -p "$mnt"
     fi
-    seed="$mnt/home/$owner/Golem"
+    # THE STAGE (2026-11-19, the /etc/nixos layout): where this run gathers
+    # Golem and the machine's files before they become its folder. Root's,
+    # on the target disk (a resumed run finds it there), never in a home;
+    # removed once the folder is made.
+    seed="$mnt/var/lib/golem/install-stage"
+
+    # THE MACHINE'S FOLDER, AND GOLEM BESIDE IT (docs/system/Layout.md). From
+    # here on this machine IS /etc/nixos: the answers and the measured
+    # hardware gathered in the stage become its configuration.nix,
+    # hardware-configuration.nix and machine/ data (system/machine/
+    # relocate.sh), and Golem — the medium's own files — becomes root's
+    # editable copy in /etc/nixos/golem (checkout.sh; its git history
+    # arrives with the first update). Nothing of the system goes into a
+    # home. The baked system is of the same layout;
+    # /var/lib/golem/first-boot.pending asks it to build this machine's own
+    # system once, at its first start. Safe to call twice.
+    make_folder() {
+      local profile=minimal probe="$system" rev="" revarg=()
+      if [[ -z "$probe" || ! -e "$probe" ]] && [[ -r /etc/golem/baked-manifest.json ]]; then
+        probe=$(jq -r '.[0].toplevel // empty' /etc/golem/baked-manifest.json 2>/dev/null || true)
+      fi
+      if [[ -n "$probe" && -e "$probe/sw/bin/Hyprland" ]]; then profile=desktop; fi
+      # Which Golem these files are: the commit the medium was built from
+      # (Installer/preinstall/flake.nix), else what a baked system says of
+      # itself.
+      rev=${pkgs.lib.escapeShellArg golemRev}
+      if [[ ! "$rev" =~ ^[0-9a-f]{40}$ && -n "$probe" && -x "$probe/sw/bin/nixos-version" ]]; then
+        rev=$("$probe/sw/bin/nixos-version" --configuration-revision 2>/dev/null | sed 's/-dirty$//' || true)
+      fi
+      [[ "$rev" =~ ^[0-9a-f]{40}$ ]] && revarg=(--rev "$rev")
+      if [[ ! -f "$mnt/etc/nixos/flake.nix" ]]; then
+        # (nixos-generate-config left its files there; the one that matters
+        # is already in the stage.)
+        rm -rf "$mnt/etc/nixos"
+        mkdir -p "$mnt/etc"
+        if bash "$src/system/machine/relocate.sh" --from "$seed" --to "$mnt/etc/nixos" \
+             --golem "$src" --profile "$profile" >>"$logdir/folder.log" 2>&1; then
+          check_ok "folder: this machine's own files are in /etc/nixos ($profile)"
+        else
+          check_fail "folder: could not make /etc/nixos (folder.log has the trace)"
+          return 1
+        fi
+      fi
+      if [[ ! -f "$mnt/etc/nixos/golem/flake.nix" ]]; then
+        rm -rf "$mnt/var/lib/golem/golem.git" "$mnt/etc/nixos/golem"
+        # (The address and the branch are base/seed.nix's golem.upstream.)
+        if bash "$src/system/machine/checkout.sh" --root "$mnt" --tree "$src" \
+             --url https://github.com/maxpoww/Golem --branch stable "''${revarg[@]}" >>"$logdir/folder.log" 2>&1; then
+          check_ok "folder: Golem ''${rev:0:12} is root's own copy in /etc/nixos/golem"
+        else
+          check_fail "folder: could not put Golem in /etc/nixos/golem (folder.log has the trace)"
+          return 1
+        fi
+      fi
+      if [[ "$rehearse" != true ]]; then
+        : > "$mnt/var/lib/golem/first-boot.pending"
+      fi
+    }
 
     if [[ "$skip_prepare" == true ]]; then
       mountpoint -q /mnt || { echo "golem-install: --skip-prepare but /mnt is not mounted" >&2; exit 1; }
@@ -807,7 +871,7 @@ pkgs.writeShellApplication {
       echo "}"
     } > "$seed/hosts/target/machine.nix"
 
-    echo "── dropped into hosts/target ────────────────────"
+    echo "── this machine's files, as gathered ────────────"
     ls -1 "$seed/hosts/target"
     echo
 
@@ -838,9 +902,8 @@ pkgs.writeShellApplication {
         note "eval SKIPPED: $ram_mb MB cannot evaluate the target without thrashing (see the ram check)"
       else
       t0=$SECONDS
-      if drv=$(nix eval --offline --no-write-lock-file --raw \
-          ${overrideArgs} \
-          "path:$seed#nixosConfigurations.golem-minimal.config.system.build.toplevel.drvPath" \
+      if make_folder && drv=$(nix eval --offline --raw \
+          "path:$mnt/etc/nixos#nixosConfigurations.default.config.system.build.toplevel.drvPath" \
           2>"$logdir/eval.err"); then
         check_ok "eval: the target system instantiates in $(( SECONDS - t0 ))s → $drv"
         echo "$drv" > "$logdir/toplevel.drv"
@@ -949,10 +1012,10 @@ pkgs.writeShellApplication {
         # Last resort only (should be unreachable — the floor always matches):
         # a from-seed build. Offline this needs the deps present; a networked
         # medium can fetch them.
-        echo "no baked match/floor — building golem-minimal from the seed…"
-        system=$(nix build --offline --no-write-lock-file --no-link --print-out-paths \
-          ${overrideArgs} \
-          "path:$seed#nixosConfigurations.golem-minimal.config.system.build.toplevel")
+        echo "no baked match/floor — building this machine's system from its folder…"
+        make_folder || exit 1
+        system=$(nix build --offline --no-link --print-out-paths \
+          "path:$mnt/etc/nixos#nixosConfigurations.default.config.system.build.toplevel")
       fi
     fi
     echo "installing system: $system"
@@ -964,8 +1027,11 @@ pkgs.writeShellApplication {
       printf '%s\n' "# This machine is a lab testbed: the dev box reaches it over SSH" \
         "# (system/Modular/lab/lab-door.nix). Written by golem-install from a lab medium." \
         "{ golem.lab.door = true; }" > "$seed/hosts/target/lab.nix"
-      note "lab: the installed system keeps the lab door (hosts/target/lab.nix)"
+      note "lab: the installed system keeps the lab door (/etc/nixos/modules/lab.nix)"
     fi
+
+    # ── 5a. The machine's folder (make_folder, above) ─────────────────────
+    make_folder || { echo "golem-install: could not make this machine's /etc/nixos — nothing was installed" >&2; exit 1; }
 
     # Stream the copy (Max, 2026-09-23, on metal: the bar froze here for 2m30s
     # and "installing" is 90% of the wall-clock). nixos-install runs in the
@@ -1031,13 +1097,16 @@ pkgs.writeShellApplication {
       [[ "$acct" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || acct="$owner"
     fi
     if [[ "$acct" != "$owner" ]]; then
-      if [[ -d "/mnt/home/$acct" ]]; then
-        run cp -a "/mnt/home/$owner/." "/mnt/home/$acct/"
-        run rm -rf "/mnt/home/$owner"
-      else
-        run mv -T "/mnt/home/$owner" "/mnt/home/$acct"
+      # (Nothing of this run is in /home/<typed name> any more: the seed
+      # went there until 2026-11-19. A resumed older run may have left it.)
+      if [[ -d "/mnt/home/$owner" ]]; then
+        if [[ -d "/mnt/home/$acct" ]]; then
+          run cp -a "/mnt/home/$owner/." "/mnt/home/$acct/"
+          run rm -rf "/mnt/home/$owner"
+        else
+          run mv -T "/mnt/home/$owner" "/mnt/home/$acct"
+        fi
       fi
-      seed="/mnt/home/$acct/Golem"
       note "account: the installed system's account is '$acct'; it becomes '$owner' at the first restart after the first-boot step"
     fi
 
@@ -1106,14 +1175,14 @@ pkgs.writeShellApplication {
       fi
     fi
 
-    # The seed is the installed machine's own flake (golem.flakeDir), so it
-    # must belong to the owner, not to root — rebuild-golem runs as them.
+    # What was put in the owner's home above (the key, the live settings)
+    # is the owner's. (The system's own files are not there: /etc/nixos.)
     uid=$(chroot /mnt id -u "$acct" 2>/dev/null || echo "")
     gid=$(chroot /mnt id -g "$acct" 2>/dev/null || echo "")
     if [[ -n "$uid" && -n "$gid" ]]; then
       run chown -R "$uid:$gid" "/mnt/home/$acct"
     else
-      echo "note: user '$acct' not found in the installed system — seed left root-owned" >&2
+      echo "note: user '$acct' not found in the installed system — its home is left root-owned" >&2
     fi
 
     # ── 5c. SEED the console keyboard (2026-09-25). The LANGUAGE is now BAKED
@@ -1177,9 +1246,10 @@ pkgs.writeShellApplication {
     sleep 1
 
     echo "##verify 76/100 seed"
-    if [ -e /mnt/etc/golem/src ] || [ -e "/mnt/home/$acct/Golem" ]; then
-      echo "ok   seed + rebuild machinery present" >> "$vlog"
-    else echo "FAIL seed missing (self-rebuild owed)" >> "$vlog"; vfail=$(( vfail + 1 )); fi
+    if [ -f /mnt/etc/nixos/flake.nix ] && [ -f /mnt/etc/nixos/configuration.nix ] \
+       && [ -f /mnt/etc/nixos/golem/flake.nix ] && [ -d /mnt/var/lib/golem/golem.git ]; then
+      echo "ok   the machine's folder (/etc/nixos) and Golem beside it" >> "$vlog"
+    else echo "FAIL /etc/nixos is not whole (the first build is owed)" >> "$vlog"; vfail=$(( vfail + 1 )); fi
     sleep 1
 
     echo "##verify 92/100 account"
@@ -1211,6 +1281,8 @@ pkgs.writeShellApplication {
     # read). Root only, in the new system's /var/log; the screen's copy of
     # this run's output (output.txt) is there up to this line.
     if [[ "$rehearse" != true ]]; then
+      # The stage did its job: the machine's files are its folder now.
+      rm -rf "$seed"
       { mkdir -p /mnt/var/log/golem-install \
           && cp -a "$logdir"/. /mnt/var/log/golem-install/ \
           && chmod 0700 /mnt/var/log/golem-install; } 2>/dev/null || true
@@ -1220,7 +1292,7 @@ pkgs.writeShellApplication {
     umount -R /mnt 2>/dev/null || true
 
     echo "── done ─────────────────────────────────────────"
-    echo "  installed to $disk; seed checkout at /home/$acct/Golem"
+    echo "  installed to $disk; this machine's files are in /etc/nixos, Golem beside them (/etc/nixos/golem)"
     echo "  verify: $vlog"
   '';
 }

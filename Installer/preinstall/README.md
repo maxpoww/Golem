@@ -23,5 +23,9 @@ What stays here, because the build consumes it: `flake.nix` + the
 do not move it).
 
 One operational rule worth repeating at the door (the round-6 lesson):
-**`nix flake update` before every ISO build** — the `golem` input is a
-locked `path:` flake and `nix build` never re-reads it on its own.
+**`nix flake update golem` here whenever a pin moves in Golem's
+`flake.lock`** — this flake's lock holds a copy of those pins and nothing
+refreshes it by itself. It is enforced now: with pins that are not Golem's
+this flake does not evaluate (`flake.nix`, pinsAreGolems), and Golem's own
+`checks.installer-lock` fails on a commit that moves one without the
+other.

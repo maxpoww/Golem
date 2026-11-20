@@ -105,6 +105,13 @@
       install = import ./install.nix {
         inherit pkgs overrideArgs;
         golemSrc = golem;
+        # WHICH GOLEM THE MEDIUM CARRIES: the commit this flake is built
+        # from (the `golem` input is the same repository, taken as a plain
+        # path, and a path has no revision of its own). The installer writes
+        # it beside Golem's files on the new machine (.golem-rev), where the
+        # first update starts from. "" when the medium is built from files
+        # that are in no commit.
+        golemRev = nixpkgs.lib.removeSuffix "-dirty" (self.rev or self.dirtyRev or "");
       };
 
       # The surface. Its keyboard table is rendered from the parent's
@@ -114,7 +121,40 @@
         inherit pkgs;
         keyboardsTable = golem.lib.golem.keyboards.table;
       };
+
+      # THE PINS ARE GOLEM'S OWN, OR NOTHING EVALUATES. `follows` makes this
+      # flake's inputs the ones ITS lock records for `golem`, and that lock
+      # copies them from Golem's flake.lock only when `nix flake update
+      # golem` is run in this folder: a pin that moved upstairs does not
+      # move here by itself. A medium cut in between bakes the OLD dock,
+      # and the machine it installs (which builds from Golem's own lock)
+      # compiles the new one on its first start: an hour of a new owner's
+      # computer (the layout's VM test, 2026-11-20; the rule "update before
+      # every cut" was written in the README and enforced by nothing).
+      golemLock = builtins.fromJSON (builtins.readFile "${golem}/flake.lock");
+      golemPin = path:
+        let
+          step = node: name:
+            let spec = golemLock.nodes.${node}.inputs.${name};
+            in if builtins.isString spec then spec else throw "installer: Golem's lock follows ${name} elsewhere";
+        in golemLock.nodes.${builtins.foldl' step golemLock.root path}.locked.narHash;
+      pinsHere = [
+        { path = [ "nixpkgs" ]; input = nixpkgs; }
+        { path = [ "home-manager" ]; input = home-manager; }
+        { path = [ "waverunner" ]; input = waverunner; }
+        { path = [ "waveview-src" ]; input = waveview-src; }
+        { path = [ "waverunner" "home-manager" ]; input = waverunner-hm; }
+        { path = [ "waverunner" "nix-index-database" ]; input = waverunner-nid; }
+      ];
+      stalePins = builtins.filter (p: p.input.narHash != golemPin p.path) pinsHere;
+      pinsAreGolems = stalePins == [ ] || throw ''
+        the installer's pins are not Golem's: ${builtins.concatStringsSep ", " (map (p: builtins.concatStringsSep "/" p.path) stalePins)}
+        differ from Golem's flake.lock. A medium cut like this bakes systems the
+        installed machine then has to build again. In Installer/preinstall run:
+            nix flake update golem
+        and commit the flake.lock it writes.'';
     in
+    assert pinsAreGolems;
     {
       nixosConfigurations.golem-installer = nixpkgs.lib.nixosSystem {
         inherit system;
