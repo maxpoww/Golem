@@ -90,10 +90,40 @@ let
   # The keeper: runs its arguments (the session) again and again. The counter
   # lives in the runtime dir, which logind keeps for as long as the session
   # does. A marker there has golem-return-notice say so once the desktop is
-  # up. `is-system-running` says `stopping` through a power-off or reboot.
+  # up.
+  #
+  # IS THE MACHINE GOING DOWN? Then the desktop that just ended is not
+  # started again. `is-system-running` says `stopping` through a power-off
+  # or a restart, but at a restart the question itself can fail: the session
+  # is ended in the second systemd begins to stop, and the `systemctl` the
+  # keeper has just started is ended with it. The keeper took that silence
+  # for "not stopping", started the desktop again, and the shutdown then
+  # waited 90 s to kill it (2026-11-20: two of six restarts of a first
+  # session in the layout's VM tests; the journal shows the dock coming up
+  # one second into the shutdown). Now: asked three times, and no answer
+  # three times is going down. /run/nologin (written as a shutdown closes
+  # the logins) and a scheduled shutdown say so without a question.
+  # (desktop/keeper-test.sh, checks.session-keeper, runs it against a
+  # made-up systemctl; the two settings named GOLEM_KEEPER_* are that test's.)
   keeper = pkgs.writeShellScript "golem-session-keeper" ''
     run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
     ${pkgs.coreutils}/bin/mkdir -p "$run"
+    sc=''${GOLEM_KEEPER_SYSTEMCTL:-${config.systemd.package}/bin/systemctl}
+    root=''${GOLEM_KEEPER_ROOT:-}
+    going_down() {
+      local state
+      [ -e "$root/run/nologin" ] && return 0
+      [ -e "$root/run/systemd/shutdown/scheduled" ] && return 0
+      for _ in 1 2 3; do
+        state=$(${pkgs.coreutils}/bin/timeout 5 "$sc" is-system-running 2>/dev/null)
+        case "$state" in
+          stopping) return 0 ;;
+          "") ${pkgs.coreutils}/bin/sleep 1 ;;   # could not ask: once more
+          *) if [ -e "$root/run/nologin" ]; then return 0; fi; return 1 ;;
+        esac
+      done
+      return 0
+    }
     # The brake counts INCIDENTS, not attempts: a desktop that ran (60 s or
     # more) and then ended is one; a start that fails at once is a retry of
     # the same incident, with a growing pause (2, 4, 8… 30 s), and only six
@@ -104,8 +134,7 @@ let
     while :; do
       started=$(${pkgs.coreutils}/bin/date +%s)
       "$@"; rc=$?
-      state=$(${config.systemd.package}/bin/systemctl is-system-running 2>/dev/null)
-      if [ "$state" = stopping ] || [ -e /run/systemd/shutdown/scheduled ]; then
+      if going_down; then
         exit $rc
       fi
       now=$(${pkgs.coreutils}/bin/date +%s)
@@ -149,6 +178,19 @@ let
   '';
 in
 {
+  # (The keeper, where its test finds it: checks.session-keeper.)
+  imports = [
+    {
+      options.golem.sessionKeeper = lib.mkOption {
+        type = lib.types.package;
+        internal = true;
+        readOnly = true;
+        default = keeper;
+        description = "golem-session-keeper, what starts the desktop again when it ends on its own.";
+      };
+    }
+  ];
+
   services.greetd = {
     enable = true;
     useTextGreeter = true; # tuigreet draws on tty1

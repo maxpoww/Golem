@@ -609,6 +609,19 @@
             cp log $out
           '';
 
+        # The session keeper's one question (desktop/greeter.nix), against a
+        # made-up systemctl: a desktop that ends while the machine goes down
+        # is not started again — also when the question gets no answer,
+        # which is what a restart does to it — and one that ends while the
+        # machine runs is.
+        session-keeper =
+          let c = (machine ./system/machine/fixtures/thinkpad).system.config; in
+          pkgs.runCommand "golem-session-keeper-test" { } ''
+            ${pkgs.bash}/bin/bash ${./system/Modular/desktop/keeper-test.sh} ${c.golem.sessionKeeper} > log 2>&1 || { cat log; exit 1; }
+            tail -n 1 log >&2
+            cp log $out
+          '';
+
         # THE INSTALLER'S PINS ARE THIS FLAKE'S. Installer/preinstall has a
         # lock of its own that holds a COPY of the pins of this one (its
         # inputs follow `golem`'s), refreshed only by `nix flake update
