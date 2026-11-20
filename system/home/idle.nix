@@ -116,15 +116,54 @@ let
   '';
   # The idle suspend waits for a running install or system update: an app
   # from the dock can take longer than the 15 minutes (DaVinci Resolve, 25
-  # min on the ThinkPad), and a suspend in the middle stalls the download or
-  # the switch. Only the IDLE suspend: closing the lid still suspends.
+  # min on the ThinkPad), a weak machine's first-boot build opens at that
+  # very 15th minute, and a suspend in the middle stalls the download or the
+  # switch. Only the IDLE suspend: closing the lid still suspends.
+  #
+  # (2026-11-20) It never did wait. These are one-shot units, "activating"
+  # for as long as they run, and `systemctl is-active` says no to that: a
+  # VM installed for the layout's test went to sleep at its 15th idle
+  # minute, the moment its first-boot build began. And a suspend that was
+  # held would never have been asked for again (hypridle fires a listener
+  # once per idle spell): the laptop would have stayed awake until touched.
+  # Now the script itself waits for the job, two hours at most, and
+  # suspends when it is over; if the owner comes back meanwhile, hypridle's
+  # on-resume calls the waiting one off (--cancel, by its own pid).
+  # (home/idle-test.sh, checks.idle-suspend, runs it against a made-up
+  # systemctl; the two settings named GOLEM_IDLE_* are that test's.)
   golemIdleSuspend = pkgs.writeShellScript "golem-idle-suspend" ''
-    for u in waverunner-apply golem-postinstall-apply golem-autoupdate seam-update golem-first-boot; do
-      if systemctl is-active --quiet "$u.service"; then
-        echo "golem-idle-suspend: $u is running — not suspending"
-        exit 0
+    run="''${XDG_RUNTIME_DIR:-/run/user/$(${pkgs.coreutils}/bin/id -u)}/golem"
+    pidfile="$run/idle-suspend.pid"
+    if [ "''${1:-}" = --cancel ]; then
+      pid=$(${pkgs.coreutils}/bin/cat "$pidfile" 2>/dev/null) || exit 0
+      case "$pid" in "" | *[!0-9]*) exit 0 ;; esac
+      if ${pkgs.gnugrep}/bin/grep -qa golem-idle-suspend "/proc/$pid/cmdline" 2>/dev/null; then
+        echo "golem-idle-suspend: the owner is back — the waiting suspend is called off"
+        kill "$pid" 2>/dev/null
       fi
-    done
+      ${pkgs.coreutils}/bin/rm -f "$pidfile"
+      exit 0
+    fi
+    busy() {
+      for u in waverunner-apply golem-postinstall-apply golem-autoupdate seam-update golem-first-boot; do
+        case "$(systemctl is-active "$u.service" 2>/dev/null)" in
+          active | activating | reloading | deactivating) echo "$u"; return 0 ;;
+        esac
+      done
+      return 1
+    }
+    if u=$(busy); then
+      echo "golem-idle-suspend: $u is running — the suspend waits for it"
+      ${pkgs.coreutils}/bin/mkdir -p "$run"
+      echo $$ > "$pidfile"
+      step=''${GOLEM_IDLE_STEP:-20}; most=''${GOLEM_IDLE_MOST:-7200}; waited=0
+      while [ "$waited" -lt "$most" ] && busy > /dev/null; do
+        ${pkgs.coreutils}/bin/sleep "$step"
+        waited=$((waited + step))
+      done
+      ${pkgs.coreutils}/bin/rm -f "$pidfile"
+      echo "golem-idle-suspend: waited ''${waited}s — suspending now"
+    fi
     exec systemctl suspend
   '';
   idleSuspend = "${golemIdleSuspend}";
@@ -148,6 +187,7 @@ let
   '';
 in
 {
+  golem.home.idleSuspend = golemIdleSuspend;
   home.packages = [ golemCaffeine golemLockScreen ];
   systemd.user.services.golem-caffeine = {
     Unit = {
@@ -184,7 +224,7 @@ in
       listener = [
         { timeout = 300; on-timeout = lock; }
         { timeout = 360; on-timeout = dpms "off"; on-resume = dpms "on"; }
-        { timeout = 900; on-timeout = idleSuspend; }
+        { timeout = 900; on-timeout = idleSuspend; on-resume = "${idleSuspend} --cancel"; }
       ];
     };
   };

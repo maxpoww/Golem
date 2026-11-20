@@ -91,6 +91,13 @@
       '';
     };
 
+    idleSuspend = lib.mkOption {
+      type = lib.types.package;
+      internal = true;
+      readOnly = true;
+      description = "golem-idle-suspend, what the idle daemon runs at the 15th idle minute (home/idle.nix); here for its test.";
+    };
+
     hyprTree = lib.mkOption {
       type = lib.types.package;
       internal = true;

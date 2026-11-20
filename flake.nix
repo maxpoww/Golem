@@ -593,6 +593,22 @@
             cp log $out
           '';
 
+        # The idle suspend (home/idle.nix), against a made-up systemctl: it
+        # waits for a running install or update (a one-shot unit that runs
+        # is "activating", which `is-active` calls a failure: the guard that
+        # asked that way never held), suspends when the job ends, and is
+        # called off when the owner comes back.
+        idle-suspend =
+          let
+            c = (machine ./system/machine/fixtures/thinkpad).system.config;
+            script = c.home-manager.users.${c.golem.owner}.golem.home.idleSuspend;
+          in
+          pkgs.runCommand "golem-idle-suspend-test" { nativeBuildInputs = [ pkgs.procps ]; } ''
+            ${pkgs.bash}/bin/bash ${./system/home/idle-test.sh} ${script} > log 2>&1 || { cat log; exit 1; }
+            tail -n 1 log >&2
+            cp log $out
+          '';
+
         # THE INSTALLER'S PINS ARE THIS FLAKE'S. Installer/preinstall has a
         # lock of its own that holds a COPY of the pins of this one (its
         # inputs follow `golem`'s), refreshed only by `nix flake update
