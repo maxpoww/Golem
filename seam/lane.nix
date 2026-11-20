@@ -18,11 +18,20 @@ let
   #  - Golem (flake): the machine's own checkout (golem.flakeDir) — a flake's ./. is a
   #    read-only store copy, and flakes only see git-TRACKED files, so the pin is
   #    written into the checkout, `git add`ed, and the system rebuilt with --flake.
+  #  - Golem, the /etc/nixos layout (system/machine): root's own copy of Golem
+  #    (<folder>/golem). The pin is written there, by root, and what is rebuilt is
+  #    the machine's folder. No seal: nothing an owner's program can write is in it.
+  #    (An update of Golem keeps whichever pin is NEWER: golem-update.)
   #  - dev box (channel /etc/nixos): this directory itself, plain `nixos-rebuild`.
   flakeDir = lib.attrByPath [ "golem" "flakeDir" ] null config;
   flakeAttr = lib.attrByPath [ "golem" "flakeAttr" ] null config;
   isFlake = flakeDir != null && flakeAttr != null;
-  seamDir = if isFlake then "${flakeDir}/seam" else toString ./.;
+  machineDir = lib.attrByPath [ "golem" "machine" "dir" ] null config;
+  isMachine = !isFlake && machineDir != null;
+  seamDir =
+    if isFlake then "${flakeDir}/seam"
+    else if isMachine then "${machineDir}/golem/seam"
+    else toString ./.;
   sealCheck = lib.attrByPath [ "golem" "seal" "check" ] null config;
   sealHeal = lib.attrByPath [ "golem" "seal" "heal" ] null config;
   sealAdopt = lib.attrByPath [ "golem" "seal" "adopt" ] null config;
@@ -35,7 +44,11 @@ let
     export SEAM_SEAL_HEAL=${sealHeal}/bin/golem-seal-heal
     export SEAM_SEAL_ADOPT=${sealAdopt}/bin/golem-seal-adopt
     export SEAM_SEAL_COPY=${sealCopy}/bin/golem-seal-copy
-  '');
+  '') + lib.optionalString isMachine ''
+    export SEAM_FLAKE=${lib.escapeShellArg "${machineDir}/golem"}
+    export SEAM_FLAKE_ATTR=default
+    export SEAM_REBUILD_FLAKE=${lib.escapeShellArg machineDir}
+  '';
   src = builtins.fromJSON (builtins.readFile ./sources.json);
   # "Seam updated": said to each logged-in user in their own language.
   golemSay = pkgs.callPackage ../system/i18n/golem-say.nix { };
@@ -67,7 +80,7 @@ let
       gnupg gawk # Mozilla's signature on SHA256SUMS
       glibc.bin golemSay # getent: each user's home, for their language
       config.system.build.nixos-rebuild selftest
-    ];
+    ] ++ lib.optional (config.golem ? rebuild) config.golem.rebuild;   # the one door, where there is one (update.sh: nr)
     # syntax-check only: a shellcheck style nit must never fail a SECURITY rebuild
     checkPhase = ''
       runHook preCheck

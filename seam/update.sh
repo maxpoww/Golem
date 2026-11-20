@@ -21,6 +21,10 @@ log(){ echo "seam-update: $*"; }
 # where the owner could go already. (--check, run by anyone, reads as itself.)
 owner=$(stat -c %U "${SEAM_FLAKE:-$SEAM_DIR}")
 asowner(){ if [ "$(id -u)" = 0 ]; then runuser -u "$owner" -- "$@"; else "$@"; fi; }
+# The system rebuild: through Golem's one door where there is one (the
+# version's published cache; a switch that the owner's pending rename refuses
+# is staged for the next start instead), else plain nixos-rebuild (the dev box).
+nr(){ if command -v golem-rebuild >/dev/null 2>&1; then GOLEM_REBUILD_LOCK_HELD=1 golem-rebuild "$@"; else nixos-rebuild "$@"; fi; }
 # A FIFO put in place of a file must not hang the lane: it holds the rebuild lock.
 readown(){ asowner timeout 20 cat "$1"; }
 
@@ -106,7 +110,7 @@ done
 
 log "updating $pinned -> $want"
 # Golem's one rebuild lock (golem-rebuild uses it too): never two system rebuilds at once.
-# We hold it ourselves, so the rebuild below is a plain nixos-rebuild.
+# We hold it ourselves; the rebuild below says so to golem-rebuild (nr).
 exec 9>>/run/golem-rebuild.lock
 flock 9
 
@@ -150,12 +154,14 @@ if [ -n "${SEAM_FLAKE:-}" ]; then
       reseal || { log "could not seal the new pin"; return 1; }
       local src rc=0
       src=$("$SEAM_SEAL_COPY") || return 1
-      nixos-rebuild switch --flake "path:$src#$SEAM_FLAKE_ATTR" || rc=$?
+      nr switch --flake "path:$src#$SEAM_FLAKE_ATTR" || rc=$?
       rm -rf "$src"
       return "$rc"
     }
   else
-    rebuild(){ nixos-rebuild switch --flake "$SEAM_FLAKE#$SEAM_FLAKE_ATTR"; }
+    # (SEAM_REBUILD_FLAKE: where the machine's flake is when the pin lives in a
+    # folder of it — the /etc/nixos layout, the pin in <folder>/golem/seam.)
+    rebuild(){ nr switch --flake "${SEAM_REBUILD_FLAKE:-$SEAM_FLAKE}#$SEAM_FLAKE_ATTR"; }
   fi
 else
   rebuild(){ nixos-rebuild switch; }
@@ -172,6 +178,14 @@ fi
 [ -n "${SEAM_SEAL_COPY:-}" ] || reseal
 rm -f "$pincopy" "$prev"
 log "Seam is now $want"
+# Built for the next start, not switched (golem-rebuild: the first session
+# after an install, before the owner's account has its name): nobody is
+# told to restart a browser that is still the old one.
+staged=no
+if [ -e /run/golem-rebuild-staged ]; then
+  staged=yes; rm -f /run/golem-rebuild-staged
+  log "(it starts at this computer's next restart)"
+fi
 
 # Test the NEW build headless (as nobody: Firefox must not run as root). Never blocks
 # the update — the safety net keeps the browser working either way; this only reports.
@@ -205,6 +219,7 @@ printf '%s\n' "$st" | sed 's/^/  /'
 # each in their own language: root names their settings for golem-say.
 # Not for the packs alone: the next start picks them up, nothing to be secured.
 [ "$packsonly" = yes ] && exit 0
+[ "$staged" = yes ] && exit 0
 for bus in /run/user/*/bus; do
   [ -S "$bus" ] || continue
   u=$(stat -c %U "$bus")
