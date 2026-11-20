@@ -55,6 +55,7 @@ let
            && lib.hasInfix "--unrestricted" c.boot.loader.grub.entryOptions
            && c.boot.loader.grub.users == { }))
         (ex "the system names its owner's account (/etc/golem/owner) and renames it before the users step when golem.owner changes (2026-11-15)" (c.environment.etc."golem/owner".text == c.golem.owner + "\n" && lib.elem "golemOwnerRename" c.system.activationScripts.users.deps))
+        (ex "a system whose owner has another name never starts under the old account's session: the switch is refused before it begins, and golem-rebuild stages it (2026-11-20)" (c.system.preSwitchChecks ? golemOwner && lib.hasInfix "/run/golem-owner-waits" c.system.preSwitchChecks.golemOwner && lib.hasInfix "golem-owner-waits" c.golem.rebuild.text))
         (ex "the owner cannot read every keyboard directly: not in the input group (2026-11-12)" (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
         (ex "no passwordless sudo on an install (GolemSecurity)" (!(lib.any (r: lib.any (cmd: lib.elem "NOPASSWD" (cmd.options or [ ])) (r.commands or [ ])) c.security.sudo.extraRules) && !(lib.hasInfix "NOPASSWD" c.security.sudo.extraConfig)))
         (ex "Broadwell (not legacy) → LIBVA iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))

@@ -73,9 +73,46 @@
   # uid, same password, and moves its home, before the users step looks. It
   # works both ways, so booting the older generation renames it back.
   # Only when no program of that account is running: in practice at boot
-  # (first-boot and autoupdate stage with `boot`). A live `switch` that changes
-  # golem.owner under a running session is not renamed: NixOS's own behaviour.
+  # (first-boot and autoupdate stage with `boot`). A live `switch` that
+  # changes golem.owner under a running session is refused before it starts
+  # (the pre-switch check below).
   environment.etc."golem/owner".text = "${config.golem.owner}\n";
+
+  # …AND NO SYSTEM OF THE NEW NAME STARTS UNDER THE OLD ACCOUNT'S SESSION
+  # (2026-11-20). The step below waits for a restart when the account is in
+  # use. NixOS's users step does not wait: on a live `switch` it made the new
+  # name a SECOND, empty account (the next uid) and dropped the old one, and
+  # the restart then found nothing to rename — the owner's first session,
+  # its files and its settings, left in /home/<old>, owned by nobody. Any
+  # live switch in the first session after an install did it: the browser
+  # updating itself, an app from the dock, an answer to a post-install
+  # question (found by the layout's VM install: Seam's lane fired eleven
+  # minutes in).
+  # So such a switch is REFUSED, by NixOS's own pre-switch check, whoever
+  # asks for it: that system can only start at a restart. golem-rebuild
+  # (golem-seal.nix) turns the refusal into what its caller can still have,
+  # the new system staged for the next start. ($1 the new system, $2 the
+  # action; /run/golem-owner-waits says why, for golem-rebuild.)
+  system.preSwitchChecks.golemOwner = ''
+    case "''${2:-}" in switch | test) ;; *) exit 0 ;; esac
+    new=${lib.escapeShellArg config.golem.owner}
+    rec=/var/lib/golem/owner
+    old=""
+    if [ -f "$rec" ]; then old=$(${pkgs.coreutils}/bin/head -n1 "$rec"); fi
+    valid() { printf '%s' "$1" | ${pkgs.gnugrep}/bin/grep -qE '^[a-z][a-z0-9_-]{0,31}$'; }
+    if [ -z "$old" ] || [ "$old" = "$new" ]; then exit 0; fi
+    if ! valid "$old" || ! valid "$new"; then exit 0; fi
+    if ! ${pkgs.gnugrep}/bin/grep -q "^$old:" /etc/passwd; then exit 0; fi
+    if ${pkgs.gnugrep}/bin/grep -q "^$new:" /etc/passwd; then exit 0; fi
+    uid=$(${pkgs.gnugrep}/bin/grep "^$old:" /etc/passwd | ${pkgs.coreutils}/bin/cut -d: -f3)
+    case "$uid" in "" | *[!0-9]*) exit 0 ;; esac
+    if [ "$uid" -lt 1000 ]; then exit 0; fi
+    if ! ${pkgs.procps}/bin/pgrep -u "$uid" > /dev/null 2>&1; then exit 0; fi
+    printf '%s\n' "''${1:-}" > /run/golem-owner-waits
+    echo "golem-owner: this system's owner is '$new' and '$old' is logged in: the account is renamed at a restart, so this system can only start at one."
+    echo "golem-owner: stage it and restart:  sudo rebuild-golem boot   (or: sudo nixos-rebuild boot)"
+    exit 1
+  '';
   system.activationScripts.golemOwnerRename = {
     text = ''
       (

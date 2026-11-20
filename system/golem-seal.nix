@@ -172,7 +172,7 @@ let
   # its turn instead. The lock file is Seam's lane's, which already took it.
   rebuild = pkgs.writeShellApplication {
     name = "golem-rebuild";
-    runtimeInputs = [ pkgs.util-linux config.system.build.nixos-rebuild ];
+    runtimeInputs = [ pkgs.util-linux pkgs.coreutils config.system.build.nixos-rebuild ];
     text = ''
       # A caller that holds the lock around MORE than the rebuild (the nightly
       # update: pull → build → recover; a dock install: read → generate →
@@ -208,7 +208,27 @@ let
           if [ -n "$cargs" ]; then mapfile -t extra <<< "$cargs"; fi
         fi
       ''}
-      nixos-rebuild "$@" "''${extra[@]}"
+      rm -f /run/golem-owner-waits /run/golem-rebuild-staged
+      rc=0
+      nixos-rebuild "$@" "''${extra[@]}" || rc=$?
+      # A SWITCH THE OWNER'S RENAME REFUSED (base/users.nix: the new system's
+      # owner has another name and the old account is logged in — the first
+      # session after an install). It was built, and nixos-rebuild had made
+      # it the newest generation before the refusal; what a switch can still
+      # honestly have is that system at the next start. The callers that
+      # care (/run/golem-rebuild-staged) tell the owner.
+      if [ "$rc" != 0 ] && [ "''${1:-}" = switch ] && [ -s /run/golem-owner-waits ]; then
+        staged=$(head -n 1 /run/golem-owner-waits)
+        rm -f /run/golem-owner-waits
+        if [ -n "$staged" ] && [ -x "$staged/bin/switch-to-configuration" ] \
+           && [ "$(readlink -f /nix/var/nix/profiles/system)" = "$(readlink -f "$staged")" ] \
+           && "$staged/bin/switch-to-configuration" boot; then
+          printf '%s\n' "$staged" > /run/golem-rebuild-staged
+          echo "golem-rebuild: built, and it starts at the next restart — the owner's account takes its name then, and it is logged in now" >&2
+          exit 0
+        fi
+      fi
+      exit "$rc"
     '';
   };
   # The root-only snapshot of the blessed files (the seal's own file set,
