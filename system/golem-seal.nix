@@ -1,9 +1,9 @@
-# The seed blessing gate — Golem #56 ("this one can't be Golem's backdoor").
+# The seed blessing gate — Standard #56 ("this one can't be Standard's backdoor").
 #
 # THE HOLE THIS CLOSES
 # --------------------
 # The seed flake lives in the owner's HOME, owned by the owner — that is
-# Golem's philosophy (your system is yours to hack). But the root apply
+# Standard's philosophy (your system is yours to hack). But the root apply
 # helpers rebuild the SYSTEM from it on every app install, so any code
 # running as the user could edit the system configuration and get root
 # silently: no sudo prompt, ever. The two sanctioned user→system channels
@@ -35,7 +35,7 @@
 { config, pkgs, lib, ... }:
 
 let
-  flakeDir = config.golem.flakeDir;
+  flakeDir = config.standard.flakeDir;
   manifestDir = "/var/lib/golem";
   manifest = "${manifestDir}/seed.manifest";
   # A root-only copy of the files as they were last blessed. An app install
@@ -45,8 +45,8 @@ let
   # Root's own mirror of upstream, fetched from the configured URL — never
   # from anything in the owner's .git — to tell upstream code from local edits.
   mirrorDir = "${manifestDir}/upstream.git";
-  upstreamUrl = lib.attrByPath [ "golem" "upstream" "url" ] "https://github.com/maxpoww/Golem" config;
-  upstreamBranch = lib.attrByPath [ "golem" "upstream" "branch" ] "main" config;
+  upstreamUrl = lib.attrByPath [ "standard" "upstream" "url" ] "https://github.com/maxpoww/Golem" config;
+  upstreamBranch = lib.attrByPath [ "standard" "upstream" "branch" ] "main" config;
 
   # The generated data channels (root-written from validated user data) —
   # exempt from the seal because their content never reaches eval as code.
@@ -162,7 +162,7 @@ let
     }
   '';
 
-  # ONE rebuild at a time, for every rebuilder Golem has: the dock's app
+  # ONE rebuild at a time, for every rebuilder Standard has: the dock's app
   # installs, post-install answers, first boot, the nightly update, Seam's
   # update lane and the owner's rebuild-golem. switch-to-configuration takes
   # its own lock WITHOUT waiting ("Could not acquire lock"), and by then
@@ -187,7 +187,7 @@ let
       # The version's published cache (updates/client.nix): what the update
       # lane already built is downloaded, not compiled. None published → none.
       extra=()
-      ${lib.optionalString (config.golem ? update) ''
+      ${lib.optionalString (config.standard ? update) ''
         flake=""; prev=""
         for a in "$@"; do
           case "$a" in --flake=*) flake=''${a#--flake=} ;; esac
@@ -196,7 +196,7 @@ let
         done
         if [ -n "$flake" ]; then
           cargs=""; crc=0
-          cargs=$(${config.golem.update.cacheArgs}/bin/golem-cache-args "''${flake%%#*}") || crc=$?
+          cargs=$(${config.standard.update.cacheArgs}/bin/golem-cache-args "''${flake%%#*}") || crc=$?
           # 75: GitHub could not be asked whether the cache exists. A caller
           # that must not compile blind (the nightly update) stops here and
           # tries again later; any other build goes on without it, as before
@@ -545,7 +545,7 @@ let
       copy_files "$staged" "$dest" "$list"
       data_channels "$staged" "$dest"
       write_rev "$dest"
-      ${rebuild}/bin/golem-rebuild "$action" --flake "path:$dest#${config.golem.flakeAttr}" "$@"
+      ${rebuild}/bin/golem-rebuild "$action" --flake "path:$dest#${config.standard.flakeAttr}" "$@"
       mkdir -p ${lib.escapeShellArg manifestDir}
       chmod 700 ${lib.escapeShellArg manifestDir}
       printf '%s\n' "$current" > "$manifest"
@@ -556,7 +556,7 @@ let
   };
 in
 {
-  options.golem.seal.check = lib.mkOption {
+  options.standard.seal.check = lib.mkOption {
     type = lib.types.package;
     description = "The seed seal-check tool the root apply helpers gate on.";
   };
@@ -565,47 +565,47 @@ in
   # after a clean fast-forward pull from upstream (the trust root) — never on
   # a local edit. The interactive `golem-bless` on $PATH is unchanged; this is
   # the same package, referenced by store path.
-  options.golem.seal.bless = lib.mkOption {
+  options.standard.seal.bless = lib.mkOption {
     type = lib.types.package;
     description = "The seed re-seal tool (golem-bless), for trusted unattended re-baselining.";
   };
 
-  options.golem.seal.heal = lib.mkOption {
+  options.standard.seal.heal = lib.mkOption {
     type = lib.types.package;
     description = "golem-seal-heal: re-bless when every change since the last bless is upstream's own code.";
   };
-  options.golem.seal.adopt = lib.mkOption {
+  options.standard.seal.adopt = lib.mkOption {
     type = lib.types.package;
     description = "golem-seal-adopt: seal one file a root service wrote itself, nothing else.";
   };
-  options.golem.seal.copy = lib.mkOption {
+  options.standard.seal.copy = lib.mkOption {
     type = lib.types.package;
     description = "golem-seal-copy: a root-only copy of exactly the sealed files, for root to build from.";
   };
-  options.golem.seal.approve = lib.mkOption {
+  options.standard.seal.approve = lib.mkOption {
     type = lib.types.package;
     description = "golem-seal-approve: the owner's rebuild — build a copy of the checkout, then seal that same copy.";
   };
-  options.golem.seal.snapshot = lib.mkOption {
+  options.standard.seal.snapshot = lib.mkOption {
     type = lib.types.str;
     default = snapshotDir;
     readOnly = true;
     description = "Root-only copy of the last blessed checkout (installs build from it when local edits are unapproved).";
   };
-  options.golem.rebuild = lib.mkOption {
+  options.standard.rebuild = lib.mkOption {
     type = lib.types.package;
-    description = "golem-rebuild: nixos-rebuild behind Golem's one rebuild lock (every rebuilder uses it).";
+    description = "golem-rebuild: nixos-rebuild behind Standard's one rebuild lock (every rebuilder uses it).";
   };
 
   config = lib.mkMerge [
-    { golem.rebuild = rebuild; }
+    { standard.rebuild = rebuild; }
     (lib.mkIf (flakeDir != null) {
-      golem.seal.check = sealCheck;
-      golem.seal.bless = bless;
-      golem.seal.heal = heal;
-      golem.seal.adopt = adopt;
-      golem.seal.copy = copy;
-      golem.seal.approve = approve;
+      standard.seal.check = sealCheck;
+      standard.seal.bless = bless;
+      standard.seal.heal = heal;
+      standard.seal.adopt = adopt;
+      standard.seal.copy = copy;
+      standard.seal.approve = approve;
       environment.systemPackages = [ bless approve rebuild ];
     })
   ];

@@ -1,11 +1,11 @@
 # Evaluate each package the dock would offer, exactly as an install would
-# (Golem's own package set, its config: unfree allowed, nothing insecure or
+# (Standard's own package set, its config: unfree allowed, nothing insecure or
 # broken). Used by refresh.sh; one attribute set of name → "ok:<outPath>" or
 # the reason it can never install.
 { flake, names }:
 let
   f = builtins.getFlake flake;
-  pkgs = f.nixosConfigurations.golem-desktop-vm.pkgs;
+  pkgs = f.nixosConfigurations.standard-desktop-vm.pkgs;
   lib = pkgs.lib;
   one = n:
     let

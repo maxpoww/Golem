@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Golem's folder icons (Max, 2026-10-14): the simple folder in the dock
+"""Standard's folder icons (Max, 2026-10-14): the simple folder in the dock
 figures' cast grey, and the owner's own folders with their symbol ENGRAVED on
 the front. Writes places/<freedesktop name>.svg; run again after any change.
 

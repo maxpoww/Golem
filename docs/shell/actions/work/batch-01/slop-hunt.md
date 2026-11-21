@@ -46,13 +46,13 @@ and the pattern in what it killed is the unit's real finding (§5).
 The draft's own suspicion was right, and the gate was not the fix. A screenshot
 one second old is an object the user's hands are still on: that is OPTIONS
 territory by F5 doctrine 1, and adding an evidence gate does not move the
-boundary — it only makes Golem speak later about the same object.
+boundary — it only makes Standard speak later about the same object.
 
 But the gate pointed at the real action underneath. If the user has annotated by
 hand three times, the thing worth offering is not *this* screenshot, it is the
-**rule**: screenshots open in the annotator from now on. Golem owns the
+**rule**: screenshots open in the annotator from now on. Standard owns the
 screenshot binding (catalog §4.26, `grim` → `~/Pictures`), so piping its own
-output into the annotator is a change inside Golem's own house — no new
+output into the annotator is a change inside Standard's own house — no new
 mechanism, no reaching into another app.
 
 **Repaired form, binding on P5:**
@@ -118,7 +118,7 @@ it breaks is Constitution IV, and the reasoning is worse than the flag suggested
 The evidence *is* the refutation. The action's premise is that the user reaches
 for the charger at a consistent personal median (38%). A user with a consistent
 median is a user who notices reliably, unaided, every day — with a battery
-percentage that is already on the topbar. Golem would spend an utterance to
+percentage that is already on the topbar. Standard would spend an utterance to
 install a **permanent stream of future utterances** telling someone a number they
 have proven they already read. The value of a system that speaks first is
 inversely proportional to how often it speaks; this action trades one sentence
@@ -183,7 +183,7 @@ not in catalog §0's nine collectors and P5 must say so honestly).
 ## 2. The voice pass — every sentence against Constitution II
 
 One question, asked of all 39: *does this sentence tell the user something about
-themselves they did not ask to hear?* Golem's voice is observational and warm; a
+themselves they did not ask to hear?* Standard's voice is observational and warm; a
 fact about a **thing** is an observation, a fact about a **person** is a verdict.
 
 | id | the word that decides it | verdict |
@@ -246,7 +246,7 @@ writing prose.
 **A06 — the app you have already voted on.** The evidence is an act the user
 **could not avoid performing**. Closing a notification is the only way to make it
 leave the screen; it is forced, not chosen, so it carries no information about
-desire. The user demonstrated *tolerance*, and Golem would read it as a
+desire. The user demonstrated *tolerance*, and Standard would read it as a
 *complaint* — Constitution III's admission question answered honestly gives "the
 designer's imagination". Worse, the failure mode is asymmetric: the notifications
 most often dismissed without a follow-up are the glanceable ones that did their
@@ -257,7 +257,7 @@ obtain relief. **Communication ships 4.**
 
 **A12 — the file you just got.** Killed on the verb, by the same test that killed
 V08 at F6. `[use <file>]` promises to put a file into another process's portal
-file-chooser dialog. Golem cannot do that: the picker is
+file-chooser dialog. Standard cannot do that: the picker is
 `xdg-desktop-portal-*`, it exposes no preselect API, and the only routes are key
 injection into a foreign window or building a replacement picker. A sentence that
 promises what the verb cannot honour is a lie, and the honest downgrade ("[copy
@@ -275,7 +275,7 @@ learning/reading and finance/shopping, and for the same reason F5 identified:
 putting two windows side by side is a keybind, and a per-instance offer of a
 one-keybind act is a toll — and unlike A25 or A27 there is no standing form to
 graduate to, because "these two windows" is a pair that exists for ten minutes.
-Second, and decisive: **Golem runs Hyprland.** Two windows the user alternates
+Second, and decisive: **Standard runs Hyprland.** Two windows the user alternates
 between are either already tiled together, or deliberately on separate
 workspaces. In the second case the offer proposes to undo an arrangement the user
 chose, on evidence that is nothing more than ordinary work rhythm — alternating
@@ -327,7 +327,7 @@ which is the only reason it survives today.
 
 **A11 — the whisper cap.** The verb moralised where the sentence did not. A
 "cap" is a ceiling that fights the user on the night they want it loud, and
-enforcement is not a register Golem has. Repaired to a *starting point*, not a
+enforcement is not a register Standard has. Repaired to a *starting point*, not a
 limit: verb **[start quiet after midnight]** — playback started after the hour
 begins at the user's own observed low level and any manual change wins
 immediately and permanently for that session. Sentence: *"You keep the volume low
@@ -342,7 +342,7 @@ user can read.
 **A15 — arrive plain.** The drafted evidence does not exist. Detecting a
 "plain-paste" means either reading a keystroke (Ctrl+Shift+V — permanently out of
 scope, Constitution VI) or knowing which mime type the receiving app requested,
-which requires Golem to *own* the clipboard as a data source. It does not:
+which requires Standard to *own* the clipboard as a data source. It does not:
 `wl-clipboard` is installed as a watcher and catalog §0 feeds `selection.*` from
 `wl-paste`. An action whose trigger cannot be sensed does not get to exist
 (Constitution III) — so the question is whether a sensable form of the same habit
@@ -389,15 +389,15 @@ microphone instead?"* Longer, still one sentence, and now true.
 **documented lock command per vault app**; where none exists the action does not
 exist for that app (the A24/A37 treatment — never a kill signal aimed at another
 program's process). (ii) The automatic form on the ladder is **the vault's own
-idle-lock preference**, not a Golem timer that races the app's — the A37 ruling
-generalised: when an app owns the behaviour, Golem flips the app's switch rather
+idle-lock preference**, not a Standard timer that races the app's — the A37 ruling
+generalised: when an app owns the behaviour, Standard flips the app's switch rather
 than doing the app's job.
 
 **A36 — the vault clipboard.** Most password managers already clear the clipboard
-after ten to thirty seconds. Offering to do it anyway is Golem teaching the user
+after ten to thirty seconds. Offering to do it anyway is Standard teaching the user
 their own tool (F5 doctrine 5) and, at a paste or two a day, a recurring speaker
 for something that was never broken. Repaired with a gate that is itself sensable:
-Golem speaks only if it has **observed vault-sourced clipboard content still
+Standard speaks only if it has **observed vault-sourced clipboard content still
 present after the window** (≥2 occurrences) — if the vault clears, the action
 never comes into existence. And once the gate opens it speaks **once**, offering
 the standing rule ("clear anything that comes from the vault after 30 seconds"),
@@ -415,7 +415,7 @@ the verb line, not in a footnote.
 **A04** (quiet the desk) — the batch's closest sibling to the sunset prototype;
 trigger specific, verb reversible, refusal cheap. **A05** (the hand-back) —
 survives on the provenance guard F6 attached; it may only speak about a queue
-Golem itself held. **A07** (pause when I step away) — a standing rule that
+Standard itself held. **A07** (pause when I step away) — a standing rule that
 deletes a reflex; the idle dependency is [cheap] and must be declared. **A14**
 (the reflex) — F6's ruling holds; the doorway trap is genuinely absent.
 **A17** (the hour you always guard) — the cleanest habit action in the batch and
@@ -485,9 +485,9 @@ answered falls permanently silent.
    carries no information about what they want. Dismissing a notification, closing
    a modal, acknowledging a dialog — these are tolls the world charges, not
    gestures the user offered. Only a voluntary act performed *to obtain relief*
-   licenses Golem to offer that relief. (Killed A06; acquitted A17.)
+   licenses Standard to offer that relief. (Killed A06; acquitted A17.)
 2. **A VERB THAT ONLY SCHEDULES SPEECH IS NOT A HAND** — *unless it replaces
-   repeated manual checking of something not otherwise visible.* Golem's verbs
+   repeated manual checking of something not otherwise visible.* Standard's verbs
    change the world; an action that spends one utterance to install a stream of
    future utterances inverts Constitution IV. The boundary is information
    availability: a battery percentage is already on the bar (A23, killed), a CI
@@ -507,7 +507,7 @@ answered falls permanently silent.
    trades something away, the sentence says so and stays one sentence.
    (Repaired A28.)
 6. **WHEN AN APP OWNS THE BEHAVIOUR, FLIP THE APP'S SWITCH.** Generalised from
-   F6's A37 ruling and applied to A35: Golem prefers turning on another program's
+   F6's A37 ruling and applied to A35: Standard prefers turning on another program's
    own documented setting over performing that program's job from outside. Where
    no documented setting exists, the action does not exist for that app.
 
@@ -615,7 +615,7 @@ box's dead **"New note"** button (`ClipHit::NewNote`, *"editor not yet wired"*,
 `HISTORY_FILE = "clipboard-history.json"` (`clipboard.rs:225`) is written by
 `save_clip_history()` (`:1573`) from five call sites and rolled at `MAX_HISTORY` in
 two places (`:1201`, `:1437`). **Every clip the box shows is already a row in a
-file Golem writes.** What A02 needs is not a store but *permanence*: a `pinned:
+file Standard writes.** What A02 needs is not a store but *permanence*: a `pinned:
 bool` on a row that is already serialised, plus a skip for pinned rows at those two
 truncations. That is small work in our own tree — [cheap] by the catalog's own
 legend, and structurally identical to A21's sibling penalty map beside
@@ -628,9 +628,9 @@ same one-word correction, and units 3 and 4's closing notes in `actions-40.md` s
 three. What does *not* change: the flag still has to be written, so A02 still
 speaks zero times today and the 13-of-34 verdict stands.
 
-### 1.2 A02 again — the sentence claimed a sense Golem does not have
+### 1.2 A02 again — the sentence claimed a sense Standard does not have
 
-*"You have **pasted** this same text on three different days."* Golem is a
+*"You have **pasted** this same text on three different days."* Standard is a
 clipboard **watcher**: `selection.*` carries offers — copies. Which application
 asked for the data, and when, is knowledge only the clipboard's owner has, which is
 exactly the limit that forced A15's evidence to be relocated **three blocks further
@@ -736,7 +736,7 @@ shared lifecycle row is *defined* here for the whole batch, and it lists id,
 last-offered day, answer and **refusal** count — yet a dozen blocks offer their
 automatic rung "after two acceptances", which that row cannot count. **REPAIRED
 batch-wide:** an accept count (u8) joins the row, inside the same ≈32 B. It is the
-only counter in the register whose purpose is to make Golem stop talking. Verb,
+only counter in the register whose purpose is to make Standard stop talking. Verb,
 Refusal, Gear (4 controls), Ladder, Fires: clean — and the ladder's argument that
 the *hand* beats the *rule* here is the batch's only deliberate inversion of
 doctrine 3, argued rather than slipped in.
@@ -749,7 +749,7 @@ clean.
 
 **A03** — trigger: the dormancy is discharged, not restated, and the honest reason
 is named — the portal's `SelectSources` exchange is between the sharing app and the
-portal, Golem is neither party, and reading it is the surveillance posture VI
+portal, Standard is neither party, and reading it is the surveillance posture VI
 forbids. Verb [live], unblock named as [cheap] work on our own portal. **Refusal:
 REPAIRED** — "silent for this cast" is a reset, not an escalation, and Constitution
 IV requires repeated refusals to walk toward silence; two refusals now retire it.
@@ -772,12 +772,12 @@ minutes" while A04's note forbids the stopwatch in so many words; the block now
 says the length is computed live between the two mic transitions and dies with the
 call. F4 doctrine 2 forbids a duration reaching **disk**, where it becomes a diary
 of how long the user talks; a length that exists for one comparison is no length at
-all. Trigger (the provenance guard — Golem may only speak about a queue it held),
+all. Trigger (the provenance guard — Standard may only speak about a queue it held),
 Verb, Gear: clean.
 
 **A07** — trigger **REPAIRED**. P5 wrote the idle source as "logind's `IdleHint`
 **or** the compositor's idle-notify", and only the second half is true on a stock
-Golem: `IdleHint` is set by whatever manages the session, and nothing in the tree
+Standard: `IdleHint` is set by whatever manages the session, and nothing in the tree
 sets it — no `hypridle`, no `swayidle`, no idle client of any kind, the same absence
 A26 and A33 are dormant on. A detector reading it would read a property that never
 moves. `ext-idle-notify-v1` is the opposite case: the compositor is the source and
@@ -840,7 +840,7 @@ what it takes — the formatted version is gone), Refusal, Gear, Ladder, Fires: 
 those under `/nix/var/nix/profiles/system`, two `readlink`s in the collector that
 already reads those profiles. Trigger: the best paragraph in the unit, because it
 *refuses* the draft's evidence — "count the defers" — on the ground that **there is
-no defer button in Golem to press**, and counting an act that does not exist is hunt
+no defer button in Standard to press**, and counting an act that does not exist is hunt
 doctrine 1 read backwards. Verb (the intent-file / `systemd.path` / root-oneshot
 shape, twice proven in our own tree; `boot` not `switch`; absent on the ISO by
 design, so it never speaks there), Refusal (the escalation clause, intact), Ladder,
@@ -870,7 +870,7 @@ narrow should mean.
 **A19** — **CLEAN, nine fields.** The moment→habit conversion is intact, the OCR
 pill is gone with its absorption visibly spent rather than quietly dropped, and the
 block states the fact that decides whether it ever exists: **no annotator ships with
-Golem**, so on a stock machine the gate never opens. Noted for the record: A19 is
+Standard**, so on a stock machine the gate never opens. Noted for the record: A19 is
 the lawful answer to A09's question — its "annotator class" needs no class table
 because *the evidence itself defines the set*. Where a trigger can be its own
 classifier, it should be.
@@ -888,7 +888,7 @@ for. The verb goes to the tree and comes back with the answer rather than a prom
 `UsageDb` is a flat `{app-id: count}` JSON (`usage.rs`) consulted by a single sort
 key (`main.rs:2501`), **it has no query dimension**, so the honest shape is a sibling
 store plus one extra term — *"named here so it cannot be read as a wish"*. Its
-ladder also names the alternative Golem is refusing (silent ranking ML, which is
+ladder also names the alternative Standard is refusing (silent ranking ML, which is
 what every other launcher does), which is Constitution VI.4 argued rather than
 asserted.
 
@@ -1034,7 +1034,7 @@ merely elsewhere.*
 ### 7.1 A29 — the trigger reported an absence the same process contradicts, twice
 
 P5 wrote: *"`parse_event` has no arm for them … and the engine has **never** queried
-`j/monitors`, so Golem holds **no monitor inventory at all** today."* The first clause
+`j/monitors`, so Standard holds **no monitor inventory at all** today."* The first clause
 is true of the collector. The second is false of the program:
 
 - **`monitoradded` / `monitorremoved` are already subscribed and already acted on** —
@@ -1054,7 +1054,7 @@ and the premise is repaired.
 
 **And the verb's [new] was argued on a second false premise.** The block presents
 `zwlr_output_manager_v1` as a protocol the landscape survey *spec'd field by field*,
-which reads as a family Golem does not speak. Golem speaks it:
+which reads as a family Standard does not speak. Standard speaks it:
 **`wayland-protocols-wlr` is already a dependency** (`crates/daemon/Cargo.toml:32`),
 and the daemon **already binds and drives a sibling manager end to end** —
 `zwlr_screencopy_manager_v1` / `zwlr_screencopy_frame_v1` with full `Dispatch` impls
@@ -1068,7 +1068,7 @@ and there is no existing collector to add to, because this is an **actuator**, a
 module beside `screencopy.rs`. Bigger than A02's flag, smaller than a new dependency.
 What changes is the honest *size* of the gap, not the count: **A29 still does not
 speak.** One unverified assumption is named rather than smuggled: Hyprland implements
-wlr-output-management, and Golem's fork changed the config parser rather than the
+wlr-output-management, and Standard's fork changed the config parser rather than the
 protocol set — **not verified on the fork**, and it is one `wayland-info` away.
 
 ### 7.2 A34 — the [bridge] tag points at a socket the action never touches → **[new]**
@@ -1076,8 +1076,8 @@ protocol set — **not verified on the fork**, and it is one `wayland-info` away
 The catalog's legend is not a mood scale. It reads: *"**[bridge]** needs an app to
 talk to the bridge socket (`$XDG_RUNTIME_DIR/options/bridge.sock`)"* (catalog §0,
 lines 31–34) — one named socket, the seam the zsh and nvim clients use. A34's evidence
-is **Golem reading fprintd's outcome lines out of the system journal**. fprintd does
-not talk to Golem's bridge and never will. The tag was used to mean *awkward,
+is **Standard reading fprintd's outcome lines out of the system journal**. fprintd does
+not talk to Standard's bridge and never will. The tag was used to mean *awkward,
 second-class, someone else's cooperation* and it named a mechanism the action does not
 use — doctrine 7 exactly, in the one place in the batch nobody thought to check,
 because the tag itself looked like an admission of weakness.
@@ -1223,14 +1223,14 @@ legal under the ratified queue (iv) gear ≤5, ordered, absorbed habits spent
 - **A35 — the open vault · REPAIRED** (§7.4). (ii) Condition (i) discharged as a rule
   — no documented lock command, no action for that app ✓. (v) Doctrine 6 at its
   clearest: the automatic rung is **the vault's own idle-lock preference**, because a
-  Golem timer racing the vault's timer produces two locks and an unreproducible bug.
+  Standard timer racing the vault's timer produces two locks and an unreproducible bug.
 - **A36 — the vault clipboard · REPAIRED (minor, §7.4).** (i) Verified in the shipped
   code: `x-kde-passwordManagerHint` at `clipboard.rs:519/525`, *"sensitive clip
   (password-manager hint) — not recorded"* at `:526`. (vii) **Single refusal retires
   outright** — attacked as a possible escalation failure and **acquitted**: it is
   maximum escalation, not a reset, and the block defends it.
 - **A37 — on the way out · REPAIRED (precision).** (i) *"[live] on the title stream
-  Golem already watches"* overstates by the exact amount A32 spends a paragraph
+  Standard already watches"* overstates by the exact amount A32 spends a paragraph
   correcting three blocks earlier: `windowtitle` / `windowtitlev2` are **unparsed**.
   The tag survives on a different mechanism — a clear-browsing-data dialog **takes
   focus**, and focus events re-read the title (`activewindow` → `RefreshWindow` →
@@ -1277,14 +1277,14 @@ conflates two different absences:
   shape `screencopy.rs` already ships. That is [cheap], not dormant.
 - **What IS missing is anything that ACTS on idle**, and that is what A26 is actually
   about. The action's premise is a user **fighting the screen dimming**. On a stock
-  Golem the screen never dims, never blanks, never locks. So: the habit **cannot be
+  Standard the screen never dims, never blanks, never locks. So: the habit **cannot be
   performed**, the counter can never reach three, and the verb — an idle inhibitor —
   would inhibit an idle **nothing consumes**. Both mouths still fail, on firmer
   ground than the block gave.
 
 **Therefore: A26 and A33 stay dormant, and the "13 of 34" is NOT understated on their
 account.** The repair is to A26's *reasoning*, not to its status — and the correction
-is worth making because the current sentence would be read, correctly, as *Golem
+is worth making because the current sentence would be read, correctly, as *Standard
 cannot sense idle*, which is false and would mislead whoever implements it.
 
 A33 needs no repair: its other half — nothing locks at all — was re-verified over the
@@ -1437,7 +1437,7 @@ Two consequences worth stating rather than hiding:
 
 - **The live sunset prototype spends a slot.** It must, or the user hears four
   sentences on a "three-sentence" day. It is an expiring moment, so it always speaks —
-  the correct outcome, since silencing Golem's flagship to protect an arithmetic
+  the correct outcome, since silencing Standard's flagship to protect an arithmetic
   would be the budget eating the product.
 - **A32 is the only recurring expiring moment with no cluster and no daily cap**
   (*"a few times a week"* for someone who runs builds). It is the one line in the
@@ -1515,7 +1515,7 @@ four:
 
 1. **A26 and A33 stay dormant rather than dying** because dormancy is an honest state
    and this batch invented it deliberately: a block written in full, with its unblock
-   named, is worth more to whoever builds Golem than a gap in the numbering. They are
+   named, is worth more to whoever builds Standard than a gap in the numbering. They are
    *flagged for the kill they still deserve* if batch 1 ships before an idle manager
    does — that flag is P9's to act on, and it is now better argued than it was (§8.1).
 2. **A34's [bridge] was a tag error, and a tag error names its own repair.** The

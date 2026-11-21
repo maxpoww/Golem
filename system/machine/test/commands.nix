@@ -9,8 +9,8 @@
 let
   s = (machine ../fixtures/qemu).system.extendModules {
     modules = [ ({ lib, pkgs, ... }: {
-      golem.update.wave = 2;
-      golem.rebuild = lib.mkForce (pkgs.writeShellScriptBin "golem-rebuild" ''
+      standard.update.wave = 2;
+      standard.rebuild = lib.mkForce (pkgs.writeShellScriptBin "golem-rebuild" ''
         log=/var/lib/golem-test; mkdir -p "$log"
         echo "$*" >> "$log/calls"
         flake=""; prev=""
@@ -34,6 +34,6 @@ pkgs.buildEnv {
   paths = builtins.filter (p: builtins.elem (p.name or "") names) s.config.environment.systemPackages
     # (Built here so that every script of the layout is shell-checked by the
     # check, the desktop's dock helper included.)
-    ++ [ desktop.config.golem.machine.applyCommand desktop.config.golem.machine.answersCommand ]
+    ++ [ desktop.config.standard.machine.applyCommand desktop.config.standard.machine.answersCommand ]
     ++ (with pkgs; [ git coreutils diffutils gnugrep gnused gnutar findutils util-linux bash ]);
 }

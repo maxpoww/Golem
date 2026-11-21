@@ -13,7 +13,7 @@
 let
   fakeDisk = {
     nixpkgs.hostPlatform = "x86_64-linux";
-    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
     fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
   };
   desktop = ../../system/Modular/desktop/default.nix;
@@ -23,11 +23,11 @@ let
   rows = [
     {
       name = "lenovo desktop stage (intel+nvidia — the richest GPU class)";
-      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).standard.hardware;
     }
     {
       name = "thinkpad desktop stage (AMD Renoir — the amd class)";
-      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).standard.hardware;
     }
   ];
 
@@ -40,19 +40,19 @@ let
     (ex "greetd enabled" c.services.greetd.enable)
     # The owner's password hash never enters the (world-readable) store.
     (ex "the owner's password comes from a root-only file, never from the system source"
-      (c.users.users.${c.golem.owner}.hashedPasswordFile == "/var/lib/golem/secrets/owner-password-hash"
-        && c.users.users.${c.golem.owner}.hashedPassword == null
-        && c.users.users.${c.golem.owner}.password == null))
+      (c.users.users.${c.standard.owner}.hashedPasswordFile == "/var/lib/golem/secrets/owner-password-hash"
+        && c.users.users.${c.standard.owner}.hashedPassword == null
+        && c.users.users.${c.standard.owner}.password == null))
     # P16: the desktop is a USER session (initial_session), never the greeter's.
     (ex "greetd autologs the owner's desktop once per boot (initial_session, class user)"
       (lib.hasInfix "uwsm start -g -1 hyprland" (c.services.greetd.settings.initial_session.command or "")
-        && (c.services.greetd.settings.initial_session.user or "") == c.golem.owner))
+        && (c.services.greetd.settings.initial_session.user or "") == c.standard.owner))
     (ex "greetd: uwsm's start chatter goes to the journal, not the console"
       (lib.hasInfix "systemd-cat -t uwsm uwsm start" c.services.greetd.settings.initial_session.command))
     (ex "greetd shows a real login after a logout (tuigreet), the same session behind it"
       (lib.hasInfix "tuigreet" c.services.greetd.settings.default_session.command
         && lib.hasInfix "uwsm start -g -1 hyprland" c.services.greetd.settings.default_session.command
-        && (c.services.greetd.settings.default_session.user or "greeter") != c.golem.owner))
+        && (c.services.greetd.settings.default_session.user or "greeter") != c.standard.owner))
     (ex "greetd does not restart itself (an initial_session would autologin again)"
       (!c.services.greetd.restart))
     (ex "uinput on (virtual gamepad)" c.hardware.uinput.enable)
@@ -75,21 +75,21 @@ let
              [ "gnome-keyring-pkcs11.desktop" "gnome-keyring-secrets.desktop" ]))
     (ex "xserver on for XWayland xkb" c.services.xserver.enable)
     (ex "owner joined uinput + adbusers at the desktop stage"
-      (lib.elem "uinput" c.users.users.${c.golem.owner}.extraGroups
-        && lib.elem "adbusers" c.users.users.${c.golem.owner}.extraGroups))
+      (lib.elem "uinput" c.users.users.${c.standard.owner}.extraGroups
+        && lib.elem "adbusers" c.users.users.${c.standard.owner}.extraGroups))
     (ex "the owner is not in the input group: no program reads every keyboard directly (2026-11-12)"
-      (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
+      (!lib.elem "input" c.users.users.${c.standard.owner}.extraGroups))
     # base groups still present (extraGroups MERGED, not replaced)
     (ex "base groups survive the merge (wheel, video)"
-      (lib.elem "wheel" c.users.users.${c.golem.owner}.extraGroups
-        && lib.elem "video" c.users.users.${c.golem.owner}.extraGroups))
+      (lib.elem "wheel" c.users.users.${c.standard.owner}.extraGroups
+        && lib.elem "video" c.users.users.${c.standard.owner}.extraGroups))
     # audio: pipewire replaces pulseaudio
     (ex "pipewire on, pulseaudio off" (c.services.pipewire.enable && !c.services.pulseaudio.enable))
     (ex "pipewire pulse + alsa shims" (c.services.pipewire.pulse.enable && c.services.pipewire.alsa.enable))
     (ex "rtkit on (realtime audio)" c.security.rtkit.enable)
     # bluetooth: these fixtures have a radio → blueman + bluez on
     (ex "bluetooth on (census hasBluetooth)" (c.hardware.bluetooth.enable && c.services.blueman.enable))
-    (ex "home-manager activates only when something changed (desktop/home-boot: no 13 s re-link on every HDD boot)" (lib.hasInfix "golem-home-needs-activation" (c.systemd.services."home-manager-${c.golem.owner}".serviceConfig.ExecCondition or "")))
+    (ex "home-manager activates only when something changed (desktop/home-boot: no 13 s re-link on every HDD boot)" (lib.hasInfix "golem-home-needs-activation" (c.systemd.services."home-manager-${c.standard.owner}".serviceConfig.ExecCondition or "")))
     (ex "an update waiting 2+ days for a restart is announced (desktop/update-notice: autoupdate stages for the next boot; laptops that only sleep never boot)" (c.systemd.user.timers ? golem-update-notice && c.systemd.user.services ? golem-update-notice))
     (ex "a desktop crash loop goes back to the previous version, never Hyprland's safe mode (desktop/crash-recovery: last-resort config, golem-rollback, polkit for the owner)" (c.environment.etc ? "golem/last-resort.lua" && c.systemd.services ? golem-rollback && lib.hasInfix "golem-rollback.service" c.security.polkit.extraConfig))
     (ex "going back because the owner asked is its own unit, with its own words after (desktop/crash-recovery: golem-go-back runs golem-rollback asked; the owner may start it)" (c.systemd.services ? golem-go-back && lib.hasSuffix "golem-rollback asked" c.systemd.services.golem-go-back.serviceConfig.ExecStart && lib.hasInfix "golem-go-back.service" c.security.polkit.extraConfig))
@@ -116,7 +116,7 @@ let
     let
       testLeaf = ../../system/Modular/desktop/test-chrome.nix;
       c = (mkMinimal (builtins.head rows).facts [ fakeDisk desktop testLeaf ]).config;
-      owner = c.golem.owner;
+      owner = c.standard.owner;
       hm = c.home-manager.users.${owner};
       checks = [
         (ex "test-chrome: chromium/google-chrome enabled for the owner" hm.programs.chromium.enable)
@@ -146,12 +146,12 @@ let
         desktop
         ({ config, pkgs, ... }: {
           # As hosts/target/apps.nix does for what the dock installed.
-          home-manager.users.${config.golem.owner}.home.packages =
+          home-manager.users.${config.standard.owner}.home.packages =
             map lib.lowPrio [ pkgs.steam pkgs.docker pkgs.virt-manager pkgs.localsend pkgs.ollama pkgs.syncthing
                               pkgs.kdePackages.kdeconnect-kde pkgs.teamviewer pkgs.noisetorch pkgs.retroarch ];
         })
       ]).config;
-      groups = cfg: cfg.users.users.${cfg.golem.owner}.extraGroups;
+      groups = cfg: cfg.users.users.${cfg.standard.owner}.extraGroups;
       checks = [
         (ex "app-setup: a clean machine has no Steam, Docker, libvirtd or Ollama"
           (!clean.programs.steam.enable && !clean.virtualisation.docker.enable
@@ -168,7 +168,7 @@ let
         (ex "app-setup: virt-manager installed → libvirtd, virt-manager on the owner's own session"
           (c.virtualisation.libvirtd.enable && c.programs.virt-manager.enable
            && lib.hasInfix "qemu:///session" (builtins.toJSON
-                c.home-manager.users.${c.golem.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
+                c.home-manager.users.${c.standard.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
         # The security study's road 1 (2026-11-12): the app list is written
         # without a password, so no app may put the owner in a group that is
         # root. Everything installed at once, and still none of them.
@@ -196,7 +196,7 @@ let
 
   # THE REAL OPTIONS DESKTOP: compose the home layer (waverunner's bar/dock +
   # OPTIONS surfaces, hyprland.lua, Beam) onto a fixture — the same wiring the
-  # golem-desktop attr uses — and force the full eval. Catches a home-layer /
+  # standard-desktop attr uses — and force the full eval. Catches a home-layer /
   # leaf compose break on source, before a metal recut. (Heavier: pulls the
   # waverunner/waveview/Beam closures into eval.)
   realDesktop =
@@ -206,12 +206,12 @@ let
         desktop
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
-          services.options-notify.enable = true; # as the golem-desktop attr does (P8)
-          home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
+          services.options-notify.enable = true; # as the standard-desktop attr does (P8)
+          home-manager.users.${config.standard.owner} = import ../../system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
       ]).config;
-      owner = c.golem.owner;
+      owner = c.standard.owner;
       # The same desktop after the owner installed OBS from the dock (as the
       # generated hosts/target/apps.nix adds it): its fit rides along.
       cObs = (mkMinimal (builtins.head rows).facts [
@@ -220,7 +220,7 @@ let
         waverunner.nixosModules.notification-service
         ({ config, pkgs, ... }: {
           services.options-notify.enable = true;
-          home-manager.users.${config.golem.owner} = {
+          home-manager.users.${config.standard.owner} = {
             imports = [ ../../system/home/home.nix ];
             home.packages = map lib.lowPrio [ pkgs.obs-studio pkgs.btop pkgs.mpv ];
           };
@@ -236,9 +236,9 @@ let
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
           services.options-notify.enable = true;
-          home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
+          home-manager.users.${config.standard.owner} = import ../../system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
-          golem.postinstall.generatedFile = ../postinstall-hostile.fixture;
+          standard.postinstall.generatedFile = ../postinstall-hostile.fixture;
         })
       ]).config;
       # The same desktop on a weak GPU (gpu/intel-legacy): effects go light.
@@ -248,8 +248,8 @@ let
         ../../system/Modular/gpu/intel-legacy.nix
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
-          services.options-notify.enable = true; # as the golem-desktop attr does (P8)
-          home-manager.users.${config.golem.owner} = import ../../system/home/home.nix;
+          services.options-notify.enable = true; # as the standard-desktop attr does (P8)
+          home-manager.users.${config.standard.owner} = import ../../system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
       ]).config;
@@ -261,18 +261,18 @@ let
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
           services.options-notify.enable = true;
-          home-manager.users.${config.golem.owner} = {
+          home-manager.users.${config.standard.owner} = {
             imports = [ ../../system/home/home.nix ];
-            golem.home.devCheckout = true;
-            golem.home.idle.enable = false;
-            golem.home.hyprlandExtra = "-- DEV-LAYER-TAIL";
-            golem.home.menubox.hidePlumbing = false;
+            standard.home.devCheckout = true;
+            standard.home.idle.enable = false;
+            standard.home.hyprlandExtra = "-- DEV-LAYER-TAIL";
+            standard.home.menubox.hidePlumbing = false;
           };
           # waveview = null on purpose: a dev eval must never force it.
           home-manager.extraSpecialArgs = { inherit waverunner; waveview = null; };
         })
       ]).config;
-      devHome = cDev.home-manager.users.${cDev.golem.owner};
+      devHome = cDev.home-manager.users.${cDev.standard.owner};
       # THE DEFAULT APPS name apps that are there (2026-10-28): after the
       # debloat four defaults still named GNOME Disks, Calendar, Contacts and
       # Maps. Every desktop file the home layer's table names is shipped by a
@@ -301,7 +301,7 @@ let
       unshipped = builtins.filter (id: !(shippedBy ? ${id}) || installedNamed shippedBy.${id} == null) defaultIds;
       defaultFiles = lib.optionalString (unshipped == [ ])
         (lib.concatMapStringsSep "\n" (id: "desktop-file ${id} ${installedNamed shippedBy.${id}}/share/applications/${id}") defaultIds);
-      # THE HYPRLAND CONFIGURATION AS DEPLOYED (system/home/hypr): Golem's
+      # THE HYPRLAND CONFIGURATION AS DEPLOYED (system/home/hypr): Standard's
       # modules are the same text on every machine (`staticLua`, read from the
       # tree), what differs is the generated table of facts (`factsOf`) and
       # the machine's own tail (`extraOf`). `luaOf` is all of it as one text,
@@ -309,18 +309,18 @@ let
       hyprDir = ../home/hypr;
       hyprEntry = builtins.readFile (hyprDir + "/hyprland.lua");
       staticLua = lib.concatMapStrings builtins.readFile
-        (lib.filter (p: lib.hasSuffix ".lua" (toString p)) (lib.filesystem.listFilesRecursive (hyprDir + "/golem")));
+        (lib.filter (p: lib.hasSuffix ".lua" (toString p)) (lib.filesystem.listFilesRecursive (hyprDir + "/standard")));
       # (The facts are an option of the home layer, read here by evaluation:
-      # nothing is built. On a machine they are golem/machine.lua in the one
+      # nothing is built. On a machine they are standard/machine.lua in the one
       # store folder ~/.config/hypr/hyprland.lua points at.)
-      hyprOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.golem.home;
+      hyprOf = cfg: cfg.home-manager.users.${cfg.standard.owner}.standard.home;
       factsOf = cfg: (hyprOf cfg).hyprFacts;
       extraOf = cfg: (hyprOf cfg).hyprlandExtra;
       luaOf = cfg: staticLua + factsOf cfg + extraOf cfg + hyprEntry;
       lightBlock = "hl.config({ decoration = { blur = { enabled = false } } })";
-      dockCfgOf = cfg: cfg.home-manager.users.${cfg.golem.owner}.xdg.configFile."waverunner/config.toml".text;
+      dockCfgOf = cfg: cfg.home-manager.users.${cfg.standard.owner}.xdg.configFile."waverunner/config.toml".text;
       checks = [
-        # Golem's patched Hyprland (desktop/hyprland-overlay.nix): the titlebar's
+        # Standard's patched Hyprland (desktop/hyprland-overlay.nix): the titlebar's
         # straight top edge needs square-top, and the waveview plugin must be
         # compiled against the very same Hyprland (struct layouts differ).
         (ex "real desktop: Hyprland carries the square-top titlebar patch"
@@ -328,16 +328,16 @@ let
             (c.programs.hyprland.package.patches or [ ])))
         # A browser killed with a webapp open took the whole session down (P4).
         (ex "real desktop: golem-caffeine (stay awake) ships with its inhibitor unit"
-          ((c.home-manager.users.${c.golem.owner}.systemd.user.services ? golem-caffeine)
-            && lib.any (p: (p.name or "") == "golem-caffeine") c.home-manager.users.${c.golem.owner}.home.packages))
+          ((c.home-manager.users.${c.standard.owner}.systemd.user.services ? golem-caffeine)
+            && lib.any (p: (p.name or "") == "golem-caffeine") c.home-manager.users.${c.standard.owner}.home.packages))
         # A systemd inhibitor does not stop hypridle (it reads Wayland and
         # D-Bus inhibits only): caffeine keeps the idle daemon itself off.
         (ex "caffeine: hypridle does not run while ~/.config/golem/caffeine exists"
-          (c.home-manager.users.${c.golem.owner}.systemd.user.services.hypridle.Unit.ConditionPathExists
+          (c.home-manager.users.${c.standard.owner}.systemd.user.services.hypridle.Unit.ConditionPathExists
             == "!%h/.config/golem/caffeine"))
         # ...and it never blocks sleep itself: a low battery must still suspend.
         (ex "caffeine: holds only the lid switch, never sleep (the low-battery suspend must go through)"
-          (let es = c.home-manager.users.${c.golem.owner}.systemd.user.services.golem-caffeine.Service.ExecStart; start = if lib.isList es then lib.concatStringsSep " " es else es; in
+          (let es = c.home-manager.users.${c.standard.owner}.systemd.user.services.golem-caffeine.Service.ExecStart; start = if lib.isList es then lib.concatStringsSep " " es else es; in
             lib.hasInfix "--what=handle-lid-switch " start && !(lib.hasInfix "sleep" (lib.head (lib.match ".*--what=([^ ]*).*" start)))))
         (ex "real desktop: a scripted resize keeps a floating window's own min/max"
           (lib.any (p: lib.hasSuffix "hyprland-floating-resize-limits.patch" (toString p))
@@ -372,7 +372,7 @@ let
         (ex "P9: TERMINAL and EDITOR reach every app (hyprland.lua env)"
           (lib.all (k: lib.hasInfix ''hl.env("${k}"'' (luaOf c)) [ "TERMINAL" "EDITOR" ]))
         (ex "P10: the seed has an upstream and golem-seed-adopt is on the PATH"
-          (c.golem.upstream.url != "" && lib.any (p: (p.pname or p.name or "") == "golem-seed-adopt") c.environment.systemPackages))
+          (c.standard.upstream.url != "" && lib.any (p: (p.pname or p.name or "") == "golem-seed-adopt") c.environment.systemPackages))
         (ex "P11: idle → lock, screen off, suspend (hypridle + hyprlock + its PAM service)"
           (c.home-manager.users.${owner}.services.hypridle.enable
            && c.home-manager.users.${owner}.programs.hyprlock.enable
@@ -431,7 +431,7 @@ let
           (lib.hasInfix "ctl .. \" record\")" staticLua
            && lib.any (p: (p.pname or "") == "wf-recorder") c.home-manager.users.${owner}.home.packages))
         # The control panel's Default apps (2026-10-13): the owner's file is theirs.
-        (ex "the owner's default-apps file is not a link of ours, and Golem's defaults ship below it"
+        (ex "the owner's default-apps file is not a link of ours, and Standard's defaults ship below it"
           (!(c.home-manager.users.${owner}.xdg.configFile."mimeapps.list".enable)
            && c.home-manager.users.${owner}.xdg.dataFile ? "applications/mimeapps.list"))
         (ex "every default app is an app this desktop installs (not installed: ${lib.concatStringsSep ", " unshipped})"
@@ -459,12 +459,12 @@ let
            && lib.hasInfix ''ctl = "/home/max/launcher/target/debug/waverunner-ctl",'' (factsOf cDev)
            && !(devHome.programs.waverunner.enable or false)
            && !(devHome.xdg.configFile ? "systemd/user/waverunner.service.d/webapp-extension.conf")))
-        (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes after Golem's, right before the live settings"
+        (ex "P1 dev shape: no idle steps, the lock screen stays; the machine's Lua comes after Standard's, right before the live settings"
           (!devHome.services.hypridle.enable && devHome.programs.hyprlock.enable
            && lib.hasInfix "-- DEV-LAYER-TAIL" (extraOf cDev)
-           && (let around = lib.splitString "pcall(require, \"golem.extra\")" hyprEntry; in
+           && (let around = lib.splitString "pcall(require, \"standard.extra\")" hyprEntry; in
                builtins.length around == 2
-               && lib.hasInfix "require(\"golem.lab\")" (builtins.elemAt around 0)
+               && lib.hasInfix "require(\"standard.lab\")" (builtins.elemAt around 0)
                && !(lib.hasInfix "require(\"golem." (builtins.elemAt around 1))
                && lib.hasInfix "---- LIVE SETTINGS" (builtins.elemAt around 1))))
         # Fits (system/home/fits.nix): an app the owner installs works the
@@ -474,7 +474,7 @@ let
         # not installed.
         (ex "fits: OBS installed by the owner gets its first-run scene; no OBS, no fit"
           (let
-            hm = cfg: cfg.home-manager.users.${cfg.golem.owner};
+            hm = cfg: cfg.home-manager.users.${cfg.standard.owner};
             seed = builtins.fromJSON (builtins.readFile ../home/fits/obs-studio/Untitled.json);
             scene = lib.findFirst (s: s.id == "scene") { settings.items = [ { } ]; } seed.sources;
             item = builtins.head scene.settings.items;
@@ -493,9 +493,9 @@ let
           (lib.any (p: (p.name or "") == "ups") c.environment.systemPackages
             && c.virtualisation.podman.enable && c.environment.localBinInPath
             && c.environment.etc ? "ups/recipes.d/opencode.sh"))
-        # The Install section's list is Golem's checked one, made for the
+        # The Install section's list is Standard's checked one, made for the
         # nixpkgs this flake pins (refresh.sh after every nixpkgs bump).
-        (ex "install list: Golem's checked package index, made for the pinned nixpkgs"
+        (ex "install list: Standard's checked package index, made for the pinned nixpkgs"
           (let
             lock = builtins.fromJSON (builtins.readFile ../../flake.lock);
             made = lib.removeSuffix "\n" (builtins.readFile ../home/package-index.rev);
@@ -522,10 +522,10 @@ let
             && !(lib.hasInfix "require(" tail)
             && !(lib.hasInfix "hl.config(" tail))
             [ c cLight cDev ]))
-        (ex "menubox: what the owner installed is not hidden, what ships with Golem is"
+        (ex "menubox: what the owner installed is not hidden, what ships with Standard is"
           (let
             clean = c.home-manager.users.${owner}.xdg.dataFile;
-            picked = cObs.home-manager.users.${cObs.golem.owner}.xdg.dataFile;
+            picked = cObs.home-manager.users.${cObs.standard.owner}.xdg.dataFile;
             on = files: id: files ? "applications/${id}.desktop";
           in
             lib.all (on clean) [ "btop" "mpv" "umpv" "xterm" "foot" ]
@@ -537,9 +537,9 @@ let
         (ex "P1 install shape: no live-checkout path in anything deployed"
           (!(lib.hasInfix "/home/max/launcher" (luaOf c)) && !(lib.hasInfix "/home/max/waveview" (luaOf c))))
         (ex "real desktop: full effects by default (no light block)"
-          (c.golem.desktop.effects == "full" && lib.hasInfix ''effects = "full",'' (factsOf c)))
+          (c.standard.desktop.effects == "full" && lib.hasInfix ''effects = "full",'' (factsOf c)))
         (ex "real desktop: a weak GPU (intel-legacy) gets light effects: compositor blur off"
-          (cLight.golem.desktop.effects == "light" && lib.hasInfix ''effects = "light",'' (factsOf cLight)
+          (cLight.standard.desktop.effects == "light" && lib.hasInfix ''effects = "light",'' (factsOf cLight)
            && lib.hasInfix ("if M.effects == \"light\" then\n    " + lightBlock) staticLua))
         # No blur behind the shell → denser glass (90%), and only there.
         (ex "light effects: the dock's glass is denser (no blur behind it); full effects keep the default"
@@ -567,11 +567,11 @@ let
            && (c.systemd.paths ? waverunner-apply)
            && lib.hasSuffix "/.config/waverunner/packages.list"
                 c.systemd.paths.waverunner-apply.pathConfig.PathChanged))
-        (ex "real desktop: rebuilds itself AS the desktop (flakeAttr), never golem-minimal"
-          (c.golem.flakeAttr == "golem-desktop"))
+        (ex "real desktop: rebuilds itself AS the desktop (flakeAttr), never standard-minimal"
+          (c.standard.flakeAttr == "standard-desktop"))
         (ex "real desktop: installs land in hosts/target/apps.nix, not the dev box's list"
-          (c.golem.appsFile == "hosts/target/apps.nix"))
-        # The Mac keys ship in every Golem (2026-09-29): F3 Mission Control →
+          (c.standard.appsFile == "hosts/target/apps.nix"))
+        # The Mac keys ship in every Standard (2026-09-29): F3 Mission Control →
         # spread/overview, F4 Launchpad → the apps box, the keyboard-light
         # keys. hid_apple sends them on every classic-F-row MacBook.
         (ex "real desktop: the MacBook keys are bound (F3, F4, keyboard light)"
@@ -608,7 +608,7 @@ let
         # running as the owner write code root's next build ran; it is read
         # as data now, and this holds it.
         (ex "F2.3: an answers file with code in it gives its answer, and nothing else"
-          (cHostile.golem.postinstall.answers == { "gpu2-failing-action" = "off"; }
+          (cHostile.standard.postinstall.answers == { "gpu2-failing-action" = "off"; }
            && !(cHostile.environment.etc ? "golem-planted")
            && !(lib.elem "ssh-ed25519 AAAAplanted" cHostile.users.users.root.openssh.authorizedKeys.keys)
            && cHostile.security.sudo.wheelNeedsPassword == c.security.sudo.wheelNeedsPassword))

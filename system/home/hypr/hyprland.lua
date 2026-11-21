@@ -1,53 +1,53 @@
--- Golem's Hyprland configuration: the entry.
+-- Standard's Hyprland configuration: the entry.
 --
 -- Nothing is configured here: each line loads one module, one concern a file
--- (golem/<name>.lua beside this file; the map is system/home/hypr/README.md).
+-- (standard/<name>.lua beside this file; the map is system/home/hypr/README.md).
 -- THE ORDER IS THE CONTRACT: rules of the same weight are settled by the last
 -- one declared, so the windows' rules come after the look they adjust, the
--- machine's own after Golem's, the owner's after the machine's, and what was
+-- machine's own after Standard's, the owner's after the machine's, and what was
 -- chosen in the control panel last of all.
 --
--- Golem's modules are the same text on every machine. What differs is in
--- golem/machine.lua (generated: system/home/hyprland.nix), read by golem/lib.lua.
+-- Standard's modules are the same text on every machine. What differs is in
+-- standard/machine.lua (generated: system/home/hyprland.nix), read by standard/lib.lua.
 --
 -- On a machine this file, its modules and the facts are ONE folder in the
 -- store, and ~/.config/hypr/hyprland.lua is a generated file of three lines
 -- that puts that folder first in package.path and runs this file.
 
-require("golem.monitors")       -- every screen at its own size and scale
-require("golem.layers")         -- the shell's surfaces: frosted glass
-require("golem.autostart")      -- what starts with the session
-require("golem.environment")    -- what every program started from here is told
-require("golem.compat")         -- XWayland, popups, dialogs
-require("golem.gestures")       -- the touchpad's swipes
-require("golem.look")           -- gaps, borders, corners, shadows, blur
-require("golem.animations")     -- the curves and what moves on them
-require("golem.layout")         -- how tiles split
-require("golem.misc")           -- scanout, VRR, the cursor, the log
-require("golem.input")          -- keyboard, pointer, touchpad
-require("golem.binds.apps")     -- keys: open a program
-require("golem.binds.shell")    -- keys: the dock, the card, the overview, STAGE
-require("golem.binds.windows")  -- keys: the window in hand
-require("golem.screens")        -- each screen its own desks, and the keys to them
-require("golem.binds.keys")     -- keys: power, volume, brightness, player, Print
-require("golem.rules")          -- the windows' look by state
-require("golem.effects")        -- a weak GPU: no blur
-require("golem.lab")            -- a lab machine: the whole log
+require("standard.monitors")       -- every screen at its own size and scale
+require("standard.layers")         -- the shell's surfaces: frosted glass
+require("standard.autostart")      -- what starts with the session
+require("standard.environment")    -- what every program started from here is told
+require("standard.compat")         -- XWayland, popups, dialogs
+require("standard.gestures")       -- the touchpad's swipes
+require("standard.look")           -- gaps, borders, corners, shadows, blur
+require("standard.animations")     -- the curves and what moves on them
+require("standard.layout")         -- how tiles split
+require("standard.misc")           -- scanout, VRR, the cursor, the log
+require("standard.input")          -- keyboard, pointer, touchpad
+require("standard.binds.apps")     -- keys: open a program
+require("standard.binds.shell")    -- keys: the dock, the card, the overview, STAGE
+require("standard.binds.windows")  -- keys: the window in hand
+require("standard.screens")        -- each screen its own desks, and the keys to them
+require("standard.binds.keys")     -- keys: power, volume, brightness, player, Print
+require("standard.rules")          -- the windows' look by state
+require("standard.effects")        -- a weak GPU: no blur
+require("standard.lab")            -- a lab machine: the whole log
 
--- THE APP MODULES' OWN LUA (golem/modules/<name>.lua): the rules and keys a
+-- THE APP MODULES' OWN LUA (standard/modules/<name>.lua): the rules and keys a
 -- module of programs brings with it, for the modules this machine has on
 -- (machine.modules). A name with no file is not an error.
-for _, name in ipairs(require("golem.lib").machine.modules) do
-    pcall(require, "golem.modules." .. name)
+for _, name in ipairs(require("standard.lib").machine.modules) do
+    pcall(require, "standard.modules." .. name)
 end
 
--- THIS MACHINE'S OWN LUA (golem.home.hyprlandExtra in its configuration),
--- after everything Golem declares: golem/extra.lua, there only when set.
-pcall(require, "golem.extra")
+-- THIS MACHINE'S OWN LUA (standard.home.hyprlandExtra in its configuration),
+-- after everything Standard declares: standard/extra.lua, there only when set.
+pcall(require, "standard.extra")
 
 -- THE OWNER'S OWN FILE: ~/.config/hypr/user.lua, written by hand, optional
 -- (found beside the generated entry: that folder stays in package.path).
--- After Golem's and the machine's, so it wins over both; saving it reloads
+-- After Standard's and the machine's, so it wins over both; saving it reloads
 -- the configuration. A mistake in it is shown as a configuration error and
 -- stops nothing else.
 pcall(require, "user")

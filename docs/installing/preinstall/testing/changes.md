@@ -4,7 +4,7 @@ Every change the current round teaches us to make lands here, and is
 applied **only when the round is done** — when the current ISO has cleared
 all five laptops (see [constitution.md](constitution.md)). Nothing here is
 built into an ISO mid-round; that is what keeps the five machines testing
-the same Golem.
+the same Standard.
 
 ## How to use this file
 
@@ -73,7 +73,7 @@ the same Golem.
 
 ### R5-2. golem-install's --skip-prepare resume header shows the DEFAULT hostname, not the run's — [APPLIED to source 2026-09-10 · round-6 build]
 - **what:** the `--skip-prepare --system <toplevel>` resume run printed
-  `hostname Golem` (the default) in its plan header because the resumed
+  `hostname Standard` (the default) in its plan header because the resumed
   invocation didn't get `--answers`; the installed machine.nix correctly
   said `asus`. Display-only — but the header lies about the run it
   resumes. (Raw observation: `asus.md`, the first real install.)
@@ -93,7 +93,7 @@ the system did not change: `golem-dgpu-hold` still active, no
 `golem-dgpu-off`, chip still held awake. Root cause: **no file anywhere
 imports `system/postinstall-generated.nix`** — the write→rebuild pipeline
 existed, the answer→evaluation edge did not. The eval matrix could never
-catch this (its rows set `golem.postinstall.answers` directly, bypassing
+catch this (its rows set `standard.postinstall.answers` directly, bypassing
 the import); only a real desktop run could, and the first one did.
 - **fix (applied):** `system/postinstall.nix` now imports the generated
   file path-conditionally (`lib.optional (builtins.pathExists …)`) —
@@ -305,16 +305,16 @@ The single most important operational finding for the whole install story.
   fast path (great for the *medium*, where nothing rebuilds) does not hold
   for an *installed* system that reconciles itself from its seed.
 - **the fix (to make #37/#38/#40 actually stick):** the fixes must live in
-  the SEED's flake — commit the launcher changes to a rev and bump Golem's
-  `waverunner` input (flake.lock) to it, so `golem-target` (and thus every
+  the SEED's flake — commit the launcher changes to a rev and bump Standard's
+  `waverunner` input (flake.lock) to it, so `standard-target` (and thus every
   in-place rebuild) builds the fixed waverunner. Then reinstall/rebuild the
   ASUS from the updated seed once. NEEDS-MAX: the fixes live uncommitted in
   his `~/launcher` WIP; committing them (or pointing the seed at a patched
   local launcher) is his call.
-- **size:** needs-Max (commit launcher + bump the Golem flake lock).
+- **size:** needs-Max (commit launcher + bump the Standard flake lock).
 - **DONE (2026-09-09):** launcher committed to `9ed17b1` and pushed to
-  `maxpoww/launcher`; Golem's `waverunner` input bumped
-  `2de760883 → 9ed17b1` (flake.lock, committed + pushed). golem-target now
+  `maxpoww/launcher`; Standard's `waverunner` input bumped
+  `2de760883 → 9ed17b1` (flake.lock, committed + pushed). standard-target now
   builds the fixed waverunner. The ASUS's own seed flake.lock was updated
   to match and it was rebuilt from the seed. **End-to-end persistence
   proven:** installed xterm on the ASUS — the desktop stayed responsive
@@ -324,7 +324,7 @@ The single most important operational finding for the whole install story.
   original `znzgcl`. #40 (no freeze) and #41 (no revert) both closed on
   metal.
 
-### 42. App icons render as BLACK SQUARES on the GL backend — wgpu GLES binds the D2Array icon atlas as a cubemap — [ROOT-CAUSED + FIXED + verified · waverunner d8db7ed · Golem lock bumped]
+### 42. App icons render as BLACK SQUARES on the GL backend — wgpu GLES binds the D2Array icon atlas as a cubemap — [ROOT-CAUSED + FIXED + verified · waverunner d8db7ed · Standard lock bumped]
 **ROOT CAUSE (nailed by the debug log on the ASUS):** wgpu's GLES backend
 cannot see waverunner's explicit `D2Array` icon-atlas view dimension and
 **guesses it from the layer count** — `wgpu_hal::gles`: depth `== 6` →
@@ -342,7 +342,7 @@ showed on the dev box.
 pad the layer count by one when it is 6 or a multiple of 6, so the GLES
 heuristic can never pick Cube/CubeArray. Deterministic — the trigger is
 eliminated for every app count. The pad layer is empty/harmless; no effect
-on Vulkan. Committed launcher `d8db7ed`, Golem `waverunner` lock bumped to
+on Vulkan. Committed launcher `d8db7ed`, Standard `waverunner` lock bumped to
 it. **Verified on the ASUS:** the new daemon renders the real colourful
 icons (Snapshot/Android Studio/Bluetooth/foot/Decibels/trash), zero
 `CubeArray` errors across rescans (before: black squares + the CubeArray
@@ -357,7 +357,7 @@ error in the log).
 ### 44. waverunner-apply's startup reconcile fails at activation — "Failed to get GID for root / login1/user/_0" — [FOUND on the ASUS 2026-09-09 · NEW · desktop still usable]
 - **what:** on boot, the daemon's startup reconcile ("installed packages
   with no live app … forcing one apply") re-trips waverunner-apply, which
-  **builds golem-target fine from the seed** (proving #41 self-rebuild
+  **builds standard-target fine from the seed** (proving #41 self-rebuild
   works: the toplevel evaluated + built) but then **fails at
   `switch-to-configuration switch`**: `Error: Failed to get GID for root /
   Caused by: Unknown object '/org/freedesktop/login1/user/_0'` (via
@@ -370,7 +370,7 @@ error in the log).
   daemon is healthy, and INTERACTIVE installs (when a logind session
   exists) DID activate — darktable installed fine live earlier. So it's a
   boot-context activation bug, not a general install breakage.
-- **surfaced by (harness note):** my deploy process built golem-target on
+- **surfaced by (harness note):** my deploy process built standard-target on
   the DEV box, which carries the dev box's `waverunner-packages.nix` app
   list — so each dev-deploy+reboot reset the ASUS's app set (darktable/
   xterm/alacritty → the dev list), and the ASUS's own boot reconcile that
@@ -428,7 +428,7 @@ error in the log).
   Verified: after a daemon restart the tile was gone and darktable is a
   normal launchable app. So a restart/reboot always recovers, and #37
   guarantees a clean restart never re-animates an installed tile.
-- **FIX (done — waverunner `8211981`, Golem lock bumped):** approach (a) —
+- **FIX (done — waverunner `8211981`, Standard lock bumped):** approach (a) —
   `resolve_pending_installs` (both the tile path and the tile-less managed
   path) now treats a pending install as eligible when it is NOT busy OR its
   package is provably installed-and-applied (`applier::is_installed`). A
@@ -471,7 +471,7 @@ error in the log).
 - **size:** medium; involves nix-worker concurrency — Max's renderer/worker
   code.
 
-### 45. The applier reads a LIVE build as dead and mis-attributes a foreign run's Done — the #43b overlap fix — [FIXED · waverunner b2d59f9 · Golem lock bumped]
+### 45. The applier reads a LIVE build as dead and mis-attributes a foreign run's Done — the #43b overlap fix — [FIXED · waverunner b2d59f9 · Standard lock bumped]
 Root-caused from the ASUS journal after Max reported installs still
 failing; two applier bugs that only bite when rebuilds are slow enough to
 overlap — i.e. never on the dev box, always on 2013 metal.
@@ -514,7 +514,7 @@ overlap — i.e. never on the dev box, always on 2013 metal.
   the moment it lands. (4) A corpse `building` status is nudged past
   whether the dead run was ours or foreign (was: only foreign → a helper
   killed mid-OUR-build hung the waiter for the full BUILD_TIMEOUT).
-  415 workspace tests + clippy clean. Golem `waverunner` lock bumped to
+  415 workspace tests + clippy clean. Standard `waverunner` lock bumped to
   `b2d59f9`; ASUS seed lock updated + rebuilt from seed.
 - **casualty note:** xcalc was silently lost from the ASUS by the bug-1
   revert path (Max installed it; no error was ever shown). Not silently
@@ -536,7 +536,7 @@ overlap — i.e. never on the dev box, always on 2013 metal.
   cache-hit self-rebuild). Remaining re-dogfood for Max: two GUI
   drag-installs back to back — the applier layer under them is proven.
 
-### 46. A finished install tile stays "Installing…" — the post-fill rescan is one-shot and races the ASYNC user activation — [FIXED · waverunner bb76739 · Golem lock bumped]
+### 46. A finished install tile stays "Installing…" — the post-fill rescan is one-shot and races the ASYNC user activation — [FIXED · waverunner bb76739 · Standard lock bumped]
 Caught live during Max's audacity+kdenlive overlap re-dogfood (the #45
 acceptance test) — the overlap machinery worked, but BOTH tiles stranded.
 - **what (Max):** "audacity stuck on 'installing…' label" — the app was
@@ -570,7 +570,7 @@ acceptance test) — the overlap machinery worked, but BOTH tiles stranded.
   (the re-arming latch), `main.rs` (retry reset).
 - **size:** landed.
 
-### 47. The fingerprint short-circuit starves pending-install resolution — vlc stuck "Installing…" 13 min with the app fully indexed — [FIXED · waverunner 1fa223f · Golem lock bumped]
+### 47. The fingerprint short-circuit starves pending-install resolution — vlc stuck "Installing…" 13 min with the app fully indexed — [FIXED · waverunner 1fa223f · Standard lock bumped]
 Found live on Max's very next test after #46 deployed (vlc): the #46
 retry rescans fired every 2 s exactly as designed — and the tile STILL
 never resolved. The deepest bug of the day, and the one that explains
@@ -612,7 +612,7 @@ the residue #46 left behind.
   fingerprint short-circuit).
 - **size:** landed.
 
-### 48. Installing an ALREADY-PRESENT app fabricates an icon-less phantom "Command-line tool" tile — the #3 overlap's real fallout — [FIXED · waverunner ab44373 · Golem lock bumped]
+### 48. Installing an ALREADY-PRESENT app fabricates an icon-less phantom "Command-line tool" tile — the #3 overlap's real fallout — [FIXED · waverunner ab44373 · Standard lock bumped]
 Caught live in Max's post-#47 test run (gimp 1.6 s ✓, signal 1.5 s ✓,
 then chromium: "chromium have not icon").
 - **what (Max):** dragged chromium from the install list (it was ALSO
@@ -745,7 +745,7 @@ It has now been rebuilt onto Max's current waverunner (see
 re-dogfooded on the new build before any is treated as a live bug** — an
 unknown number are expected already fixed. Only survivors get worked.
 
-### 39. chromium offered as installable while already present — [FIXED · waverunner 0696b72 · Golem lock bumped · ships with the round-6 seed]
+### 39. chromium offered as installable while already present — [FIXED · waverunner 0696b72 · Standard lock bumped · ships with the round-6 seed]
 - **what:** `chromium` appears in the apps grid (`apps-order.json`, a
   present app) AND in the install section. An already-present app must be
   de-duplicated out of the installable catalog.
@@ -866,7 +866,7 @@ option id for a real question; both `golem-postinstall-ask` and
 gate); the full `nixosConfigurations.golem` toplevel evaluates. **Caught
 in the same session:** an early draft picked the hold/off attrsets with a
 bare `if action == … then {A} else {B}` as `mkIf`'s content — that forces
-`action` (hence `golem.postinstall.answers`, this module's own place in
+`action` (hence `standard.postinstall.answers`, this module's own place in
 the shared config fixpoint) just to discover the module's SHAPE, before
 `mkIf`'s laziness applies — real infinite recursion on every eval,
 caught by `nix eval` before touching a laptop. Fixed by declaring both
@@ -908,7 +908,7 @@ triggers #33.
      (`power/control=on`, never autosuspend), so it never hits the
      resume fault and stays available for offload. gpu-second.nix's
      unconditional power-off for `failing` is REPLACED by this hold.
-  2. **A post-install ASK mechanism — NEW SCOPE.** Golem has no
+  2. **A post-install ASK mechanism — NEW SCOPE.** Standard has no
      first-boot/settings prompt today (greetd → Hyprland → waverunner).
      Round 5 needs one: on first desktop login, surface "your second GPU
      (NVIDIA GT 720M) failed a sleep/wake test during setup — keep it
@@ -1041,7 +1041,7 @@ Original direction kept below for the record:
   we WAKE-TEST), a fingerprint reader we can only detect as PRESENT.
   Many readers — Validity/Synaptics especially — are present but
   UNSUPPORTED by libfprint (no working driver). A blanket "working"
-  would occasionally be the exact false promise Golem exists to kill.
+  would occasionally be the exact false promise Standard exists to kill.
   Proposal: check the reader's USB id against libfprint's supported
   device list; say "tested, working" (or "supported") ONLY when it is
   actually backed, and something honest-but-not-damning otherwise (or,
@@ -1090,13 +1090,13 @@ decision.json is ready; the decision.json branch now checks `-s` not
 ### 27. The driver-count line is GONE from the surface — [DECIDED (Max, round 3, Comodore) · applied to source · round-4 build]
 - **what:** "25 of 26 (96%) drivers will be installed" — Max, seeing it:
   a stranger fixates on the missing ONE ("i need that one to be
-  complete!"), googles it, starts tinkering, breaks Golem. And the lab
+  complete!"), googles it, starts tinkering, breaks Standard. And the lab
   data says the missing ones are never real: ThinkPad = IOMMU +
   a by-design-declining ACP; Comodore = the #26 phantom sibling
   function. The score graded a test whose missing points don't exist
   as hardware.
 - **DECIDED: drop the line.** The hardware rows (name · driver) ARE the
-  proof; Golem does not grade itself. The probe still runs (numbers in
+  proof; Standard does not grade itself. The probe still runs (numbers in
   $DRV_FILE for a lab hand); drv_line/drv_ing/drv_none strings stay in
   the table, unused, in case the number ever returns to the AUDIT.
 - **downstream:** #25 (IOMMU exclusion) and #10's wording caveat are
@@ -1542,7 +1542,7 @@ renders reproduce byte-for-byte); strings in all 6 languages.
   the ENABLED/display GPU is the Intel iGPU. On a muxless hybrid the
   `enabled=1` card is the real primary.
 - **DECIDED (Max, 2026-09-07) — health-gated, not blanket:** "we can not
-  have Golem leaving all dedicated GPUs out." Three parts:
+  have Standard leaving all dedicated GPUs out." Three parts:
   a. **[applied to source · mechanism verified live on HP · round 3]**
      quiet the kernel console so the reveal isn't buried in radeon
      errors. Two layers: `boot.consoleLogLevel = 3` on the medium
@@ -1640,8 +1640,8 @@ renders reproduce byte-for-byte); strings in all 6 languages.
         involved at all; gpu_short renders it "AMD/ATI Renoir".
       - vetoed on the way, with reasons (do not re-litigate in round 4):
         "unhealthy" (silicon diagnosis we can't perfect — BIOS
-        modes/driver bugs mimic dead chips); "Golem keeps it off" (OS
-        confiscating hardware); "keeps Golem stable" (names instability
+        modes/driver bugs mimic dead chips); "Standard keeps it off" (OS
+        confiscating hardware); "keeps Standard stable" (names instability
         → plants it); "unsupported" (a claim about GOLEM, not the chip —
         feeds the exact Linux-GPU trauma we're flipping, and is
         contestable since radeon does support the chip).
@@ -1660,7 +1660,7 @@ renders reproduce byte-for-byte); strings in all 6 languages.
 
 ### 16. Very-low-RAM machines can't run the local install eval — [DECIDED · applied to source, round 3 — Comodore verifies on metal]
 **DECIDED:** option (b)'s refusal half, now: a RAM preflight before the
-eval — "this machine has N MB; installing Golem needs about **4 GB** of
+eval — "this machine has N MB; installing Standard needs about **4 GB** of
 RAM" (figure per Max, 2026-09-07) — instead of thrashing into an
 unresponsive box.
 - **Message vs cutoff:** the message speaks sticker-language (4 GB); the
@@ -1879,7 +1879,7 @@ Original (round-1) framing below, kept for the record:
   USB with /driver), and the label says "%h of %t drivers **will be
   installed**". But the medium is minimal and ships almost no firmware, so
   firmware-gated devices (the AMD Radeon, some controllers, Broadcom wifi)
-  show driverless — undercounting what the INSTALLED Golem delivers. The
+  show driverless — undercounting what the INSTALLED Standard delivers. The
   installed system sets `hardware.enableAllFirmware = true`
   (configuration.nix:414) and drives them. HP read "23 of 31 (74%)" and
   looked poorly supported when it is not.
@@ -2000,7 +2000,7 @@ an intel GPU"). Original diagnosis below.
 - **what:** the target installs systemd-boot, which is UEFI-only. A machine
   that can only boot BIOS/legacy (or is set to legacy) takes the install and
   then can't boot it. The rehearsal's UEFI preflight already REFUSES this
-  cleanly (good) — the open question is whether Golem should SUPPORT such
+  cleanly (good) — the open question is whether Standard should SUPPORT such
   machines (a GRUB-BIOS bootloader path on the target, chosen by a firmware
   fact) or stay UEFI-only and rely on the refusal + telling the user to
   enable UEFI in their firmware.
@@ -2008,7 +2008,7 @@ an intel GPU"). Original diagnosis below.
   booted BIOS: **3 of the 5 lab machines**. Legacy boot is the MAJORITY
   among old laptops, not an edge case. Some can likely do UEFI via a
   firmware setting (so part of the answer may be "tell the user"), but 3/5
-  means Golem needs a real position on BIOS boot, not just a refusal.
+  means Standard needs a real position on BIOS boot, not just a refusal.
 - **where:** target bootloader (`system/configuration.nix` boot.loader) +
   possibly a firmware fact in the census; the refusal already lives in
   `install.nix` preflight.
@@ -2027,7 +2027,7 @@ brcmfmac is "the clean default for most parts, incl. the BCM4360" —
 wrong for the 4360 (no upstream firmware; proven dark on the medium);
 fix the comment so the next reader isn't misled. Live wifi-up proof
 lands at round 4's first real install.
-- **what:** the installed Golem on a Broadcom-wifi Mac comes up with no
+- **what:** the installed Standard on a Broadcom-wifi Mac comes up with no
   working internal wifi. The BCM4360 needs the UNFREE `broadcom-sta` (`wl`)
   kernel module; `nixos-generate-config` never emits it, the census has no
   wifi-chipset fact, and nothing tells the target to enable it. On the
@@ -2061,7 +2061,7 @@ Entry template:
 - **Round 0 → Round 1 (2026-09-06, pre-constitution):** sysfs cores fix
   (`system/hardware-detect.nix` — dropped the awk dependency the boot
   audit's clean PATH stripped) and the hostname ghost-placeholder fix
-  (`mockup/install-cli` — typing no longer appends to the "Golem"
+  (`mockup/install-cli` — typing no longer appends to the "Standard"
   default). Both surfaced by the Acer's first rehearsal and baked into the
   round-1 ISO before the queue discipline began.
 - **Round 5, wording (2026-09-08, Max: "i dont like the 'ENTER takes it',

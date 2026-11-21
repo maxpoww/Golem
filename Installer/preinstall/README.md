@@ -1,4 +1,4 @@
-# preinstall — the Golem installer (MiniGolem)
+# preinstall — the Standard installer (MiniGolem)
 
 This directory is the **implementation**: the flake the installer ISO is
 built from. How the install works today, from this code, is
@@ -23,9 +23,9 @@ What stays here, because the build consumes it: `flake.nix` + the
 do not move it).
 
 One operational rule worth repeating at the door (the round-6 lesson):
-**`nix flake update golem` here whenever a pin moves in Golem's
+**`nix flake update standard` here whenever a pin moves in Standard's
 `flake.lock`** — this flake's lock holds a copy of those pins and nothing
-refreshes it by itself. It is enforced now: with pins that are not Golem's
-this flake does not evaluate (`flake.nix`, pinsAreGolems), and Golem's own
+refreshes it by itself. It is enforced now: with pins that are not Standard's
+this flake does not evaluate (`flake.nix`, pinsAreStandards), and Standard's own
 `checks.installer-lock` fails on a commit that moves one without the
 other.

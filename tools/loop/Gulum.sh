@@ -112,13 +112,13 @@ next_todo() {
 }
 
 read -r -d '' PROMPT_TEMPLATE <<'EOF'
-Read Golem.md and roadmap.md for overall context, then open %s.
+Read StandardOS.md and roadmap.md for overall context, then open %s.
 
 Work ONLY on items in that file. Take the first unchecked item.
 
 ## The law you are most likely to break
 
-Golem.md, "What Golem does not build itself": the Brain senses and decides,
+StandardOS.md, "What Standard does not build itself": the Brain senses and decides,
 it does NOT reimplement what a mature daemon already does. Power, thermals,
 network, bluetooth, audio — run the proven backend (TLP, UPower, thermald,
 NetworkManager, BlueZ, PipeWire) and connect it to the Brain. The
@@ -132,13 +132,13 @@ something a daemon already publishes on D-Bus, stop and use the daemon.
 Its three qualifiers matter as much as the rule:
 - adding a backend is a real dependency with a cost, decided per module and
   written into the flake — not a reflex;
-- the backend is a backend, never a shipped UI. The surface is Golem's;
-- bind to the D-Bus interface, not the vendor. Read Golem.md for the worked
+- the backend is a backend, never a shipped UI. The surface is Standard's;
+- bind to the D-Bus interface, not the vendor. Read StandardOS.md for the worked
   example (PowerProfiles, and why TLP and power-profiles-daemon collide).
 
 ## The trees
 
-Golem's work is spread across repos. You can reach all of them this run:
+Standard's work is spread across repos. You can reach all of them this run:
 
   ~/Golem      this repo — the plan, the NixOS flake, system/ and hosts/
   ~/launcher   waverunner: the Rust engine, Mind providers, collectors, surfaces
@@ -155,7 +155,7 @@ believe it.
 ## How to verify (the last run could do none of this)
 
   ~/Golem      nix eval .#nixosConfigurations.golem.config.system.build.toplevel.drvPath
-               nixos-rebuild build-vm --flake .#golem-vm
+               nixos-rebuild build-vm --flake .#standard-vm
                nix build .#iso            (already built warm before this run)
   ~/launcher   cd /home/max/launcher && nix develop -c cargo test --workspace
                (245 tests, green at the start of this run — keep them green)

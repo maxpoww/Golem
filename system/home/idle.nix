@@ -1,4 +1,4 @@
-# The owner's idle behaviour (parity P11, 2026-09-30). Before this a Golem
+# The owner's idle behaviour (parity P11, 2026-09-30). Before this a Standard
 # laptop left alone never dimmed, locked or slept: the screen stayed on at
 # full brightness, unlocked, until the battery ran out.
 #
@@ -31,14 +31,14 @@
 # (~/.config/golem/caffeine), so it survives a reboot, a relogin and a
 # home-manager switch (which restarts hypridle: the condition keeps it off).
 #
-# golem.home.idle.enable = false (a machine's own layer) drops the timed
+# standard.home.idle.enable = false (a machine's own layer) drops the timed
 # steps only; hyprlock and Super+L stay. The dev box sets it: builds and
 # agent sessions run there unattended, and a suspend would stop them.
 #
 # THE LOGIN (Max, 2026-10-28: "tenemos que poner una pantalla de login … ¿se
 # puede usar la misma que la pantalla de bloqueo?"): the same lock screen is
 # the desktop's first screen (golem-lock-screen --login, the first thing
-# hyprland.lua starts). golem.home.loginLock.enable = false opens the desktop
+# hyprland.lua starts). standard.home.loginLock.enable = false opens the desktop
 # at once, as before.
 { config, lib, pkgs, ... }:
 
@@ -46,8 +46,8 @@ let
   # The dock's command: on the PATH on an install, the live checkout's on
   # the dev box (as the Hyprland binds' — hyprland.nix's `ctl` fact).
   dockCtl =
-    if config.golem.home.devCheckout then "/home/max/launcher/target/debug/waverunner-ctl" else "waverunner-ctl";
-  # The display's power by ACTION: Golem's Hyprland takes
+    if config.standard.home.devCheckout then "/home/max/launcher/target/debug/waverunner-ctl" else "waverunner-ctl";
+  # The display's power by ACTION: Standard's Hyprland takes
   # hl.dsp.dpms({ action = "on" | "off" | "toggle" }). A bare string is IGNORED
   # and the call TOGGLES: after a wake-up the screen was already on, the "on"
   # turned it off, and both laptops woke to a dark screen with the keyboard
@@ -66,7 +66,7 @@ let
     exec hyprctl dispatch "hl.dsp.dpms({ action = \"$1\" })"
   '';
   dpms = state: "${golemDpms} ${state}";
-  # hyprlock DIRECTLY, never `loginctl lock-session`: Golem's session is
+  # hyprlock DIRECTLY, never `loginctl lock-session`: Standard's session is
   # greeter-class (greetd's default_session) and logind answers "Session does
   # not support lock screen" (seen live on the MacBook, 2026-09-30: the 5-min
   # lock never happened, the 6-min screen-off did). hyprlock locks through
@@ -106,7 +106,7 @@ let
       returning=
       [ -e "$run/desktop-started" ] && returning=1
       : > "$run/desktop-started"
-      ${lib.optionalString (!config.golem.home.loginLock.enable) ''[ -n "$returning" ] || exit 0''}
+      ${lib.optionalString (!config.standard.home.loginLock.enable) ''[ -n "$returning" ] || exit 0''}
     fi
     ${pkgs.procps}/bin/pgrep -u "$(${pkgs.coreutils}/bin/id -u)" -x 'hyprlock|\.hyprlock-wrapp' >/dev/null && exit 0
     hyprlock
@@ -187,7 +187,7 @@ let
   '';
 in
 {
-  golem.home.idleSuspend = golemIdleSuspend;
+  standard.home.idleSuspend = golemIdleSuspend;
   home.packages = [ golemCaffeine golemLockScreen ];
   systemd.user.services.golem-caffeine = {
     Unit = {
@@ -197,7 +197,7 @@ in
       After = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=handle-lid-switch --who=Golem --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
+      ExecStart = "${pkgs.systemd}/bin/systemd-inhibit --what=handle-lid-switch --who=Standard --why=Caffeine --mode=block ${pkgs.coreutils}/bin/sleep infinity";
       # The inhibitor IS the setting: if it dies (killed, or the session bus
       # going away under it), "stay awake" was silently off and closing the
       # lid suspended against the owner's choice — it stayed dead (the
@@ -210,10 +210,10 @@ in
 
   # Caffeine on: hypridle stays off (see CAFFEINE above).
   systemd.user.services.hypridle.Unit.ConditionPathExists =
-    lib.mkIf config.golem.home.idle.enable "!%h/.config/golem/caffeine";
+    lib.mkIf config.standard.home.idle.enable "!%h/.config/golem/caffeine";
 
   services.hypridle = {
-    enable = config.golem.home.idle.enable;
+    enable = config.standard.home.idle.enable;
     settings = {
       general = {
         lock_cmd = lock;
@@ -232,7 +232,7 @@ in
   programs.hyprlock = {
     enable = true;
     settings = {
-      # THE PALETTE (Controls → Colours): Golem's own colours first, then the
+      # THE PALETTE (Controls → Colours): Standard's own colours first, then the
       # dock's file redefines them (hyprlock reads it at every lock). The
       # file is seeded empty (look.nix), so a lock before the dock's first
       # write still has every colour.

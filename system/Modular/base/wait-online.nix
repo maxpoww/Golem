@@ -1,4 +1,4 @@
-# base/wait-online — THE CONNECTIVITY GATE every updater of Golem shares
+# base/wait-online — THE CONNECTIVITY GATE every updater of Standard shares
 # (the nightly update of both layouts: base/autoupdate.nix and
 # system/machine/update.nix): wait for the channel/cache hosts before
 # touching anything, so a run that fires before Wi-Fi is back (the DNS race

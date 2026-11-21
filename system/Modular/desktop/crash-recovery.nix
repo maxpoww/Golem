@@ -1,9 +1,9 @@
-# desktop/crash-recovery — Golem's own answer to a desktop that keeps crashing.
+# desktop/crash-recovery — Standard's own answer to a desktop that keeps crashing.
 #
 # Hyprland's watchdog (start-hyprland) used to relaunch a crashed compositor in
 # STOCK SAFE MODE: Hyprland's config and wallpaper, a "your last session
 # crashed" dialog, a "Load config" button that gives a bare Hyprland — the
-# owner was no longer on Golem and had no way back (MacBook, 2026-10-02). Max:
+# owner was no longer on Standard and had no way back (MacBook, 2026-10-02). Max:
 # "i dont want that crash stock mode … a user will get stuck in there and run
 # back to windows or macos". The watchdog is patched (hyprland-patches/
 # hyprland-crash-restart-normal.patch) and this module is the rest:
@@ -18,19 +18,19 @@
 #                      golem-autoupdate will not pull or build a held revision
 #                      (base/autoupdate.nix) — only a newer upstream one.
 #   nothing to go back to
-#                      Golem's last-resort screen: grey, the Golem pointer,
+#                      Standard's last-resort screen: grey, the Standard pointer,
 #                      one Restart button. Never Hyprland's safe mode.
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
-  dir = toString config.golem.flakeDir;
+  dir = toString config.standard.flakeDir;
   held = "/var/lib/golem/held-revisions";
   # NOT in /var/lib/golem (root-only: it holds the owner's password hash) —
   # the owner's notice has to read it (MacBook test, 2026-10-03).
   note = "/var/lib/golem-notices/rolled-back";
-  kb = config.golem.keyboard;
+  kb = config.standard.keyboard;
   dialog = "${pkgs.hyprland-qtutils}/bin/hyprland-dialog";
 
   rollback = pkgs.writeShellApplication {
@@ -77,7 +77,7 @@ let
       # The source follows: code AND machine layer exactly as they built the
       # version we go back to, so the machine can rebuild again (golem-recover,
       # base/recover.nix).
-      ${config.golem.recover}/bin/golem-recover "$profiles/system" \
+      ${config.standard.recover}/bin/golem-recover "$profiles/system" \
         || echo "golem-rollback: golem-recover could not reset the source (it stays where it is)" >&2
       install -d -m 755 "$(dirname ${note})"
       printf 'from=%s\nto=%s\nat=%s\nwhy=%s\n' "''${bad:-unknown}" "''${target_rev:-unknown}" "$(date -Is)" "$why" > ${note}
@@ -129,7 +129,7 @@ in
 
   # The last-resort screen: a compositor and nothing else of the desktop.
   environment.etc."golem/last-resort.lua".text = ''
-    -- Golem's last-resort screen (desktop/crash-recovery.nix): never Hyprland's safe mode.
+    -- Standard's last-resort screen (desktop/crash-recovery.nix): never Hyprland's safe mode.
     hl.env("XCURSOR_THEME", "phinger-cursors-light")
     hl.env("XCURSOR_SIZE", "24")
     hl.env("HYPRCURSOR_THEME", "phinger-cursors-light")

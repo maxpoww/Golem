@@ -1,4 +1,4 @@
-local windowCorner = require("golem.lib").windowCorner
+local windowCorner = require("standard.lib").windowCorner
 
 ---- WINDOWS AND WORKSPACES ----
 
@@ -9,8 +9,8 @@ hl.window_rule({
     rounding = windowCorner,
 })
 
----- Golem browser: a subtle border, only on Firefox ----
--- Firefox floats BARE — no Golem titlebar, its own macOS traffic lights stand in
+---- Standard browser: a subtle border, only on Firefox ----
+-- Firefox floats BARE — no Standard titlebar, its own macOS traffic lights stand in
 -- (see golemBar.cpp `windowIsFirefox`). A full 3px frame reads too loud around a
 -- bare window, so thin it to a 1px hairline: present but quiet, macOS-like.
 -- Placed BEFORE the stage rule so a staged Firefox still drops to border_size=0
@@ -18,7 +18,7 @@ hl.window_rule({
 -- here — a window rule can't set a per-window COLOUR — so the hairline keeps the
 -- shell's dynamic border colour; muting that would need the waveview plugin.
 hl.window_rule({
-    name  = "browser-subtle-border",   -- Seam (Golem's browser) and a plain Firefox alike: both float bare with their own controls
+    name  = "browser-subtle-border",   -- Seam (Standard's browser) and a plain Firefox alike: both float bare with their own controls
     match = { class = "^(firefox|seam)$" },
     border_size = 1,
 })
@@ -57,7 +57,7 @@ hl.window_rule({
     no_shadow = true,
 })
 
----- Golem pseudo: a framed window at a proportional default size ----
+---- Standard pseudo: a framed window at a proportional default size ----
 -- waverunner tags the window "golem-pseudo", pseudotiles it, and sizes it
 -- to a fixed fraction of its tile (see hypr.rs::toggle_golem_pseudo) — so
 -- the inset reads the same on every screen (Max picked the frame-inset
@@ -79,7 +79,7 @@ hl.window_rule({
     no_shadow   = false,
 })
 
----- Golem STAGE: the staged window keeps its corners ----
+---- Standard STAGE: the staged window keeps its corners ----
 -- The staged task is tiled and maximized, so it matches the no-gaps rules above
 -- and loses its rounding — but on the stage it is a card sitting in its own
 -- inset, and it should read like one. Same trick as golem-pseudo-frame:

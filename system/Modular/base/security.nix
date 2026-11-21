@@ -1,4 +1,4 @@
-# base/security — the hardening every Golem carries, stage 0.
+# base/security — the hardening every Standard carries, stage 0.
 #
 # The audit (2026-09-26) found the security surface was real but scattered and
 # had no home of its own: firewall (network.nix), key-only SSH (ssh.nix),
@@ -49,7 +49,7 @@
   security.sudo.execWheelOnly = true;
   # /tmp starts empty at every boot: what a session left there (downloads
   # opened from the browser, previews, other programs' scratch) does not
-  # outlive it. Nothing of Golem's keeps anything there.
+  # outlive it. Nothing of Standard's keeps anything there.
   boot.tmp.cleanOnBoot = true;
 
   # Conservative kernel + network hardening. Merges with core.nix's sysctls
@@ -77,7 +77,7 @@
     # owner nothing — no prompt, no lost feature, no measurable speed — and
     # closes doors attackers use. Each is a KSPP / secureblue / Kicksecure
     # recommendation that a desktop never notices.
-    # No loading a new kernel from a running one (Golem never kexecs).
+    # No loading a new kernel from a running one (Standard never kexecs).
     "kernel.kexec_load_disabled" = 1;
     # The BPF JIT's output hardened against JIT spraying.
     "net.core.bpf_jit_harden" = 2;

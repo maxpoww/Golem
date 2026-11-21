@@ -7,10 +7,10 @@
 #
 # Env overrides:
 #   SEAM_SELFTEST_STATE  XDG_STATE_HOME for the run (default: inside the throwaway profile =
-#                        no Golem theme file = Golem's dark palette, what the checks expect)
+#                        no Standard theme file = Standard's dark palette, what the checks expect)
 #   SEAM_BUILD   Seam store path   (default: newest /nix/store/*-seam-<pinned version>)
-#   SEAM_SCRIPT  golem-chrome.js   (default: /etc/nixos/golem-chrome.js; in the Fedora
-#                                   toolbox that's /run/host/etc/nixos/golem-chrome.js)
+#   SEAM_SCRIPT  golem-chrome.js   (default: /etc/nixos/standard-chrome.js; in the Fedora
+#                                   toolbox that's /run/host/etc/nixos/standard-chrome.js)
 #
 # Exit 0 = every case passed. The test hook is SEAM_SELFTEST in golem-chrome.js
 # (ovSelfTest): health check, then the real open -> close -> switch path, asserting
@@ -85,7 +85,7 @@ PYS
 fi
 
 # the per-machine display-rate test wants the running compositor's hyprctl (from a toolbox the
-# host's is under /run/host); Seam itself finds it on PATH on a Golem machine
+# host's is under /run/host); Seam itself finds it on PATH on a Standard machine
 for h in "${GOLEM_HYPRCTL:-}" "$(command -v hyprctl 2>/dev/null || true)" /run/current-system/sw/bin/hyprctl /run/host/run/current-system/sw/bin/hyprctl; do
   [ -n "$h" ] && [ -x "$h" ] && { export GOLEM_HYPRCTL="$h"; break; }; done
 echo "Seam $ver  build=$BUILD  hyprctl=${GOLEM_HYPRCTL:-none}"

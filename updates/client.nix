@@ -1,9 +1,9 @@
-# updates/client — what every Golem machine needs to take updates from the
+# updates/client — what every Standard machine needs to take updates from the
 # lane fast: trust the cache's signing key, find the cache of the version
 # it is building, and know its own wave. (The nightly update itself is
 # system/Modular/base/autoupdate.nix; this directory's README has the map.)
 #
-# THE CACHE, per version. The lane publishes each Golem version as one
+# THE CACHE, per version. The lane publishes each Standard version as one
 # GitHub release of maxpoww/golem-cache, tagged g-<first 12 of the commit>,
 # holding the version's own pieces (the dock, patched Hyprland, nvidia…),
 # signed. golem-rebuild asks golem-cache-args for the release that matches
@@ -20,13 +20,13 @@
 # THE WAVE. Each machine takes a new version a fixed number of days after it
 # first sees it (0 … waves-1), computed here from /etc/machine-id, so the
 # machines spread over a week and a bad version meets a few of them first.
-# Nothing leaves the machine to decide this: Golem has no telemetry. A
+# Nothing leaves the machine to decide this: Standard has no telemetry. A
 # version out before the machine first saw it counts from when it was
 # published (its cache's upload time, read from GitHub like the cache).
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.update;
+  cfg = config.standard.update;
 
   cacheArgs = pkgs.writeShellApplication {
     name = "golem-cache-args";
@@ -37,21 +37,21 @@ let
       dir=''${1:-}
       dir=''${dir#path:}; dir=''${dir#git+file://}
       rev=""
-      ${lib.optionalString (config.golem.flakeDir == null) ''
-        # A machine of the /etc/nixos layout (system/machine): Golem is the
+      ${lib.optionalString (config.standard.flakeDir == null) ''
+        # A machine of the /etc/nixos layout (system/machine): Standard is the
         # folder's golem/, and the upstream commit its files are made of is
         # written beside them (.golem-rev; a root-only try of an update is a
         # copy of the same folder).
-        if [ -f "$dir/golem/.golem-rev" ]; then
-          rev=$(sed 's/-dirty$//' "$dir/golem/.golem-rev")
+        if [ -f "$dir/standard/.golem-rev" ]; then
+          rev=$(sed 's/-dirty$//' "$dir/standard/.golem-rev")
         fi
       ''}
       if [ -z "$rev" ]; then
         # A build from the root-only snapshot (/var/lib/golem/build, no .git)
         # is the seed's blessed version plus the owner's app list: the seed's
         # HEAD names its cache.
-        ${lib.optionalString (config.golem.flakeDir != null) ''
-          [ -d "$dir/.git" ] || dir=${lib.escapeShellArg config.golem.flakeDir}
+        ${lib.optionalString (config.standard.flakeDir != null) ''
+          [ -d "$dir/.git" ] || dir=${lib.escapeShellArg config.standard.flakeDir}
         ''}
         [ -n "$dir" ] && [ -d "$dir/.git" ] || exit 0
         # The commit, read from the files: this runs as root, and git run inside
@@ -142,7 +142,7 @@ let
   };
 in
 {
-  options.golem.update = {
+  options.standard.update = {
     cache.repo = lib.mkOption {
       type = lib.types.str;
       default = "maxpoww/golem-cache";
@@ -187,11 +187,11 @@ in
   config = {
     assertions = [{
       assertion = cfg.wave == null || cfg.wave < cfg.waves;
-      message = "golem.update.wave (${toString cfg.wave}) must be below golem.update.waves (${toString cfg.waves}).";
+      message = "standard.update.wave (${toString cfg.wave}) must be below standard.update.waves (${toString cfg.waves}).";
     }];
-    golem.update.cacheArgs = cacheArgs;
-    golem.update.waveCommand = waveOf;
-    golem.update.publishedCommand = published;
+    standard.update.cacheArgs = cacheArgs;
+    standard.update.waveCommand = waveOf;
+    standard.update.publishedCommand = published;
     nix.settings.trusted-public-keys = cfg.cache.publicKeys;
 
     # An update must never freeze the machine. The Acer's first update

@@ -13,7 +13,7 @@ byte-identical to the toplevel built here. Stage 0 is real on the
 Arrandale / failing-dGPU machine.
 
 Blessed by Max ("wipe it"). The guarded Toshiba turned out to hold only the
-**unrecorded 2026-09-12 ghost Golem** (GPT bios-boot + swap + ext4 `golem`,
+**unrecorded 2026-09-12 ghost Standard** (GPT bios-boot + swap + ext4 `golem`,
 no user data) — read-only inspection shown to Max before the blessing; the
 09-12 gap flag below is now moot (that install is gone).
 
@@ -54,7 +54,7 @@ like the acer's I2 turn — not a live-fix run.
 | GRUB theme | **absent** — correct for the frozen image; #68/#89/#95 ride the recut |
 
 ### Self-rebuild (§5)
-`rebuild-golem` (`#golem-minimal` from its own seed) evaluated, built, and
+`rebuild-golem` (`#standard-minimal` from its own seed) evaluated, built, and
 re-activated cleanly — "activated == latest", "activated == booted",
 `running`, 0 failed. It fetched home-manager (hp has internet via HOLA) and
 produced the **identical** frozen toplevel, so Nix kept it at generation 1

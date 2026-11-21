@@ -1,5 +1,5 @@
--- golem/binds/apps.lua: the keys that open a program.
-local G = require("golem.lib")
+-- standard/binds/apps.lua: the keys that open a program.
+local G = require("standard.lib")
 local mainMod, terminal, fileManager = G.mainMod, G.terminal, G.fileManager
 
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(terminal))

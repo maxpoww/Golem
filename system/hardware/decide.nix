@@ -1,13 +1,13 @@
-# The decision surface — what Golem CHOOSES for a machine, as data.
+# The decision surface — what Standard CHOOSES for a machine, as data.
 #
 # GolemInstall.md §8's second proof leg. The matrix (matrix.nix) asks
 # "given these facts, does the config still assert correctly?" and answers
 # in CI. This file asks the same question the other way round — "given
-# THIS machine, what exactly did Golem decide?" — and answers on the
+# THIS machine, what exactly did Standard decide?" — and answers on the
 # machine itself, over SSH, before anything is written to a disk.
 #
-# Both go through lib.golem.mkTarget, so the composition audited here is
-# byte-for-byte the one `nixos-install --flake …#golem-target` builds.
+# Both go through lib.standard.mkTarget, so the composition audited here is
+# byte-for-byte the one `nixos-install --flake …#standard-target` builds.
 # A decision that reads right here and wrong after install would mean the
 # two diverged; they cannot, because there is only one mkTarget.
 #
@@ -41,7 +41,7 @@ let
   # include it or it would under-report resume + lid policy.
   plannedDisk = {
     nixpkgs.hostPlatform = "x86_64-linux";
-    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
     fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
     swapDevices = [ { device = "/dev/disk/by-label/swap"; } ];
   };
@@ -52,7 +52,7 @@ let
   # the module on its own: same fixpoint, so this is free, and it reports
   # the DEFAULTED values (what actually drove the modules) instead of only
   # the keys the probe happened to emit.
-  facts = cfg.golem.hardware;
+  facts = cfg.standard.hardware;
   swapMB = swapForHibernationMB facts.ramMB;
 
   sysctl = cfg.boot.kernel.sysctl;
@@ -77,8 +77,8 @@ let
   panelScale =
     let
       # (The scale the laptop's panel gets: a fact the home layer generates
-      # for Hyprland's monitors module: golem/machine.lua in the tree.)
-      facts = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
+      # for Hyprland's monitors module: standard/machine.lua in the tree.)
+      facts = cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts;
       m = builtins.match ".*panel_scale = ([0-9.]+),.*" facts;
     in
     if m == null then "none (normal density)" else lib.head m;

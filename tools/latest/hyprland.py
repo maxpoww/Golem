@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What Golem's Hyprland configuration USES, against two Hyprland sources.
+"""What Standard's Hyprland configuration USES, against two Hyprland sources.
 
     hyprland.py <running source> <latest source> <calls.log> <hypr tree> [patches dir]
 
@@ -9,10 +9,10 @@
     every rule, bind, monitor, animation and curve with its keys;
   - the tree's Lua files give the hl.* functions, dispatchers and events named.
 
-Each name is then looked for in the source of the Hyprland Golem runs and in
+Each name is then looked for in the source of the Hyprland Standard runs and in
 the latest one. A name the first has and the second has not is what breaks at
 the next move of the pin; an option whose type changed is shown with both.
-Exit status 1 when something Golem uses is gone from the latest.
+Exit status 1 when something Standard uses is gone from the latest.
 """
 import json
 import os
@@ -219,8 +219,8 @@ def main():
     report = {
         "running": version(old_root),
         "latest": version(new_root),
-        "options registered": {"running": len(reg_old), "latest": len(reg_new), "by Golem's patches": sorted(reg_patch)},
-        "options Golem sets": len(used),
+        "options registered": {"running": len(reg_old), "latest": len(reg_new), "by Standard's patches": sorted(reg_patch)},
+        "options Standard sets": len(used),
         "options gone in the latest": gone,
         "options whose type changed": [{"option": o, "running": a, "latest": b} for o, a, b in typed],
         "set but registered nowhere (look by hand)": sorted(unknown),

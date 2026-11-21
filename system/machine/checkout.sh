@@ -5,10 +5,10 @@
 #                          [--rev <commit>] [--url <upstream>]
 #   golem-machine-checkout --tree <folder> --url <upstream> [--rev <commit>] …
 #
-# Makes /etc/nixos/golem (under --root, when the machine's disk is mounted
-# somewhere: the installer) a git checkout of Golem that belongs to root:
+# Makes /etc/nixos/standard (under --root, when the machine's disk is mounted
+# somewhere: the installer) a git checkout of Standard that belongs to root:
 #
-#   /etc/nixos/golem/            the files. Root edits them; a rebuild builds them.
+#   /etc/nixos/standard/            the files. Root edits them; a rebuild builds them.
 #   /var/lib/golem/golem.git/    git's own data, OUT of /etc/nixos: a rebuild
 #                                copies /etc/nixos into the store, and the
 #                                history has no business there.
@@ -19,7 +19,7 @@
 # `--branch`, at `--rev` when given (the installer: the version it was cut
 # from), else at the branch's head.
 #
-# `--tree` is the installer's case: its medium carries Golem's FILES, not
+# `--tree` is the installer's case: its medium carries Standard's FILES, not
 # their history. The folder is copied as it is and git is only told where the
 # upstream is; the history arrives with the first update, which finds the
 # files' commit in it by .golem-rev (golem-update, system/machine/layout.nix).
@@ -43,9 +43,9 @@ die() { echo "golem-machine-checkout: $*" >&2; exit 1; }
 [ -z "$from" ] || [ -z "$tree" ] || die "--from or --tree, not both"
 [ -n "$url" ] || url=$from
 [ -n "$url" ] || die "--tree needs --url <upstream>: where the updates will come from"
-[ -z "$tree" ] || [ -f "$tree/flake.nix" ] || die "$tree does not hold Golem (no flake.nix)"
+[ -z "$tree" ] || [ -f "$tree/flake.nix" ] || die "$tree does not hold Standard (no flake.nix)"
 
-co="$root/etc/nixos/golem"
+co="$root/etc/nixos/standard"
 gitdir="$root/var/lib/golem/golem.git"
 [ ! -e "$co/flake.nix" ] || die "$co is already there"
 [ ! -e "$gitdir" ] || die "$gitdir is already there"
@@ -80,12 +80,12 @@ else
 fi
 
 # As the RUNNING machine will see it (no --root in front), so that a plain
-# `git status` in /etc/nixos/golem works for root.
+# `git status` in /etc/nixos/standard works for root.
 printf 'gitdir: /var/lib/golem/golem.git\n' > "$co/.git"
-g config core.worktree /etc/nixos/golem
+g config core.worktree /etc/nixos/standard
 printf '.golem-rev\nresult\nresult-*\n' >> "$gitdir/info/exclude"
 rm -f "$co/.golem-rev"
 [ -z "$rev" ] || printf '%s\n' "$rev" > "$co/.golem-rev"
 
 trap - ERR
-echo "golem-machine-checkout: Golem ${rev:0:12}${rev:+ }(${branch}${tree:+, its history comes with the first update}) is in $co"
+echo "golem-machine-checkout: Standard ${rev:0:12}${rev:+ }(${branch}${tree:+, its history comes with the first update}) is in $co"

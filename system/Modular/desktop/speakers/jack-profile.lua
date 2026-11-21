@@ -1,4 +1,4 @@
--- Golem: pick a sound card's profile by what is plugged in, not only by its
+-- Standard: pick a sound card's profile by what is plugged in, not only by its
 -- priority.
 --
 -- PipeWire splits a codec's Speaker and Headphones into two profiles when the

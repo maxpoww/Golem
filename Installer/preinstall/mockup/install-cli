@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────
-# Golem installer — the CLI chat. Nothing here detects or installs yet.
+# Standard installer — the CLI chat. Nothing here detects or installs yet.
 #
 # Replaces the TUI mockup (`census-mock`). Same guidelines, no grid: the
 # installer is a CONVERSATION that scrolls, not a screen that is painted.
@@ -39,7 +39,7 @@
 #   ./install-cli --fake-disks       THE DEMO: the whole flow, faked end to
 #                                    end — canned disks, a canned census
 #                                    reveal, and a simulated install bar that
-#                                    runs to "restarting into Golem" without
+#                                    runs to "restarting into Standard" without
 #                                    touching a disk
 #   ./install-cli --write FILE       write the keyboard+language nix module
 #   ./install-cli --out FILE         write the answers for golem-install
@@ -442,7 +442,7 @@ S[en:p_pass]='Stored hashed, never as text.'
 S[en:p_host]='Other devices on your network will see this name.'
 S[en:key_back]='ESC back'
 S[en:key_cancel]='F1 cancel'
-S[en:t_go]='Install Golem?'
+S[en:t_go]='Install StandardOS?'
 S[en:drv_line]='%h of %t (%p%) drivers will be installed.'
 S[en:drv_ing]='Identifying drivers…'
 S[en:drv_none]='Drivers ready'
@@ -493,7 +493,7 @@ S[en:e_host]='Letters, digits and dashes.'
 # the labels the bar renders for them, in the chosen language (#18b).
 S[en:ph_format]='formatting the drive'
 S[en:ph_fs]='filesystems'
-S[en:ph_seed]='copying Golem'
+S[en:ph_seed]='copying StandardOS'
 S[en:ph_probe]='hardware profile'
 S[en:ph_eval]='evaluating the system'
 S[en:audit_bad]='audit incomplete — the decisions could not be shown'
@@ -531,7 +531,7 @@ S[es:p_pass]='Se guarda cifrada, nunca como texto.'
 S[es:p_host]='Otros dispositivos de tu red verán este nombre.'
 S[es:key_back]='ESC volver'
 S[es:key_cancel]='F1 cancelar'
-S[es:t_go]='¿Instalar Golem?'
+S[es:t_go]='¿Instalar StandardOS?'
 S[es:drv_line]='%h de %t (%p%) controladores se instalarán.'
 S[es:drv_ing]='Identificando controladores…'
 S[es:drv_none]='Controladores listos'
@@ -573,7 +573,7 @@ S[es:l_luks]='cifrado'
 S[es:e_host]='Letras, números y guiones.'
 S[es:ph_format]='formateando el disco'
 S[es:ph_fs]='sistemas de archivos'
-S[es:ph_seed]='copiando Golem'
+S[es:ph_seed]='copiando StandardOS'
 S[es:ph_probe]='perfil de hardware'
 S[es:ph_eval]='evaluando el sistema'
 S[es:audit_bad]='auditoría incompleta — no se pudieron mostrar las decisiones'
@@ -611,7 +611,7 @@ S[fr:p_pass]='Stocké haché, jamais en clair.'
 S[fr:p_host]='Les autres appareils de votre réseau verront ce nom.'
 S[fr:key_back]='ESC retour'
 S[fr:key_cancel]='F1 annuler'
-S[fr:t_go]='Installer Golem ?'
+S[fr:t_go]='Installer StandardOS ?'
 S[fr:drv_line]='%h sur %t (%p%) pilotes seront installés.'
 S[fr:drv_ing]='Identification des pilotes…'
 S[fr:drv_none]='Pilotes prêts'
@@ -653,7 +653,7 @@ S[fr:l_luks]='chiffrement'
 S[fr:e_host]='Lettres, chiffres et tirets.'
 S[fr:ph_format]='formatage du disque'
 S[fr:ph_fs]='systèmes de fichiers'
-S[fr:ph_seed]='copie de Golem'
+S[fr:ph_seed]='copie de StandardOS'
 S[fr:ph_probe]='profil matériel'
 S[fr:ph_eval]='évaluation du système'
 S[fr:audit_bad]='audit incomplet — les décisions n’ont pas pu être affichées'
@@ -691,7 +691,7 @@ S[de:p_pass]='Gehasht gespeichert, nie im Klartext.'
 S[de:p_host]='Andere Geräte in deinem Netzwerk sehen diesen Namen.'
 S[de:key_back]='ESC zurück'
 S[de:key_cancel]='F1 abbrechen'
-S[de:t_go]='Golem installieren?'
+S[de:t_go]='StandardOS installieren?'
 S[de:drv_line]='%h von %t (%p%) Treiber werden installiert.'
 S[de:drv_ing]='Treiber werden erkannt…'
 S[de:drv_none]='Treiber bereit'
@@ -733,7 +733,7 @@ S[de:l_luks]='Verschlüsselung'
 S[de:e_host]='Buchstaben, Ziffern und Bindestriche.'
 S[de:ph_format]='Laufwerk formatieren'
 S[de:ph_fs]='Dateisysteme'
-S[de:ph_seed]='Golem kopieren'
+S[de:ph_seed]='StandardOS kopieren'
 S[de:ph_probe]='Hardware-Profil'
 S[de:ph_eval]='System auswerten'
 S[de:audit_bad]='Prüfung unvollständig — die Entscheidungen konnten nicht angezeigt werden'
@@ -771,7 +771,7 @@ S[it:p_pass]='Salvata con hash, mai in chiaro.'
 S[it:p_host]='Gli altri dispositivi della tua rete vedranno questo nome.'
 S[it:key_back]='ESC indietro'
 S[it:key_cancel]='F1 annulla'
-S[it:t_go]='Installare Golem?'
+S[it:t_go]='Installare StandardOS?'
 S[it:drv_line]='%h di %t (%p%) driver saranno installati.'
 S[it:drv_ing]='Identificazione dei driver…'
 S[it:drv_none]='Driver pronti'
@@ -813,7 +813,7 @@ S[it:l_luks]='cifratura'
 S[it:e_host]='Lettere, cifre e trattini.'
 S[it:ph_format]='formattazione del disco'
 S[it:ph_fs]='file system'
-S[it:ph_seed]='copia di Golem'
+S[it:ph_seed]='copia di StandardOS'
 S[it:ph_probe]='profilo hardware'
 S[it:ph_eval]='valutazione del sistema'
 S[it:audit_bad]='verifica incompleta — impossibile mostrare le decisioni'
@@ -851,7 +851,7 @@ S[pt:p_pass]='Guardada com hash, nunca em texto.'
 S[pt:p_host]='Outros dispositivos na sua rede verão este nome.'
 S[pt:key_back]='ESC voltar'
 S[pt:key_cancel]='F1 cancelar'
-S[pt:t_go]='Instalar o Golem?'
+S[pt:t_go]='Instalar o StandardOS?'
 S[pt:drv_line]='%h de %t (%p%) controladores serão instalados.'
 S[pt:drv_ing]='A identificar controladores…'
 S[pt:drv_none]='Controladores prontos'
@@ -893,7 +893,7 @@ S[pt:l_luks]='cifragem'
 S[pt:e_host]='Letras, algarismos e hífenes.'
 S[pt:ph_format]='a formatar o disco'
 S[pt:ph_fs]='sistemas de ficheiros'
-S[pt:ph_seed]='a copiar o Golem'
+S[pt:ph_seed]='a copiar o StandardOS'
 S[pt:ph_probe]='perfil de hardware'
 S[pt:ph_eval]='a avaliar o sistema'
 S[pt:audit_bad]='auditoria incompleta — não foi possível mostrar as decisões'
@@ -1033,10 +1033,10 @@ filter() {
 
 # ══ THE TRANSCRIPT ═══════════════════════════════════════════════════════
 #
-# THE VOICE, kept from census-mock. Golem is spoken ABOUT, never as "I" —
+# THE VOICE, kept from census-mock. Standard is spoken ABOUT, never as "I" —
 # the voice is its maker describing what it did, which stays warm without
-# the machine pretending to be a person. Golem acts on the device; WE act
-# on Golem, so an unfinished thing is our work and says so. Nothing is ever
+# the machine pretending to be a person. Standard acts on the device; WE act
+# on Standard, so an unfinished thing is our work and says so. Nothing is ever
 # done "for you": saying so out loud is flattery, and the work speaks
 # without being pointed at.
 #
@@ -1693,7 +1693,7 @@ step_timezone() {
 #      the one task that needs a human anyway. Nobody watches a spinner.
 #      The line must stay true on a fast machine where the audit finishes
 #      first, which is why it says the device is being read rather than
-#      "wait while Golem reads" — see census_line().
+#      "wait while Standard reads" — see census_line().
 #   2. It comes before the disk. With encryption on, the disk step wants a
 #      passphrase, and a passphrase typed under the wrong keymap locks the
 #      owner out of their own disk with NO RESCUE — worse than getting the
@@ -1761,16 +1761,16 @@ step_timezone() {
 #
 # $GOLEM_KEYBOARDS points at the rendered table and WINS when it is set.
 # That is how the shipped installer runs: the medium carries
-# `lib.golem.keyboards.table` as a file, so the surface and CI read one
+# `lib.standard.keyboards.table` as a file, so the surface and CI read one
 # source and cannot drift. On the ISO the wrapper sets it; here you can too:
 #
-#   GOLEM_KEYBOARDS=<(nix eval --raw ../../..#lib.golem.keyboards.table) ./install-cli
+#   GOLEM_KEYBOARDS=<(nix eval --raw ../../..#lib.standard.keyboards.table) ./install-cli
 #
 # The literal below is the DEV FALLBACK, for running this script straight
 # out of a checkout with no nix in the loop. It is rendered from the Nix
 # file, never hand-edited, and `--table` proves the two still agree:
 #
-#   diff <(./install-cli --table) <(nix eval --raw ../../..#lib.golem.keyboards.table)
+#   diff <(./install-cli --table) <(nix eval --raw ../../..#lib.standard.keyboards.table)
 KEYBOARDS=$(cat <<'EOF'
 us|English (US)|english us american qwerty|us||us|latin|ansi
 us-intl|English (US) — international|international intl deadkeys dead keys accents|us|intl|us-acentos|latin|ansi
@@ -2121,7 +2121,7 @@ kb_check() {
 
 # ══ WHAT ONE ANSWER TURNS INTO ═══════════════════════════════════════════
 #
-# The user is asked ONE thing — is this your keyboard — and Golem derives
+# The user is asked ONE thing — is this your keyboard — and Standard derives
 # every setting an installed machine needs from the row behind it. There are
 # four sinks and they are not interchangeable:
 #
@@ -2201,7 +2201,7 @@ kb_derive() {                    # $1 row → sets the six values above
 
 # THE HANDOFF TO golem-install. These four flags are the whole contract
 # between this surface and the installer: the surface asks one question and
-# derives, `golem-install` writes golem.keyboard into machine.nix, and
+# derives, `golem-install` writes standard.keyboard into machine.nix, and
 # system/configuration.nix + system/home/hyprland.nix fan it out to the three
 # sinks. Printed by --dump settings so the derivation is inspectable
 # without touching a disk.
@@ -2217,7 +2217,7 @@ kb_emit() {
   printf '  --kb-font %q\n'       "$KB_FONT"
   printf '\n'
   printf '%s\n' "# → machine.nix"
-  printf '  golem.keyboard = {\n'
+  printf '  standard.keyboard = {\n'
   printf '    layout = "%s";\n'        "$KB_LAYOUT"
   printf '    variant = "%s";\n'       "$KB_VARIANT"
   printf '    options = "%s";\n'       "$KB_OPTIONS"
@@ -2349,7 +2349,7 @@ census_line() {
 # it, ENTER takes one.
 #
 # THE NAME IS THE WHOLE ANSWER. Picking "Español (Latinoamérica)" gives
-# Golem the xkb layout, its variant, the model, the console keymap and the
+# Standard the xkb layout, its variant, the model, the console keymap and the
 # font — every setting an installed machine needs. There was a test here
 # that asked you to press ñ ¿ ç and compare them with your keycaps; it
 # configured nothing and only checked that the name was picked right, and
@@ -2797,7 +2797,7 @@ FIELD_ERR=''
 # A ghost suggestion: shown dimmed while the field is empty, and taken on
 # ENTER if nothing was typed. Distinct from the INITIAL value (ask_field
 # arg 3), which is real text the user edits. The hostname step used to
-# pass its "Golem" default AS the initial value, so a printable keystroke
+# pass its "Standard" default AS the initial value, so a printable keystroke
 # appended to it — typing "acer-lab" produced "Golemacer-lab" on the Acer
 # (2026-09-06). A placeholder is not a value.
 FIELD_SUGGEST=''
@@ -2935,12 +2935,12 @@ step_you() {
   while :; do
     case $f in
       0) screen; stack
-         # "Golem" is the GHOST (arg 5), not the initial value (arg 3):
-         # first time in, HOSTNAME_V is empty so "Golem" shows dimmed and
+         # "Standard" is the GHOST (arg 5), not the initial value (arg 3):
+         # first time in, HOSTNAME_V is empty so "Standard" shows dimmed and
          # ENTER takes it; on re-open after ESC, HOSTNAME_V holds what the
          # user typed and is edited normally, no ghost. This is what stops
          # a typed name appending to the default ("Golemacer-lab").
-         if ask_field "$(t t_host)" "$(t p_host)" "$HOSTNAME_V" valid_host Golem
+         if ask_field "$(t t_host)" "$(t p_host)" "$HOSTNAME_V" valid_host Standard
            then HOSTNAME_V=$FIELD_VALUE; f=1
            else return 1                      # out of the step, to the disk
          fi ;;
@@ -2991,7 +2991,7 @@ step_you() {
 # stays put and fills in as each part lands, so the progress IS the
 # confirmation being answered line by line." The stack has been the summary
 # all along — six items the person answered. Pressing ENTER after the
-# password REVEALS THE REST OF IT: everything Golem decided on its own
+# password REVEALS THE REST OF IT: everything Standard decided on its own
 # (Max, 2026-09-06: "all the things we are gonna install reveal as more
 # items"). The census rows land in the same dot-item shape as the answers,
 # because they are the same kind of thing — decisions, just not yours.
@@ -3014,7 +3014,7 @@ FAKE_INSTALL=no
 FAKE_FAIL=no
 
 # The reveal has TWO halves that answer the two questions a burned Linux
-# user actually asks. The config half — "what did Golem set up" — comes from
+# user actually asks. The config half — "what did Standard set up" — comes from
 # decide.nix (or canned, faked). The hardware half — "did it even SEE my
 # wi-fi" — is read live off the machine, because that is the one a summary
 # from a file cannot fake convincingly. A GPU name pulled from lspci on the
@@ -3108,7 +3108,7 @@ EOF
     # reads the decision surface — proven the same day it broke).
     printf '%s%s%s%s\n' "$IND" "$C_DIM" "$(t audit_bad)" "$NORM"
   fi
-  # A blank between "what Golem set up" and "what it found" — the two halves
+  # A blank between "what Standard set up" and "what it found" — the two halves
   # answer different questions and the gap says so.
   printf '\n'
   hardware_reveal
@@ -3364,7 +3364,7 @@ reveal_gpus() {
       # A second GPU that failed the wake-test is LISTED like any other part —
       # its name + driver, NO verdict (Max, 2026-09-23, on the asus's old dGPU):
       # "tested, didn't wake up" read like a bug on real metal, but the machine
-      # is fine precisely BECAUSE Golem never installs a driver for it or powers
+      # is fine precisely BECAUSE Standard never installs a driver for it or powers
       # it on. Only the GPU driving the screen earns a "working" line; we make
       # no claim about the second one either way — showing hardware is not a
       # promise that it works (changes.md #106).
@@ -3573,7 +3573,7 @@ driver_count() {
 }
 
 # One line, redrawn in place:
-#   ████████████░░░░░░░░░░░░░░░░  43%   Copying Golem
+#   ████████████░░░░░░░░░░░░░░░░  43%   Copying Standard
 #
 # Solid blocks in the accent for done, light shade in dim for the rest —
 # the same accent/dim ramp the whole surface uses, so the bar is not a
@@ -3664,7 +3664,7 @@ step_go() {
   # (IOMMU, a declining ACP, a dead sibling display function) — the score
   # graded a test whose missing points don't exist as hardware, and its
   # only products were anxiety and a Google query ("i need that one to
-  # be complete!"). The hardware ROWS are the proof; Golem does not
+  # be complete!"). The hardware ROWS are the proof; Standard does not
   # grade itself. The probe still runs at launch — its numbers sit in
   # $DRV_FILE for a lab hand over SSH, never on the stranger's screen.
   while :; do
@@ -3827,7 +3827,7 @@ step_go() {
       # USB, so by now the user has pulled it — `systemctl reboot` would exec off
       # a gone device). The RAM-cached static helper does sync() + reboot(2)
       # directly: no stick, no SysRq, and its only kernel line ("Restarting
-      # system", KERN_EMERG) is hushed by consoleLogLevel=0. Black → Golem.
+      # system", KERN_EMERG) is hushed by consoleLogLevel=0. Black → Standard.
       exec /run/golem-reboot 2>/dev/null
       # Fallbacks if the helper was not cached: SysRq (prints "sysrq: …" but
       # reboots without the stick), then systemctl (dev runs, stick still in).
@@ -3917,19 +3917,19 @@ write_module() {
   local f=$1
   kb_derive "$KB_ROW"
   {
-    printf '# Written by the Golem installer.\n'
+    printf '# Written by the Standard installer.\n'
     printf '{ ... }:\n{\n'
-    printf '  golem.locale.defaultLocale = "%s";\n' "${LOCALE[$LANG_ROW]}"
-    printf '  golem.locale.timeZone = "%s";\n\n' "$TZ_ZONE"
+    printf '  standard.locale.defaultLocale = "%s";\n' "${LOCALE[$LANG_ROW]}"
+    printf '  standard.locale.timeZone = "%s";\n\n' "$TZ_ZONE"
     if [ -n "${OWNER:-}" ]; then
-      printf '  golem.owner = "%s";\n' "$OWNER"
+      printf '  standard.owner = "%s";\n' "$OWNER"
       printf '  networking.hostName = "%s";\n' "$HOSTNAME_V"
       # The password hash is never written into a module: it would be copied
       # into the world-readable Nix store. It reaches golem-install through
       # the answers file (GOLEM_PASS_HASH) and lands in a root-only file.
       printf '\n'
     fi
-    printf '  golem.keyboard = {\n'
+    printf '  standard.keyboard = {\n'
     printf '    layout = "%s";\n'        "$KB_LAYOUT"
     printf '    variant = "%s";\n'       "$KB_VARIANT"
     printf '    options = "%s";\n'       "$KB_OPTIONS"
@@ -3977,7 +3977,7 @@ write_answers() {
 
 # ══ WHERE THE MOCKUP STOPS ═══════════════════════════════════════════════
 #
-# Step 3 is EVALUATION — what Golem found and what it will build. It is the
+# Step 3 is EVALUATION — what Standard found and what it will build. It is the
 # census, which has been running since boot and by now is finished: the
 # ordered sections decide.nix already returns, printed as they come. When it
 # exists it will open with screen() like the other two and this goes away.
@@ -4061,7 +4061,7 @@ done
 # --fake-disks, I want to see the whole process, faked"). A machine with no
 # disk to install to also has no boot-audit census to reveal and no real
 # golem-install to drive the bar, so on a dev box it implies both fakes —
-# the whole flow, all the way to "restarting into Golem", off one flag.
+# the whole flow, all the way to "restarting into Standard", off one flag.
 # Naming --fake-census or --fake-install explicitly still lets you mix; this
 # only fills the ones left at their default.
 if [ "$FAKE_DISKS" = yes ]; then

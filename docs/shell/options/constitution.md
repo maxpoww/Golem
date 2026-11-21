@@ -73,7 +73,7 @@ down. Struck freely.*
 ### Pillar 1 — The environment is the assistant
 
 There is no assistant. There is no helper, no companion object, no
-"Golem Assistant", no help menu, no place you go to be helped. **The bar,
+"Standard Assistant", no help menu, no place you go to be helped. **The bar,
 the window, the clock and the dock are the help**, in the same way a
 well-built room tells you where the door is without a sign.
 

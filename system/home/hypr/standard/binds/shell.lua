@@ -1,15 +1,15 @@
--- golem/binds/shell.lua: the keys of Golem's shell: the lock screen, the
+-- standard/binds/shell.lua: the keys of Standard's shell: the lock screen, the
 -- dock box, voice to text, fast launch, the card, the control panel, the
 -- walk round the windows and the screens, the overview, and STAGE mode with
 -- its own keymap. Most of them only tell the dock (waverunner-ctl).
-local G = require("golem.lib")
+local G = require("standard.lib")
 local mainMod, ctl = G.mainMod, G.ctl
 local Suspend = G.Suspend
 
 -- The lock screen, called directly (logind refuses to lock a greeter-class
 -- session; home/idle.nix). `locked`: it also works on a locked session, so if
 -- the lock screen ever dies (the session stays locked, frozen on its last
--- frame), Super+L brings a live one back (allow_session_lock_restore, golem/misc.lua).
+-- frame), Super+L brings a live one back (allow_session_lock_restore, standard/misc.lua).
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("golem-lock-screen"), { locked = true })
 -- (While something dictated is being written out, Escape cancels it — the
 -- dock binds the bare key for that long and raises `golem_dictating`. A hand

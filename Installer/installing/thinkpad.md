@@ -21,7 +21,7 @@ preserved for later.
 ### Safety — the target picked by identity, Windows excluded
 Three disks present: **`/dev/sda`** = the 2 TB Seagate BUP (USB, target,
 by-id `usb-Seagate_BUP_Slim_BL_NA9BKT0Z-0:0`); `/dev/nvme0n1` = the internal
-Windows (ESP+MSR+NTFS+WinRE — untouchable); `/dev/sdb` = the Golem boot stick
+Windows (ESP+MSR+NTFS+WinRE — untouchable); `/dev/sdb` = the Standard boot stick
 (=/iso, #20-excluded). Hard guards before the wipe: target must resolve from
 the Seagate by-id, be USB, be ~2 TB, and not be the NVMe. **Post-install
 confirmed the NVMe still carries all four Windows partitions.**
@@ -30,12 +30,12 @@ confirmed the NVMe still carries all four Windows partitions.**
 For an external drive booted via F12, `boot/grub-efi.nix`'s #94 defaults are
 ideal: `efiInstallAsRemovable=true` + `canTouchEfiVariables=false` → GRUB
 goes ONLY to the external ESP (`\EFI\BOOT\BOOTX64.EFI`), zero NVRAM writes,
-so the thinkpad still defaults to Windows and Golem boots only when F12
+so the thinkpad still defaults to Windows and Standard boots only when F12
 selects the external drive. That needs the dev-tree engine (grub-efi is a
 #92 leaf the frozen ISO lacks), so this is a live-fix run: patched
 golem-install (`--override-input golem path:<clean git tree>`) nix-copy'd to
 the medium → `--prepare-only` (ESP 512M + swap 9G `42b6db13` + ext4 golem on
-the 2 TB) → build golem-minimal from the seed (2.97 GiB) → deliver to /mnt →
+the 2 TB) → build standard-minimal from the seed (2.97 GiB) → deliver to /mnt →
 `--skip-prepare` wrote GRUB-EFI (x86_64-efi).
 
 ### First-boot audit

@@ -13,14 +13,14 @@
 # home layer will layer on top when it ships.
 { config, pkgs, lib, ... }:
 
-let owner = config.golem.owner;
+let owner = config.standard.owner;
 in {
   home-manager.users.${owner} = {
     home.packages = [ pkgs.xdg-user-dirs ];
 
     # mkDefault: the desktop's home layer (system/home/user-dirs.nix) defines this
     # SAME service (After graphical-session instead of default.target). When
-    # that layer is wired in (golem-desktop), let ITS version win; this base
+    # that layer is wired in (standard-desktop), let ITS version win; this base
     # one applies on the headless minimal, which has no home layer. (2026-09-26)
     systemd.user.services.golem-user-dirs = lib.mkDefault {
       Unit = {

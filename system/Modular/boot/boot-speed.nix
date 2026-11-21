@@ -1,4 +1,4 @@
-# Golem boot — the general fast + reliable pass (#125, 2026-09-24).
+# Standard boot — the general fast + reliable pass (#125, 2026-09-24).
 #
 # Profiled over SSH on the comodore + HP metal (the lab door earning its keep).
 # #124 already made the initrd systemd-based and loads the GPU via udev so a slow
@@ -9,7 +9,7 @@
 #    chipsets that probe runs slow loopback/IRQ tests on every port (present or
 #    not); `ttyS0-3` alone ate ~22 s of udev work on BOTH old lab machines, which
 #    drags the initrd's device settle and congests userspace udev (delaying the
-#    disk/swap device units the boot waits on). Golem is a desktop OS with no
+#    disk/swap device units the boot waits on). Standard is a desktop OS with no
 #    serial console — the VGA/framebuffer console (tty0) is untouched — so there
 #    is nothing to lose. This is BASE, i.e. INSTALLED systems only; the installer
 #    MEDIUM keeps its serial for lab diagnostics.
@@ -26,7 +26,7 @@
   # tells what happened, and the update lane's boot test (updates/
   # boot-test.nix) talks to the machine through it. With it off the test VM
   # booted in silence and timed out (2026-10-29).
-  boot.kernelParams = lib.mkIf (config.golem.hardware.vmGuest == "none") (lib.mkAfter [ "8250.nr_uarts=0" ]);
+  boot.kernelParams = lib.mkIf (config.standard.hardware.vmGuest == "none") (lib.mkAfter [ "8250.nr_uarts=0" ]);
 
   systemd.services.NetworkManager-wait-online.enable = lib.mkForce false;
 }

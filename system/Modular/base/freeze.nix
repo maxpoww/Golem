@@ -1,4 +1,4 @@
-# base/freeze — a Golem that freezes comes back on its own.
+# base/freeze — a Standard that freezes comes back on its own.
 #
 # The 2013 MacBook Air froze at 14 s of a boot (the camera driver's probe
 # after a quick warm reboot, 2026-10-29) and sat on the progress bar until

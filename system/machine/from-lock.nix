@@ -1,18 +1,18 @@
 # GOLEM, EVALUATED FROM ITS OWN LOCK — with no flake around it.
 #
-#   golem = import ./from-lock.nix { src = /etc/nixos/golem; };
-#   golem.lib.golem.machine /etc/nixos   # …the same outputs the flake has
+#   standard = import ./from-lock.nix { src = /etc/nixos/standard; };
+#   standard.lib.standard.machine /etc/nixos   # …the same outputs the flake has
 #
-# On a machine Golem is a folder its owner can edit as root
-# (/etc/nixos/golem: docs/system/Layout.md). Named as a flake INPUT of the
+# On a machine Standard is a folder its owner can edit as root
+# (/etc/nixos/standard: docs/system/Layout.md). Named as a flake INPUT of the
 # machine's flake it would be locked twice: Nix copies the input's pins into
 # the machine's own flake.lock and never looks at the input's again, so the
-# day Golem's flake.lock moved (an update, a pull by hand) the machine went
-# on building the new Golem with the old nixpkgs and the old dock (measured
+# day Standard's flake.lock moved (an update, a pull by hand) the machine went
+# on building the new Standard with the old nixpkgs and the old dock (measured
 # 2026-11-19 with a relative `path:` input, Nix 2.34: the sub-flake's code is
 # read fresh, its lock is not).
 #
-# So the machine's flake has no inputs at all, and Golem's flake.nix is
+# So the machine's flake has no inputs at all, and Standard's flake.nix is
 # called here with the inputs ITS OWN flake.lock names: one pin file, the one
 # an update moves. Each input is fetched by what the lock holds (a revision
 # and its hash: `builtins.fetchTree` of a locked reference is as pure as a

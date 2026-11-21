@@ -2,12 +2,12 @@
 
 Max: "testea todo… varias veces, depura todo… mañana vamos a cortar una nueva iso."
 Machines: Acer E5-573 (+ Samsung A11 on the cable), MacBook Air 6,2 (+ Pixel 8 Pro),
-ASUS X550LC (no phone). Final state: launcher 9f159dd, Golem 6322a91, waveview c04f9ca
+ASUS X550LC (no phone). Final state: launcher 9f159dd, Standard 6322a91, waveview c04f9ca
 on all three (pushed, lab-pulled, rebooted).
 
 ## Bugs found and fixed (all pushed and on the laptops)
 
-1. **"Use as camera" did nothing on an installed Golem.** The loopback camera device
+1. **"Use as camera" did nothing on an installed Standard.** The loopback camera device
    (v4l2loopback, "Android WebCam", /dev/video10) existed only in the fat config and in
    the dev box's own layer. New leaf `system/Modular/desktop/phone.nix`. After it: both
    phones appear in PipeWire as a camera ("golem-phone-cam | Pixel 8 Pro"), two lenses

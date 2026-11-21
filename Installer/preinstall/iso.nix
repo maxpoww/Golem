@@ -1,4 +1,4 @@
-{ lib, pkgs, golem, hw-decide, hw-postinstall-questions, install, setup, offlineSeed, ... }:
+{ lib, pkgs, standard, hw-decide, hw-postinstall-questions, install, setup, offlineSeed, ... }:
 
 let
   # ── Lab wifi, baked ───────────────────────────────────────────────────
@@ -36,7 +36,7 @@ let
   # clear and BECOME the surface; on any other VT we hand off to the real
   # login, so tty2-6 stay a normal, debuggable console. This replaces the old
   # autologin + loginShellInit path, whose one unavoidable artefact was
-  # agetty's own "golem-installer login: nixos (automatic login)" line.
+  # agetty's own "standard-installer login: nixos (automatic login)" line.
   installSurface = pkgs.writeShellScript "golem-install-surface" ''
     if [ "$(${pkgs.coreutils}/bin/tty)" = /dev/tty1 ]; then
       printf '\033[H\033[2J\033[3J'
@@ -82,20 +82,20 @@ in
 {
   # The boot menu is ours: upstream iso-image.nix hardcodes rows (Options
   # submenu, Firmware Setup, Shutdown, rEFInd) and autoboots after at most
-  # ~1h — Golem's menu is Start/Install, waiting forever. See the vendored
+  # ~1h — Standard's menu is Start/Install, waiting forever. See the vendored
   # copy's header for the exact diff.
   disabledModules = [ "installer/cd-dvd/iso-image.nix" ];
   imports = [
-    ./iso-image-golem.nix
+    ./iso-image-standard.nix
     # NOTE: the boot bar (Plymouth) is deliberately NOT imported here. Max,
-    # 2026-09-23: "keep it ONLY on the installed Golem boot, only there." The
+    # 2026-09-23: "keep it ONLY on the installed Standard boot, only there." The
     # medium keeps its quiet black boot; the bar rides in via the base
     # composition (system/Modular/composition.nix), so it lands on installs but
     # not on the stick itself.
     # The lab tools (PLAN.md): the census probe — shared with the full
     # system on purpose (same probe everywhere is reuse, not ISO-mixing) —
     # and the raw-evidence collector that feeds the fixture corpus.
-    "${golem}/system/hardware-detect.nix"
+    "${standard}/system/hardware-detect.nix"
     ./evidence.nix
     # The machine audits itself at boot and leaves the verdict in
     # /var/log/golem-audit/ — this module also owns the getty helpLine,
@@ -120,9 +120,9 @@ in
   #      never consulted
   #   3. flakes enabled        installation-cd-minimal does not enable them
   #
-  # golem-hw-decide then reads the machine and prints what Golem chose,
-  # through the same lib.golem.mkTarget the installer will build.
-  environment.etc."golem/src".source = golem;
+  # golem-hw-decide then reads the machine and prints what Standard chose,
+  # through the same lib.standard.mkTarget the installer will build.
+  environment.etc."golem/src".source = standard;
   environment.etc."golem/inputs".source = offlineSeed;
   # 8e — bake the ALL-IN hardware matrix onto the medium (Max, 2026-09-18,
   # the Omarchy model): every class's minimal closure in the store, so the
@@ -132,11 +132,11 @@ in
   # driver/kernel/firmware paths are all here, so its toplevel assembles from
   # these baked components; anything unclassifiable lands on gpu/auto (the
   # floor that boots on anything).
-  system.extraDependencies = [ offlineSeed golem.packages.x86_64-linux.bakedMatrix ];
+  system.extraDependencies = [ offlineSeed standard.packages.x86_64-linux.bakedMatrix ];
   # The manifest golem-install reads to pick the baked toplevel matching a
   # machine's chosen leaf-list (install by DIRECT COPY, no rebuild — 8e opt A).
   environment.etc."golem/baked-manifest.json".source =
-    golem.packages.x86_64-linux.bakedManifest;
+    standard.packages.x86_64-linux.bakedManifest;
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   environment.systemPackages = [ hw-decide hw-postinstall-questions install setup golemReboot ];
 
@@ -145,12 +145,12 @@ in
   # cost the lab twice in round 1: internal wifi was dark (the MacBook's
   # Broadcom needed a USB dongle) and the reveal's driver count read a
   # demoralising "74%" on the HP — both the same missing-firmware root
-  # cause. The installed Golem already carries the full set
+  # cause. The installed Standard already carries the full set
   # (configuration.nix: hardware.enableAllFirmware = true); the medium must
   # match, or "works on the stick" and "works installed" diverge — and the
   # census's driver count finally tells the truth. This is the biggest
   # single thing behind the Intel-MacBook goal: brcmfmac brings the BCM4360
-  # up on the stick with these blobs, no dongle. Needs unfree; Golem allows
+  # up on the stick with these blobs, no dongle. Needs unfree; Standard allows
   # it distro-wide, and the medium must too.
   hardware.enableAllFirmware = true;
   nixpkgs.config.allowUnfree = true;
@@ -162,14 +162,14 @@ in
   # question anyway — autostarting would only race the census banner.
   # Behaviour is otherwise stock installation-cd-minimal (autologin to
   # `nixos` on tty1, nmtui, nixos-install in PATH).
-  networking.hostName = "golem-installer";
+  networking.hostName = "standard-installer";
 
   # Same option pair the full ISO settled on (hosts/iso.nix, todo9 item 2:
   # `image.baseName` is the renamed option, `isoImage.volumeID` never was).
-  image.baseName = lib.mkForce "golem-installer";
-  isoImage.volumeID = lib.mkForce "GOLEM_INST";
+  image.baseName = lib.mkForce "standardos-installer";
+  isoImage.volumeID = lib.mkForce "STANDARD_INST";
 
-  services.getty.greetingLine = lib.mkForce "<<< Golem installer — minimal cut >>>";
+  services.getty.greetingLine = lib.mkForce "<<< StandardOS installer — minimal cut >>>";
   # agetty expands \4 to the machine's IPv4 at prompt time. The helpLine
   # itself is set in audit.nix, which has the other half of what the
   # console needs to say.
@@ -274,7 +274,7 @@ in
     # the screen, so blank them. mkOverride beats the base's mkForce so nothing
     # of the getty prints before the surface clears the screen.
     #   installation-cd's autologin left ONE unavoidable line — agetty's own
-    #   "golem-installer login: nixos (automatic login)" (it hardcodes the
+    #   "standard-installer login: nixos (automatic login)" (it hardcodes the
     #   "(automatic login)" notice; no flag mutes it). So the Install boot drops
     #   autologin entirely: tty1's getty runs --skip-login --login-program, and
     #   agetty prints NOTHING and execs installSurface (the let-binding) as root
@@ -295,9 +295,9 @@ in
     # privilege dance are gone; golem-install's first privileged step just works.
   };
 
-  # Silent boot (Max, on metal 2026-09-23: "Golem boot is black screen until
+  # Silent boot (Max, on metal 2026-09-23: "Standard boot is black screen until
   # booted — I don't want to see all those letters after I pick Start or
-  # Install"). The medium now boots as quietly as an INSTALLED Golem: the same
+  # Install"). The medium now boots as quietly as an INSTALLED Standard: the same
   # log-quieting kernel params base/core.nix uses. This is the SAFE set — it
   # does NOT include fbcon=map:1 / splash, which take the display away and left
   # the first metal machine's minimal console a DEAD black screen (#65); these
@@ -396,9 +396,9 @@ in
   # black.png: 16x16 solid black (inkscape-generated, eyeball-verified),
   # stretched to fill by both loaders — kills the NixOS artwork.
   # The theme moved to system/Modular/boot/grub-theme.nix (#68) so the
-  # medium and an INSTALLED machine draw the same Golem menu. The medium
+  # medium and an INSTALLED machine draw the same Standard menu. The medium
   # keeps its proven geometry (the defaults — a box that hugs "Install").
-  isoImage.grubTheme = pkgs.callPackage "${golem}/system/Modular/boot/grub-theme.nix" { };
+  isoImage.grubTheme = pkgs.callPackage "${standard}/system/Modular/boot/grub-theme.nix" { };
   isoImage.efiSplashImage = ./black.png;
   isoImage.splashImage = ./black.png;
 
@@ -407,9 +407,9 @@ in
   # `item_align` (staying left-aligned) while every installed machine was
   # already silent and centred. Import the SAME patch overlay the installed
   # bootloader leaves use (grub-patched.nix), so `pkgs.grub2_efi` — which
-  # iso-image-golem.nix builds the medium's EFI grub from — carries the quiet
+  # iso-image-standard.nix builds the medium's EFI grub from — carries the quiet
   # + item_align patches. After this, all four boot surfaces (ISO BIOS/UEFI,
-  # installed BIOS/UEFI) show the same Golem menu; the ISO's BIOS syslinux is
+  # installed BIOS/UEFI) show the same Standard menu; the ISO's BIOS syslinux is
   # the one bespoke sibling (already silent+centred, round 8).
-  nixpkgs.overlays = [ (import "${golem}/system/Modular/boot/grub-patch-overlay.nix") ];
+  nixpkgs.overlays = [ (import "${standard}/system/Modular/boot/grub-patch-overlay.nix") ];
 }

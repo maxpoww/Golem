@@ -1,7 +1,7 @@
 # machine/update — THE NIGHTLY UPDATE of a machine of the /etc/nixos layout.
 #
 # The twin of base/autoupdate.nix (the checkout-in-a-home layout), and much
-# shorter: Golem is root's own copy there (/etc/nixos/golem), so nothing has
+# shorter: Standard is root's own copy there (/etc/nixos/standard), so nothing has
 # to be vouched for, healed, sealed or done "as the owner". What is the same,
 # on purpose, is everything an owner or the desktop can see:
 #
@@ -12,7 +12,7 @@
 #                                     (desktop/care.nix lets the owner start
 #                                     it without a password)
 #   /var/lib/golem-notices/update-*   what desktop/update-notice.nix reads to
-#                                     say "Golem could not update"
+#                                     say "Standard could not update"
 #   exit 75                           the network, not the version: the run
 #                                     comes back in an hour, nothing was built
 #   `boot`, never `switch`            the new version starts at the next
@@ -31,7 +31,7 @@ let
   # A system without one (the VMs boot their kernel directly) has no boot
   # entry to check.
   bootMenu = config.boot.loader.grub.enable || config.boot.loader.systemd-boot.enable;
-  owner = config.golem.owner;
+  owner = config.standard.owner;
 in
 {
   # On the system PATH, as on the other layout: every updater shares one gate.
@@ -45,15 +45,15 @@ in
     serviceConfig.Nice = 19;
     serviceConfig.IOSchedulingClass = "idle";
     serviceConfig.CPUWeight = 20;
-    serviceConfig.ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
+    serviceConfig.ExecStartPre = lib.optional (config.standard ? quietLogin) "${config.standard.quietLogin}/bin/golem-quiet-login";
     serviceConfig.RestartForceExitStatus = "75";
     serviceConfig.RestartSec = "1h";
     restartIfChanged = false;   # a switch never waits on it
-    path = [ config.golem.machine.updateCommand pkgs.coreutils pkgs.gnugrep pkgs.util-linux ];
+    path = [ config.standard.machine.updateCommand pkgs.coreutils pkgs.gnugrep pkgs.util-linux ];
     script = ''
       set -euo pipefail   # a failed update marks the service failed (visible), not silent
 
-      # What the owner's desktop reads to say "Golem could not update"
+      # What the owner's desktop reads to say "Standard could not update"
       # (desktop/update-notice.nix): when a run last worked, and when one
       # last failed. These files never leave the machine. Waiting for the
       # wave is a run that worked.
@@ -105,7 +105,7 @@ in
       fi
       [ "$rc" = 0 ] || exit "$rc"
 
-      # Files of Golem's that root had changed AND the new version changed
+      # Files of Standard's that root had changed AND the new version changed
       # too were set aside: the owner is told where, in their language.
       after=""; [ -f /var/lib/golem/local-edits/latest ] && after=$(cat /var/lib/golem/local-edits/latest)
       if [ -n "$after" ] && [ "$after" != "$before" ]; then
@@ -115,7 +115,7 @@ in
         if [ -S "/run/user/$uid/bus" ]; then
           runuser -u ${lib.escapeShellArg owner} -- env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$uid/bus" \
             ${pkgs.libnotify}/bin/notify-send -a Golem "$(say "Golem kept your edits aside")" \
-            "$(say "Files of Golem's that were changed on this computer were copied to {0} so Golem could update." "$after")" || true
+            "$(say "Files of Standard's that were changed on this computer were copied to {0} so Golem could update." "$after")" || true
         fi
       fi
 
@@ -135,7 +135,7 @@ in
   };
 
   systemd.timers.golem-autoupdate = {
-    description = "Daily Golem self-update";
+    description = "Daily Standard self-update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";

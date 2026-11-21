@@ -3,7 +3,7 @@
 # Seam's security update lane.
 #
 # Seam = Mozilla's own Firefox Linux build, pinned in ./sources.json and wrapped
-# with Golem's chrome script + policies (golem-browser.nix). It does NOT come from
+# with Standard's chrome script + policies (golem-browser.nix). It does NOT come from
 # the nixpkgs channel: the channel lags Mozilla by days, and a browser can't.
 #
 # seam-update.timer checks Mozilla every 4h. On a new release it rewrites
@@ -15,27 +15,27 @@
 
 let
   # Where the updater writes the pin, and how it rebuilds:
-  #  - Golem (flake): the machine's own checkout (golem.flakeDir) — a flake's ./. is a
+  #  - Standard (flake): the machine's own checkout (standard.flakeDir) — a flake's ./. is a
   #    read-only store copy, and flakes only see git-TRACKED files, so the pin is
   #    written into the checkout, `git add`ed, and the system rebuilt with --flake.
-  #  - Golem, the /etc/nixos layout (system/machine): root's own copy of Golem
-  #    (<folder>/golem). The pin is written there, by root, and what is rebuilt is
+  #  - Standard, the /etc/nixos layout (system/machine): root's own copy of Standard
+  #    (<folder>/standard). The pin is written there, by root, and what is rebuilt is
   #    the machine's folder. No seal: nothing an owner's program can write is in it.
-  #    (An update of Golem keeps whichever pin is NEWER: golem-update.)
+  #    (An update of Standard keeps whichever pin is NEWER: golem-update.)
   #  - dev box (channel /etc/nixos): this directory itself, plain `nixos-rebuild`.
-  flakeDir = lib.attrByPath [ "golem" "flakeDir" ] null config;
-  flakeAttr = lib.attrByPath [ "golem" "flakeAttr" ] null config;
+  flakeDir = lib.attrByPath [ "standard" "flakeDir" ] null config;
+  flakeAttr = lib.attrByPath [ "standard" "flakeAttr" ] null config;
   isFlake = flakeDir != null && flakeAttr != null;
-  machineDir = lib.attrByPath [ "golem" "machine" "dir" ] null config;
+  machineDir = lib.attrByPath [ "standard" "machine" "dir" ] null config;
   isMachine = !isFlake && machineDir != null;
   seamDir =
     if isFlake then "${flakeDir}/seam"
-    else if isMachine then "${machineDir}/golem/seam"
+    else if isMachine then "${machineDir}/standard/seam"
     else toString ./.;
-  sealCheck = lib.attrByPath [ "golem" "seal" "check" ] null config;
-  sealHeal = lib.attrByPath [ "golem" "seal" "heal" ] null config;
-  sealAdopt = lib.attrByPath [ "golem" "seal" "adopt" ] null config;
-  sealCopy = lib.attrByPath [ "golem" "seal" "copy" ] null config;
+  sealCheck = lib.attrByPath [ "standard" "seal" "check" ] null config;
+  sealHeal = lib.attrByPath [ "standard" "seal" "heal" ] null config;
+  sealAdopt = lib.attrByPath [ "standard" "seal" "adopt" ] null config;
+  sealCopy = lib.attrByPath [ "standard" "seal" "copy" ] null config;
   flakeEnv = lib.optionalString isFlake (''
     export SEAM_FLAKE=${lib.escapeShellArg flakeDir}
     export SEAM_FLAKE_ATTR=${lib.escapeShellArg flakeAttr}
@@ -45,7 +45,7 @@ let
     export SEAM_SEAL_ADOPT=${sealAdopt}/bin/golem-seal-adopt
     export SEAM_SEAL_COPY=${sealCopy}/bin/golem-seal-copy
   '') + lib.optionalString isMachine ''
-    export SEAM_FLAKE=${lib.escapeShellArg "${machineDir}/golem"}
+    export SEAM_FLAKE=${lib.escapeShellArg "${machineDir}/standard"}
     export SEAM_FLAKE_ATTR=default
     export SEAM_REBUILD_FLAKE=${lib.escapeShellArg machineDir}
   '';
@@ -80,7 +80,7 @@ let
       gnupg gawk # Mozilla's signature on SHA256SUMS
       glibc.bin golemSay # getent: each user's home, for their language
       config.system.build.nixos-rebuild selftest
-    ] ++ lib.optional (config.golem ? rebuild) config.golem.rebuild;   # the one door, where there is one (update.sh: nr)
+    ] ++ lib.optional (config.standard ? rebuild) config.standard.rebuild;   # the one door, where there is one (update.sh: nr)
     # syntax-check only: a shellcheck style nit must never fail a SECURITY rebuild
     checkPhase = ''
       runHook preCheck

@@ -1,4 +1,4 @@
-# Differences between a Golem machine and the reference (Max's dev box) that
+# Differences between a Standard machine and the reference (Max's dev box) that
 # are INTENDED. Every entry needs a reason. Anything golem-parity finds that is
 # not listed here is a finding. Add an entry only when the difference is a
 # decision, never to silence a bug. The open questions live in work/parity.md.
@@ -6,22 +6,22 @@
 # Keys are the ids golem-parity prints, minus the kind prefix.
 
 [option]
-"decoration:active_opacity"   = "Golem ships opaque windows (1.0): 0.95 alpha-blends every window every frame and blocks fullscreen direct scanout — the 2026-09-02 perf pass for weak GPUs. The dev box keeps 0.95. OPEN: parity.md P2"
+"decoration:active_opacity"   = "Standard ships opaque windows (1.0): 0.95 alpha-blends every window every frame and blocks fullscreen direct scanout — the 2026-09-02 perf pass for weak GPUs. The dev box keeps 0.95. OPEN: parity.md P2"
 "decoration:inactive_opacity" = "same decision as decoration:active_opacity"
-"decoration:blur:enabled"     = "golem.desktop.effects = light (gpu/intel-legacy, the 2013 MacBook Air) turns the compositor blur off: the GPU sat at 98% during video with it. desktop-matrix guards the rule; every other machine keeps blur"
-"render:direct_scanout"       = "Golem turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
+"decoration:blur:enabled"     = "standard.desktop.effects = light (gpu/intel-legacy, the 2013 MacBook Air) turns the compositor blur off: the GPU sat at 98% during video with it. desktop-matrix guards the rule; every other machine keeps blur"
+"render:direct_scanout"       = "Standard turns direct scanout on (fullscreen video skips compositing, verified on the 2013 Air 2026-09-02); the dev box has it off. OPEN: parity.md P2"
 "debug:disable_logs"          = "lab machines keep Hyprland's whole log, with times, in /run (Modular/lab/lab-door.nix, read through home/hyprland.nix): a start's 3.4 s on the 2013 MacBook Air can be read. Goes with the lab door"
-"input:kb_model"              = "the installer's keyboard answer (golem.keyboard.model) — per machine by design"
+"input:kb_model"              = "the installer's keyboard answer (standard.keyboard.model) — per machine by design"
 "general:col.active_border"   = "the border colour is sampled live from the focused window by waverunner — it differs every time you look"
 "general:col.inactive_border" = "the palette's base02 while the shell wears the palette (Controls → Colours, Dynamic colour off), hyprland.lua's otherwise — the owner's choice per machine (2026-10-15)"
 "misc:background_color"       = "the palette's ground (base00), pushed by waverunner — differs with the palette each machine wears (2026-10-15)"
 
 [bind]
 "main|SUPER|L" = "Super+L locks the screen (hyprlock, P11); the dev box has no lock screen yet"
-"main|-|XF86LaunchA"  = "MacBook F3 (Mission Control) → spread/overview: Golem binds the Mac keys for every MacBook; the dev box's Lenovo has none"
+"main|-|XF86LaunchA"  = "MacBook F3 (Mission Control) → spread/overview: Standard binds the Mac keys for every MacBook; the dev box's Lenovo has none"
 "main|-|XF86LaunchB"  = "MacBook F4 (Launchpad) → the apps box; same reason as XF86LaunchA"
 "stage|-|XF86LaunchA" = "MacBook F3 inside STAGE → the overview; same reason as XF86LaunchA"
-"main|-|XF86KbdBrightnessUp"   = "keyboard-light keys: Golem binds them for every laptop with a lit keyboard; the dev box's Lenovo has none (P1: one source would carry them)"
+"main|-|XF86KbdBrightnessUp"   = "keyboard-light keys: Standard binds them for every laptop with a lit keyboard; the dev box's Lenovo has none (P1: one source would carry them)"
 "main|-|XF86KbdBrightnessDown" = "same as XF86KbdBrightnessUp"
 
 [rule]

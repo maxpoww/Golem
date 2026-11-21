@@ -22,7 +22,7 @@
     ./base/console.nix
     ./base/user-dirs.nix
     # The boot bar (Max, 2026-09-23: "show our bar everywhere") — Plymouth
-    # styled as the OPTIONS status bar, so every installed Golem fills its boot
+    # styled as the OPTIONS status bar, so every installed Standard fills its boot
     # screen with the accent bar instead of black. Loader-agnostic (it is the
     # splash, not GRUB), so it belongs in the always-chosen base, not the
     # hardware-chosen boot leaves. Carries the #65 tax (`splash`) — see the file.
@@ -38,7 +38,7 @@
     ./base/loop.nix
     # The maintenance spine (2026-09-26): converge onto real hardware once at
     # first boot, then keep current daily from the trusted upstream seed. Ride
-    # beside selfrebuild/loop — they share golem.flakeDir and the seal.
+    # beside selfrebuild/loop — they share standard.flakeDir and the seal.
     ./base/first-boot.nix
     ./base/quiet-login.nix
     ./base/recover.nix      # golem-recover: the source back to what built a working system
@@ -54,7 +54,7 @@
     # refresh of a fast screen (Max, 2026-11-15: "they want their 240").
     ./power/gpu-floor.nix
     # The lab door: the dev box's SSH keys + the lab Wi-Fi, ONLY on a machine
-    # whose own layer asks for it (hosts/target/lab.nix → golem.lab.door;
+    # whose own layer asks for it (hosts/target/lab.nix → standard.lab.door;
     # every install had it until 2026-11-12) — see the file's header.
     ./lab/lab-door.nix
     # The seal (#56) rides with selfrebuild: every unattended rebuild

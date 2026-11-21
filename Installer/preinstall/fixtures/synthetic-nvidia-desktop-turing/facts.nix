@@ -5,7 +5,7 @@
 # golem-hw-detect capture when one exists.
 { ... }:
 {
-  golem.hardware = {
+  standard.hardware = {
     cpuModel = "AMD Ryzen 7 5800X 8-Core Processor";
     cores = 8;
     threads = 16;

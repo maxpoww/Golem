@@ -13,7 +13,7 @@
 # notification says so — at most once a day, checked after login and every
 # few hours.
 #
-# And when Golem CANNOT update (audit, 2026-10-29): the nightly update failing
+# And when Standard CANNOT update (audit, 2026-10-29): the nightly update failing
 # night after night was visible only in `systemctl --failed`, and with no
 # telemetry nobody else can ever see it. base/autoupdate.nix marks when a run
 # last worked and when one last failed; after 7 days without one that worked,
@@ -38,7 +38,7 @@ let
         touch "$state/$1"
       }
 
-      # Golem cannot update. Counted from the last run that worked, or from
+      # Standard cannot update. Counted from the last run that worked, or from
       # the newest system when no run has worked since this check exists.
       notes=/var/lib/golem-notices
       if [ -f "$notes/update-failed" ]; then

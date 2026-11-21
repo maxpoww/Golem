@@ -7,7 +7,7 @@
 mode="${1:-}"
 SRC="$SEAM_DIR/sources.json"
 PD="https://product-details.mozilla.org/1.0/firefox_versions.json"
-# Seam's languages (Golem's shell languages): Mozilla's language pack for each is pinned in
+# Seam's languages (Standard's shell languages): Mozilla's language pack for each is pinned in
 # sources.json "langpacks" BESIDE the tarball and always moves with it — a pack of another
 # Firefox version is refused, and Seam silently speaks English. Add one here, then
 # `sudo seam-update --force`.
@@ -21,7 +21,7 @@ log(){ echo "seam-update: $*"; }
 # where the owner could go already. (--check, run by anyone, reads as itself.)
 owner=$(stat -c %U "${SEAM_FLAKE:-$SEAM_DIR}")
 asowner(){ if [ "$(id -u)" = 0 ]; then runuser -u "$owner" -- "$@"; else "$@"; fi; }
-# The system rebuild: through Golem's one door where there is one (the
+# The system rebuild: through Standard's one door where there is one (the
 # version's published cache; a switch that the owner's pending rename refuses
 # is staged for the next start instead), else plain nixos-rebuild (the dev box).
 nr(){ if command -v golem-rebuild >/dev/null 2>&1; then GOLEM_REBUILD_LOCK_HELD=1 golem-rebuild "$@"; else nixos-rebuild "$@"; fi; }
@@ -109,7 +109,7 @@ for l in $LANGPACKS; do
 done
 
 log "updating $pinned -> $want"
-# Golem's one rebuild lock (golem-rebuild uses it too): never two system rebuilds at once.
+# Standard's one rebuild lock (golem-rebuild uses it too): never two system rebuilds at once.
 # We hold it ourselves; the rebuild below says so to golem-rebuild (nr).
 exec 9>>/run/golem-rebuild.lock
 flock 9
@@ -160,7 +160,7 @@ if [ -n "${SEAM_FLAKE:-}" ]; then
     }
   else
     # (SEAM_REBUILD_FLAKE: where the machine's flake is when the pin lives in a
-    # folder of it — the /etc/nixos layout, the pin in <folder>/golem/seam.)
+    # folder of it — the /etc/nixos layout, the pin in <folder>/standard/seam.)
     rebuild(){ nr switch --flake "${SEAM_REBUILD_FLAKE:-$SEAM_FLAKE}#$SEAM_FLAKE_ATTR"; }
   fi
 else
@@ -230,7 +230,7 @@ for bus in /run/user/*/bus; do
           || { s=$1; printf '%s' "${s//\{0\}/${2:-}}"; }; }
   body=$(say "Security update installed. Restart Seam to apply it — your tabs come back.")
   case "$extra" in
-    paused) body="$body $(say "The Golem tab overview is paused on this version (browsing unaffected).")" ;;
+    paused) body="$body $(say "The tab overview is paused on this version (browsing unaffected).")" ;;
     untested) body="$body $(say "(The post-update self-test could not run; the browser checks itself at startup.)")" ;;
   esac
   runuser -u "$u" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \

@@ -28,7 +28,7 @@ Real internal Intel Centrino WiFi (plus the lab's Realtek USB dongle).
   - **NEW FINDING — the GPU row shows the iGPU, not the decided dGPU.** The
     reveal names the Intel iGPU (`hw_pci` takes the FIRST VGA controller,
     00:02.0) while the census DECISION is about the AMD dGPU (01:00.0). So
-    the screen says "GPU: Intel" while Golem installs the AMD driver — the
+    the screen says "GPU: Intel" while Standard installs the AMD driver — the
     reveal and the decision disagree on a switchable-graphics machine.
     → changes.md #9.
 - **Rehearsal:** `status: findings: 1`, bar **100% "Rehearsed"**, surface
@@ -51,7 +51,7 @@ Max: "23 of 31 drivers is sad… it's a damn amd, it's supposed to do well."
 **Traced to the metric, not AMD.** The count is measured on the minimal
 MEDIUM (`probe_compute`: driver-bound devices via `lspci -k` right now),
 which ships almost no firmware — so the AMD GPU and other firmware-gated
-devices read driverless. But the INSTALLED Golem sets
+devices read driverless. But the INSTALLED Standard sets
 `hardware.enableAllFirmware = true` (configuration.nix:414, carries the
 `radeon` firmware) and `gpu="amd"` adds AMD VA-API (hardware.nix:62), so
 this Radeon is properly driven on the installed system. The label "will be
@@ -106,7 +106,7 @@ Both ship in round 3 (frozen round-2 ISO unchanged).
 ### Round 2, second follow-up — radeon dGPU spam (muxless hybrid) (2026-09-07)
 
 Photo of the HP's physical console (frozen round-2 stick, Spanish UI —
-localization works: "Se borrará", "¿Instalar Golem?") showed repeating
+localization works: "Se borrará", "¿Instalar Standard?") showed repeating
 kernel errors:
 `radeon 0000:01:00.0: No VRAM object for PCIE GART` +
 `[drm:evergreen_resume] *ERROR* evergreen startup failed on resume`.
@@ -126,7 +126,7 @@ screen with an ENGLISH driver-count line. Reproduced it exactly, and the
 diagnosis closed same-day.
 
 - **ISO:** round-2 confirmed by the `firmware = "bios"` census fact and by
-  the unwrapped script (`valid_host Golem` = 1, `S[es:drv_line]` = 1 —
+  the unwrapped script (`valid_host Standard` = 1, `S[es:drv_line]` = 1 —
   **the Spanish translation IS on the stick**). Note: the playbook's
   `grep … "$(command -v golem-setup)"` now greps the WRAPPER (which only
   sets env/PATH and execs); the real script is
@@ -170,7 +170,7 @@ diagnosis closed same-day.
 
 ### Round 2, fourth follow-up — dGPU health test prototyped on this metal (2026-09-07)
 
-Max decided #17: health-gated, not blanket ("we can not have Golem
+Max decided #17: health-gated, not blanket ("we can not have Standard
 leaving all dedicated GPUs out"). Prototype
 (`fixtures/tools/gpu-health-probe`) ran here same day: primary pick by
 `boot_vga` → i915; forced runtime resume of the radeon dGPU →
@@ -254,7 +254,7 @@ the whole chain, on its own metal:
 - **Console quiet:** 0 radeon/GART lines on tty1 (#17a holds at loglevel 3).
 - **Rehearsal:** `status: ok`, all green — BIOS→GRUB, `ok ram: 3718 MB`,
   facts match, **eval 44 s**. Disk untouched (ext4 "root" + swap intact).
-- **Verdict:** PASS — and the completion of #17c ("we can not have Golem
+- **Verdict:** PASS — and the completion of #17c ("we can not have Standard
   leaving all dedicated GPUs out"): census → force-cold verdict → honest
   reveal wording → target power-off, the full health-gated design proven
   on the machine that taught us every piece of it.

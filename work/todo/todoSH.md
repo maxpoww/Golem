@@ -288,7 +288,7 @@
       from /etc/nixos/hyprland.lua (rounding + raise-on-focus kept),
       rebuilt + switched + reloaded; test float resized to 500x400 and
       STAYED through focus/workspace cycles. Backup of old config:
-      /tmp/golem-hypr-backup.lua. Your hands: float something (mainMod+Z)
+      /tmp/standard-hypr-backup.lua. Your hands: float something (mainMod+Z)
       and drag-resize it.
       (Same session: /etc/nixos made max-writable + NOPASSWD nixos-rebuild
       — declarative, in configuration.nix; memory + GOLEM.md updated.)

@@ -5,10 +5,10 @@
 # function of evidence, so deriving it from the committed dump is the same
 # answer the machine would give — re-confirm on its next boot anyway.
 # The target machine's detected hardware — imported by the installer
-# so Golem builds tuned for THIS box. Safe to regenerate.
+# so Standard builds tuned for THIS box. Safe to regenerate.
 { ... }:
 {
-  golem.hardware = {
+  standard.hardware = {
     cpuModel = "Intel(R) Core(TM) i5-5200U CPU @ 2.20GHz";
     cores = 2;
     threads = 4;

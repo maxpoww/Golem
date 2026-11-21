@@ -64,7 +64,7 @@ and *SUSPECTED* are different words on purpose.
 **The two proving grounds are different instruments** and neither
 replaces the other **[PROPOSED]**:
 
-- **The golem-vm** is where a slice is *validated* — batched, screenshot,
+- **The standard-vm** is where a slice is *validated* — batched, screenshot,
   repeatable. All 45 catalog slices were proven here.
 - **Real machines** are where the surface is *lived in* — Max's dev box
   daily, the ASUS, the 2013 Air. This is where the findings the VM cannot
@@ -153,5 +153,5 @@ with its hash, update [catalog.md](catalog.md) if it is a slice, take the
 next. A defect or a debt goes to [changes.md](changes.md) with a number —
 not into a commit message where it dies.
 
-Waverunner-side fixes ride the launcher → Golem lock → seed pipeline
+Waverunner-side fixes ride the launcher → Standard lock → seed pipeline
 (#41): a fix is not real on a machine until the seed carries it.

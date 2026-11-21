@@ -27,14 +27,14 @@ pressure the low tier exists for), 4 vcpus, virtio disk/net/gpu.
 cd ~/Golem/Installer
 ./run-vm.sh --headless                          # lab-loop mode, SSH-driven
 ./run-vm.sh --headless --uefi \
-            --disk golem-target.qcow2:40G       # UEFI + a target disk
+            --disk standard-target.qcow2:40G       # UEFI + a target disk
 ssh -p 2222 <lab ssh opts> nixos@127.0.0.1      # key-only, golem-vm-loop key
 echo sendkey ret | socat - unix:/tmp/golem-vm-hmp   # press Enter at the boot menu
 ```
 
 - `--uefi` is REQUIRED to test an installed target's boot (qemu defaults
   to SeaBIOS; systemd-boot has nothing to boot from without OVMF).
-- After a real install: `--no-cd --uefi --disk golem-target.qcow2` boots
+- After a real install: `--no-cd --uefi --disk standard-target.qcow2` boots
   the installed system.
 - Headless + BIOS: the boot menu is invisible (no display for SeaBIOS to
   draw on) — the sendkey line stands in for the keypress.
@@ -107,7 +107,7 @@ echo sendkey ret | socat - unix:/tmp/golem-vm-hmp   # press Enter at the boot me
 **Gate addendum (same day):** the ASUS X550LC's first contact caught a
 crash the VM structurally can't see (#22 — decide.nix reading
 hardware.nvidia.* on the iron-law floor; virtio has no nvidia). Fixed in
-source, proven by direct `lib.golem.decide` evals against three fact
+source, proven by direct `lib.standard.decide` evals against three fact
 shapes (the exact crash facts, the ASUS's round-3 shape, a healthy
 Turing hybrid — which also proved gpu-nvidia.nix's gpu2-keyed
 activation), ISO rebuilt (**`0cn2c7lq…` is the reflash candidate**),
@@ -139,7 +139,7 @@ installed target gets proven here before round 4 touches metal)
 
 - **ISO:** `1xpifas9…-golem-installer.iso` (`result-round6`, 1.5 GB) —
   the FIRST image whose seed carries the first-install fixes: embedded
-  Golem seed lock pins waverunner `0696b72` (#37/#38/#40/#42/#45–#48/
+  Standard seed lock pins waverunner `0696b72` (#37/#38/#40/#42/#45–#48/
   #49–#61 + #39), verified inside the closure, and the built
   `golem-setup` greps positive for the round-6 markers (`hw_wifi`,
   `R5-3`).
@@ -202,7 +202,7 @@ round-6 gate, before any metal wipe.
   3. Target files pulled to the dev box → `hosts/target/` — **staged
      with `git add`, never committed** (a git flake cannot see untracked
      files; the unstaged first build failed with "no attribute
-     golem-target", the #35-class trap doing its thing).
+     standard-target", the #35-class trap doing its thing).
   4. Toplevel built on the dev box (`nixos-system-vmbios-…`), closure
      `nix copy`'d to `ssh://…?remote-store=/mnt` over the 2222 forward.
   5. `golem-install --skip-prepare --system … --yes` → **R5-2 PROVEN
@@ -210,7 +210,7 @@ round-6 gate, before any metal wipe.
      the resume run no longer lies. GRUB installed to
      `/dev/disk/by-id/virtio-golemtarget`, "No error reported",
      `##golem 6/6 done`.
-  6. Reboot `--no-cd`: **SeaBIOS → GRUB → installed Golem on the first
+  6. Reboot `--no-cd`: **SeaBIOS → GRUB → installed Standard on the first
      try.** SSH up inside ~30 s.
 - **First-boot audit (installed vmbios):** hostname right, root
   `/dev/vda3`, `systemctl is-system-running` = **running** (zero failed

@@ -1,7 +1,7 @@
 {
   # SPDX-License-Identifier: GPL-3.0-or-later
   #
-  # Golem OS — a Linux distribution built around OPTIONS.
+  # Standard OS — a Linux distribution built around OPTIONS.
   # Copyright (C) 2026 Max Power
   #
   # This program is free software: you can redistribute it and/or modify
@@ -11,26 +11,26 @@
   #
   # ── ── ──
   #
-  # Golem OS — ONE flake = a complete Golem PC (roadmap S7).
+  # Standard OS — ONE flake = a complete Standard PC (roadmap S7).
   #
   #   nixosConfigurations.golem      Max's machine (Slim Pro 9i, nvidia prime)
-  #   nixosConfigurations.golem-vm   hardware-free test system:
-  #                                  nixos-rebuild build-vm --flake .#golem-vm
-  #   nixosConfigurations.golem-iso  the live medium (S9):
+  #   nixosConfigurations.standard-vm   hardware-free test system:
+  #                                  nixos-rebuild build-vm --flake .#standard-vm
+  #   nixosConfigurations.standard-iso  the live medium (S9):
   #                                  nix build .#iso → result/iso/golem-*.iso
   #
-  # The flake IS the distribution: everything a Golem machine needs — the
+  # The flake IS the distribution: everything a Standard machine needs — the
   # compositor, waverunner (dock/launcher/OPTIONS), options-notify,
   # dictionaries, waveview overview plugin, theming, defaults — comes from
   # here. /etc/nixos remains the live channel-based config until Max cuts
   # over; this tree is its faithful, homedir-assumption-free port.
 
-  description = "Golem OS — one flake, one complete Golem PC";
+  description = "Standard OS — one flake, one complete Standard PC";
 
   inputs = {
     # NixOS's 26.05 channel branch: each of its commits is one Hydra built
     # and tested. The update lane moves the lock to its newest commit once a
-    # week and builds every Golem system before publishing (updates/README.md);
+    # week and builds every Standard system before publishing (updates/README.md);
     # the jump to the next release is `golem-lane release`.
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
@@ -65,13 +65,13 @@
       # directory: golem-seal-copy, golem-seal-approve), the .golem-rev root
       # wrote into that copy from the commit the checkout names. The
       # checkout never tracks one, so a git build never reads it.
-      golemRev = self.rev or self.dirtyRev or
+      standardRev = self.rev or self.dirtyRev or
         (if builtins.pathExists ./.golem-rev
          then nixpkgs.lib.removeSuffix "\n" (builtins.readFile ./.golem-rev)
          else "unknown");
 
       # The waveview plugin must be compiled against the SAME Hyprland the
-      # desktop runs: Golem's patched one (desktop/hyprland-overlay.nix, also
+      # desktop runs: Standard's patched one (desktop/hyprland-overlay.nix, also
       # applied by desktop/hyprland.nix). Stock headers would give it the
       # wrong struct layouts.
       waveview = import "${waveview-src}/default.nix" {
@@ -81,8 +81,8 @@
         };
       };
 
-      # Everything common to every Golem machine. Hardware lives in hosts/.
-      golemModules = [
+      # Everything common to every Standard machine. Hardware lives in hosts/.
+      standardModules = [
         # Every image/system names the source revision it was built from
         # (`nixos-version --configuration-revision`, and os-release
         # VARIANT_ID-adjacent tooling reads it too): a bug report that cannot
@@ -90,13 +90,13 @@
         # tree is labeled as such rather than lying with the last commit.
         {
           system.configurationRevision =
-            golemRev;
+            standardRev;
         }
         ./system/configuration.nix
         # The same patched Hyprland the waveview plugin is compiled against
         # (desktop/hyprland-overlay.nix): plugin and compositor must match.
         { nixpkgs.overlays = [ (import ./system/Modular/desktop/hyprland-overlay.nix) ]; }
-        ./seam   # Seam: Golem's browser (Mozilla build + policies + chrome script + security update lane)
+        ./seam   # Seam: Standard's browser (Mozilla build + policies + chrome script + security update lane)
         home-manager.nixosModules.home-manager
         waverunner.nixosModules.notification-service
         ({ config, ... }: {
@@ -106,9 +106,9 @@
           };
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          # The home layer follows the machine's owner (golem.owner) — one
+          # The home layer follows the machine's owner (standard.owner) — one
           # knob for the installer, not a name baked into the wiring.
-          home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
+          home-manager.users.${config.standard.owner} = import ./system/home/home.nix;
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
         })
       ];
@@ -118,15 +118,15 @@
       # eval matrix (CI), the on-medium decision engine (golem-hw-decide),
       # and the install flow itself — so what CI proves, what the stick
       # reports, and what actually gets installed cannot drift apart.
-      # Exposed as lib.golem.mkTarget below.
+      # Exposed as lib.standard.mkTarget below.
       mkTarget = extra: nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = golemModules ++ [ ./hosts/target ] ++ extra;
+        modules = standardModules ++ [ ./system/legacy-names.nix ./hosts/target ] ++ extra;
       };
 
       # The MODULAR twin of mkTarget (Installing spec): given a facts
       # attrset, compose the base + EXACTLY the leaves the chooser points
-      # at + those facts, into an evaluable golem-minimal. The chooser is
+      # at + those facts, into an evaluable standard-minimal. The chooser is
       # the single brain here too, so "what the effect matrix proves" and
       # "what golem-install drops into modules.nix" cannot drift. Used by
       # checks.minimal-matrix to assert each chosen leaf's EFFECT on
@@ -140,7 +140,7 @@
             home-manager.useUserPackages = true;
           }
           ./system/Modular/composition.nix
-          { golem.hardware = facts; }
+          { standard.hardware = facts; }
         ]
         ++ map (leaf: ./system/Modular + "/${leaf}")
           (import ./system/Modular/choose.nix { inherit facts; }).leaves
@@ -148,13 +148,13 @@
       };
 
       # ONE COMPUTER, FROM ITS OWN FOLDER (/etc/nixos; docs/system/Layout.md).
-      # `machine dir` composes what golem-desktop composes, with the machine's
+      # `machine dir` composes what standard-desktop composes, with the machine's
       # files taken from `dir` instead of hosts/target, its facts and lists
       # read as data, and the chooser run at evaluation. Exported as
-      # lib.golem.machine: a machine's /etc/nixos/flake.nix is one call to it.
+      # lib.standard.machine: a machine's /etc/nixos/flake.nix is one call to it.
       machine = import ./system/machine {
-        inherit nixpkgs home-manager waverunner waveview golemRev;
-        golemSrc = self.outPath;
+        inherit nixpkgs home-manager waverunner waveview standardRev;
+        standardSrc = self.outPath;
       };
 
       # 8e — THE ALL-IN BAKED MATRIX (Max, 2026-09-18, the Omarchy model).
@@ -165,7 +165,7 @@
       # combo isn't a listed fixture still installs offline: all the heavy
       # driver/kernel/firmware paths are present, so its toplevel assembles
       # from baked components.
-      bakedFacts = path: (import path { }).golem.hardware;
+      bakedFacts = path: (import path { }).standard.hardware;
       # (A test medium bakes less: GOLEM_BAKE_ONLY=qemu,thinkpad with --impure
       # keeps only those machines, and the floor. A pure build reads "": all.)
       bakeOnly = bakedLib.filter (n: n != "") (bakedLib.splitString "," (builtins.getEnv "GOLEM_BAKE_ONLY"));
@@ -182,7 +182,7 @@
       # Placeholder filesystems so each toplevel BUILDS (the bake carries the
       # driver/kernel/firmware closures; the real per-machine toplevel — with
       # its own machine.nix + measured hardware-configuration.nix — assembles
-      # from these baked components at install). by-label golem/ESP matches
+      # from these baked components at install). by-label standard/ESP matches
       # what golem-install actually creates. Same shape effect-matrix uses.
       bakedFakeDisk = fw: {
         # UEFI mounts the ESP at /boot; BIOS/GRUB has NO ESP — /boot lives on the
@@ -193,7 +193,7 @@
         # split here matches the synthesized hardware-config in install.nix, which
         # only emits the /boot entry for UEFI.
         fileSystems = {
-          "/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+          "/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
         } // bakedLib.optionalAttrs (fw == "uefi") {
           "/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
         };
@@ -251,7 +251,7 @@
         # boot neither waits for one nor fails. BOTH firmwares carry it,
         # though a BIOS install is never encrypted: one initrd for both, or the
         # medium carries every initrd twice (+0.5 GB, measured).
-        boot.initrd.luks.devices.golem = {
+        boot.initrd.luks.devices.standard = {
           device = "/dev/disk/by-partlabel/crypt";
           crypttabExtraOpts = [ "nofail" ];
         };
@@ -277,15 +277,15 @@
       # not the ISO size. Keep it to the languages actually offered/tested; an
       # unbaked choice falls back to the en_US baked (boots, English) below.
       # THE DESKTOP IS BAKED (Max, 2026-10-01: "tomorrow i will install it
-      # manually and it should work out of the box on the last Golem version").
+      # manually and it should work out of the box on the last Standard version").
       # Before, the ISO baked the stage-0 minimal: an install booted to a text
-      # login and stayed there until someone set golem.flakeAttr and ran
+      # login and stayed there until someone set standard.flakeAttr and ran
       # rebuild-golem — the lab laptops only had desktops because they were
-      # moved onto #golem-desktop by hand. Now gen-1 IS the desktop (Hyprland,
+      # moved onto #standard-desktop by hand. Now gen-1 IS the desktop (Hyprland,
       # the dock + OPTIONS, Seam, the apps, ups…), installed by direct copy,
       # offline, nothing compiled on the machine. first-boot then converges it
-      # onto the machine's measured hardware + answers as golem-desktop (the
-      # desktop leaf sets golem.flakeAttr), and every derivation it needs is
+      # onto the machine's measured hardware + answers as standard-desktop (the
+      # desktop leaf sets standard.flakeAttr), and every derivation it needs is
       # already on the disk from the bake.
       bakeDesktop = true;
       # English only: evaluating every machine × firmware × language as a full
@@ -301,37 +301,37 @@
           key = bakedLib.concatStringsSep ":" (leaves ++ [ locale ]);
           toplevel = (mkMinimal facts ([
             (bakedFakeDisk firmware)
-            { golem.locale.defaultLocale = locale; }
+            { standard.locale.defaultLocale = locale; }
           ]
           # THE /etc/nixos LAYOUT FROM THE FIRST GENERATION (2026-11-19,
           # docs/system/Layout.md): the baked system is what an install
           # boots, so it is a system of the layout the installer lays down —
           # no checkout in a home, the layout's own update, dock installs and
           # first-boot step. What it keeps as "the folder I was built from"
-          # is Golem as the medium carries it: what golem-recover puts back
-          # in /etc/nixos/golem when a machine goes back to this system.
+          # is Standard as the medium carries it: what golem-recover puts back
+          # in /etc/nixos/standard when a machine goes back to this system.
           ++ machine.layoutModules (if bakeDesktop then "desktop" else "minimal")
           ++ [
             ({ pkgs, ... }: {
-              golem.machine = {
+              standard.machine = {
                 source = self.outPath;
                 profile = if bakeDesktop then "desktop" else "minimal";
-                folder = pkgs.linkFarm "golem-baked-folder" [ { name = "golem"; path = self.outPath; } ];
+                folder = pkgs.linkFarm "golem-baked-folder" [ { name = "standard"; path = self.outPath; } ];
               };
             })
           ]
           ++ bakedLib.optionals bakeDesktop [
-            # THE REAL OPTIONS DESKTOP baked into gen-1 — the golem-desktop
+            # THE REAL OPTIONS DESKTOP baked into gen-1 — the standard-desktop
             # wiring (Hyprland + waverunner's bar/dock + options-notify,
             # hyprland.lua, Beam), so a reflash boots straight into the real
             # desktop, no online climb. waverunner/waveview passed as at the
-            # golem-desktop attr; the owner's app list stays out.
+            # standard-desktop attr; the owner's app list stays out.
             ./system/Modular/desktop/default.nix
             waverunner.nixosModules.notification-service
             ({ config, ... }: {
               services.options-notify.enable = true;
               home-manager.backupFileExtension = "before-golem";
-              home-manager.users.${config.golem.owner} = import ./system/home/home.nix;
+              home-manager.users.${config.standard.owner} = import ./system/home/home.nix;
               home-manager.extraSpecialArgs = { inherit waverunner waveview; };
             })
           ])).config.system.build.toplevel;
@@ -368,12 +368,12 @@
           toplevel = "${e.toplevel}";
         }) bakedRaw));
 
-      # The desktop stage on hosts/vm.nix's machine: golem-desktop-vm, and the
+      # The desktop stage on hosts/vm.nix's machine: standard-desktop-vm, and the
       # update lane's boot test (updates/boot-test.nix), which boots it.
       desktopVmModules = [
         {
           system.configurationRevision =
-            golemRev;
+            standardRev;
         }
         home-manager.nixosModules.home-manager
         {
@@ -386,7 +386,7 @@
         ({ config, ... }: {
           services.options-notify.enable = true;
           home-manager.backupFileExtension = "before-golem";
-          home-manager.users.${config.golem.owner} = {
+          home-manager.users.${config.standard.owner} = {
             imports = [ ./system/home/home.nix ];
           };
           home-manager.extraSpecialArgs = { inherit waverunner waveview; };
@@ -407,7 +407,7 @@
         session-test = import ./updates/session-test.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           modules = desktopVmModules;
-          specialArgs = { golemSrc = self; };
+          specialArgs = { standardSrc = self; };
         };
 
         update-gate = import ./updates/gate.nix {
@@ -419,22 +419,22 @@
           ];
         };
 
-        # The Arc-1 deliverable: one command, one bootable Golem.
-        iso = self.nixosConfigurations.golem-iso.config.system.build.isoImage;
+        # The Arc-1 deliverable: one command, one bootable Standard.
+        iso = self.nixosConfigurations.standard-iso.config.system.build.isoImage;
       };
 
       # The machine's folder as the installer writes it (/etc/nixos):
       #   nix flake new -t github:maxpoww/Golem /etc/nixos
       templates.default = {
         path = ./system/machine/template;
-        description = "A Golem machine's own folder (/etc/nixos): flake.nix, configuration.nix, modules/, machine/";
+        description = "A Standard machine's own folder (/etc/nixos): flake.nix, configuration.nix, modules/, machine/";
       };
 
       # Policy the install flow consumes as code, not copies (the one
       # rule, spec §2). Hibernation is locked in, so every install carries
       # disk swap sized by THIS rule — the flow asks the flake:
-      #   nix eval <src>#lib.golem.swapForHibernationMB --apply "f: f $ram_mb"
-      lib.golem = {
+      #   nix eval <src>#lib.standard.swapForHibernationMB --apply "f: f $ram_mb"
+      lib.standard = {
         # A machine from its folder: { nixosConfigurations; system; }.
         inherit machine;
 
@@ -449,21 +449,21 @@
         # The target composition (see the let-binding for why it is shared).
         inherit mkTarget;
 
-        # The decision surface: facts in, "here is exactly what Golem
+        # The decision surface: facts in, "here is exactly what Standard
         # chose" out. The medium's golem-hw-decide calls this with the
         # probe's freshly written golem-hardware.nix, so an audit over SSH
         # and CI's matrix are two questions asked of ONE composition.
         decide = import ./system/hardware/decide.nix {
           lib = nixpkgs.lib;
           inherit mkTarget;
-          inherit (self.lib.golem) swapForHibernationMB;
+          inherit (self.lib.standard) swapForHibernationMB;
         };
 
         # The post-install ASK surface (postinstall/postinstall.md): facts
         # in, the list of questions THIS machine triggers out. golem-install
         # calls this once, at install time, and drops the result into
         # hosts/target/postinstall-questions.json — decide answers what
-        # Golem chose; this answers what Golem deliberately did NOT choose.
+        # Standard chose; this answers what Standard deliberately did NOT choose.
         postinstallQuestions = import ./system/hardware/postinstall.nix {
           lib = nixpkgs.lib;
           inherit mkTarget;
@@ -473,8 +473,8 @@
         # in, every setting an installed machine needs out — and the same
         # table CI verifies against kbd + xkeyboard-config, so the surface
         # cannot carry a name the packages do not know:
-        #   nix eval .#lib.golem.keyboards.derive --apply 'f: f "colemak"'
-        #   nix eval --raw .#lib.golem.keyboards.table
+        #   nix eval .#lib.standard.keyboards.derive --apply 'f: f "colemak"'
+        #   nix eval --raw .#lib.standard.keyboards.table
         keyboards = import ./system/hardware/keyboards.nix {
           lib = nixpkgs.lib;
         };
@@ -489,14 +489,14 @@
       };
 
       # The eval matrix (GolemInstall.md §8): every fact permutation — the
-      # committed lab fixtures included — evaluates as a full golem-target
+      # committed lab fixtures included — evaluates as a full standard-target
       # system with semantic assertions. `nix flake check`, or directly:
       # `nix build .#checks.x86_64-linux.facts-matrix`.
       checks.${system} = {
         facts-matrix = import ./system/hardware/matrix.nix {
           lib = nixpkgs.lib;
           inherit pkgs mkTarget;
-          inherit (self.lib.golem) keyboards;
+          inherit (self.lib.standard) keyboards;
         };
 
         # The chooser's chosen-list assertions (Installing constitution
@@ -531,7 +531,7 @@
         boot-test = import ./updates/boot-test.nix {
           pkgs = nixpkgs.legacyPackages.${system};
           modules = desktopVmModules;
-          specialArgs = { golemSrc = self; };
+          specialArgs = { standardSrc = self; };
         };
 
         minimal-matrix = import ./system/Modular/effect-matrix.nix {
@@ -562,7 +562,7 @@
         keyboard-table = import ./system/hardware/keyboard-check.nix {
           lib = nixpkgs.lib;
           inherit pkgs;
-          inherit (self.lib.golem) keyboards;
+          inherit (self.lib.standard) keyboards;
         };
 
         # Every language's default zone, against tzdata. Europe/Kiev was
@@ -570,16 +570,16 @@
         timezone-defaults = import ./system/timezone-check.nix {
           lib = nixpkgs.lib;
           inherit pkgs;
-          inherit (self.lib.golem) timezones;
+          inherit (self.lib.standard) timezones;
         };
         # The /etc/nixos layout: the template made into machines from the lab
-        # fixtures' facts, composed by lib.golem.machine and asserted.
+        # fixtures' facts, composed by lib.standard.machine and asserted.
         machine-layout = import ./system/machine/check.nix {
           lib = nixpkgs.lib;
           inherit pkgs machine;
         };
 
-        # The layout's UPDATE, run for real on a made-up upstream: Golem
+        # The layout's UPDATE, run for real on a made-up upstream: Standard
         # checked out as root's own copy, updated with this machine's edits
         # kept and the conflicting ones set aside, a build that fails, a
         # network that fails, the nightly wave, going back. The machine's
@@ -601,13 +601,51 @@
         idle-suspend =
           let
             c = (machine ./system/machine/fixtures/thinkpad).system.config;
-            script = c.home-manager.users.${c.golem.owner}.golem.home.idleSuspend;
+            script = c.home-manager.users.${c.standard.owner}.standard.home.idleSuspend;
           in
           pkgs.runCommand "golem-idle-suspend-test" { nativeBuildInputs = [ pkgs.procps ]; } ''
             ${pkgs.bash}/bin/bash ${./system/home/idle-test.sh} ${script} > log 2>&1 || { cat log; exit 1; }
             tail -n 1 log >&2
             cp log $out
           '';
+
+        # THE OPTIONS BY THEIR OLD NAME (system/legacy-names.nix): a machine's
+        # own files written before 2026-11-20 say `golem.owner`, `golem.lab.door`
+        # … — on the /etc/nixos layout (a configuration.nix moved there by
+        # golem-relocate) and in the older checkout-in-a-home composition. Both
+        # are composed here with such files, with a priority and a value split
+        # over two files, and asserted under `standard` and read back by the
+        # old name (an older home layer asks `osConfig.golem.…`).
+        legacy-names =
+          let
+            lib = nixpkgs.lib;
+            oldStyle = { lib, ... }: {
+              golem.owner = lib.mkForce "rita";
+              golem.keyboard.options = lib.mkForce "caps:escape";
+              golem.hardware.lightSensor = true;
+            };
+            # (The lab door is a leaf of the modular composition only.)
+            oldStyleLab = { golem.lab.door = true; };
+            oldStyle2 = { lib, ... }: { golem.locale.timeZone = lib.mkForce "America/Argentina/Mendoza"; };
+            onLayout = ((machine ./system/machine/fixtures/qemu).system.extendModules {
+              modules = [ oldStyle oldStyle2 oldStyleLab ];
+            }).config;
+            disk = {
+              fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
+              boot.loader.grub.device = "nodev";
+            };
+            onOld = (self.lib.standard.mkTarget [ disk oldStyle oldStyle2 ]).config;
+            said = c: c.standard.owner == "rita" && c.users.users ? rita
+              && c.standard.keyboard.options == "caps:escape"
+              && c.standard.hardware.lightSensor
+              && c.standard.locale.timeZone == "America/Argentina/Mendoza"
+              && c.golem.owner == "rita" && c.golem.hardware.lightSensor;
+          in
+          assert said onLayout || throw "legacy-names: a machine of the /etc/nixos layout lost an option set by its old name";
+          assert onLayout.standard.keyboard.layout == "latam" || throw "legacy-names: an option NOT set by its old name changed";
+          assert (onLayout.standard.lab.door && onLayout.golem.lab.door) || throw "legacy-names: the lab door said by its old name did not open";
+          assert said onOld || throw "legacy-names: the older composition lost an option set by its old name";
+          pkgs.runCommand "standard-legacy-names" { } "echo the old names still say what they said > $out";
 
         # The session keeper's one question (desktop/greeter.nix), against a
         # made-up systemctl: a desktop that ends while the machine goes down
@@ -617,14 +655,14 @@
         session-keeper =
           let c = (machine ./system/machine/fixtures/thinkpad).system.config; in
           pkgs.runCommand "golem-session-keeper-test" { } ''
-            ${pkgs.bash}/bin/bash ${./system/Modular/desktop/keeper-test.sh} ${c.golem.sessionKeeper} > log 2>&1 || { cat log; exit 1; }
+            ${pkgs.bash}/bin/bash ${./system/Modular/desktop/keeper-test.sh} ${c.standard.sessionKeeper} > log 2>&1 || { cat log; exit 1; }
             tail -n 1 log >&2
             cp log $out
           '';
 
         # THE INSTALLER'S PINS ARE THIS FLAKE'S. Installer/preinstall has a
         # lock of its own that holds a COPY of the pins of this one (its
-        # inputs follow `golem`'s), refreshed only by `nix flake update
+        # inputs follow `standard`'s), refreshed only by `nix flake update
         # golem` run there. A commit that moves a pin here and not there
         # cuts media whose baked systems hold the old dock, and the machine
         # they install (which builds from this lock) compiles the new one on
@@ -647,19 +685,19 @@
               in lib.optional ((na.locked.narHash or null) != (nb.locked.narHash or null)) at ++ deeper;
             rootInputs = ours.nodes.${ours.root}.inputs;
             stale = lib.concatMap
-              (n: differ rootInputs.${n} (theirs.nodes.golem.inputs.${n} or (throw "the installer's lock has no ${n}")) n)
+              (n: differ rootInputs.${n} (theirs.nodes.standard.inputs.${n} or (throw "the installer's lock has no ${n}")) n)
               (builtins.attrNames rootInputs);
           in
           assert stale == [ ] || throw ''
             Installer/preinstall/flake.lock is behind flake.lock: ${builtins.concatStringsSep ", " stale}.
-            In Installer/preinstall run `nix flake update golem` and commit the lock with the pin.'';
-          pkgs.runCommand "golem-installer-lock" { } "echo the installer's pins are Golem's > $out";
+            In Installer/preinstall run `nix flake update standard` and commit the lock with the pin.'';
+          pkgs.runCommand "golem-installer-lock" { } "echo the installer's pins are Standard's > $out";
 
         # The Hyprland configuration (system/home/hypr), run with no
         # compositor against a recording `hl` (hypr/test): it loads, no key
         # is bound twice the same way, no rule's name is used twice, an
         # install runs nothing from /home/max, the lock screen is the first
-        # thing started, and the layers come in their order (Golem's, the app
+        # thing started, and the layers come in their order (Standard's, the app
         # modules', the machine's, the owner's, the live settings last). Run
         # on what a machine really loads: the tree the desktop VM's own build
         # makes (one store folder: the modules, its facts), through the
@@ -668,13 +706,13 @@
         # facts name: the overview plugin's store path is one of them.)
         hypr-config =
           let
-            cfg = self.nixosConfigurations.golem-desktop-vm.config;
-            home = cfg.home-manager.users.${cfg.golem.owner};
+            cfg = self.nixosConfigurations.standard-desktop-vm.config;
+            home = cfg.home-manager.users.${cfg.standard.owner};
             entry = pkgs.writeText "hyprland.lua" home.xdg.configFile."hypr/hyprland.lua".text;
           in
-          pkgs.runCommand "golem-hypr-config" { nativeBuildInputs = [ pkgs.lua5_4 ]; } ''
+          pkgs.runCommand "standard-hypr-config" { nativeBuildInputs = [ pkgs.lua5_4 ]; } ''
             cp -r ${./system/home/hypr/test} test && chmod -R u+w test
-            bash test/check.sh ${home.golem.home.hyprTree} ${entry} > log || { cat log; exit 1; }
+            bash test/check.sh ${home.standard.home.hyprTree} ${entry} > log || { cat log; exit 1; }
             cp log $out
           '';
       };
@@ -682,43 +720,43 @@
       nixosConfigurations = {
         golem = nixpkgs.lib.nixosSystem {
           inherit system;
-          modules = golemModules ++ [
+          modules = standardModules ++ [
             ./hosts/golem/hardware-configuration.nix
             ./hosts/golem/nvidia.nix
             ./hosts/golem/locale.nix
-            { golem.flakeDir = "/home/max/Golem"; }
+            { standard.flakeDir = "/home/max/Golem"; }
           ];
         };
 
-        golem-vm = nixpkgs.lib.nixosSystem {
+        standard-vm = nixpkgs.lib.nixosSystem {
           inherit system;
           # The VM seeds its own flake checkout from the image (hosts/vm.nix)
           # so the installed-machine loop — waverunner-apply, rebuild-golem —
-          # works there like it will on an ISO-installed Golem.
-          specialArgs = { golemSrc = self; };
-          modules = golemModules ++ [ ./hosts/vm.nix ];
+          # works there like it will on an ISO-installed Standard.
+          specialArgs = { standardSrc = self; };
+          modules = standardModules ++ [ ./hosts/vm.nix ];
         };
 
         # The desktop stage in the VM (hosts/vm-desktop.nix): the same
-        # composition as golem-desktop on hosts/vm.nix's machine, so a login
+        # composition as standard-desktop on hosts/vm.nix's machine, so a login
         # or session change is tried where a mistake costs nothing.
-        golem-desktop-vm = nixpkgs.lib.nixosSystem {
+        standard-desktop-vm = nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = { golemSrc = self; };
+          specialArgs = { standardSrc = self; };
           modules = desktopVmModules;
         };
 
-        golem-iso = nixpkgs.lib.nixosSystem {
+        standard-iso = nixpkgs.lib.nixosSystem {
           inherit system;
           # Same source-on-the-medium trick as the VM: the ISO carries the
           # flake it was built from, so the installer (todo9 items 2-3) can
-          # instantiate Golem from the stick rather than from the network.
-          specialArgs = { golemSrc = self; };
-          modules = golemModules ++ [ ./hosts/iso.nix ];
+          # instantiate Standard from the stick rather than from the network.
+          specialArgs = { standardSrc = self; };
+          modules = standardModules ++ [ ./hosts/iso.nix ];
         };
       }
       # The installed-Golem target (spec §6): `nixos-install --flake
-      # <seeded-checkout>#golem-target`. The attr appears only once the
+      # <seeded-checkout>#standard-target`. The attr appears only once the
       # install flow has dropped hardware-configuration.nix into
       # hosts/target/ — in the repo as published a target with no disk
       # layout cannot evaluate, and `nix flake check` must stay green.
@@ -735,10 +773,20 @@
             environment.etc."golem/machine".source =
               builtins.path { path = ./hosts/target; name = "golem-machine-layer"; };
           };
-        in {
-          golem-target = nixpkgs.lib.nixosSystem {
+          # (Machines installed before the system was called StandardOS:
+          # their hosts/target says `golem.…`, system/legacy-names.nix; and
+          # the system they run asks for the attribute by its old name.)
+          legacy = ./system/legacy-names.nix;
+          byOldName = t: t // {
+            golem-target = t.standard-target;
+            golem-minimal = t.standard-minimal;
+            golem-desktop = t.standard-desktop;
+            golem-desktop-test = t.standard-desktop-test;
+          };
+        in byOldName {
+          standard-target = nixpkgs.lib.nixosSystem {
             inherit system;
-            modules = golemModules ++ [ ./hosts/target ];
+            modules = standardModules ++ [ legacy ./hosts/target ];
           };
 
           # The MODULAR stage-0 target (Installing spec, 2026-09-10):
@@ -746,12 +794,13 @@
           # dropped target files — and NOTHING from the fat tree. The
           # home layer here is zsh-only (base/zsh.nix wires it); the
           # desktop/program leaves arrive with their stages by rebuild.
-          golem-minimal = nixpkgs.lib.nixosSystem {
+          standard-minimal = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
+              legacy
               {
                 system.configurationRevision =
-                  golemRev;
+                  standardRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -774,16 +823,17 @@
           };
 
           # STAGE 1 — the same machine PLUS the desktop bundle (spec.md's stage
-          # ladder). A stage-0 install climbs by setting golem.flakeAttr =
-          # "golem-desktop" in its machine.nix and running rebuild-golem: same
+          # ladder). A stage-0 install climbs by setting standard.flakeAttr =
+          # "standard-desktop" in its machine.nix and running rebuild-golem: same
           # seed, same hardware leaves, + desktop/*. No reinstall, no new
           # mechanism — the existing self-rebuild loop (base/loop, base/selfrebuild).
-          golem-desktop = nixpkgs.lib.nixosSystem {
+          standard-desktop = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
+              legacy
               {
                 system.configurationRevision =
-                  golemRev;
+                  standardRev;
               }
               machineLayer
               home-manager.nixosModules.home-manager
@@ -794,13 +844,13 @@
               ./system/Modular/composition.nix
               ./system/Modular/desktop/default.nix
               # THE REAL OPTIONS DESKTOP — the home layer, a faithful port of the
-              # fat golemModules wiring (this flake, ~L76-88): waverunner's dock /
+              # fat standardModules wiring (this flake, ~L76-88): waverunner's dock /
               # bar / OPTIONS surfaces + options-notify, hyprland.lua, Beam. The
               # waverunner & waveview flake inputs are in scope only here (not in a
               # leaf), so they are passed to home.nix via extraSpecialArgs.
               # The owner's drag-to-install app list is THIS machine's state:
               # waverunner-apply generates hosts/target/apps.nix from
-              # packages.list (desktop/default.nix sets golem.appsFile), and it
+              # packages.list (desktop/default.nix sets standard.appsFile), and it
               # rides the home layer only once it exists. Never the dev box's
               # system/home/waverunner-packages.nix. Read as data
               # (system/home/app-list.nix), never imported: the file is the
@@ -808,18 +858,18 @@
               waverunner.nixosModules.notification-service
               ({ config, ... }: {
                 # The notification server (org.freedesktop.Notifications). It
-                # was enabled only in the fat golemModules until 2026-09-30
+                # was enabled only in the fat standardModules until 2026-09-30
                 # (parity P8): every install ran without one.
                 services.options-notify.enable = true;
                 # A stray ~/.bashrc or ~/.profile must not fail the whole
                 # switch: home-manager backs it up instead.
                 home-manager.backupFileExtension = "before-golem";
-                golem.appsListPath = nixpkgs.lib.mkDefault
+                standard.appsListPath = nixpkgs.lib.mkDefault
                   (if builtins.pathExists ./hosts/target/apps.nix then ./hosts/target/apps.nix else null);
-                home-manager.users.${config.golem.owner} = {
+                home-manager.users.${config.standard.owner} = {
                   imports = [
                     ./system/home/home.nix
-                    (import ./system/home/app-list.nix config.golem.appsListPath)
+                    (import ./system/home/app-list.nix config.standard.appsListPath)
                   ];
                 };
                 home-manager.extraSpecialArgs = { inherit waverunner waveview; };
@@ -839,15 +889,16 @@
 
           # TEST-ONLY (2026-09-26): the desktop stage PLUS the test-chrome
           # autostart (Hyprland → Chrome with VA-API + CDP). This is the attr
-          # the desktop-test bake pins golem.flakeAttr to, so the installed
+          # the desktop-test bake pins standard.flakeAttr to, so the installed
           # machine's first-boot/rebuild reproduces the driver/A-V test desktop.
           # Not a production stage — delete when the real desktop lands.
-          golem-desktop-test = nixpkgs.lib.nixosSystem {
+          standard-desktop-test = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
+              legacy
               {
                 system.configurationRevision =
-                  golemRev;
+                  standardRev;
               }
               home-manager.nixosModules.home-manager
               {

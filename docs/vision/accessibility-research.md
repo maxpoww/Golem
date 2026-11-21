@@ -3,10 +3,10 @@
 > Investigation for **S11 — Everyone-hardening** (roadmap), the item
 > `features.md:139` flags as *"hard on wgpu/layer-shell — research early"*.
 > It answers one question: **what would it actually take for a blind person,
-> or a person who cannot use a mouse, to use Golem** — and where in the stack
+> or a person who cannot use a mouse, to use Standard** — and where in the stack
 > each answer lives.
 >
-> **Provenance.** Everything marked *(Golem)* is cited to a file:line in this
+> **Provenance.** Everything marked *(Standard)* is cited to a file:line in this
 > repo and is checkable. Everything else — AT-SPI, AccessKit, Orca, the
 > Wayland protocols — is written from knowledge without network access in
 > this session, so treat protocol/crate/option names as **"verify before you
@@ -19,16 +19,16 @@
 
 ## The short version
 
-Golem has **three renderers**, and each has a completely different
+Standard has **three renderers**, and each has a completely different
 accessibility story:
 
 | Layer | What it draws | A11y today | Cost to fix |
 |---|---|---|---|
 | GTK4 / libadwaita apps (`system/golem-apps.nix:22-59`) | Nautilus, Text Editor, Papers, the whole CURATE set | **Free — and switched off.** GTK exports an accessibility tree automatically, but nothing in this tree starts the a11y bus | ~1 line of Nix |
 | The compositor (Hyprland fork) | windows, borders, the overview, the cursor | Nothing built, but it **owns the hard levers**: zoom, output shaders, key filtering, input-method routing | fork work, mostly small |
-| waverunner (wgpu on `wlr-layer-shell`) | dock, topbar, pills, OPTIONS boxes — *the actual Golem UI* | **Nothing, and nothing comes free.** A GPU surface is pixels; there is no tree to read | the real work |
+| waverunner (wgpu on `wlr-layer-shell`) | dock, topbar, pills, OPTIONS boxes — *the actual Standard UI* | **Nothing, and nothing comes free.** A GPU surface is pixels; there is no tree to read | the real work |
 
-The uncomfortable line: **the parts of Golem that are ours are the parts a
+The uncomfortable line: **the parts of Standard that are ours are the parts a
 screen reader cannot see at all.** Every stock app we ship is one Nix option
 away from being accessible; the shell we built is the inaccessible part.
 
@@ -79,7 +79,7 @@ situation: pixels on the GPU, no widgets.
 
 *(Verify before depending on it: crate status, whether the Unix adapter
 still assumes a winit-style toplevel window, and how it wants to be told
-about focus. Golem drives raw Wayland with layer surfaces, not winit, so the
+about focus. Standard drives raw Wayland with layer surfaces, not winit, so the
 adapter's window-association assumptions are the first thing to test.)*
 
 What adopting it costs is not the dependency — it is that **AccessKit needs
@@ -102,10 +102,10 @@ GNOME this is solved by compositor-specific plumbing between Mutter and
 Orca. On a wlroots-derived compositor there is no equivalent, so the usual
 outcome is: the tree is readable, and the screen reader is not steerable.
 
-For Golem this is unusually good news. **We fork the compositor.** A
+For Standard this is unusually good news. **We fork the compositor.** A
 privileged key route from the compositor to a designated AT client is ours
 to implement, and it is the thing that turns "waverunner has an AT-SPI tree"
-into "a blind person can drive Golem". No amount of work in the Body
+into "a blind person can drive Standard". No amount of work in the Body
 substitutes for it. Any plan that budgets for AccessKit and not for this
 will produce a demo, not a usable machine.
 
@@ -116,7 +116,7 @@ to make the *compositor* the accessibility mediator rather than a session
 D-Bus bus: the compositor learns which surface is focused and routes
 accessibility traffic, which fixes both the focus problem and the key-grab
 problem by construction. As of this writing it is a prototype, not a
-standardized `wayland-protocols` extension, and shipping Golem on it would
+standardized `wayland-protocols` extension, and shipping Standard on it would
 be betting the "everyone" claim on someone else's unfinished protocol.
 
 **Recommendation: build on AT-SPI via AccessKit, and keep the tree
@@ -157,7 +157,7 @@ The next item in `todo/todo11.md` is parked on the Body being out of reach,
 but its *design* is decidable from here, and it is the template for every
 other split setting.
 
-Golem's motion and its glass live in **three** places, not one:
+Standard's motion and its glass live in **three** places, not one:
 
 1. **The compositor's animations** — one master switch already exists:
    `hl.animation({ leaf = "global", enabled = true, … })`
@@ -178,7 +178,7 @@ Golem's motion and its glass live in **three** places, not one:
 **The design conclusion: one intent, four consumers.** Whoever implements
 this should not add a "reduce motion" toggle to the shell — they should add
 *a setting* that writes all four. The failure mode otherwise is the one
-Golem is supposed to be immune to: a machine where the dock stops animating
+Standard is supposed to be immune to: a machine where the dock stops animating
 and the windows keep flying.
 
 Order of work: the config.toml key must exist and be read by the engine
@@ -268,15 +268,15 @@ false":
 
 ## 8. The honest answer to "is 'everyone' true?"
 
-`Golem.md:33` says *"Everyone includes languages, includes accessibility"*
-and `Golem.md:69` closes with *"For everyone."* Today that is an intention,
-not a description: a blind person cannot use Golem at all, and a person who
+`StandardOS.md:33` says *"Everyone includes languages, includes accessibility"*
+and `StandardOS.md:69` closes with *"For everyone."* Today that is an intention,
+not a description: a blind person cannot use Standard at all, and a person who
 cannot use a pointer can move windows but cannot reach the shell that is
-Golem's whole point.
+Standard's whole point.
 
 That is fine for an alpha — the roadmap schedules S11 as the section that
 closes last — but it is only fine if the website says so. The claim to
-avoid is the one `Golem.md:52` already refuses by name: a feature that
+avoid is the one `StandardOS.md:52` already refuses by name: a feature that
 exists on a website. **"Built to be for everyone; not there yet — here is
 what is missing"** is true, checkable against this file, and costs nothing
 that "for everyone" buys.

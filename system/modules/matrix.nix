@@ -10,26 +10,26 @@
 let
   fakeDisk = {
     nixpkgs.hostPlatform = "x86_64-linux";
-    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
     fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
   };
   desktop = ../Modular/desktop/default.nix;
-  fixture = name: (import (../../Installer/preinstall/fixtures + "/${name}/facts.nix") { }).golem.hardware;
+  fixture = name: (import (../../Installer/preinstall/fixtures + "/${name}/facts.nix") { }).standard.hardware;
   amd = fixture "thinkpad-e15-gen2";
   nvidia = fixture "lenovo-slim-pro-9-16irp8";
 
   # The dock's own catalog, named outright (these compositions carry no
   # home layer to find it through).
-  catalog = { golem.modules.catalog = "${waverunner}/crates/daemon/assets/modules.json"; };
+  catalog = { standard.modules.catalog = "${waverunner}/crates/daemon/assets/modules.json"; };
   system = facts: extra: mkMinimal facts ([ fakeDisk desktop catalog ] ++ extra);
   conf = facts: extra: (system facts extra).config;
 
   ids = builtins.attrNames (import ./lib.nix { inherit lib; }).categories;
 
   ex = name: ok: { inherit name ok; };
-  groups = c: c.users.users.${c.golem.owner}.extraGroups;
-  names = c: map lib.getName c.home-manager.users.${c.golem.owner}.home.packages;
-  mine = c: lib.filter (w: lib.hasPrefix "golem.modules" w) c.warnings;
+  groups = c: c.users.users.${c.standard.owner}.extraGroups;
+  names = c: map lib.getName c.home-manager.users.${c.standard.owner}.home.packages;
+  mine = c: lib.filter (w: lib.hasPrefix "standard.modules" w) c.warnings;
   failing = c: lib.filter (a: !a.assertion) c.assertions;
   count = needle: text: builtins.length (lib.filter builtins.isList (builtins.split needle text));
   rootGroups = [ "docker" "libvirtd" "lxd" "incus-admin" "disk" "shadow" "root" "kmem" ];
@@ -37,55 +37,55 @@ let
   clean = conf amd [ ];
 
   # Gaming as its switch gives it: the catalog's recommended programs.
-  gaming = conf amd [ { golem.modules.gaming.enable = true; } ];
+  gaming = conf amd [ { standard.modules.gaming.enable = true; } ];
   # …one program more, and one of the recommended refused.
   gamingPicked = conf amd [{
-    golem.modules.gaming = { enable = true; lutris.enable = true; steam.enable = false; };
+    standard.modules.gaming = { enable = true; lutris.enable = true; steam.enable = false; };
   }];
   # Programs one by one, the module itself never switched on.
   byHand = conf amd [{
-    golem.modules.development.docker.enable = true;
-    golem.modules.development.direnv.enable = true;
-    golem.modules.windows-apps.virt-manager.enable = true;
-    golem.modules."3d-printing".prusa-slicer.enable = true;
-    golem.modules.content-creation.obs-studio.enable = true;
-    golem.modules.media.netflix.enable = true;
-    golem.modules.media.spotify-web.enable = true;
+    standard.modules.development.docker.enable = true;
+    standard.modules.development.direnv.enable = true;
+    standard.modules.windows-apps.virt-manager.enable = true;
+    standard.modules."3d-printing".prusa-slicer.enable = true;
+    standard.modules.content-creation.obs-studio.enable = true;
+    standard.modules.media.netflix.enable = true;
+    standard.modules.media.spotify-web.enable = true;
   }];
-  music = conf amd [ { golem.modules.music-production = { enable = true; install = "chosen"; }; } ];
+  music = conf amd [ { standard.modules.music-production = { enable = true; install = "chosen"; }; } ];
 
   # EVERYTHING: every module with every program it has.
-  everything = system amd [ { golem.modules = lib.genAttrs ids (_: { enable = true; install = "all"; }); } ];
+  everything = system amd [ { standard.modules = lib.genAttrs ids (_: { enable = true; install = "all"; }); } ];
   all = everything.config;
 
   # The same program DRAGGED into the grid (the owner's app list), no module
   # touched: the system side must come all the same.
   dragged = conf amd [
     ({ config, pkgs, ... }: {
-      home-manager.users.${config.golem.owner}.home.packages =
+      home-manager.users.${config.standard.owner}.home.packages =
         map lib.lowPrio [ pkgs.steam pkgs.opentabletdriver pkgs.kdePackages.kleopatra pkgs.dolphin-emu pkgs.corefonts ];
     })
   ];
 
   # Local AI on a machine with an NVIDIA card, and on one without.
-  aiNvidiaSys = system nvidia [ { golem.modules.ai.ollama.enable = true; } ];
+  aiNvidiaSys = system nvidia [ { standard.modules.ai.ollama.enable = true; } ];
   aiNvidia = aiNvidiaSys.config;
-  aiAmd = conf amd [ { golem.modules.ai = { ollama.enable = true; open-webui.enable = true; }; } ];
+  aiAmd = conf amd [ { standard.modules.ai = { ollama.enable = true; open-webui.enable = true; }; } ];
 
   # The selection file, with good lines and hostile ones.
-  listed = conf amd [ { golem.modules.listPath = ./test/selection.list; } ];
+  listed = conf amd [ { standard.modules.listPath = ./test/selection.list; } ];
 
   # A small catalog of our own: what the real one may one day hold.
   small = conf amd [
-    { golem.modules.catalog = lib.mkForce ./test/catalog.json; golem.modules.gaming.enable = true; }
+    { standard.modules.catalog = lib.mkForce ./test/catalog.json; standard.modules.gaming.enable = true; }
   ];
-  typo = conf amd [ { golem.modules.gaming.no-such-game.enable = true; } ];
-  noCatalog = conf amd [ { golem.modules.catalog = lib.mkForce null; golem.modules.gaming.enable = true; } ];
+  typo = conf amd [ { standard.modules.gaming.no-such-game.enable = true; } ];
+  noCatalog = conf amd [ { standard.modules.catalog = lib.mkForce null; standard.modules.gaming.enable = true; } ];
 
   checks = [
     # ── nothing chosen, nothing on ─────────────────────────────────────────
     (ex "clean: no module is on, no web program is handed over"
-      (clean.golem.modules.active == [ ] && clean.golem.modules.web == [ ]
+      (clean.standard.modules.active == [ ] && clean.standard.modules.web == [ ]
         && !(clean.environment.etc ? "golem/modules-web.json")))
     (ex "clean: no Steam, GameMode, 32-bit graphics, Docker, libvirtd, Ollama, Sunshine, 1Password, direnv"
       (!clean.programs.steam.enable && !clean.programs.gamemode.enable && !clean.hardware.graphics.enable32Bit
@@ -113,7 +113,7 @@ let
     (ex "Gaming on: Steam's system side, 32-bit graphics, GameMode, the controllers' rules"
       (gaming.programs.steam.enable && gaming.programs.steam.remotePlay.openFirewall
         && gaming.hardware.graphics.enable32Bit && gaming.programs.gamemode.enable
-        && gaming.hardware.steam-hardware.enable && gaming.golem.modules.active == [ "gaming" ]))
+        && gaming.hardware.steam-hardware.enable && gaming.standard.modules.active == [ "gaming" ]))
     (ex "Gaming on: nothing of another module comes with it"
       (!gaming.virtualisation.docker.rootless.enable && !gaming.services.ollama.enable
         && !(gaming.services.pipewire.extraConfig.pipewire ? "92-golem-low-latency")))
@@ -131,7 +131,7 @@ let
       (byHand.programs.direnv.enable && byHand.virtualisation.libvirtd.enable && byHand.programs.virt-manager.enable
         && lib.elem "kvm" (groups byHand) && !(lib.elem "libvirtd" (groups byHand))
         && lib.hasInfix "qemu:///session" (builtins.toJSON
-             byHand.home-manager.users.${byHand.golem.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
+             byHand.home-manager.users.${byHand.standard.owner}.dconf.settings."org/virt-manager/virt-manager/connections".uris)))
     (ex "a slicer chosen: the serial ports' group, and only then"
       (lib.elem "dialout" (groups byHand) && !(lib.elem "dialout" (groups gaming))))
     (ex "OBS chosen: a loopback camera of its own BESIDE the phone's, in ONE line of options"
@@ -140,12 +140,12 @@ let
              byHand.boot.extraModprobeConfig
         && !byHand.programs.obs-studio.enableVirtualCamera))
     (ex "web programs install nothing and are handed to the dock as data (the site and the app of one name apart)"
-      (map (w: w.id) byHand.golem.modules.web == [ "spotify-web" "netflix" ]
-        && lib.all (w: lib.hasPrefix "https://" w.url) byHand.golem.modules.web
+      (map (w: w.id) byHand.standard.modules.web == [ "spotify-web" "netflix" ]
+        && lib.all (w: lib.hasPrefix "https://" w.url) byHand.standard.modules.web
         && !(lib.elem "spotify" (names byHand))
         && lib.hasInfix "netflix" byHand.environment.etc."golem/modules-web.json".text))
     (ex "the modules that are on are the ones a program was chosen in"
-      (lib.sort (a: b: a < b) byHand.golem.modules.active
+      (lib.sort (a: b: a < b) byHand.standard.modules.active
         == [ "3d-printing" "content-creation" "development" "media" "windows-apps" ]))
     (ex "Music Production on, nothing chosen: the low-latency clock, and no program"
       ((music.services.pipewire.extraConfig.pipewire."92-golem-low-latency"."context.properties"."default.clock.quantum" or 0) == 128
@@ -155,7 +155,7 @@ let
     # ── dragged in, no module touched ──────────────────────────────────────
     (ex "a program dragged into the grid gets the same system as one switched on in a module"
       (dragged.programs.steam.enable && dragged.hardware.graphics.enable32Bit && dragged.hardware.steam-hardware.enable
-        && dragged.golem.modules.active == [ ]))
+        && dragged.standard.modules.active == [ ]))
     (ex "dragged: the tablet driver (by the name its package really has), GnuPG's agent with a window to ask in, Dolphin's rules, the fonts"
       (dragged.hardware.opentabletdriver.enable
         && dragged.programs.gnupg.agent.enable && lib.getName dragged.programs.gnupg.agent.pinentryPackage == "pinentry-qt"
@@ -187,14 +187,14 @@ let
         && all.users.groups.libvirtd.members or [ ] == [ ]))
     (ex "every module with every program: what nixpkgs lacks today is said, one warning a program"
       (lib.all (w: lib.hasInfix "skipped" w) (mine all)))
-    (ex "every module is on" (lib.sort (a: b: a < b) all.golem.modules.active == ids))
+    (ex "every module is on" (lib.sort (a: b: a < b) all.standard.modules.active == ids))
 
     # ── the selection file ─────────────────────────────────────────────────
     (ex "the list: a module's line switches it on with its recommended programs; a program's line, that program"
       (lib.all (n: lib.elem n (names listed)) [ "steam" "heroic" "gamemode" "docker" "direnv" "1password" ]
         && listed.programs.steam.enable && listed.virtualisation.docker.rootless.enable
         && listed.programs.direnv.enable && listed.programs._1password-gui.enable
-        && listed.programs._1password-gui.polkitPolicyOwners == [ listed.golem.owner ]))
+        && listed.programs._1password-gui.polkitPolicyOwners == [ listed.standard.owner ]))
     (ex "the list: a line that names nothing is skipped with a warning, each one"
       (lib.any (lib.hasInfix "'gaming.no-such-game' is not a program") (mine listed)
         && lib.any (lib.hasInfix "'not-a-module' is not a module") (mine listed)
@@ -210,7 +210,7 @@ let
     (ex "\"recommended\" never takes a paid placement"
       (!(lib.elem "cowsay" (names small))))
     (ex "a site and an app of one name are two tools (hello, hello-web)"
-      (small.golem.modules.web == [ ] && failing small == [ ]))
+      (small.standard.modules.web == [ ] && failing small == [ ]))
     (ex "a program the catalog does not have is an error that names it"
       (lib.any (a: lib.hasInfix "no-such-game" a.message) (failing typo)))
     (ex "without a catalog a module offers no programs, and its plumbing still answers its switch"

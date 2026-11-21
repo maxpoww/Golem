@@ -3,7 +3,7 @@
 # WHY (dev box, 2026-10-16): the disk reached 99 % with nobody told. The
 # store's gc ran every night (base/store-gc.nix), but the space was elsewhere:
 # the Trash never emptied, Rust build folders of finished work (110 GB),
-# build results under /tmp and ~/.cache still pinning the store. Golem should
+# build results under /tmp and ~/.cache still pinning the store. Standard should
 # need no upkeep, so the home side cleans itself too:
 #
 #   daily      the Trash: what has sat there 30 days goes
@@ -52,7 +52,7 @@ let
             dir=$(dirname "$info")
             if [ -f "$dir/CACHEDIR.TAG" ]; then echo "$dir"; fi
           done || true   # find fails on a folder it may not read
-        # the worktrees Golem's own development keeps under ~/.cache
+        # the worktrees Standard's own development keeps under ~/.cache
         find "$cache" -mindepth 3 -maxdepth 3 -name .rustc_info.json -type f -printf '%h\n' 2>/dev/null || true
         for d in "$HOME/.gradle/caches" "$HOME/.gradle/daemon"; do
           if [ -d "$d" ]; then echo "$d"; fi

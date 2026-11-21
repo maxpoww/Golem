@@ -1,6 +1,6 @@
 # The home layer's per-machine knobs (parity P1, 2026-09-30).
 #
-# Golem's home layer is ONE set of files for every machine: the installed
+# Standard's home layer is ONE set of files for every machine: the installed
 # Golems AND the dev box. Two copies of the desktop (the dev box's
 # /etc/nixos/{home.nix,hyprland.lua} and this directory) drifted for months:
 # click-to-focus, STAGE mode, shadows and motion changed on one and never
@@ -10,7 +10,7 @@
 { lib, ... }:
 
 {
-  options.golem.home = {
+  options.standard.home = {
     devCheckout = lib.mkOption {
       type = lib.types.bool;
       default = false;
@@ -57,10 +57,10 @@
       type = lib.types.lines;
       default = "";
       description = ''
-        This machine's own Lua for Hyprland, loaded after everything Golem
-        declares, so it wins (golem/extra.lua in the tree): a look it keeps, a
+        This machine's own Lua for Hyprland, loaded after everything Standard
+        declares, so it wins (standard/extra.lua in the tree): a look it keeps, a
         panel. Keep it short; anything more than one machine would want
-        belongs in a module of system/home/hypr/golem.
+        belongs in a module of system/home/hypr/standard.
       '';
     };
 
@@ -70,9 +70,9 @@
       example = [ "gaming" ];
       description = ''
         More app modules whose own Lua the Hyprland configuration loads
-        (golem/modules/<name>.lua: the window rules and keys a module
+        (standard/modules/<name>.lua: the window rules and keys a module
         of programs brings with it), beside the ones that are switched on
-        (golem.modules.active, read by hyprland.nix). A name with no file
+        (standard.modules.active, read by hyprland.nix). A name with no file
         is fine.
       '';
     };
@@ -86,7 +86,7 @@
       readOnly = true;
       description = ''
         The text of this machine's generated facts for Hyprland
-        (golem/machine.lua in the tree): what differs from one machine to
+        (standard/machine.lua in the tree): what differs from one machine to
         the next, as a Lua table the modules read.
       '';
     };
@@ -104,9 +104,9 @@
       readOnly = true;
       description = ''
         This build's Hyprland configuration, one folder in the store: the
-        tree's entry (hyprland.lua), Golem's modules (golem/), the facts
-        (golem/machine.lua) and the machine's own tail when set
-        (golem/extra.lua). ~/.config/hypr/hyprland.lua, the one link in the
+        tree's entry (hyprland.lua), Standard's modules (standard/), the facts
+        (standard/machine.lua) and the machine's own tail when set
+        (standard/extra.lua). ~/.config/hypr/hyprland.lua, the one link in the
         home, points Hyprland at it.
       '';
     };

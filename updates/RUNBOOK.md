@@ -77,10 +77,10 @@ golem-update-wave                                                            # i
 Nothing to do when it goes well: the lane makes the jump by itself on the
 first weekly publish 28 days after the release branch appeared (or sooner
 when the current release ends within 14 days; 26.05 ends 2026-12-31), if
-every system builds and boots on it, and notifies "Golem moved to NixOS
+every system builds and boots on it, and notifies "Standard moved to NixOS
 YY.MM". Watch the lab laptops that night.
 
-When it says **"NixOS YY.MM not ready yet"**, Golem stays on the current
+When it says **"NixOS YY.MM not ready yet"**, Standard stays on the current
 release and the lane tries again every week. To fix:
 
 1. `golem-lane release 26.11 --push`: branch `release-26.11` with both
@@ -103,7 +103,7 @@ build and nixpkgs has no fix yet, carry a patch the way
 ## The signing key
 
 `~/.local/share/golem-lane/cache-key.sec` on the build machine (mode 600).
-Its public half is in `client.nix` (`golem.update.cache.publicKeys`) and in
+Its public half is in `client.nix` (`standard.update.cache.publicKeys`) and in
 golem-cache's README.
 
 - **The backup** is the private repo github.com/maxpoww/golem-keys
@@ -119,10 +119,10 @@ golem-cache's README.
 
 ## A new build machine
 
-1. Its NixOS configuration imports `<Golem>/updates/builder.nix` and sets
-   `golem.lane = { enable = true; user = "<maintainer>"; };`.
+1. Its NixOS configuration imports `<Standard>/updates/builder.nix` and sets
+   `standard.lane = { enable = true; user = "<maintainer>"; };`.
 2. Copy the key to `~/.local/share/golem-lane/cache-key.sec` (600).
-3. `gh auth login` as that user (push to Golem and golem-cache).
+3. `gh auth login` as that user (push to Standard and golem-cache).
 4. `golem-lane run --no-publish` once and read `golem-lane status`.
 
 ## First run ever (bootstrap)

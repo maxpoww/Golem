@@ -1,7 +1,7 @@
 # SECURITY — the dock/menubox threat model
 
-> "This one can't be Golem's backdoor." (Max, 2026-09-09.) The dock is
-> where a Golem system's trust concentrates: it captures the clipboard
+> "This one can't be Standard's backdoor." (Max, 2026-09-09.) The dock is
+> where a Standard system's trust concentrates: it captures the clipboard
 > and notifications, runs a Chrome, fetches network content, and drives
 > a ROOT rebuild pipeline. This file is the honest map: what's sound,
 > what was fixed, and the one architectural decision only Max can make.
@@ -47,11 +47,11 @@ order of friction:
    need one explicit `sudo golem-apply` blessing. Keeps the hackable
    home-dir seed, closes the silent-root path. **Recommended.**
 3. **Root-owned seed** (`/etc/golem`), user edits via a sudo-gated tool.
-   Strongest; changes Golem's whole "your system is your home dir"
+   Strongest; changes Standard's whole "your system is your home dir"
    philosophy.
 
 Not implemented — this reshapes the distro contract, so it's Max's
-decision. UPDATE: option 2 IMPLEMENTED + drilled live 2026-09-09 (Golem fa4d1a3, FINDINGS #56); option 3 queued as the installer default (GolemSecurity.md phase 2).
+decision. UPDATE: option 2 IMPLEMENTED + drilled live 2026-09-09 (Standard fa4d1a3, FINDINGS #56); option 3 queued as the installer default (GolemSecurity.md phase 2).
 
 ## Fixed in the first security pass (2026-09-09, #53–#55)
 

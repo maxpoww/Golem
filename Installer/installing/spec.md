@@ -1,4 +1,4 @@
-# Spec — modular Golem and the chooser
+# Spec — modular Standard and the chooser
 
 WHAT the Installing program builds and WHY it is shaped this way. The
 HOW-in-order is [implementation.md](implementation.md); the parent
@@ -11,14 +11,14 @@ install spec remains `~/Golem/docs/installing/GolemInstall.md`; the app-bundle s
 > another for amd, another for intel, another for dual-GPU config,
 > another for battery and energy, another for locale, one for zram,
 > another for swap — and where today one file computes 3–4 zram
-> configurations from RAM, we need ONE MODULE PER MODEL. Golem
+> configurations from RAM, we need ONE MODULE PER MODEL. Standard
 > preinstall finds out the pc and POINTS (1, 2, 3…) to the module that
 > has to be installed.
 
 Formalized:
 
 1. **A module is a leaf.** Concrete values only. No conditionals, no
-   formulas, no reading of `golem.hardware`. Its header comment states
+   formulas, no reading of `standard.hardware`. Its header comment states
    its parameters and who should be pointed at it.
 2. **The chooser is the only brain.** It reads the census facts and the
    user's answers, and emits pointers. Every rule that today lives as
@@ -38,7 +38,7 @@ marked (∅ = choosing none is valid, + = additive, any number):
 base/            — always chosen, stage 0
   network.nix        NetworkManager, the golem-lab profile's product twin
   ssh.nix            sshd key-only (lab key only when --lab-ssh asked)
-  zsh.nix            Golem's zsh, exactly as the dev box has it
+  zsh.nix            Standard's zsh, exactly as the dev box has it
   users.nix          owner from answers, uid 1000, wheel
   console.nix        keymap/font from answers
   nix.nix            flakes, trusted settings, gc policy
@@ -117,7 +117,7 @@ Contracts:
 - **Stage 0 (minimal):** `base/*` + one leaf from boot/cpu/gpu/memory/
   swap/disk/power (+quirks as demanded). Definition of done: boots,
   SSH reachable, `nixos-rebuild` works from its own seed,
-  `is-system-running` clean, zsh is Golem's, census facts re-derivable
+  `is-system-running` clean, zsh is Standard's, census facts re-derivable
   on the installed system.
 - **Stage 1 (desktop):** + `desktop/*`, applied by rebuild. Done =
   waverunner desktop functional at that machine's GPU class, DockMenu
@@ -141,5 +141,5 @@ The fat, fact-keyed system stays as-is and keeps the ASUS alive — it is
 the reference, not the enemy. Minimal is built as the new composition
 beside it. Each stage-1/2 concern moves INTO a leaf as it is added to
 the ladder; nothing flag-days. When the last concern migrates, the old
-`mkIf` gating retires and `golem.lean` dies with it (finding #1 closes
+`mkIf` gating retires and `standard.lean` dies with it (finding #1 closes
 structurally on that day).

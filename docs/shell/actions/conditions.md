@@ -35,7 +35,7 @@ Sequential ids across chunks, no duplicates. Category in parens from the F1 list
 ### A07 — <name>
 - **Type:** moment | habit
 - **Trigger & evidence:** the exact sensed signal(s) + threshold. Habit actions: what is counted and how many times before the first offer. Feasibility tag(s) from the catalog: [live]/[cheap]/[bridge]/[new].
-- **Sentence:** the ONE sentence, in Golem's voice (Constitution II).
+- **Sentence:** the ONE sentence, in Standard's voice (Constitution II).
 - **Verb(s):** the nested pill label(s) and precisely what each executes (command / API where knowable).
 - **Refusal:** what "not now" means for THIS action — when may it re-offer?
 - **Gear:** the palm-sized config contents — (a) domain params, (b) trigger conditions, (c) lifecycle. Max ~5 controls.

@@ -1,4 +1,4 @@
-# Golem's Hyprland: stock 0.55.4 plus twenty-four patches, the same build Max's dev box
+# Standard's Hyprland: stock 0.55.4 plus twenty-four patches, the same build Max's dev box
 # runs (/etc/nixos/configuration.nix). One overlay, used in TWO places that
 # must agree: the system's Hyprland (desktop/hyprland.nix) and the `pkgs`
 # the waveview plugin is compiled against (flake.nix). A plugin built against
@@ -13,13 +13,13 @@
 #
 #   crash-restart-normal  start-hyprland (the watchdog) restarted EVERY unclean
 #                         exit in stock safe mode — Hyprland's config, wallpaper
-#                         and "your session crashed" dialog, not Golem (MacBook,
+#                         and "your session crashed" dialog, not Standard (MacBook,
 #                         2026-10-02). Now: a crash restarts the desktop; two in
 #                         a row, each within a minute of starting, run
 #                         golem-crash-loop (back to the previous version, see
-#                         desktop/crash-recovery.nix) and show Golem's
+#                         desktop/crash-recovery.nix) and show Standard's
 #                         last-resort screen (/etc/golem/last-resort.lua) —
-#                         never the stock safe mode. Golem's own; keep.
+#                         never the stock safe mode. Standard's own; keep.
 #   floating-resize-limits  a floating window's box never goes below its own
 #                         min (or past its max): a scripted resize (the resize
 #                         dispatcher, the OPTIONS pill's pinch) and every placement
@@ -88,7 +88,7 @@
 #                         later: the covered window "blinked" (Max, 2026-10-21).
 #                         With follow_mouse != 1 and a window already focused on
 #                         the workspace arrived at, only the pointer's focus is
-#                         updated. Golem's own; keep.
+#                         updated. Standard's own; keep.
 #   vfr-hold              misc:vfr_hold_ms (default 2000, baked into the
 #                         patch): keeps the frame clock alive after damage on
 #                         VRR outputs, the episodic VRR brightness flicker.
@@ -131,7 +131,7 @@
 #                         the next occupied one.
 #   workspace-swipe-screen  gestures:workspace_swipe_bound (opt-in): a swipe
 #                         stays among the workspaces bound by workspace rules
-#                         to the same screen as the one it began on. Golem
+#                         to the same screen as the one it began on. Standard
 #                         gives every screen its own workspaces (hyprland.lua,
 #                         SCREENS); without this a swipe walked off the end of
 #                         one screen's into the next block, or into another
@@ -172,7 +172,7 @@
 #                         the other screen's coordinates (Max, 2026-11-07:
 #                         "la ventana ... no esta en un WS"). Windows now move
 #                         through the layout, and from the placeholder too.
-#   preferred-top-rate    a screen with no mode of its own ("preferred", Golem's
+#   preferred-top-rate    a screen with no mode of its own ("preferred", Standard's
 #                         default for every screen) runs at the preferred
 #                         SIZE's top refresh rate. Many fast screens flag a
 #                         60 Hz mode as preferred for compatibility: the Slim
@@ -184,15 +184,15 @@
 #                         fallback when the faster one fails its test (a link
 #                         short of bandwidth); never another size. On the
 #                         battery the dock still brings a screen down
-#                         (waverunner's refresh.rs). Golem's own; keep.
+#                         (waverunner's refresh.rs). Standard's own; keep.
 #   monitors-vrr-capable  `hyprctl monitors -j` says whether each screen CAN do
 #                         adaptive sync (`vrrCapable`: the kernel's word, the
 #                         connector's vrr_capable). The Monitors page offers
 #                         Dynamic only there; the EDID alone also claims it
 #                         for screens whose range is not adaptive sync. Only
 #                         `hyprctl systeminfo` said it, and that runs lspci,
-#                         which wakes a sleeping NVIDIA card. Golem's own; keep.
-#   dwindle-split-pointer-screen  with dwindle:use_active_for_splits off (Golem:
+#                         which wakes a sleeping NVIDIA card. Standard's own; keep.
+#   dwindle-split-pointer-screen  with dwindle:use_active_for_splits off (Standard:
 #                         a new tile opens beside the window under the
 #                         pointer, Max 2026-11-17), stock counts the pointer
 #                         only when the new window's workspace is the one the
@@ -208,7 +208,7 @@
 #                         its own split target (one brought back from the
 #                         minimized workspace kept its old box under the
 #                         pointer, and stock fell to the first tile again).
-#                         Golem's own; keep.
+#                         Standard's own; keep.
 #
 # Alphabetical on purpose, like the dev box's list: the same patch list in the
 # same order gives the same Hyprland derivation, so the plugin and the system
@@ -243,7 +243,7 @@ final: prev: {
       ./hyprland-patches/hyprland-workspace-swipe-screen.patch
     ];
     # Hyprland's own pictures — three anime wallpapers (48 MB) and the
-    # "lock screen died" images — are drawn whenever Golem's config is not in
+    # "lock screen died" images — are drawn whenever Standard's config is not in
     # charge. Max (2026-10-03): "get rid of them, i hate them". Deleted, they
     # would show Hyprland's missing-texture pattern instead, so: plain black.
     postInstall = (old.postInstall or "") + ''
@@ -256,8 +256,8 @@ final: prev: {
     '';
   });
 
-  # Golem's terminal: stock foot plus one patch. It rides this overlay
-  # because the overlay is already applied wherever Golem's packages are
+  # Standard's terminal: stock foot plus one patch. It rides this overlay
+  # because the overlay is already applied wherever Standard's packages are
   # made (the system, the dev box's /etc/nixos, the flake) — one place to
   # add it, none to forget.
   #
@@ -284,7 +284,7 @@ final: prev: {
   #                   the text's first line, in the terminal's font, on a
   #                   plate of its colours turned over, beside the pointer
   #                   ("i want to see the text being dragged as i see on any
-  #                   other place i drag from"). Golem's own; keep.
+  #                   other place i drag from"). Standard's own; keep.
   foot = prev.foot.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       ./foot-patches/foot-drag-selection.patch

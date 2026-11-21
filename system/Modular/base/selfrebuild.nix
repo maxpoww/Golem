@@ -4,14 +4,14 @@
 # drift check, and the git ownership grants root's rebuild needs to
 # read the owner's checkout. The seal (#56) rides beside it at the
 # composition level (golem-seal.nix, unchanged). Data-driven on
-# golem.flakeDir/flakeAttr — a machine without a checkout gets neither.
+# standard.flakeDir/flakeAttr — a machine without a checkout gets neither.
 # Lifted verbatim from system/configuration.nix (2026-09-10).
 { config, pkgs, lib, ... }:
 
 {
-  programs.git = lib.mkIf (config.golem.flakeDir != null) {
+  programs.git = lib.mkIf (config.standard.flakeDir != null) {
     enable = true;
-    config.safe.directory = config.golem.flakeDir;
+    config.safe.directory = config.standard.flakeDir;
     # Git's objects reach the disk before a ref points at them. Off (git's
     # default), a power cut during the nightly pull left an EMPTY object
     # file for the new HEAD — "bad object HEAD": no update, no install, no
@@ -22,7 +22,7 @@
 
   environment.systemPackages = [
     pkgs.git
-  ] ++ lib.optional (config.golem.flakeDir != null)
+  ] ++ lib.optional (config.standard.flakeDir != null)
     (pkgs.writeShellScriptBin "rebuild-golem" ''
       set -euo pipefail
       # Built and switched with sudo: that IS the owner's consent. Root copies

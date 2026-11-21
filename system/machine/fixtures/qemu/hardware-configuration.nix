@@ -3,6 +3,6 @@
 { ... }:
 {
   nixpkgs.hostPlatform = "x86_64-linux";
-  fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+  fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
   fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
 }

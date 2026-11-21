@@ -1,6 +1,6 @@
 # golem-parity
 
-Compares a Golem machine's **live** desktop with the reference (the dev box's
+Compares a Standard machine's **live** desktop with the reference (the dev box's
 live session) and prints every difference that isn't explained.
 
 ```sh

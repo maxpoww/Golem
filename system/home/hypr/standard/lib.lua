@@ -1,10 +1,10 @@
--- golem/lib.lua: what the modules share.
+-- standard/lib.lua: what the modules share.
 --
--- 1. THIS MACHINE'S FACTS (`machine`): golem/machine.lua, a table the home
+-- 1. THIS MACHINE'S FACTS (`machine`): standard/machine.lua, a table the home
 --    layer generates for the machine it is built for (system/home/hyprland.nix):
 --    where the dock's command is, which keyboard the installer was told, the
 --    panel's scale, whether there is Bluetooth. It is the ONE generated file;
---    every other module is the same text on every Golem machine and reads
+--    every other module is the same text on every Standard machine and reads
 --    what differs from here. A tree with no machine.lua (a copy run by hand,
 --    a test rig) gets a plain install's answers: programs from PATH, no
 --    plugin, no dock started from here.
@@ -14,9 +14,9 @@
 --    binds/shell.lua, read by Super+Shift+S in binds/windows.lua).
 --
 -- Returned as a table, never as globals: a module that needs something asks
--- for it (`local G = require("golem.lib")`).
+-- for it (`local G = require("standard.lib")`).
 
-local found, facts = pcall(require, "golem.machine")
+local found, facts = pcall(require, "standard.machine")
 if not found or type(facts) ~= "table" then
     facts = {}
 end
@@ -39,7 +39,7 @@ local machine = {
     dock = facts.dock,
     -- the owner's login shell, for $SHELL
     shell = given(facts.shell, os.getenv("SHELL") or "/bin/sh"),
-    -- the installer's keyboard answer (golem.keyboard)
+    -- the installer's keyboard answer (standard.keyboard)
     keyboard = {
         layout  = given(keyboard.layout, "us"),
         variant = given(keyboard.variant, ""),
@@ -51,11 +51,11 @@ local machine = {
     panel_scale = facts.panel_scale,
     -- a Bluetooth adapter is there
     bluetooth = given(facts.bluetooth, true),
-    -- "full", or "light" on a weak GPU (golem.desktop.effects)
+    -- "full", or "light" on a weak GPU (standard.desktop.effects)
     effects = given(facts.effects, "full"),
     -- a lab testbed (Modular/lab/lab-door.nix)
     lab = given(facts.lab, false),
-    -- the app modules whose own Lua is loaded (golem/modules/<name>.lua)
+    -- the app modules whose own Lua is loaded (standard/modules/<name>.lua)
     modules = given(facts.modules, {}),
 }
 

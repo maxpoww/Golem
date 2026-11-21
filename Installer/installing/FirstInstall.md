@@ -1,8 +1,8 @@
-# First Install — the ASUS, and the first dogfood of an installed Golem
+# First Install — the ASUS, and the first dogfood of an installed Standard
 
 > The lab's first REAL wired install (ASUS X550LC, 2026-09-09 — see
 > `../preinstall/testing/asus.md` for the install mechanics) booted a
-> working Golem from its own disk. This file is the other half: what
+> working Standard from its own disk. This file is the other half: what
 > happened when a HUMAN actually **used** that desktop for the first time.
 >
 > Every preinstall round so far tested the *installer*. Nobody had ever
@@ -24,7 +24,7 @@
 
 ASUS X550LC · i5-4200U Haswell (2c/4t) · Intel iGPU (i915) + failing
 GF117M dGPU (held off/on per #33) · 7.5 GB RAM · 1366×768 eDP, **scale
-1.00** · Toshiba 5400rpm HDD. Installed Golem, generation 4, user `max`,
+1.00** · Toshiba 5400rpm HDD. Installed Standard, generation 4, user `max`,
 Hyprland. Reachable at 192.168.1.85 (ath9k, SSH via the lab key).
 
 ---
@@ -42,8 +42,8 @@ gcc + deno + python×2, spotify, inkscape, gimp, obs, vlc, zam+lsp — with
 the caveats the dependency trace found: **llvm stays** (it's mesa's
 backend, not dev tooling), **webkitgtk stays unless Evolution goes**
 (it pulls it). Cutting the rest ≈ **−9 GiB → ~9–10 GiB closure → ~6 GB
-ISO**, essentially the existing `golem.lean` shape. Action: reconcile
-Max's list with `golem.lean` so "lean" and "what Max wants" are one list.
+ISO**, essentially the existing `standard.lean` shape. Action: reconcile
+Max's list with `standard.lean` so "lean" and "what Max wants" are one list.
 → lean-ISO work, own task.
 
 ### 2. Installed brave — "it never landed after an hour" [P1] → waverunner-pending-stale
@@ -193,7 +193,7 @@ verified at first boot (`../preinstall/testing/asus.md`).
 ## 2026-09-09 afternoon — the pivot: the ASUS was running a STALE waverunner
 
 Investigating the visual cluster surfaced the single most important fact of
-the dogfood: **the installed ASUS ran waverunner from Golem's locked rev
+the dogfood: **the installed ASUS ran waverunner from Standard's locked rev
 (`2de760883`), 18 commits + heavy WIP behind Max's `~/launcher` HEAD
 (`4cb0775`)** — and that newer work is squarely on this cluster:
 `feat: the OPTIONS UX rules — Leader/Still Bar/One Material/Sticky`,
@@ -205,7 +205,7 @@ So most of the P1 cluster was reported against a build that predated its
 own fixes. Fixing it blind would have been wasted work.
 
 **Action taken (Max: "rebuild ASUS from current ~/launcher, re-test"):**
-built a fresh `golem-target` toplevel on the dev box with
+built a fresh `standard-target` toplevel on the dev box with
 `--override-input waverunner path:/home/max/launcher` (+ the #38 fix
 below), `nix copy`'d the delta to the ASUS, and activated it in place
 (`nix-env --set` + `switch-to-configuration switch`) — the install's
@@ -289,7 +289,7 @@ seed pins the ORIGINAL waverunner. So a dev-box `--override-input` build
 delivered by `nix copy` is not permanent — the next in-place rebuild
 reverts it (seen repeatedly: install an app → daemon back to `znzgcl`,
 desktop frozen again). To make #37/#38/#40 stick, they must live in the
-SEED: commit the launcher changes and bump Golem's `waverunner` input,
+SEED: commit the launcher changes and bump Standard's `waverunner` input,
 then rebuild the machine from the updated seed. That is a Max call (his
 `~/launcher` WIP). Until then the ASUS is left on the fixed build but will
 revert on its next self-rebuild.
@@ -297,7 +297,7 @@ revert on its next self-rebuild.
 ## 2026-09-09 — the install-freeze fix, made PERMANENT + proven end-to-end
 
 Closed the loop on #40/#41. Committed the waverunner fixes (#37/#38/#40) to
-`maxpoww/launcher` `9ed17b1`, bumped Golem's `waverunner` input to it
+`maxpoww/launcher` `9ed17b1`, bumped Standard's `waverunner` input to it
 (flake.lock), updated the ASUS's own seed lock, and rebuilt it from the
 seed. Then the definitive test — **installed xterm on the ASUS for real:**
 
@@ -340,7 +340,7 @@ fine — matching "the trash renders, the app icons don't." GL-backend only
 by one whenever it is 6 or a multiple of 6, so the GLES heuristic can never
 pick Cube/CubeArray. Deterministic — eliminates the trigger for every app
 count; pad layer is empty, no effect on Vulkan. Committed launcher
-`d8db7ed`, Golem `waverunner` lock bumped, ASUS seed lock updated, and the
+`d8db7ed`, Standard `waverunner` lock bumped, ASUS seed lock updated, and the
 ASUS rebooted clean onto it. **Verified on the clean boot:** dock shows the
 real colourful icons (Snapshot/Android Studio/Bluetooth/foot/Decibels/
 trash), daemon is the fixed build, zero CubeArray errors. Permanent — in
@@ -352,7 +352,7 @@ distro: #38 battery-on-AC, #37 stale-install clear-on-restore, #40 the
 install-freeze deadlock (GL frame throttle), #41 the seed-flake persistence
 gap, #42 the GLES black-icon cubemap. The install-freeze — the worst of
 them — no longer happens, and installs no longer revert the fixes. The
-ASUS is a working installed Golem. What Max's bet predicted holds: finding
+ASUS is a working installed Standard. What Max's bet predicted holds: finding
 these here, once, means the installing rounds start from a dogfooded
 desktop, not a rehearsal that never logged in.
 
@@ -391,10 +391,10 @@ terminates our wait — overlapped installs each block until a run that
 provably contains them lands, the #43b "serialize" without a queue);
 the start-timeout counts idle time, not wall time; and a corpse
 'building' status is nudged past whether the dead run was ours or
-foreign. Golem's waverunner lock bumped, ASUS seed updated, rebuilt from
+foreign. Standard's waverunner lock bumped, ASUS seed updated, rebuilt from
 seed — same permanence pipeline as #41.
 
-**Deployed + verified live (17:16):** prebuilt `golem-target` on the dev
+**Deployed + verified live (17:16):** prebuilt `standard-target` on the dev
 box from the ASUS's own seed + bumped lock, `nix copy`'d, updated the
 seed lock, and let the machine rebuild itself (pure cache hit, ~70 s).
 The deployment staged the exact overlap race by accident — the fixed

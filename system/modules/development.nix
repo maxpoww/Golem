@@ -8,7 +8,7 @@
 #   · direnv is hooked into the shells (without the hook it does nothing);
 #   · Android Studio's emulator needs /dev/kvm.
 # `adb` needs nothing here: systemd gives the session the phone's USB device
-# (its uaccess rules; NixOS removed programs.adb for that reason), and Golem's
+# (its uaccess rules; NixOS removed programs.adb for that reason), and Standard's
 # desktop already has the phone tools (desktop/phone.nix).
 { config, lib, ... }:
 

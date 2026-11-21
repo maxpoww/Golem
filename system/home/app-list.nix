@@ -12,7 +12,7 @@
 #     "android-studio"        (the generator's shape since 2026-10-02)
 #     android-studio          (older lists)
 # every other line is ignored, and each name is looked up in nixpkgs, never
-# evaluated. The generated file keeps its module shape, so an older Golem
+# evaluated. The generated file keeps its module shape, so an older Standard
 # (going back a version) still reads it.
 #
 #   path: the generated file (a path in the flake's source), or null.
@@ -32,7 +32,7 @@ in
 {
   warnings = map (n: "waverunner: '${n}' is not in nixpkgs (renamed or removed?) — skipped") missing;
   # lowPrio: an app the owner adds must never fail the whole batch by shipping
-  # a file Golem already ships; Golem's copy wins the shared paths (mpv,
+  # a file Standard already ships; Standard's copy wins the shared paths (mpv,
   # 2026-09-29).
   home.packages = map lib.lowPrio (builtins.filter (p: p != null) (map find wanted));
 }

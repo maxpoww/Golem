@@ -1,6 +1,6 @@
 -- GAMING: what the Gaming module's programs need from the compositor.
 -- Loaded only on a machine that has the module on (machine.modules holds
--- "gaming": golem.modules.active), after everything Golem declares.
+-- "gaming": standard.modules.active), after everything Standard declares.
 
 -- A game that fills the screen keeps the computer awake. To the compositor a
 -- controller is neither a keyboard nor a pointer: its sticks and buttons do

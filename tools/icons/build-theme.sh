@@ -1,14 +1,14 @@
 #!/bin/sh
-# Writes the Golem icon themes into $1 (default system/home/icons, what
+# Writes the Standard icon themes into $1 (default system/home/icons, what
 # home/look.nix installs): each the scalable drawing plus the 24 and 16 px
 # versions, and its index.theme (index.theme here, named and inherited per
-# tone). Golem's own icons (folders, files, devices) only; everything else —
+# tone). Standard's own icons (folders, files, devices) only; everything else —
 # apps above all — comes from Papirus / Papirus-Dark, which they inherit.
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=${1:-$HERE/../../system/home/icons}
 # Two tones (Max, 2026-10-14): Golem (silver) for the light look, Golem-Dark
-# (graphite) for the dark one; Golem's dark mode switches between them.
+# (graphite) for the dark one; Standard's dark mode switches between them.
 for tone in light dark; do
   if [ $tone = light ]; then name=Golem; inherits=Papirus,hicolor; else name=Golem-Dark; inherits=Papirus-Dark,hicolor; fi
   DEST=$ROOT/$name
@@ -22,6 +22,6 @@ for tone in light dark; do
   GOLEM_ICON_TONE=$tone GOLEM_ICON_OUT="$DEST/scalable" python3 "$HERE/app.py"
   # Seam's compass, in the tone of the theme (the dock swings its needle).
   GOLEM_ICON_TONE=$tone GOLEM_ICON_OUT="$DEST/scalable" python3 "$HERE/seam.py"
-  sed -e "s/^Name=Golem$/Name=$name/" -e "s/^Inherits=.*/Inherits=$inherits/" "$HERE/index.theme" > "$DEST/index.theme"
+  sed -e "s/^Name=Standard$/Name=$name/" -e "s/^Inherits=.*/Inherits=$inherits/" "$HERE/index.theme" > "$DEST/index.theme"
   echo "$name: $(find "$DEST" -name '*.svg' | wc -l) names"
 done

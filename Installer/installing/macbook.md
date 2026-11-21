@@ -3,7 +3,7 @@
 MacBook Air 2013 · i5-4250U Haswell · HD 5000 · **Broadcom BCM4360**
 wifi + BCM2046 BT · **BCM 720p FaceTime HD camera (14e4:1570)** · Apple EFI ·
 ~3858 MB · Apple SSD (held **macOS/APFS** until 2026-09-18 — the old
-"NixOS — guarded" note was wrong; installed Golem, PASS). The lab's boss fight
+"NixOS — guarded" note was wrong; installed Standard, PASS). The lab's boss fight
 (Broadcom + Apple EFI + the FaceTime HD webcam). Preinstall history:
 `~/Golem/docs/installing/preinstall/testing/macbook.md`.
 
@@ -19,7 +19,7 @@ Blessed by Max ("wipe it", informed it was **macOS/APFS**, not the "NixOS"
 this file's old header claimed — corrected below). The 234 G Apple SSD held
 a real macOS install (APFS "Mac"); erased whole.
 
-### The webcam — made functional the Golem way (Max: "IMPORTANT!! …webcam")
+### The webcam — made functional the Standard way (Max: "IMPORTANT!! …webcam")
 The 2013 Air's camera is the Broadcom 720p **FaceTime HD (PCI 14e4:1570)**,
 which needs the out-of-tree `facetimehd` (bcwc_pcie) module + an ISP firmware
 blob nixpkgs extracts from a 2 MB byte-range of Apple's OSXUpd10.11.5.dmg.
@@ -33,7 +33,7 @@ blob nixpkgs extracts from a 2 MB byte-range of Apple's OSXUpd10.11.5.dmg.
   chooser rule, matrix assertion + fixture updated. The option had to be
   declared in **both** option sets — Modular `base/options.nix` AND the fat
   `system/hardware.nix` (the postinstall-questions eval routes through the fat
-  `lib.golem`). See changes.md #96.
+  `lib.standard`). See changes.md #96.
 - **On the installed system:** `hardware.facetimehd.enable` also pulls
   `facetimehd-calibration` → the `1871` error is GONE, full factory
   calibration. `/dev/video0` auto-appears at boot and **captured a frame on
@@ -45,7 +45,7 @@ clean-image like hp/acer). The patched engine (golem-install + hw-detect +
 postinstall-questions, built `--override-input golem path:<clean-tree>`, then
 `nix copy`'d to the medium) drops the dev-tree seed with the facetimehd +
 grub-efi leaves the frozen ISO lacks. `--prepare-only` (wiped `sda`: ESP 512M
-+ swap 6G `d7e03536` + ext4 golem) → build golem-minimal from the seed
++ swap 6G `d7e03536` + ext4 golem) → build standard-minimal from the seed
 (3.00 GiB, 1040 paths) → deliver to `/mnt` → `--skip-prepare` wrote GRUB-EFI
 (x86_64-efi). **The facetimehd work must ride the recut (8e) to reach the image.**
 
@@ -63,7 +63,7 @@ grub-efi leaves the frozen ISO lacks. `--prepare-only` (wiped `sda`: ESP 512M
 | audio | HDA-Intel PCH + HDMI cards present |
 | intel-legacy | `LIBVA_DRIVER_NAME="i965"` (Haswell HD 5000) |
 | thermald | **active** (Haswell is post-RAPL — genuinely runs, unlike #87's pre-RAPL boxes) |
-| GRUB | **theme present** — the #92/#95 Golem menu, on grub-efi, on Apple EFI |
+| GRUB | **theme present** — the #92/#95 Standard menu, on grub-efi, on Apple EFI |
 | self-rebuild (§5) | `rebuild-golem` → evaluate/build/activate clean from the seed (facetimehd + wl predicates resolve), `activated == latest`, /dev/video0 still live |
 | minimal / owner | no desktop; `max` uid 1000 zsh |
 

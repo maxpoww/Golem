@@ -1,4 +1,4 @@
-# boot/grub-patched — THE Golem grub, shared by both bootloader leaves:
+# boot/grub-patched — THE Standard grub, shared by both bootloader leaves:
 # the patched package AND the menu's wording.
 #
 # grub-bios.nix and grub-efi.nix must ship the SAME grub (#92: one look
@@ -23,6 +23,7 @@
 
 let
   distro = config.system.nixos.distroName;
+  short = "Standard";   # how the system is called day to day (base/core.nix)
 in
 {
   # The boot menu asks a password only to be changed (2026-11-12).
@@ -36,7 +37,7 @@ in
   # box that hugs its labels, so they clipped; and "configurations" is
   # not what someone reads in the moment they need one.
   #
-  # Max settled on "Start Golem" / "Previous Versions" (2026-09-15),
+  # Max settled on "Start Standard" / "Previous Versions" (2026-09-15),
   # after weighing snapshots / backups / recover / restore. The words
   # were chosen against two traps:
   #  - "snapshots"/"backups" promise DATA safety a generation does not
@@ -60,7 +61,7 @@ in
     cfg=/boot/grub/grub.cfg
     if [ -f "$cfg" ]; then
       ${pkgs.gnused}/bin/sed -i \
-        -e 's|^menuentry "${distro}"|menuentry "Start ${distro}"|' \
+        -e 's|^menuentry "${distro}"|menuentry "Start ${short}"|' \
         -e 's|^submenu "${distro} - All configurations"|submenu "Previous Versions"|' \
         -e 's|^\( *\)menuentry "${distro} - Configuration \([0-9]\+\) (\([0-9-]\+\) - [^)]*)"|\1menuentry "Gen \2 - \3"|' \
         "$cfg"

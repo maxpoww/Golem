@@ -1,5 +1,5 @@
 #!/bin/sh
-# lab-pull.sh — bring a lab machine's Golem checkout to the branch it follows
+# lab-pull.sh — bring a lab machine's Standard checkout to the branch it follows
 # the way the nightly auto-update does: a clean fast-forward from upstream,
 # then re-seal (golem-bless), then switch. Run AS ROOT on the machine:
 #

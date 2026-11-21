@@ -1,6 +1,6 @@
 [Icon Theme]
-Name=Golem
-Comment=Golem's folders, files and devices; everything else from Papirus
+Name=Standard
+Comment=Standard's folders, files and devices; everything else from Papirus
 Inherits=Papirus-Dark,Papirus,hicolor
 Directories=scalable/apps,16x16/places,16x16/mimetypes,16x16/devices,24x24/places,24x24/mimetypes,24x24/devices,scalable/places,scalable/mimetypes,scalable/devices
 

@@ -11,7 +11,7 @@
 # disk). /dev/kvm is what the session's machines need, and it is not root.
 #
 # WinBoat is in the catalog but does not evaluate in today's nixpkgs: it is
-# skipped with a warning. (It also asks for the `docker` group, which Golem
+# skipped with a warning. (It also asks for the `docker` group, which Standard
 # does not give: it will need its own answer when it builds.)
 { config, lib, ... }:
 

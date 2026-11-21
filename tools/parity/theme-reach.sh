@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# theme-reach: which installed apps the Golem palette reaches, and how.
+# theme-reach: which installed apps the Standard palette reaches, and how.
 # (Max, 2026-10-17: "cover as many apps as possible… there will be more cases".)
 #
 # For every app in the menus (.desktop files on the data path, NoDisplay and
 # Hidden ones left out) it finds the program behind the Exec line — through
 # Nix's wrapper scripts to the real binary — tells what it is built with
 # (GTK 3/4, Qt 5/6, KDE, Electron, Java, Flatpak, a webapp, a terminal app…)
-# and says whether Golem's theme reaches it:
+# and says whether Standard's theme reaches it:
 #   covered   — a route writes its colours (GTK/Qt files, kdeglobals, VS Code,
 #               JetBrains, Inkscape, foot…)
 #   look      — it follows only dark/light (the portal's color-scheme)
@@ -89,22 +89,22 @@ special() {
     seam*|firefox*) echo "covered|Seam's chrome + Dark Reader";;
     code|codium|code-oss|vscodium) echo "covered|VS Code colorCustomizations";;
     studio*|idea*|pycharm*|clion*|goland*|webstorm*|rider*|android-studio*) echo "covered|JetBrains theme plugin (restart)";;
-    inkscape*) echo "covered|fixed GTK theme Golem (restart)";;
+    inkscape*) echo "covered|fixed GTK theme Standard (restart)";;
     foot*) echo "covered|foot.ini + live colour sequences";;
     nvim*) echo "covered|nvim.lua";;
-    soffice*|libreoffice*) echo "covered|Golem's GTK theme (VCL gtk3; the page stays white)";;
-    gimp*) echo "covered|its System theme on Golem's GTK, gimp.css spin scales (restart)";;
+    soffice*|libreoffice*) echo "covered|Standard's GTK theme (VCL gtk3; the page stays white)";;
+    gimp*) echo "covered|its System theme on Standard's GTK, gimp.css spin scales (restart)";;
     blender*) echo "MISSING|Blender userpref theme XML";;
     krita*) echo "covered|Golem colour scheme (fit: kritarc [theme] Theme=Golem)";;
-    shotcut*) echo "covered|its system theme on Golem's Qt palette (fit: Shotcut.conf theme=system)";;
+    shotcut*) echo "covered|its system theme on Standard's Qt palette (fit: Shotcut.conf theme=system)";;
     darktable*) echo "n/a|neutral greys by design (a photo editor judges colour)";;
     thunderbird*) echo "look|its own dark/light from the portal (legible; checked 2026-10-23)";;
     obsidian*) echo "MISSING|Obsidian CSS snippet";;
     discord*|vesktop*|slack*|signal*|element*|teams*) echo "look|Electron: dark/light only (no theme file of its own)";;
-    kitty*|alacritty*|wezterm*|ghostty*) echo "n/a|another terminal: only Golem's own (foot) is coloured";;
+    kitty*|alacritty*|wezterm*|ghostty*) echo "n/a|another terminal: only Standard's own (foot) is coloured";;
     konsole*) echo "covered|KDE colour scheme (Konsole profile: MISSING)";;
     steam*) echo "look|Steam: its own skin";;
-    waverunner*) echo "covered|Golem's own (the dock's colours)";;
+    waverunner*) echo "covered|Standard's own (the dock's colours)";;
     btop*) echo "covered|btop golem.theme";;
     yazi*) echo "covered|yazi theme.toml";;
     lf) echo "covered|in the terminal (foot's colours)";;

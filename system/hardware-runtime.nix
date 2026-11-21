@@ -71,7 +71,7 @@
       # ships the enhanced-h264ify enterprise policy that fixes it, but gated
       # on `intelLegacy`, which INSTALL-time detection sets. On the live ISO
       # nothing sets it (`intelLegacy = false`), so the stick — the first
-      # thing anyone judges Golem by — was the one system that never got the
+      # thing anyone judges Standard by — was the one system that never got the
       # fallback (measured 2026-09-03 on the 2013 Air off ISO #4: i965 live,
       # policy absent, 1080p60 "not great, still a lot behind GNOME").
       #

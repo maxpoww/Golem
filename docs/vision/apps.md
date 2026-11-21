@@ -1,6 +1,6 @@
-# Golem OS — The App Set
+# Standard OS — The App Set
 
-> Every app Golem ships with, and HOW we get each one. Three strategies:
+> Every app Standard ships with, and HOW we get each one. Three strategies:
 > **BUILD** (ours, OPTIONS-native — only where the soul lives),
 > **CURATE** (ship an existing open-source app, themed/configured to fit —
 > Nix makes this one line), **WEBAPP** (our Chrome webapp catalog — already
@@ -19,7 +19,7 @@
 | Software center | ✔ shipped (Install section) |
 | Installer + onboarding tour | roadmap S8/S9 |
 | System monitor / force-quit | as an OPTIONS module (surface when something misbehaves) |
-| Golem (Android companion) | see `android.md` |
+| Standard (Android companion) | see `android.md` |
 
 ## CURATE — ship, theme, done (default: GNOME Circle/core apps — simple,
 ## touch-friendly, libadwaita-consistent; swap individual picks if one fits better)

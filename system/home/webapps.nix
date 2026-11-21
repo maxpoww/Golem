@@ -7,7 +7,7 @@
   # runs in Seam (seam -golem-app <slug> <url>, the WEBAPPS module in
   # seam/golem-chrome.js). Seeded once and then the owner's to edit: the dock
   # owns the file after that. (Held back 2026-09-29..30 while webapps still
-  # launched through Chrome, which Golem does not ship.)
+  # launched through Chrome, which Standard does not ship.)
   home.activation.seedWebappsList = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     if [ ! -e "$HOME/.config/webapps.list" ]; then
       $DRY_RUN_CMD install -Dm644 ${./webapps.list} "$HOME/.config/webapps.list"

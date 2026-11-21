@@ -23,7 +23,7 @@ in
   config = {
     # KDE Connect (the phone link) finds the phone and talks to it on
     # 1714–1764 — opened only by the old profile until 2026-10-13
-    # (system/configuration.nix): an installed Golem with it blocked the
+    # (system/configuration.nix): an installed Standard with it blocked the
     # phone. The ports alone, not programs.kdeconnect: that module installs a
     # second KDE Connect beside the owner's.
     networking.firewall.allowedTCPPortRanges =

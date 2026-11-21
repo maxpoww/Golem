@@ -7,7 +7,7 @@ Known history: apps-order.json shredded incident 2026-09-03 (backup
 kept beside it); last local waverunner-apply failed with an eval error
 (dev box config is a moving target — not a distro signal).
 
-## census 2026-09-09 21:37:49 · Golem · 6.18.49
+## census 2026-09-09 21:37:49 · Standard · 6.18.49
 
 ```
 == totals ==

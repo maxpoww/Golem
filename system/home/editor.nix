@@ -86,7 +86,7 @@
       vim.keymap.set('n', '<leader>e', '<cmd>NvimTreeFocus<CR>', opts)
       vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>', opts)
 
-      -- OPTIONS app-bridge: tell Golem's Brain the file/language/diagnostics of
+      -- OPTIONS app-bridge: tell Standard's Brain the file/language/diagnostics of
       -- the buffer you're in, over the options-engine bridge socket (libuv, no
       -- external dep). Powers editor-aware offers ("Open folder", the problem
       -- count). Best-effort and silent.

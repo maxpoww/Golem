@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Golem's FILE and DATA icons (Max, 2026-10-14: "with this model, make the
+"""Standard's FILE and DATA icons (Max, 2026-10-14: "with this model, make the
 icons for different formats, files, data… all but apps"): the folders' model —
 the dock figures' cast grey, a gloss, a bevel, a ROUND symbol engraved — on a
 sheet with its corner folded (mimetypes/) and on a drive's box (devices/).

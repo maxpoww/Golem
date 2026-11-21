@@ -1,6 +1,6 @@
--- golem/binds/windows.lua: the keys that act on the window in hand: close,
+-- standard/binds/windows.lua: the keys that act on the window in hand: close,
 -- float, pseudo, focus, move, resize, and the drag with Super held.
-local G = require("golem.lib")
+local G = require("standard.lib")
 local mainMod, ctl = G.mainMod, G.ctl
 
 local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
@@ -8,7 +8,7 @@ local closeWindowBind = hl.bind(mainMod .. " + Q", hl.dsp.window.close())
 hl.bind("ALT + F4", hl.dsp.window.close())
 --hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
 hl.bind(mainMod .. " + Z",     hl.dsp.window.float({ action = "toggle" }))
--- Pseudo through the Golem policy (tag + proportional size + frame rule),
+-- Pseudo through the Standard policy (tag + proportional size + frame rule),
 -- the same daemon path as the topbar pill — never the raw toggle.
 hl.bind(mainMod .. " + P", hl.dsp.exec_cmd(ctl .. " pseudo-toggle"))
 

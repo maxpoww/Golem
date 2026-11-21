@@ -1,8 +1,8 @@
 # base/store-check — every path's contents against its hash, weekly, and
 # whatever is damaged fetched again. Moved out of base/nix.nix (2026-10-17)
 # so the dev box, whose nix settings are its own (channels), runs the same
-# check as every installed Golem (parity P20; Max: "make it work as any
-# other Golem machine").
+# check as every installed Standard (parity P20; Max: "make it work as any
+# other Standard machine").
 { config, ... }:
 
 {
@@ -23,7 +23,7 @@
       Type = "oneshot";
       Nice = 19;
       IOSchedulingClass = "idle";
-      ExecStartPre = [ "${config.golem.quietLogin}/bin/golem-quiet-login" ];
+      ExecStartPre = [ "${config.standard.quietLogin}/bin/golem-quiet-login" ];
       TimeoutStartSec = "infinity";
     };
     script = ''

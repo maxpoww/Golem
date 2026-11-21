@@ -1,4 +1,4 @@
-# Alpha gate — Golem 26 "Uprise"
+# Alpha gate — Standard 26 "Uprise"
 
 > What has to be true before a download link exists, and what a first tester
 > will hit: **versioning · known issues · feedback channel · the gate**.
@@ -15,30 +15,30 @@
 
 ### 1.1 What the name means
 
-**Golem 26 "Uprise"** (`docs/vision/Golem.md`).
+**Standard 26 "Uprise"** (`docs/vision/StandardOS.md`).
 
-- **26** — the train: the flake pins nixpkgs `26.05`. Golem 27 is the one
+- **26** — the train: the flake pins nixpkgs `26.05`. Standard 27 is the one
   built on 27.05.
 - **Uprise** — the codename of this train, chosen once.
 
-`system.stateVersion` is **not** a Golem version and is never bumped to
+`system.stateVersion` is **not** a Standard version and is never bumped to
 express one: it is a nixpkgs compatibility pin.
 
 ### 1.2 What the machine says today
 
 | Surface | Today | From |
 |---|---|---|
-| `/etc/os-release` `NAME` | Golem | `system/Modular/base/core.nix:11` |
+| `/etc/os-release` `NAME` | Standard | `system/Modular/base/core.nix:11` |
 | `/etc/os-release` `ID`, version, codename | nixos, the nixpkgs ones | nothing overrides them |
-| Boot menu | "Start Golem", then "Previous Versions" → "Gen N - date" | `system/Modular/boot/grub-patched.nix:58-63` |
+| Boot menu | "Start Standard", then "Previous Versions" → "Gen N - date" | `system/Modular/boot/grub-patched.nix:58-63` |
 | Which build a machine runs | its source revision (`nixos-version --configuration-revision`) | `system.configurationRevision` in `flake.nix` |
 | ISO file / volume | `golem` / `GOLEM_ISO`; the installer `golem-installer` / `GOLEM_INST` | `hosts/iso.nix:105-106`, `Installer/preinstall/iso.nix:166-167` |
 
 The boot loader is GRUB on every installed machine, BIOS or UEFI
 (`system/Modular/choose.nix:46-48`); systemd-boot is retired.
 
-- [x] The machine calls itself Golem (os-release, boot menu).
-- [x] Any booted Golem can name the revision it was built from.
+- [x] The machine calls itself Standard (os-release, boot menu).
+- [x] Any booted Standard can name the revision it was built from.
 - [ ] **One version string**, the same in os-release, the boot menu, the ISO
       name and the download link. There is none: no version attribute
       anywhere in the flake (plan F14.1).
@@ -49,7 +49,7 @@ The boot loader is GRUB on every installed machine, BIOS or UEFI
 
 ### 1.3 Alpha marker
 
-- [ ] **Decide: "Golem 26 Uprise" or "Golem 26 Uprise alpha"?** Recommended:
+- [ ] **Decide: "Standard 26 Uprise" or "Standard 26 Uprise alpha"?** Recommended:
       the word alpha inside the version string, so it survives being shared.
 
 ---
@@ -62,7 +62,7 @@ What a first tester needs to be told, grouped by what it costs them.
 
 - **The name typed in the installer is not the account's name** on `main`:
   the installer asks and records it (`Installer/preinstall/install.nix`,
-  `golem.owner`), but the first system is the baked one, whose owner is
+  `standard.owner`), but the first system is the baked one, whose owner is
   `max` (`system/Modular/base/options.nix:25-27`). Fixed on the branch
   `release-candidate` (`d09f20c`, the account is renamed at the first
   restart), not merged.
@@ -108,7 +108,7 @@ All three are answered by the same week of daily use, not by separate work.
 
 ### 2.4 The compositor
 
-Golem carries its own Hyprland patches: 21 in
+Standard carries its own Hyprland patches: 21 in
 `system/Modular/desktop/hyprland-patches/`, applied by
 `hyprland-overlay.nix`. Three of them close crashes (a gesture null
 dereference, an orphan subsurface, screenshare exit). The two September
@@ -124,7 +124,7 @@ silent `replaceStrings` miss, rollback depth by age, `nix flake check` never
 run: all built or fixed. The installer is a text one that starts by itself
 from the "Install" entry of the medium (language, timezone, keyboard, disk,
 encryption, you: `Installer/preinstall/mockup/install-cli`); the installed
-machine is `golem-desktop`, built on the hardware measured at install
+machine is `standard-desktop`, built on the hardware measured at install
 (`flake.nix`).
 
 ---
@@ -159,11 +159,11 @@ machine is `golem-desktop`, built on the hardware measured at install
 
 Two constraints:
 
-1. **One front door.** Bugs come from three repos (Golem, the shell, the
+1. **One front door.** Bugs come from three repos (Standard, the shell, the
    overview plugin); a tester cannot be asked which one broke.
 2. **Reachable from another machine.** The first report may be "it cannot
    get online", so the channel is printed on the download page, not only
-   inside the system. Golem itself sends nothing (no telemetry).
+   inside the system. Standard itself sends nothing (no telemetry).
 
 - [ ] **Pick it.** Recommended: GitHub Issues as the one door, plus an email
       address on the download page.

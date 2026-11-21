@@ -11,7 +11,7 @@ history: `~/Golem/docs/installing/preinstall/testing/lenovo.md`.
 **What / why (Max):** *"install on the external 2tb here too… not touch
 windows."* The lenovo is the only lab machine that exercises **nvidia primary
 offload** (RTX 4050) and **tier3** (32 GB) — both proven only on source. So we
-banked them on metal without disturbing the dev box: Golem installed to the
+banked them on metal without disturbing the dev box: Standard installed to the
 external 2 TB, the internal Samsung NVMe (dev-box OS) never touched.
 
 ### Method — a controlled MANUAL install FROM the live dev box (a first)
@@ -27,11 +27,11 @@ grab the wrong device or die. So a hand-written, guarded script
   root/ESP by-label (`golem`/`ESP` are unique).
 - Partition (ESP 512M + swap 35 G + ext4 root) → seed the dev tree → drop
   `hosts/target` (golem-hw-detect reads THIS box → RTX 4050; chooser →
-  modules.nix) → build `golem-minimal` locally (nvidia closure already warm) →
+  modules.nix) → build `standard-minimal` locally (nvidia closure already warm) →
   `nixos-install --root /mnt/gx` → **grub-efi to the external ESP with
   `efiInstallAsRemovable` + `canTouchEfiVariables=false` (#94)** — writes ONLY
   `\EFI\BOOT\BOOTX64.EFI` on the external, **zero NVRAM writes**, so the dev
-  box still boots normally and Golem boots via **F12**.
+  box still boots normally and Standard boots via **F12**.
 - Ran as root via `sudo` (Max ran it; sudo needs a password here). The dev
   box lacked `sgdisk` etc. in root's PATH + sudo resets PATH → the script
   pins the installer tools from the pinned nixpkgs (c5c4a43).
@@ -94,7 +94,7 @@ item — the RTX 4050 binding — is closed:**
   `nvidiaPackages.stable`, the suspend fix via `PreserveVideoMemoryAllocations`,
   offload bus ids, LIBVA=iHD on the intel primary, tier3 zram 25 %) were
   observed on metal. The 2026-09-08 ISO fixture recorded the SAME
-  `[10de:28e1]`/`[17aa:3fa0]` as `nouveau`; Golem binds it as `nvidia` — the
+  `[10de:28e1]`/`[17aa:3fa0]` as `nouveau`; Standard binds it as `nvidia` — the
   leaf's job, one before/after pair.
 
 **Verdict: PASS.** The `gpu2/nvidia-offload-turing` leaf is proven on real

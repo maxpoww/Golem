@@ -27,7 +27,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
 
   # kbrequest.target → the owner's banner shows the power pills. Not while the
   # screen is locked: the lock covers the banner, as the compositor's bind

@@ -21,7 +21,7 @@
 >
 > What it is NOT any more is a description of anything that runs.
 
-> The foundation doc for making OPTIONS real. OPTIONS is Golem's core idea: the
+> The foundation doc for making OPTIONS real. OPTIONS is Standard's core idea: the
 > shell (waverunner) senses your context via the Brain (`options-engine`) and
 > surfaces exactly the right actions at the right moment, then gets out of the
 > way. This catalogs the general computer use-cases, the actions users reach for
@@ -207,7 +207,7 @@ activated), free RAM (pressure), reconnect wifi/bluetooth.
 **Offers → actions:**
 - Battery critical → Warning (live today); action: nothing to *do* but plug in.
 - Stale generation → **Reboot** (`systemctl reboot`) / not-activated → **re-run switch**
-  (`rebuild-golem`) **[cheap: spawn, gated to Golem]**.
+  (`rebuild-golem`) **[cheap: spawn, gated to Standard]**.
 - Screen sharing live → Warning (live); action: stop share.
 **Module:** `system-health` (already half-built as providers; add actions).
 **Priority: HIGH** (signals all live; a couple of safe spawns turn warnings into fixes).
@@ -272,7 +272,7 @@ scrubber, a diff view), but the atomic "right action, right moment" is a pill.
 
 ## 4. What's real vs designed vs still-needed (honest status)
 
-Updated 2026-09-02 (pass 2) after building + validating the mechanism in the golem-vm.
+Updated 2026-09-02 (pass 2) after building + validating the mechanism in the standard-vm.
 
 **The mechanism — REAL and proven:** `AffordanceAction { None, Spawn{argv},
 HyprDispatch, OpenUrl }` + `AffordanceKind::Control` (never skill-faded) +
@@ -284,7 +284,7 @@ provider (context matcher → offers-with-actions); adding one is a pure functio
 ranking blends multiple active modules and de-clutters by relevance/cap (unit-tested).
 
 **SEVEN vertical slices proven end-to-end (sensed → pill → action performs), each
-validated live in the golem-vm with a screenshot:**
+validated live in the standard-vm with a screenshot:**
 1. **git.commit** — dirty repo while Coding → ✓ pill → **landed a real commit** (1→2),
    pills reactively cleared when clean. (Needed a collector fix: the git collector now
    walks the focused window's child shells, since foot resets its own cwd to `/`.)
@@ -302,7 +302,7 @@ validated live in the golem-vm with a screenshot:**
    (percent-encoded). And **system.high_cpu** — spun CPU >85% → 📊 pill → **launched
    btop** in foot. (That's the 4 original + seek + search + cpu-monitor.)
 
-**Additional slices (grind pass), each validated in the golem-vm:**
+**Additional slices (grind pass), each validated in the standard-vm:**
 8. **git.pull** — coding in a repo → Pull control → triggering it **fast-forwarded the
    local repo** to an ahead remote (HEAD advanced, pulled file appeared). --ff-only.
 9. **selection.open_path** — a copied absolute path → "Open file" → xdg-open (dispatch
@@ -382,7 +382,7 @@ sensor for calls.
   dynamic OPTION pills (`PillId::Option`, `glyph_for_option`) and dispatches actions
   (`run_affordance_action` / `action_command_line`, shell-quoted); `main.rs`
   `on_options` (signature-guarded redraw); `debug-options` / `options-trigger <id>` IPC.
-- All validated in the golem-vm with screenshots (see the loop report): each of the
+- All validated in the standard-vm with screenshots (see the loop report): each of the
   seven slices in §4 was sensed by the Brain, surfaced as a pill, and its action
   actually performed.
 
@@ -443,7 +443,7 @@ offers across the desktop use-cases.
     reports the newest regular file whose mtime is within 90 s (skipping
     `.part`/`.crdownload`/`.tmp` sidecars and hidden files), and clears it once it ages
     out — the transient "you just grabbed this" moment, not a pin. **CONFIRMED live in the
-    golem-vm:** dropping `holiday-photos.zip` into ~/Downloads surfaced both controls
+    standard-vm:** dropping `holiday-photos.zip` into ~/Downloads surfaced both controls
     (daemon log `options: 2 control(s) [downloads.extract, downloads.open]`, pills visible
     in the topbar).
 29. **system.battery_dim** — on a laptop at critical battery (≤15 %, on power), the warning
@@ -458,7 +458,7 @@ offers across the desktop use-cases.
     pre-filled with the missing program (new `pkgsearch:<name>` daemon action: set query
     → Toggle open → refilter, which also kicks the lazy pkg index). Command parsed by
     first_command_token (skips sudo/VAR=val, rejects paths). Gated to Terminal/Coding.
-    **CONFIRMED live in the golem-vm:** shell exit-127 `cowsay hi` surfaced the pill
+    **CONFIRMED live in the standard-vm:** shell exit-127 `cowsay hi` surfaced the pill
     (`options: … [shell.install_missing, shell.search_error]`); triggering it opened the
     launcher with the nixpkgs search showing cowsay + neo-cowsay/xcowsay/kittysay/…. Live
     validation caught a real bug (Expand is a no-op from Hidden; fixed to Toggle, fdcd88c).
@@ -473,7 +473,7 @@ offers across the desktop use-cases.
     the file's dir) complements editor.run (single-file scripts); "Format file"
     runs the language's in-place formatter (rustfmt/gofmt -w/black/zig fmt). Both
     shell-quote the file path, gated to Coding. The editor cluster is now
-    open-folder + run/build + format. **CONFIRMED live in the golem-vm:** nvim
+    open-folder + run/build + format. **CONFIRMED live in the standard-vm:** nvim
     open on a `main.rs` in a repo surfaced `[git.commit/push/pull/diff,
     editor.build, editor.format, coding.terminal_here]` — the real nvim bridge
     sent language=rust and both offers mapped in (editor.run correctly absent for
@@ -481,7 +481,7 @@ offers across the desktop use-cases.
 36. **git.show_commit** — a bare git commit hash (7–40 hex) on the clipboard while
     focused in a repo → "Show commit" (git show in a terminal pager). The sha + repo
     root are shell-quoted (clipboard text). Gated to Coding. **CONFIRMED live in the
-    golem-vm:** with foot focused in a repo and a SHA `wl-copy`'d, the daemon surfaced
+    standard-vm:** with foot focused in a repo and a SHA `wl-copy`'d, the daemon surfaced
     `[…, git.pull, git.show_commit, coding.terminal_here, selection.search]`.
 
 38. **network.down / network.settings** (catalog-expansion 1/3, from §1.15
@@ -500,11 +500,11 @@ offers across the desktop use-cases.
     reader app installed in the VM to see it live).
 40. **window.record / window.record_stop** (3/3, from §1.10 gaming "record") —
     fullscreen offers "Record screen" (timestamped MP4 → ~/Videos via
-    wf-recorder, added to the Golem home packages next to grim); a new
+    wf-recorder, added to the Standard home packages next to grim); a new
     `is_recording` sensor (one /proc comm scan, like camera-in-use) drives the
     always-on "Stop recording" Control (pkill -INT so the file finalizes),
     which stays reachable after leaving fullscreen. **CONFIRMED live in the
-    golem-vm** (comm-faked recorder): recording →
+    standard-vm** (comm-faked recorder): recording →
     `[window.record_stop, window.fullscreen_dnd, window.screenshot]` (stop
     ranked first, record gone); stopped → record returns, stop clears.
 
@@ -513,7 +513,7 @@ offers across the desktop use-cases.
     selection reads as a git sha) earns "Define word", ranked above the generic
     web search. New daemon tag `define:<word>`: expands the clipboard box, opens
     its offline dictionary panel, seeds the query (the DebugDict sequence).
-    **CONFIRMED live in the golem-vm:** `wl-copy serendipity` surfaced
+    **CONFIRMED live in the standard-vm:** `wl-copy serendipity` surfaced
     `selection.define` above `selection.search`; `options-trigger
     selection.define` opened the dict panel pre-filled "serendipity"
     (screenshot).
@@ -541,7 +541,7 @@ offers across the desktop use-cases.
     prose+path lines are NOT a copy set. Adjacent fix: a SINGLE copied
     `file:///` URI now classifies as a path → "Open file" (it used to fall
     through to "Search the web"). Unit-tested both sides. **CONFIRMED live
-    in the golem-vm (2026-09-03):** two copied paths surfaced the control
+    in the standard-vm (2026-09-03):** two copied paths surfaced the control
     and triggering it launched `xdg-open '/home/max/pics'` (the exact
     common folder; folder pill + tooltip in the screenshot); the single
     file:// URI surfaced selection.open_path and xdg-open took the URI
@@ -556,7 +556,7 @@ offers across the desktop use-cases.
     daemon tag `empty_trash` (the daemon's own tested FreeDesktop trash;
     refilters so an open Recycle Bin view empties too). Tag wired into
     daemon_tag_known + the pass-F cross-crate coverage scenarios.
-    Unit-tested end to end engine-side. **CONFIRMED live in the golem-vm
+    Unit-tested end to end engine-side. **CONFIRMED live in the standard-vm
     (2026-09-03):** fallocate to df 94% surfaced the amber warning; a
     trashed file added the Empty-trash control (screenshot); triggering it
     logged "emptied the trash", left Trash/files empty, and the control
@@ -566,7 +566,7 @@ offers across the desktop use-cases.
     fallback to the disk figure).
 
 **Discoverability:** the icon-only OPTION pills now show a hover **tooltip** with
-the offer's title (a rounded label below the bar) — CONFIRMED in the golem-vm.
+the offer's title (a rounded label below the bar) — CONFIRMED in the standard-vm.
 
 ## 8. Coverage summary (grind mode)
 
@@ -588,7 +588,7 @@ those documented as blocked:
 **Browser bridge (feasibility, 2026-09-02).** A true browser bridge reporting the
 active-tab URL + video-playing was assessed and is BLOCKED under the guardrails:
 - A browser *extension* is the clean path but needs a store upload (nothing may
-  leave the machine) and can't inject into Golem's sandboxed `--app` webapps.
+  leave the machine) and can't inject into Standard's sandboxed `--app` webapps.
 - *CDP* (remote-debugging) would require launching the main browser with
   `--remote-debugging-port`, a local-security exposure (any process could then
   drive the browser); the webapps already expose it but they're single-app so the
@@ -608,6 +608,6 @@ OpenUrl, HyprDispatch, Daemon(tag) (internal: toggle_dnd, find_in_page, reopen_t
 slide_next/prev, fullscreen). Media BOX surface for the full transport. ~310 tests green.
 
 **Memory (2026-09-02):** waverunner idle heap cut 170→97 MB anon (glibc arena cap +
-lazy-loaded pkg index), validated in the golem-vm. See NOTES.md for the full RSS
+lazy-loaded pkg index), validated in the standard-vm. See NOTES.md for the full RSS
 breakdown — the remaining Golem-vs-GNOME gap is session daemons (easyeffects et al.),
 not waverunner core.

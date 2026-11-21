@@ -1,11 +1,11 @@
 # TEST FIXTURE, never a real answers file. What a program running as the
 # owner could leave in system/postinstall-generated.nix (outside the seal):
 # one real answer, lines dressed as answers that are not plain words, and
-# code. The facts and desktop matrices point golem.postinstall.generatedFile
+# code. The facts and desktop matrices point standard.postinstall.generatedFile
 # here and check that the answer arrives and nothing else does (17/18-Nov).
 { lib, ... }:
 {
-  golem.postinstall.answers = {
+  standard.postinstall.answers = {
     "gpu2-failing-action" = "off";
     "gpu2-failing-action\" = \"x\"; environment.etc.golem-planted.text = \"x"; y = "z";
     "planted" = "${builtins.readFile /etc/shadow}";

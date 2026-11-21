@@ -10,7 +10,7 @@
 #   ~/Golem/hosts/target/apps.nix                    /etc/nixos/machine/apps.list   (the same names, one a line)
 #   ~/Golem/hosts/target/lab.nix                     /etc/nixos/modules/lab.nix
 #   ~/Golem/system/postinstall-generated.nix         /etc/nixos/machine/answers.list
-#   (the checkout's commit)                          /etc/nixos/flake.lock          (the same Golem, pinned)
+#   (the checkout's commit)                          /etc/nixos/flake.lock          (the same Standard, pinned)
 #
 # It only WRITES THE FOLDER. It builds nothing and switches nothing: the
 # caller (the update, or a person) then runs `nixos-rebuild boot --flake
@@ -18,10 +18,10 @@
 # The folder is made beside its place and moved in whole; an existing
 # /etc/nixos with a flake.nix is left alone.
 #
-#   golem-relocate --from ~/Golem [--to /etc/nixos] [--golem <Golem source>] [--profile desktop|minimal]
+#   golem-relocate --from ~/Golem [--to /etc/nixos] [--standard <Standard source>] [--profile desktop|minimal]
 #
-# --golem: where the template is read from (the Golem that will run:
-#          /etc/nixos/golem on a system built with this layout, or a checkout).
+# --standard: where the template is read from (the Standard that will run:
+#          /etc/nixos/standard on a system built with this layout, or a checkout).
 # Needs: bash, coreutils, grep, sed, nix-instantiate (to read the facts).
 set -euo pipefail
 
@@ -30,7 +30,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --from) from=$2; shift 2 ;;
     --to) to=$2; shift 2 ;;
-    --golem) golem=$2; shift 2 ;;
+    --standard) golem=$2; shift 2 ;;
     --profile) profile=$2; shift 2 ;;
     *) echo "golem-relocate: unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -41,9 +41,9 @@ die() { echo "golem-relocate: $*" >&2; exit 1; }
 [ -n "$golem" ] || golem=$from
 target="$from/hosts/target"
 template="$golem/system/machine/template"
-[ -f "$template/flake.nix" ] || die "no template in $golem (system/machine/template): not a Golem with the /etc/nixos layout"
+[ -f "$template/flake.nix" ] || die "no template in $golem (system/machine/template): not a Standard with the /etc/nixos layout"
 for f in machine.nix golem-hardware.nix hardware-configuration.nix; do
-  [ -f "$target/$f" ] || die "$target/$f is missing: not an installed Golem's checkout"
+  [ -f "$target/$f" ] || die "$target/$f is missing: not an installed Standard's checkout"
 done
 case "$profile" in desktop|minimal) ;; *) die "--profile is desktop or minimal" ;; esac
 [ ! -e "$to/flake.nix" ] || die "$to/flake.nix exists: this machine already has its folder"
@@ -73,10 +73,10 @@ install -m 644 "$target/hardware-configuration.nix" "$new/hardware-configuration
 
 # ── the facts, as data ──
 # (golem-hardware.nix is the census's own output: a module that only sets
-# golem.hardware. Evaluated alone, with nothing but its own text.)
+# standard.hardware. Evaluated alone, with nothing but its own text.)
 nix-instantiate --eval --strict --json \
   --argstr file "$target/golem-hardware.nix" \
-  --expr '{ file }: (import file { }).golem.hardware' \
+  --expr '{ file }: (import file { }).standard.hardware' \
   > "$new/machine/facts.json" \
   || die "could not read the facts from $target/golem-hardware.nix"
 grep -q '^{' "$new/machine/facts.json" || die "the facts did not come out as an object"
@@ -103,13 +103,13 @@ fi
 # ── the answers given after the install: the same lines, read as data ──
 if [ -f "$from/system/postinstall-generated.nix" ]; then
   {
-    echo "# The answers given to Golem's questions after the install (\"question\" = \"answer\";)."
+    echo "# The answers given to Standard's questions after the install (\"question\" = \"answer\";)."
     grep -E '^[[:space:]]*"[A-Za-z0-9._-]+"[[:space:]]*=[[:space:]]*"[A-Za-z0-9._-]+";[[:space:]]*$' \
       "$from/system/postinstall-generated.nix" || true
   } > "$new/machine/answers.list"
 fi
 
-# ── the questions Golem is deliberately not answering for this machine ──
+# ── the questions Standard is deliberately not answering for this machine ──
 if [ -f "$target/postinstall-questions.json" ]; then
   install -m 644 "$target/postinstall-questions.json" "$new/machine/questions.json"
 fi
@@ -124,4 +124,4 @@ chmod 755 "$new"
 mv "$new" "$to"
 trap - EXIT
 echo "golem-relocate: $to is this machine's folder now."
-echo "golem-relocate: next: Golem beside it ($to/golem: golem-machine-checkout), then nixos-rebuild boot --flake $to#default"
+echo "golem-relocate: next: Standard beside it ($to/standard: golem-machine-checkout), then nixos-rebuild boot --flake $to#default"

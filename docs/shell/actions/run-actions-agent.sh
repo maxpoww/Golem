@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run-actions-agent.sh — overnight headless loop for the Golem ACTIONS research agent.
+# run-actions-agent.sh — overnight headless loop for the Standard ACTIONS research agent.
 #
 # Runs work units via `claude -p` until the deadline (default 3h). It does NOT
 # exit early: when a batch finishes the agent starts the next one (agent.md P9),

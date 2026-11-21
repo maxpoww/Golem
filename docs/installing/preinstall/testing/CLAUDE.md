@@ -17,13 +17,13 @@ channel between the two sessions — pull before driving, push when done.
 - **One frozen ISO per round, across all five laptops.** No ISO change
   lands mid-round. A fix a laptop teaches me goes to
   [changes.md](changes.md), not into a rebuild — the next laptop must meet
-  the *same* Golem.
+  the *same* Standard.
 - **Rehearsal writes nothing.** `GOLEM_REHEARSE=1` is baked into the
   stick's `golem-setup` wrapper. Confirm the target disk is virgin after
   every run. Never hand-run `golem-install` without `--rehearse` on a lab
   machine during a rehearsal round.
 - **Suspect the harness first.** A wrong-looking census is more likely the
-  rig lying than Golem being wrong. Rule out the rig.
+  rig lying than Standard being wrong. Rule out the rig.
 - **Record passes too.** "It worked, here are the numbers" is a finding.
 
 ## Mechanics
@@ -71,7 +71,7 @@ stick lives in the dev box; a laptop may be on an older image):
 ```
 # command -v golem-setup is a thin wrapper (env/PATH + exec) — grep the
 # REAL script it execs, in libexec:
-grep -c 'valid_host Golem' /nix/store/*-golem-setup/libexec/golem-setup-unwrapped
+grep -c 'valid_host Standard' /nix/store/*-golem-setup/libexec/golem-setup-unwrapped
                                                          # 1 = hostname fix present
 grep cores /var/log/golem-audit/golem-hardware.nix       # sysfs cores fix → right count
 grep firmware /var/log/golem-audit/golem-hardware.nix    # fact exists = round-2+ ISO
@@ -90,7 +90,7 @@ $tmux capture-pane -t lab -p | grep -v '^$' | tail -N
 
 Keys: language = ENTER opens list, type to filter, Up/Down, ENTER takes.
 Timezone/keyboard/disk = type-to-filter + ENTER. You = type field + ENTER;
-hostname now shows a dimmed "Golem" ghost — typing replaces it. Confirm =
+hostname now shows a dimmed "Standard" ghost — typing replaces it. Confirm =
 ENTER rehearses, ESC walks back.
 
 **The rehearsal is slow on old metal** (full target eval on 4 GB / spinning

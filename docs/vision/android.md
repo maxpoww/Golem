@@ -1,8 +1,8 @@
-# Golem × Android — the "Golem" companion app
+# Standard × Android — the "Standard" companion app
 
-> The goal, in one line: **a Golem PC + any Android phone must feel like one
-> device — the way Mac + iPhone does.** The Android app is called **Golem**
-> (it IS part of THE Golem: the phone becomes a collector and a surface of
+> The goal, in one line: **a Standard PC + any Android phone must feel like one
+> device — the way Mac + iPhone does.** The Android app is called **Standard**
+> (it IS part of THE Standard: the phone becomes a collector and a surface of
 > the same Brain). This is our answer to Continuity/Handoff, and it's a
 > fight we can win: Google has no desktop, Apple has no openness — the
 > Linux+Android fusion seat is EMPTY.
@@ -12,7 +12,7 @@
 We do NOT invent a protocol. The **KDE Connect protocol** is open, proven,
 GPL, and has a decade-mature **Android app we can fork** (plugins:
 notifications, clipboard, SMS, calls, MPRIS, file transfer, find-my-phone,
-presenter, battery). Fork → rebrand **Golem** → strip to our UX → extend.
+presenter, battery). Fork → rebrand **Standard** → strip to our UX → extend.
 Desktop side: a **`phone` collector in options-engine** speaking the same
 protocol (reference implementations to mine: kdeconnectd headless, Valent
 (C/GObject), mconnect). Phone state flows into `ContextState`; OPTIONS
@@ -44,7 +44,7 @@ plugging the phone into a Mind.**
 - **Continuity camera**: phone as webcam (Android 14+ has native USB webcam
   mode; wifi via scrcpy video pipe) — kills the "Linux webcam is bad" problem
 - **Instant hotspot**: one click on the PC, phone tethers (no touching the phone)
-- **Proximity unlock**: phone near + unlocked → Golem PC unlocks
+- **Proximity unlock**: phone near + unlocked → Standard PC unlocks
 - Handoff v1: open the phone's current page/doc on the PC ("continue here")
 
 ### P4 — Fusion (the ecosystem tier)
@@ -52,12 +52,12 @@ plugging the phone into a Mind.**
 - Shared OPTIONS: the phone as a *surface* too — the Brain pushes the right
   affordance to whichever screen you're looking at
 - Cross-device focus/DND (one Do-Not-Disturb state, both devices)
-- App streaming polish: pin a phone app to the Golem dock, opens mirrored
+- App streaming polish: pin a phone app to the Standard dock, opens mirrored
 
 ## Technical skeleton
 
 - **Android**: fork `kdeconnect-android` (Kotlin, GPL-3). Rebrand, restyle
-  to Golem design language, keep plugin architecture. Distribute: F-Droid
+  to Standard design language, keep plugin architecture. Distribute: F-Droid
   first (free, no gatekeeper), Play Store second ($25 one-time dev account).
 - **Desktop**: `collectors/phone.rs` in options-engine + a small
   `golem-connectd` (or embed) speaking kdeconnect protocol v7/v8 (JSON
@@ -72,7 +72,7 @@ plugging the phone into a Mind.**
 - Google is hostile terrain: SMS/notification-access permissions get
   audited on Play; F-Droid keeps us uncensorable.
 - iPhone is out of scope (Apple locks everything we'd need). Target says it:
-  **Golem PC + Android phone** is the open ecosystem. That's the pitch.
+  **Standard PC + Android phone** is the open ecosystem. That's the pitch.
 - Roadmap placement: own workstream **W-A**, can start after S2 (the spine)
   since the phone collector *requires* the Brain↔Body wiring — one more
   reason the spine comes first. P1 is small enough to be an early win.

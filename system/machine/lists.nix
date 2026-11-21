@@ -1,6 +1,6 @@
 # THE MACHINE'S LISTS, READ AS DATA (docs/system/Layout.md, "one door").
 #
-# /etc/nixos/machine/*.list are written by Golem's tools — the dock's app
+# /etc/nixos/machine/*.list are written by Standard's tools — the dock's app
 # installer, the Modules page — through one root helper. They are the only
 # way a choice made in the session reaches the system, so they are never Nix:
 # a list is read as text, every line must be ONE name, and every name is
@@ -35,7 +35,7 @@ rec {
   # The apps list as a home-manager module: each name looked up in nixpkgs;
   # one nixpkgs does not have (renamed, removed, a typo) is skipped with a
   # warning instead of failing the whole system. lowPrio: an app the owner
-  # adds never fails the batch by shipping a file Golem already ships.
+  # adds never fails the batch by shipping a file Standard already ships.
   appsModule = path: { pkgs, lib, ... }:
     let
       list = read path;
@@ -47,8 +47,8 @@ rec {
     in
     {
       warnings =
-        map (n: "Golem: '${n}' (machine/apps.list) is not a program in nixpkgs (renamed or removed?) — skipped") missing
-        ++ map (l: "Golem: machine/apps.list: not a program name, ignored: ${builtins.toJSON l}") list.refused;
+        map (n: "Standard: '${n}' (machine/apps.list) is not a program in nixpkgs (renamed or removed?) — skipped") missing
+        ++ map (l: "Standard: machine/apps.list: not a program name, ignored: ${builtins.toJSON l}") list.refused;
       home.packages = map lib.lowPrio (builtins.filter (p: p != null) (map pkg list.names));
     };
 }

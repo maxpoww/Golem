@@ -43,7 +43,7 @@ grep -qE '(indexnow|deploy|publish)[a-z-]*\.(sh|py|js)'  <<<"$CMD" && block "dep
 # how you verify; switching is how you break someone's desktop mid-session.
 # build / build-vm / dry-build / dry-activate stay allowed.
 grep -qE 'nixos-rebuild(\s+\S+)*\s+(switch|boot|test)(\s|$)' <<<"$CMD" \
-  && block "nixos-rebuild switch/boot/test activates a generation on Max's RUNNING machine. Use 'nixos-rebuild build-vm --flake .#golem-vm' or 'nix build' to verify instead."
+  && block "nixos-rebuild switch/boot/test activates a generation on Max's RUNNING machine. Use 'nixos-rebuild build-vm --flake .#standard-vm' or 'nix build' to verify instead."
 grep -qE 'systemctl(\s+--?\S+)*\s+(start|restart|stop|kill)\s+.*(waverunner|waveview|display-manager|greetd|hyprland)' <<<"$CMD" \
   && block "restarting the running shell/session would kill Max's desktop mid-run"
 

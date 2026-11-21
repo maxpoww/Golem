@@ -1,14 +1,14 @@
-# Seam — Golem's browser
+# Seam — Standard's browser
 
-Seam is Golem's browser: **Mozilla's official Firefox Linux build**, wrapped with
-Golem's chrome script (`golem-chrome.js`: tab overview, tool row, bar pinning) and
-enterprise policies (uBlock Origin, telemetry off, …) by `/etc/nixos/golem-browser.nix`.
+Seam is Standard's browser: **Mozilla's official Firefox Linux build**, wrapped with
+Standard's chrome script (`golem-chrome.js`: tab overview, tool row, bar pinning) and
+enterprise policies (uBlock Origin, telemetry off, …) by `/etc/nixos/standard-browser.nix`.
 
 This directory keeps Seam on Mozilla's **current** release. A browser can't wait days
 for a distro channel. On 2026-09-25 Mozilla shipped **156.0.1** while nixpkgs, even
 unstable, was still on 156.0.
 
-## Identity (2026-09-27): Seam, independent of Firefox, Golem's default browser
+## Identity (2026-09-27): Seam, independent of Firefox, Standard's default browser
 
 Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side with firefox"). What that means concretely:
 - **Package `golem-seam`** (`browser.nix`): the policied wrapper plus its own launcher, desktop entry and icon. It no longer overrides `pkgs.firefox` — a plain Firefox can be installed beside it (the dock's Install section, `firefox` in packages.list) and is a different program with a different profile.
@@ -22,7 +22,7 @@ Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side
 
 | file | role |
 |---|---|
-| `default.nix` | **the module**: import this directory (Golem flake `golemModules`; dev box `/etc/nixos/configuration.nix`) |
+| `default.nix` | **the module**: import this directory (Standard flake `standardModules`; dev box `/etc/nixos/configuration.nix`) |
 | `browser.nix` | Firefox build (Mozilla's, pinned) + enterprise policies (uBO, ATBC, telemetry off…) + the chrome script |
 | `golem-chrome.js` | **the chrome script**: tab overview, tool row, bar pinning, safety net, blank-tab fixes. **Edit HERE.** |
 | `home.nix` | per-user half (home-manager): `user.js` prefs, `userChrome.css`/`userContent.css`, creates the `golem` profile |
@@ -34,12 +34,12 @@ Beam was renamed **Seam** (Max, 2026-09-27: "totally independent... side by side
 | `webapps-selftest.sh` (+ `.py`) | the WEBAPPS module's own headless test (see Webapps below) |
 
 **Where it's imported:**
-- **Golem flake:** `flake.nix` `golemModules` imports `./seam`, and `system/home/home.nix` imports `../../seam/home.nix`.
+- **Standard flake:** `flake.nix` `standardModules` imports `./seam`, and `system/home/home.nix` imports `../../seam/home.nix`.
 - **Dev box:** `/etc/nixos/configuration.nix` imports `/home/max/Golem/seam`, and `/etc/nixos/home.nix` imports `/home/max/Golem/seam/home.nix`.
-- **One source of truth.** The old `/etc/nixos/golem-browser.nix` and `golem-chrome.js` were retired to `~/seam-retired-from-etc-nixos/`.
+- **One source of truth.** The old `/etc/nixos/standard-browser.nix` and `golem-chrome.js` were retired to `~/seam-retired-from-etc-nixos/`.
 
 **Update lane, per system:**
-- **Golem (flake).** The updater writes the pin into the machine's own checkout (`golem.flakeDir`/seam), `git add`s it (a flake only sees tracked files), then runs `nixos-rebuild switch --flake <flakeDir>#<flakeAttr>`.
+- **Standard (flake).** The updater writes the pin into the machine's own checkout (`standard.flakeDir`/seam), `git add`s it (a flake only sees tracked files), then runs `nixos-rebuild switch --flake <flakeDir>#<flakeAttr>`.
 - **Dev box (channel).** It updates the pin in this directory and runs plain `nixos-rebuild switch`.
 - **Post-update self-test.** It runs as `nobody` on a world-readable copy of the pin and script, because the owner's home isn't readable by `nobody`.
 
@@ -122,13 +122,13 @@ theme and restyle all of the chrome. That's the scroll cost. Seam tint does the 
   restyles **only when the colour actually changes**. ATBC rewrote the whole theme on every event.
 - **Maths:** an exact port of ATBC's defaults, which are the settings Seam used (decoded from its storage 2026-09-25;
   none had been changed): contrast correction for white text, and near-white pages switch to a light bar with black text.
-  Surfaces: frame/toolbar **and the vertical-tab sidebar** at +0 (Golem choice: ATBC used +5 for the sidebar), field/panel +5 %, field border +10, sidebar border / selected tab +15. Toolbar buttons incl. the grid button and tool row use `--toolbarbutton-icon-fill` (black/white per page).
+  Surfaces: frame/toolbar **and the vertical-tab sidebar** at +0 (Standard choice: ATBC used +5 for the sidebar), field/panel +5 %, field border +10, sidebar border / selected tab +15. Toolbar buttons incl. the grid button and tool row use `--toolbarbutton-icon-fill` (black/white per page).
 - **Apply:** Seam sets its own `--gt-*` variables. An agent stylesheet (`:root[golem-tint]`) maps them onto
   Firefox 156's theme variables with `!important`, so nothing can overwrite them.
 - **Cache:** per tab and per site. Tab switches paint the known colour straight away.
 
 **Verification**
-- `node tint-oracle-check.js ./atbc-colour-oracle.js /etc/nixos/golem-chrome.js`: the shipped maths
+- `node tint-oracle-check.js ./atbc-colour-oracle.js /etc/nixos/standard-chrome.js`: the shipped maths
   compared with **ATBC's own colour class** (extracted from the extension) on 4,109 colours. Result: **0 mismatches** (bit-for-bit, dark and light).
 - `./selftest.sh`: real pages (red, near-white, near-black) plus scroll cases (red top → white after scrolling down → red after scrolling back up; a fixed header keeps its colour), headless. Firefox's computed theme variables
   match the expected values, and the tint clears when switched off.
@@ -173,7 +173,7 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
 **Done 2026-09-26: unload idle tabs when memory runs low.** `browser.tabs.unloadOnLowMemory=true`. The Linux watcher already exists but ships off. It unloads the least recently used tab idle for 10+ minutes; never the current tab, one playing sound, a call, picture-in-picture or a private tab. Verified by calling `TabUnloader.unloadTabAsync`, the watcher's own call.
 
 **Done 2026-09-26: Seam adapts to each machine (speed pass, "speed first").**
-- **Display rate.** `layout.frame_rate` used to be hardcoded to 165 (Max's panel) on every Golem machine. Seam now asks the compositor at startup (`hyprctl monitors -j`, the focused monitor) and sets the pref live. Proven headless: the rAF cadence follows the pref within one session (30 → 30 fps, 90 → 90 fps), and on the dev box 165 Hz is detected and applied before the first window. If hyprctl is unreachable nothing is set (Firefox's default `-1`). Pacing prefs are unchanged. `home.nix` no longer sets the rate.
+- **Display rate.** `layout.frame_rate` used to be hardcoded to 165 (Max's panel) on every Standard machine. Seam now asks the compositor at startup (`hyprctl monitors -j`, the focused monitor) and sets the pref live. Proven headless: the rAF cadence follows the pref within one session (30 → 30 fps, 90 → 90 fps), and on the dev box 165 Hz is detected and applied before the first window. If hyprctl is unreachable nothing is set (Firefox's default `-1`). Pacing prefs are unchanged. `home.nix` no longer sets the rate.
 - **Codecs.** Older chips decode only H.264 in hardware, yet YouTube serves VP9/AV1 by default → software decode. Seam reads Firefox's decoder report (`gfxInfo.CodecSupportInfo`, e.g. `VP9 SWDEC HWDEC`) and, where VP9/AV1 are *known* not to be hardware, tells streaming sites they are unsupported: a content-side patch of `MediaSource.isTypeSupported` in every new document, before any page script runs. Plain video files still play. A codec the report doesn't list yet is left untouched; the decision is re-checked a minute in and after a video starts. Modern machines: nothing changes (dev box: all five video codecs hardware → blocks nothing). Kill switch `golem.seam.preferHwCodecs=false`. Both are recorded per machine in `golem-media.json` (`display`, `codecPolicy`).
 - ⚠ `mediaCapabilities.decodingInfo(...).powerEfficient` is NOT a hardware-decode probe from the browser process: it answers for that process, where video is never decoded, and said "no hardware" on a machine that decodes everything in hardware (live, 2026-09-26). It is only used to make Firefox instantiate its decoders.
 - Gotchas found: `media.mediasource.vp9.enabled` is dead in 156; `media.webm.enabled=false` also kills WebM files; Firefox strips STRING prefs from web content processes (use bools); a browser's outer window is reused across loads (key per-document work on the document); autoconfig skips the first line of `mozilla.cfg`.
@@ -197,7 +197,7 @@ Seam now sets `prefetchingDisabled=false`. It has to be a **top-level** `userSet
   `seam-selftest`, and restores the old pin if that fails.
 - **uBlock Origin 1.75.0 and Adaptive Tab Bar Colour 4.3.0** (`extensions.json`) ship INSIDE the
   package and are installed from it at first start (`ExtensionSettings.install_url = file://…`):
-  a fresh Golem gets its blocker and its bar colour with no network and no dependence on what AMO
+  a fresh Standard gets its blocker and its bar colour with no network and no dependence on what AMO
   serves that day; Firefox updates them from AMO afterwards like any add-on. Bump by hand: resolve
   AMO's `latest.xpi` redirect, record version/url/sha256/file, rebuild, selftest. The selftest step
   `extensions-from-package-active` fails if either is missing or inactive on a fresh profile.
@@ -256,7 +256,7 @@ of that gone"):**
   same 720p60 — 47 CPU-s, 44–49 % dropped, buffering, ~200 ms. Two causes, two fixes:
   (1) uBO's quick-fixes list has six `trusted-edit-inbound-object` hooks on `JSON.stringify` for
   www.youtube.com, each deep-cloning the argument on every call: 28 % of the YouTube tab's main
-  thread; without them pause latency 310 ms. Golem excepts those six (`toOverwrite.filters` in
+  thread; without them pause latency 310 ms. Standard excepts those six (`toOverwrite.filters` in
   `browser.nix`); a monetized music video played without them with no ad, no overlay, no nag.
   (2) 60 fps: the tab decodes and composites twice the frames the machine can show. Seam now
   LEARNS it: a video above 45 fps dropping >10 % of its frames for ~9 s sets
@@ -407,7 +407,7 @@ the page alone, its own title, its own window class `webapp-<slug>`, which is al
 id of its launcher `webapp-<slug>.desktop`, so the dock pairs tile and window by
 `StartupWMClass`. One process and one sign-in with the browser (no second browser's
 memory). The dock materializes the launchers from `~/.config/webapps.list` (waverunner
-`webapps.rs`). They were Chrome `--app` windows until 2026-09-30; Golem ships no Chrome.
+`webapps.rs`). They were Chrome `--app` windows until 2026-09-30; Standard ships no Chrome.
 
 The window is **Firefox's own web-app window**, Taskbar Tabs (Firefox 157,
 `moz-src/browser/components/taskbartabs`), opened with the arguments
@@ -506,18 +506,18 @@ Seam wears THE PALETTE (Controls → Colours in the dock; the dock writes
 `$XDG_STATE_HOME/golem/theme/colors.json`). `golem-chrome.js` reads that file at start and
 whenever it moves (one stat every 2 s):
 
-- **SEAM PALETTE.** The Golem colour (new tab, blank page, loading area, the bar while a tab
+- **SEAM PALETTE.** The Standard colour (new tab, blank page, loading area, the bar while a tab
   loads, the sidebar's fallback, the overview's backdrop) is the palette's surface `base01`;
-  the overview's cards, text and the error pages come from its other greys and ink. Golem's
+  the overview's cards, text and the error pages come from its other greys and ink. Standard's
   own dark palette keeps the exact old values (rgb(29,32,38) and friends). Blank/new-tab pages
   get it through an agent sheet the script registers (it outranks `userContent.css`, which
   stays as the fallback); error pages take it from the next window.
 - **DARK WEBSITES.** Dark Reader is pinned in `extensions.json` (normal_installed: it rests
   disabled) and is enabled only while `dark_websites` AND `dark` are true in that file.
   Override for testing: pref `golem.seam.darkWebsites` = `on` / `off`.
-- `selftest.sh` runs with its own empty state dir (Golem's dark palette); give it another
+- `selftest.sh` runs with its own empty state dir (Standard's dark palette); give it another
   with `SEAM_SELFTEST_STATE=<dir holding golem/theme/colors.json>` — the checks compare
-  against whatever the Golem colour is.
+  against whatever the Standard colour is.
 
 ## Languages (2026-11-10)
 
@@ -551,7 +551,7 @@ Seam speaks the session's language, like the shell: es, fr, de, it, pt-BR and pt
   (median 3.5 s vs 2.9 s; the pack's one-time install, again once per Firefox version); later starts 1.20 vs 1.18 s; an
   English session pays nothing (no pack is installed). The package grows 3.8 MB (7 packs); a profile ~0.5 MB per language used.
 - Seam's own-pages gate keeps about:preferences away, so the shell's Language page is the one switch.
-- **Golem's own words in Seam** (2026-11-11): the overview's title and tab count, its "New tab" tile, the tool buttons
+- **Standard's own words in Seam** (2026-11-11): the overview's title and tab count, its "New tab" tile, the tool buttons
   (sidebar and overview), "Show all tabs", the colours button, the blocked page and the two notices speak the language Firefox
   came up in (`Services.locale.appLocaleAsBCP47`), from `GW_WORDS` in `golem-chrome.js` — es (every Spanish), fr, de, it, pt
   (Brazil's), pt_PT; English is the key and the fallback. Each word is Firefox's own in that language (Pestañas, Onglets,
@@ -562,7 +562,7 @@ Seam speaks the session's language, like the shell: es, fr, de, it, pt-BR and pt
 ## Why Mozilla's build and not nixpkgs'
 
 - **Speed:** the pin tracks Mozilla directly, so the delay is hours, not the days a channel takes.
-- **No compiling:** Golem runs on varied hardware, and a weak laptop must never build Firefox from source. The tarball is Mozilla's prebuilt binary, verified against their checksum.
+- **No compiling:** Standard runs on varied hardware, and a weak laptop must never build Firefox from source. The tarball is Mozilla's prebuilt binary, verified against their checksum.
 - **Same Seam:** `wrapFirefox` accepts the same `extraPrefs` / `extraPolicies` / `extraAutoConfig`, so the chrome script and policies are unchanged.
 
 ## Known limits / next steps
@@ -570,6 +570,6 @@ Seam speaks the session's language, like the shell: es, fr, de, it, pt-BR and pt
 - **Channel choice:** this tracks the **rapid release** (`LATEST_FIREFOX_VERSION`).
   To move to ESR, where internals stay stable for about a year and security point releases still arrive, switch the key to `FIREFOX_ESR` and
   the URL path. It's a two-line change in `update.sh`. Still to be decided.
-- **Distro build:** today `seam.nix` is imported by `/etc/nixos`. The Golem flake should import
+- **Distro build:** today `seam.nix` is imported by `/etc/nixos`. The Standard flake should import
   it too, so installed systems get the same lane.
-- **x86_64 only** (`linux-x86_64` tarball). Add `aarch64` if Golem ships on ARM.
+- **x86_64 only** (`linux-x86_64` tarball). Add `aarch64` if Standard ships on ARM.

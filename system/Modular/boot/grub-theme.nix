@@ -8,7 +8,7 @@
 #   BIOS  → isolinux/syslinux → isoImage.syslinuxTheme (iso.nix) → themed
 #   UEFI  → GRUB              → isoImage.grubTheme                → was null
 #
-# With grubTheme null, iso-image-golem.nix falls through to
+# With grubTheme null, iso-image-standard.nix falls through to
 # `set color_highlight=white/blue` over a background image, and GRUB draws
 # its stock menu: top-left, full width, blue bar. That is exactly what the
 # Acer showed. The old comment in iso.nix called it "close enough"; on real
@@ -29,7 +29,7 @@
 #    (the reference nixos-grub2-theme carries the same note).
 #  - a selection BAR needs a pixmap; selected_item_color alone only
 #    recolours the text. One centre slice is enough — GRUB stretches it.
-#  - the font must be a .pf2, and iso-image-golem.nix loadfont's every
+#  - the font must be a .pf2, and iso-image-standard.nix loadfont's every
 #    .pf2 it finds in this directory.
 #
 # SHARED (moved here 2026-09-11, #68): the ISO's boot menu and an

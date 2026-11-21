@@ -23,7 +23,7 @@
   # AN ENCRYPTED DISK WAITS FOR ITS OWNER (2026-10-28, VM). The initrd gives
   # every device 90 s to appear — and `/` only appears once the passphrase is
   # typed, so whoever took longer than that (or came back from a coffee) was
-  # dropped into emergency mode, which on Golem is a locked dead end (root
+  # dropped into emergency mode, which on Standard is a locked dead end (root
   # has no password). With an encrypted disk the initrd waits for its devices
   # as long as it takes. A plain install has no such wait: its devices are
   # there from the start, and the initrd's default stays.

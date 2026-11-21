@@ -49,9 +49,9 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `:1201`/`:1437`), so what is missing is a `pinned` flag and a truncation skip, not
   a store. **The register therefore carries two [new] verbs, A29 and A37.** The
   sentence still does not ship until the flag does.
-- **A03** — the portal distinguishes the two shares, but **Golem is not a party to
+- **A03** — the portal distinguishes the two shares, but **Standard is not a party to
   the exchange**. Action specified in full and **dormant**; the unblock is [cheap]
-  work on Golem's *own* portal. Full reasoning in the block.
+  work on Standard's *own* portal. Full reasoning in the block.
 - **A10** — **a standing form exists** and is now the first offer, per hunt
   doctrine 3. Block carries it; hunt #2 §7.2 checked it rather than killing it —
   and then attacked the *evidence* instead and **relocated it** to the user's own
@@ -81,7 +81,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   The ≥10 s clause is hunt #1's
   repair and it is the whole action: as drafted ("playing while unfocused") the
   trigger was music in a background tab, the single most common media pattern in
-  existence, and Golem would have spoken daily about audio the user started on
+  existence, and Standard would have spoken daily about audio the user started on
   purpose. What is sensed here is *sound that began out of sight* — Constitution
   III's specificity requirement, the same clause that forbids "a USB was
   inserted". No counter, no history: the unfocus stopwatch is live context, and
@@ -95,7 +95,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   resolve to the **player**, not the tab, so [mute it] mutes the browser and the
   user finishes the job — the sentence says "your browser", never "that tab".
 - **Refusal:** right-click = not now, and this player's current playback is
-  finished as far as Golem is concerned — no re-offer until a *new* out-of-sight
+  finished as far as Standard is concerned — no re-offer until a *new* out-of-sight
   playback start. Three refusals and the action retires itself permanently (a user
   who wants background audio has told us three times).
 - **Gear:** (a) what [mute it] takes — **this stream** / the whole browser;
@@ -114,7 +114,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   for the whole batch: a dozen blocks offer their automatic rung "after two
   acceptances", and a row that remembers only refusals cannot tell the second yes
   from the first. One byte, inside the same ≈32 B, and it is the only counter in
-  the batch that exists to make Golem stop talking.)* No titles, no artists, no
+  the batch that exists to make Standard stop talking.)* No titles, no artists, no
   per-site anything; the player's identity is
   read live at offer time (F4 doctrine 1, name-at-offer-time) and dropped.
 - **Fires:** expiring moment, queue rank 1 — when it fires it speaks and spends
@@ -140,7 +140,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   want it kept as a snippet?"
 
   *(Drafted and written as "you have **pasted** this same text"; changed by hunt
-  #2 under the V08 rule, not the voice pass. Golem is a clipboard **watcher** — the
+  #2 under the V08 rule, not the voice pass. Standard is a clipboard **watcher** — the
   `selection.*` stream carries offers, i.e. copies — and the block's own trigger
   says so. Which application asked for the data, and when, is knowledge only the
   clipboard's owner has; it is the identical limit that forced A15's evidence to be
@@ -158,7 +158,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   "clipboard-history.json"` (`clipboard.rs:225`), written by `save_clip_history()`
   (`:1573`) from five call sites, loaded back on start, and rolled at `MAX_HISTORY`
   by two truncations (`:1201`, `:1437`). Every clip the box shows is already a row
-  in a file Golem writes. What is missing is therefore not a store but
+  in a file Standard writes. What is missing is therefore not a store but
   **permanence**: a `pinned: bool` on a row that is already serialised, and a skip
   for pinned rows at those two truncation sites. That is small work in our own
   tree, which is what [cheap] means in the catalog's legend — the same shape as
@@ -214,7 +214,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   protocol: a ScreenCast client names what it wants in `SelectSources`
   (monitor / window / virtual) and, from ScreenCast v2 onward, the portal may hand
   back a `source_type` on each stream. But that exchange is a private session
-  between the sharing application and the portal, and **Golem is neither party**.
+  between the sharing application and the portal, and **Standard is neither party**.
   Reading it would mean becoming a D-Bus monitor on another program's session:
   **[new]**, privileged, and precisely the surveillance posture Constitution VI is
   built to make structurally impossible. The one heuristic available from our own
@@ -230,7 +230,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   special:aside,address:<addr>` for every non-shared window, reversed when the cast
   ends **[live]**. The verb has been shippable all along; the *trigger* is what is
   missing. **Unblock, stated so it is actionable rather than aspirational:**
-  xdg-desktop-portal-hyprland is **Golem's own component**, not a foreign app — the
+  xdg-desktop-portal-hyprland is **Standard's own component**, not a foreign app — the
   portal holds the source type in its hand at `Start` time and need only publish it
   alongside the existing screencast state. That is **[cheap]** work on our own
   house, and doctrine 6 ("when an app owns the behaviour, flip the app's switch")
@@ -292,7 +292,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `muted` false→true→false), plus `playerctl pause` if anything is playing
   (absorbed U0043). Everything is restored when the mic goes inactive — the verb
   owns its own undo, which is why it can be one click. **Provenance is set here:**
-  the queue A04 holds is flagged as *held by Golem*, and that flag is the only
+  the queue A04 holds is flagged as *held by Standard*, and that flag is the only
   thing that ever licenses A05 to speak.
 - **Refusal:** not now = silent for this call, and A04 goes to the back of the
   call-start cluster so the next call offers whatever is still unanswered there
@@ -333,17 +333,17 @@ each is discharged **inside its own block**, in writing, against the real tree:
 
 - **Type:** moment
 - **Trigger & evidence:** `audio.is_mic_active` goes false after a long live
-  stretch, `notifications.active_count > 0`, **and Golem itself is holding the
+  stretch, `notifications.active_count > 0`, **and Standard itself is holding the
   queue it silenced** — both signals **[live]** (catalog §0). The third clause is
   F6's provenance guard and it is not decoration: the `active_count` test is
   necessary and nowhere near sufficient. If A04 was refused, or its standing form
-  is off, **Golem silenced nothing and therefore owes nothing** — that is F5
+  is off, **Standard silenced nothing and therefore owes nothing** — that is F5
   doctrine 4, the hand-back rule, and it is the reason "here is what arrived
   overnight" was killed while this survived.
 - **Sentence:** "Your call is over, do you want to see what I held back?"
 - **Verb(s):** **[show me]** — releases the held queue into the notifications box
   that already ships (`optionsmodules.md`: notifications is a live module) and opens
-  it on exactly those entries, newest last. It shows *what Golem held*, not the
+  it on exactly those entries, newest last. It shows *what Standard held*, not the
   day's unread — the difference is the whole action, and the box is scoped to the
   provenance flag A04 set.
 - **Refusal:** not now = the queue is released silently into the bell, where it
@@ -376,7 +376,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   for the duration of the call and dies with it; the provenance flag is a boolean
   on that in-memory queue. Notification *contents* are never persisted by this
   action — they were already on the user's screen, they belong to the sending app,
-  and Golem is a doorman, not an archive. **≈32 B** lifecycle row, and that is all.
+  and Standard is a doorman, not an archive. **≈32 B** lifecycle row, and that is all.
   One clarification hunt #2 required, because A04's note forbids the stopwatch in
   so many words: the gear's "only after calls longer than N minutes" is measured
   **live, in memory, between the two mic transitions**, and dies with the call.
@@ -404,7 +404,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   (MPRIS, catalog §0); the idle half is **[cheap] and must be declared honestly:
   idle is not among the engine's nine collectors** — it needs a small new source,
   and hunt #2 narrows which one, because P5 wrote "logind's `IdleHint` **or** the
-  compositor's idle-notify" and only the second half is true on a stock Golem.
+  compositor's idle-notify" and only the second half is true on a stock Standard.
   `IdleHint` is set by whatever manages the session; nothing in the tree sets it
   (there is no `hypridle`, no `swayidle`, no idle client of any kind — the same
   absence A26 and A33 are dormant on), so a detector reading it would read a
@@ -608,10 +608,10 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Verb(s):** **[start quiet after midnight]** — hunt #1's repair, and the verb
   label is the repair: the drafted "[keep it quiet after midnight]" **capped** the
   sink, and a cap is a ceiling that fights the user on the night they want it loud.
-  Enforcement is not a register Golem has. What ships is a *starting point*:
+  Enforcement is not a register Standard has. What ships is a *starting point*:
   playback that begins after the hour starts at the user's own observed low level
   (`wpctl set-volume`), once, and **any manual change wins immediately and
-  permanently for that session** — Golem does not touch the volume again until the
+  permanently for that session** — Standard does not touch the volume again until the
   next night. The sentence and the verb now say the same thing, which is what
   doctrine 5 asks.
 - **Refusal:** not now = silent for **30 nights**, then one more offer if the
@@ -663,7 +663,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   -sb'`, to a golem-owned aliases file the shell sources. The name is proposed
   **live at offer time** from the command's own words and checked against the
   names that already exist (the nix `shellAliases` block ships `ls ll la tree cat
-  grep diff df edit glog gadog dotfiles build update stream -`), so a Golem alias
+  grep diff df edit glog gadog dotfiles build update stream -`), so a Standard alias
   can never shadow one of the user's own; if no free name can be made, the action
   says nothing. Honest limit, in the verb line where it belongs: the shell bridge
   runs one way, so the alias is live in **every shell opened after this one** —
@@ -674,7 +674,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   never in the nix store. **Neither it nor the line that sources it exists today**
   — named here so the block is bounded work instead of a wish. What is missing is
   a two-line addition to `initContent` in `system/home/zsh.nix` (`[[ -r $f ]] &&
-  source $f`), placed **after** the `shellAliases` block so a Golem line can extend
+  source $f`), placed **after** the `shellAliases` block so a Standard line can extend
   what nix set rather than be overwritten by it. That source line is nix-managed;
   the file it reads is not. **Revocation is deleting a readable line with any
   editor and opening a new shell — no rebuild, ever**, which was the whole of the
@@ -687,7 +687,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   also where the absorbed U0097 lands (the ssh target typed every day is an alias
   like any other: `alias box='ssh …'`); (a) **the file, by path**, opened in the
   editor at one click — the home of the absorbed U0107, the cheat-sheet file the
-  user keeps by hand: the aliases file *is* the cheat sheet, and Golem never owns
+  user keeps by hand: the aliases file *is* the cheat sheet, and Standard never owns
   more of it than the lines the user accepted; (b) how many separate days before
   offering (default 3) and the length floor; (c) forget this command / stop
   offering names.
@@ -695,7 +695,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   deliberately not offered**, and that needs arguing because hunt doctrine 3 ("for
   habit actions the rule is the first offer") points the other way. The doctrine's
   premise is that the user's repetitions already climbed the first rung — true for
-  an *act* Golem can repeat, but what is produced here is a **name**, and a name
+  an *act* Standard can repeat, but what is produced here is a **name**, and a name
   nobody chose is not a gift. An engine quietly minting `gsu`, `nrs`, `dcu` into
   the user's shell would be authorship without consent, and the user would meet
   their own vocabulary as a stranger. So A13 is the batch's boundary case:
@@ -792,7 +792,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   — a rich-text clip followed by a plain-paste keystroke — is **unsensable**: it
   needs either a keystroke (out of scope permanently, Constitution VI) or
   knowledge of which mime type the *receiving* app asked for, which only the
-  clipboard's owner knows and Golem is a watcher. What is visible, on code that
+  clipboard's owner knows and Standard is a watcher. What is visible, on code that
   already ships, is the **laundering round-trip**: content copied while `text/html`
   was among the offered types, then the same content — 8-byte hash comparison,
   never text — re-offered seconds later carrying **only** `text/plain*`, from an
@@ -856,12 +856,12 @@ each is discharged **inside its own block**, in writing, against the real tree:
   **[live]** (catalog §0 — the deploy collector reads the nix profiles), with the
   **same** pending generation observed on **≥3 separate days**. One clarification
   the block owes rather than inherits: the draft counted "the defer ≥3×", and
-  **there is no defer button in Golem to press** — the deploy signal surfaces as an
+  **there is no defer button in Standard to press** — the deploy signal surfaces as an
   indicator, not a prompt (catalog §15 keeps battery and deploy out of the
   surfaced affordances). Counting defers would be counting an act that does not
   exist, which is hunt doctrine 1 read backwards. What is real is the generation
   sitting there across days, so the evidence is **days-pending, an aggregate of
-  state**, and the type stays *moment*: Golem speaks about the update, never about
+  state**, and the type stays *moment*: Standard speaks about the update, never about
   the user.
 - **Sentence:** "This update has been waiting a while, do you want it applied the
   next time you restart?"
@@ -874,7 +874,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Verb(s):** **[apply it at the next restart]** — `nixos-rebuild boot` against
   the flake the machine already has. That needs root and the daemon runs as the
   user, so the honest tag is **[cheap]** with the mechanism named: the shape is
-  already proven twice in Golem's own tree — a small user-writable intent file, a
+  already proven twice in Standard's own tree — a small user-writable intent file, a
   `systemd.path` watching it, a root oneshot doing the work and rolling back to
   last-good on failure (`waverunner-apply`, and `system/postinstall.nix`'s four-part
   loop built deliberately in its image). `boot` rather than `switch` is the safe
@@ -890,7 +890,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   weekly, forever, about the same fact.
 - **Gear:** (a) **what "a while" means** — days pending before it counts (default
   3), which is where the absorbed U0149 lands: the user who suspends for weeks and
-  never reboots sets their own wait, and Golem does not moralize about uptime;
+  never reboots sets their own wait, and Standard does not moralize about uptime;
   (b) only when a restart is actually required (**kernel/initrd drift**, which is a
   file comparison and not a judgement: the `kernel` and `initrd` symlink targets
   under `/run/booted-system` against the ones under
@@ -926,8 +926,8 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `audio.call_dnd` fires an internal `AffordanceAction::Daemon` toggle — and
   `notifications.*` is [live]), so it knows both the state and **who changed it**,
   which is the whole of the evidence here: only the user's own toggles count, never
-  Golem's (a call's automatic DND, or the shipped `window.fullscreen_dnd`, §4.17,
-  would otherwise let Golem learn its own behaviour and offer it back). Stored as a
+  Standard's (a call's automatic DND, or the shipped `window.fullscreen_dnd`, §4.17,
+  would otherwise let Standard learn its own behaviour and offer it back). Stored as a
   24-bucket hour histogram of manual mutes; ≥3 days in the same bucket.
   **[live]**, and no detector owns a timer: the toggle is an event and the clock is
   the topbar's.
@@ -959,7 +959,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 
   The absorbed U0114 (fullscreen writing) is deliberately **not** a control here:
   the shipped `window.fullscreen_dnd` already covers it, and a duplicate switch
-  would be Golem offering to do what Golem already does (F5 doctrine 1). Named so
+  would be Standard offering to do what Standard already does (F5 doctrine 1). Named so
   the absorption is visibly spent rather than quietly dropped.
 - **Ladder:** the rule is the offer (doctrine 3) — the user has raised this hand at
   the same hour for days. Above it: **nothing**. A quiet hour that grows teeth of
@@ -1007,7 +1007,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   app can earn one offer later. Two refusals retire the action — the user has said
   twice that the switching is theirs to do.
 - **Gear:** (a) **the map** — one row per app, each removable, which is the whole of
-  what Golem learned, readable; (b) how many separate days before offering (default
+  what Standard learned, readable; (b) how many separate days before offering (default
   3); (b) whether the rule applies to **new** windows of that class or only the
   ones already seen; (c) stop following apps.
 - **Ladder:** the rule is the offer (doctrine 3). The assisted form — "shall I
@@ -1035,8 +1035,8 @@ each is discharged **inside its own block**, in writing, against the real tree:
   may say.
 - **Trigger & evidence:** a window of an annotator class takes focus **within ~60 s**
   of a new timestamped PNG appearing in the pictures directory, on **≥3 separate
-  days**. Golem owns the screenshot control — `grim` writes a timestamped PNG to
-  `~/Pictures`, created if needed (catalog §4.26, `decide.rs:1602`) — so when Golem
+  days**. Standard owns the screenshot control — `grim` writes a timestamped PNG to
+  `~/Pictures`, created if needed (catalog §4.26, `decide.rs:1602`) — so when Standard
   took the shot the first half is **[live]**; for shots taken by another binding a
   single-directory inotify watch is **[cheap]** (no polling, no new wakeup). Focus
   and class are [live]. Honest note on the folder: **there is no dedicated
@@ -1046,14 +1046,14 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Sentence:** "You draw on nearly every screenshot you take, do you want them to
   open in the annotator?"
 - **Verb(s):** **[open them in the annotator]** — **one** verb. The rule pipes
-  Golem's own screenshot output into the class that was observed doing the drawing
+  Standard's own screenshot output into the class that was observed doing the drawing
   (a spawn of that app with the new file, named at offer time), which is a change
-  inside Golem's own house rather than a reach into another program. **The OCR half
+  inside Standard's own house rather than a reach into another program. **The OCR half
   is gone from ACTIONS** — drafted as `[copy its text]`, dropped because it has no
   rule form (nobody wants every screenshot OCR'd) and belongs on the OPTIONS side
   as a per-instance pill, where the user's hands already are. One consequence
   stated plainly because it decides whether the action ever exists: **no annotator
-  ships with Golem** (`home.nix` installs grim, slurp and wf-recorder — nothing
+  ships with Standard** (`home.nix` installs grim, slurp and wf-recorder — nothing
   that draws), so on a stock machine the gate never opens. The action comes into
   existence only for a user who installed one themselves, which is precisely the
   user whose hands demonstrated the habit.
@@ -1102,7 +1102,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   shipped code: `sunset.rs` owns the temperature
   (`hyprctl hyprsunset temperature {k} || hyprsunset -t {k}`, identity 6500 K =
   protection off) and the engine already carries "a hyprsunset process is running /
-  the screen is warmed" as state (`state.rs:202`) — so a change Golem did not make
+  the screen is warmed" as state (`state.rs:202`) — so a change Standard did not make
   is a change the user made. **[live]** for the state, **[cheap]** for attributing
   it. Once the gate is open, the moment is: the screen is warmed **and** an image
   class takes focus.
@@ -1149,7 +1149,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   signal is first-party and in-process: the launcher owns the query and the
   activation, the hyprland collector owns the window's life, and the options engine
   lives in the same binary (`crates/options-engine` inside the launcher
-  workspace). **[live]**, and nothing outside Golem ever observes it — the privacy
+  workspace). **[live]**, and nothing outside Standard ever observes it — the privacy
   cost is zero because the query was always the shell's own signal.
 - **Sentence:** "The launcher keeps putting \<app\> first and you keep closing it,
   do you want it moved down?"
@@ -1212,7 +1212,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   ThinkPads and on much recent Lenovo/Dell/ASUS; it is **absent on Intel
   MacBooks**, which are this batch's stated priority hardware. **On the priority
   machine this action never comes into existence at all** — no greyed pill, no
-  "unsupported" sentence, no trace: the detector never constructs. Golem also has
+  "unsupported" sentence, no trace: the detector never constructs. Standard also has
   nobody else in the way — `tlp` is deliberately absent from the distro (it fights
   power-profiles-daemon, `system/hardware/power-laptop.nix:12`) — which means no
   conflict and no free persistence either.
@@ -1265,7 +1265,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Trigger & evidence:** a **manual** move into power-saver — the profile switch,
   or a backlight step down — at a recurring low battery level, median over **≥3
   occurrences** on separate discharges. `metrics.battery_pct` is **[live]**;
-  power-profiles-daemon is on for every laptop Golem builds
+  power-profiles-daemon is on for every laptop Standard builds
   (`system/Modular/power/laptop.nix:13`) and its active profile is a D-Bus property
   the engine does not read yet — **[cheap]**, and the notifications collector
   already speaks D-Bus, so it is a subscription, not a dependency. The backlight
@@ -1286,7 +1286,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   is an OPTION, the ACTION is the rule) and the repair hunt #1 ordered: the
   per-instance hand already ships as `system.battery_dim` (catalog §4.29 —
   *"Dim screen"*, `brightnessctl set 40%`, gated on `has_backlight`, at ≤15 % on
-  power), so offering to dim *this time* would be Golem re-selling a pill the user
+  power), so offering to dim *this time* would be Standard re-selling a pill the user
   can already see. The only thing left worth saying is the standing rule — and note
   what the rule adds beyond the shipped OPTION: it fires at **the user's line**
   (31 %, 45 %, whatever the median says), not at the distro's 15 %, which is the
@@ -1294,7 +1294,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Refusal:** not now = silence for this discharge cycle and the median keeps
   updating while it waits (an aggregate costs nothing to keep). Re-offer no sooner
   than 60 days, and only if the line has held. Two refusals retire it: doing it by
-  hand can itself be the ritual — a moment of noticing the battery — and Golem does
+  hand can itself be the ritual — a moment of noticing the battery — and Standard does
   not get to automate a moment someone keeps for themselves.
 - **Gear:** (a) **the level** (prefilled from the median) and **what happens** —
   power-saver / dim to X % / keyboard light off, three switches, where **U0143**
@@ -1342,14 +1342,14 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `crates/daemon/Cargo.toml:28–29`), so idle/resume become events on a connection
   that exists — **[cheap]**, zero new wakeups, no timer. What is missing is
   **anything that ACTS on idle.** A sweep of the whole tree finds **no idle manager
-  and no locker anywhere in Golem**: no hypridle, no swayidle, nothing in
-  `system/` and nothing in the launcher. On a stock Golem today the screen does
+  and no locker anywhere in Standard**: no hypridle, no swayidle, nothing in
+  `system/` and nothing in the launcher. On a stock Standard today the screen does
   not dim or blank on its own, so there is **no idle boundary to fight** — the
   habit cannot be performed (the counter can never reach three) and the verb would
   inhibit an idle **nothing consumes**. Both mouths fail on that absence, and the
   action cannot come into existence. It is written in full and **dormant**, like
   A02 and A03 — but dormant for a different reason, which hunt #2 settled: A02
-  waits on a store Golem intends to build, while A26 waits on a behaviour Golem
+  waits on a store Standard intends to build, while A26 waits on a behaviour Standard
   does not yet have. **If batch 1 ships before an idle manager does, A26 is a
   kill, not a wait** (and A33, in unit 4, inherits exactly the same dependency — a
   lock-on-sleep offer presumes a sleep). When a manager does arrive, the trigger
@@ -1378,7 +1378,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   plus the **≈32 B** lifecycle row — **≈182 B** in all. **No pointer data of any
   kind is stored or sampled**, and no timestamps: the count is of a shape of event,
   not of a moment in a day.
-- **Fires:** **one sentence, ever** — and **zero until Golem ships an idle
+- **Fires:** **one sentence, ever** — and **zero until Standard ships an idle
   manager**, which today it does not. Habit unlock, waits in the queue behind
   everything expiring.
 
@@ -1463,7 +1463,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Refusal:** not now = this headset keeps the call profile for the rest of this
   connection; the offer may return on a later call. Three refusals for the same
   device retire it permanently — someone who prefers the headset's own microphone
-  has a reason Golem does not need to know.
+  has a reason Standard does not need to know.
 - **Gear:** (a) **which microphone to use instead** — the laptop's (default), this
   headset's, or a named other; (b) **only on calls** (default) / whenever this
   headset is connected; (c) forget this headset / stop offering this.
@@ -1509,7 +1509,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   this desk remembered?"
 - **Verb(s):** **[remember this desk]** — and this is the block where the verb has
   to be discharged against the tree rather than promised, because **applying a
-  remembered layout at runtime is blocked on Golem's own fork in every obvious
+  remembered layout at runtime is blocked on Standard's own fork in every obvious
   way.** Verified, three places: `hyprctl keyword monitor` is **rejected** by the
   lua-config Hyprland fork (*"non-legacy parsers"*, `NOTES.md:709–713`,
   `GRIND.md:111–114`); an eval'd `hl.monitor` rule **does not retro-apply** to an
@@ -1523,7 +1523,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   build, `enable_head`, `apply`, wait for `succeeded`/`failed`
   (`system-landscape.md:203–209`) — implemented in the daemon, which is already a
   Wayland client. And a second false premise from the draft is corrected here too:
-  the field is **not** foreign to Golem — `wayland-protocols-wlr` is already a
+  the field is **not** foreign to Standard — `wayland-protocols-wlr` is already a
   dependency (`crates/daemon/Cargo.toml:32`), and the daemon already binds and
   drives a sibling manager end to end (`zwlr_screencopy_manager_v1`,
   `screencopy.rs:31–34`, with the build → submit → wait-for-`Ready`/`Failed`
@@ -1532,7 +1532,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   this is an actuator**, a new module beside `screencopy.rs`, and [cheap] by the
   catalog's legend is a small addition to an existing collector, which this is
   not. **A29 does not speak until it exists** — and the one assumption left is
-  named rather than smuggled: Golem's fork changed the config parser, not the
+  named rather than smuggled: Standard's fork changed the config parser, not the
   protocol set, so whether the fork implements wlr-output-management is **one
   `wayland-info` away** from an answer. When it does, the rule is a readable block
   per desk in `~/.config/golem/rules/desks`, keyed by each output's
@@ -1544,7 +1544,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   plain readable line of what this desk actually does, including **whether it
   charges the laptop**, which is where the absorbed **U0156** (the dock power
   double-check) is spent: the ritual is made of doubt, and a fact in the box ends
-  it without Golem ever speaking; (b) **what a desk remembers** — the arrangement,
+  it without Standard ever speaking; (b) **what a desk remembers** — the arrangement,
   the sound output (the absorbed **U0170**, the evening TV input, which is a desk
   whose output happens to be a television), and **what to do with the lid closed**
   (the absorbed **U0165**); (c) stop remembering desks. The absorbed **U0166** (the
@@ -1596,7 +1596,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   **verified** (*"a runtime workspace rule BEATS the configured smart-gaps rule
   (verified)"*, :1127). Two consequences belong in the block. First, the rule is
   applied **without touching nix-managed `hyprland.lua`** — no rebuild, which is
-  what A13's condition demanded of any rule Golem writes. Second, `hyprctl reload`
+  what A13's condition demanded of any rule Standard writes. Second, `hyprctl reload`
   **re-reads the store copy of the config and wipes runtime settings with it** —
   this is how the stage dim once quietly vanished (:1135–1142) — so durability
   cannot live in the compositor: the signed rule is one readable line in
@@ -1604,7 +1604,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   reload, revocation by deleting the line. **Mechanism [live], wiring [cheap].**
 - **Refusal:** not now = this class is answered and never raised again; another app
   must earn its own three corrections. Two refusals retire the action — moving a
-  window can be part of how someone thinks, and Golem does not automate thinking.
+  window can be part of how someone thinks, and Standard does not automate thinking.
 - **Gear:** (a) **the rules**, one readable line each (*"\<app\> → workspace
   'notes' on the left screen"*), each removable — where the absorbed **U0178**
   (ferrying an app off the wrong monitor) lives, since a rule carries a monitor as
@@ -1638,13 +1638,13 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Type:** moment
 - **Trigger & evidence:** the user returns focus **≥3 times within ~15 minutes** to
   the same window whose title carries a changing `NN%` or a strong CI/PR state
-  marker. Feasibility, corrected against the collector: cut-50 assumed Golem
+  marker. Feasibility, corrected against the collector: cut-50 assumed Standard
   already polls the title, and it does not — the inventory refreshes only on
   focus-shaped events, and Hyprland's own `windowtitle` / `windowtitlev2` events
   are **unparsed** (`hyprland.rs:317–341`). That correction is good news twice
   over: adding the arm makes a background title's change an **event**, so the watch
-  this action installs needs **no polling and no timer** — the change wakes Golem,
-  Golem never wakes to look, which is Constitution VI's second discipline met
+  this action installs needs **no polling and no timer** — the change wakes Standard,
+  Standard never wakes to look, which is Constitution VI's second discipline met
   exactly. **[cheap]**, and if a fork build ever lacks the event, the existing
   `j/clients` refresh is the fallback.
 - **Sentence:** "You keep coming back to check on this, do you want me to tell you
@@ -1657,10 +1657,10 @@ each is discharged **inside its own block**, in writing, against the real tree:
   the test is information availability, and a battery percentage is already on the
   topbar (A23, killed for exactly this) while a build's state is visible nowhere
   but in that window. The action replaces repeated manual checking of something not
-  otherwise visible, which is the one shape of scheduled speech Golem allows. And
+  otherwise visible, which is the one shape of scheduled speech Standard allows. And
   the speech it installs is a **notification**, not an action utterance — the
-  world's voice, not Golem's (Constitution II) — so it does not spend the day's
-  budget; the one sentence this action costs is the offer itself. Golem also never
+  world's voice, not Standard's (Constitution II) — so it does not spend the day's
+  budget; the one sentence this action costs is the offer itself. Standard also never
   fetches anything: the tab does the network, the engine reads a title, and the
   engine's incapability to reach the network (VI.1) is untouched.
 - **Refusal:** not now = this window is answered and the watch is never offered for
@@ -1676,7 +1676,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Ladder:** assisted = this window, and the ladder **deliberately stops there**.
   The automatic form — *"watch anything I keep checking"* — would turn one accepted
   offer into an open-ended notification factory, and Constitution IV's whole
-  economy dies the day Golem installs watchers nobody asked for. This is the second
+  economy dies the day Standard installs watchers nobody asked for. This is the second
   action in the batch (with A17) whose ladder is one rung by design, and the gear
   says so.
 - **Privacy note:** while a watch is alive it holds one window address and one
@@ -1705,11 +1705,11 @@ each is discharged **inside its own block**, in writing, against the real tree:
   and the moment the machine notices, and that gap is what the verb shortens.
   **Honest feasibility, and it is the batch's worst: the absence eats BOTH mouths.**
   A whole-tree sweep (repeated for this unit) finds **no idle manager and no locker
-  anywhere in Golem** — no hypridle, no swayidle, no hyprlock, no locker in
+  anywhere in Standard** — no hypridle, no swayidle, no hyprlock, no locker in
   `system/`, none in the launcher. A26 was written dormant on that same absence,
   but A26 at least kept a sensable trigger; here the absence takes the trigger too,
   because with nothing that locks and nothing that sleeps there is **no lock act to
-  count and no sleep to hook**. On a stock Golem this action cannot come into
+  count and no sleep to hook**. On a stock Standard this action cannot come into
   existence, and it is written in full and **dormant** on that basis. Do not read
   the sentence below as a description of a shipped `hypridle` configuration: there
   is no `hypridle`. When one arrives, the trigger costs nothing (`loginctl`'s
@@ -1720,10 +1720,10 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Verb(s):** **[lock as soon as the screen sleeps]** — writes one readable line
   into `~/.config/golem/rules/idle` setting the lock delay after blank to zero,
   which the idle manager reads. Doctrine 6 decides the shape: **the idle manager
-  owns this behaviour, so Golem flips its switch** rather than running a locker of
+  owns this behaviour, so Standard flips its switch** rather than running a locker of
   its own on a timer of its own (a second thing that locks the screen is how two
   lockers end up racing over one session). The verb therefore has an addressee only
-  once Golem ships an idle manager; today it has none, and the block says so rather
+  once Standard ships an idle manager; today it has none, and the block says so rather
   than writing config for a program that is not there.
 - **Refusal:** not now = the gap is the user's business and stays theirs. Re-offer
   only after **three more** hand-locks and never more than once a month; two
@@ -1741,7 +1741,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   that a shape of event happened three times, never when, and never how long the
   desk stood empty (which is a diary of a person's absences, F4 doctrine 2's
   neighbour).
-- **Fires:** **zero until Golem ships an idle manager and a locker**, which today it
+- **Fires:** **zero until Standard ships an idle manager and a locker**, which today it
   does not; thereafter **one sentence, ever**. Habit unlock, so it waits behind
   everything expiring. **Flagged for P8 alongside A26: if batch 1 ships before an
   idle manager does, this is a kill, not a wait** — and it is the stronger kill of
@@ -1756,13 +1756,13 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Trigger & evidence:** an **attempt-outcome ratio over a rolling window** — the
   last 20 fingerprint verifications, offering when **≥40 %** of them did not match
   (minimum 10 attempts, so a bad morning cannot trip it). The action **exists only
-  where the reader does**: `golem.hardware.fingerprint` is set by USB-vendor
+  where the reader does**: `standard.hardware.fingerprint` is set by USB-vendor
   detection (`system/hardware-detect.nix:351–354`, `hardware.nix:202–209`) and is
   the sole gate on `services.fprintd.enable`
   (`system/hardware/fingerprint.nix:9–10`, `system/Modular/quirks/fingerprint.nix:9`);
   where no reader was found, fprintd never runs and this action never comes into
   existence. **The drafted feasibility is wrong and is corrected here.** cut-50
-  tagged the evidence *"fprintd verify outcomes over dbus [cheap]"*, but Golem is
+  tagged the evidence *"fprintd verify outcomes over dbus [cheap]"*, but Standard is
   **not a party to that exchange**: the verify conversation runs between
   `pam_fprintd` and `fprintd` on the system bus, and listening to it means becoming
   a **D-Bus monitor on another program's session** — the exact posture A03 was made
@@ -1773,7 +1773,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   journal to that group. Two outcome shapes are counted — matched, and
   not-matched-or-retried — and **every line is discarded after it is counted**.
   Tag: **[new]** — and hunt #2 made the correction in writing, because the drafted
-  tag was a tag error: the catalog's [bridge] legend names **one** socket, Golem's
+  tag was a tag error: the catalog's [bridge] legend names **one** socket, Standard's
   own bridge (`$XDG_RUNTIME_DIR/options/bridge.sock`), and fprintd never talks to
   it, so [bridge] never named a mechanism this action uses. This is a **new
   collector** (nothing in the engine reads the journal today — zero matches for
@@ -1797,7 +1797,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   session, visibly**, through the seam the launcher already owns:
   `launch::launch(exec, needs_terminal, terminal)` (`main.rs:4303`), the same path
   that starts any terminal-shaped app. Enrolling is a multi-swipe conversation with
-  the hardware; it must happen in front of the user's face, and Golem never runs it
+  the hardware; it must happen in front of the user's face, and Standard never runs it
   in the background. Where `fprintd-enroll` is not on PATH under
   `services.fprintd.enable`, the fix is one line in our own
   `system/hardware/fingerprint.nix` — our tree, not another project's.
@@ -1810,14 +1810,14 @@ each is discharged **inside its own block**, in writing, against the real tree:
   last 20); (b) count **logins only** or also `sudo` prompts; (c) **forget what I
   know about the reader** — zeroes both counters; (d) don't offer this again.
 - **Ladder:** assisted = this one offer, and **the ladder deliberately has no
-  automatic rung**. Golem never enrols a fingerprint on its own — the tree already
+  automatic rung**. Standard never enrols a fingerprint on its own — the tree already
   states the rule in its own words (*"enrollment stays the owner's explicit act
   (fprintd-enroll), so a false positive is an idle daemon, never surprise
   biometrics"*, `fingerprint.nix:3–5`), and an action that quietly climbed that
   rung would be the single worst thing in this batch.
 - **Privacy note:** two u16 counters (attempts, non-matches) over the rolling
   window plus the **≈32 B** lifecycle row — **≈36 B**. **No biometric data is ever
-  visible to the engine**: fprintd does not expose templates to anyone, Golem never
+  visible to the engine**: fprintd does not expose templates to anyone, Standard never
   asks, and the journal lines are read for one of two outcome words and thrown
   away — never stored, never dated, never attributed to a finger.
 - **Fires:** **one sentence, ever**, and only on a machine that has a reader *and*
@@ -1835,12 +1835,12 @@ each is discharged **inside its own block**, in writing, against the real tree:
 - **Trigger & evidence:** a window of a known vault class is **present and
   unlocked** while the session is plainly in use (other windows taking focus) and
   **no focus visit has reached the vault for ≥4 hours**. **The drafted trigger
-  leaned on "the desk idle", which does not exist in Golem** (the A26/A33 absence),
+  leaned on "the desk idle", which does not exist in Standard** (the A26/A33 absence),
   and this block takes the first of the two ways out rather than inheriting the
   dormancy: **the trigger is re-specified without idle**, off the focus stream
   alone — a window that has not been looked at in four hours, on a desk where other
   windows were, is exactly the observation the offer needs, and it is **[live]** on
-  the collector Golem already runs. **What notices the four hours passing is named,
+  the collector Standard already runs. **What notices the four hours passing is named,
   because it is this trigger's doctrine-9 question answered honestly:** the system
   collector's **3 s tick** (`system.rs:19`, the same one A24 rides) compares
   against a stored last-focus instant — a poll that already runs, so no detector
@@ -1850,7 +1850,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   the database's name is never stored. **The honest blind spot, stated for P8:** a
   vault that lives in the tray has **no window**, so this action cannot see it at
   all; it exists only for vaults kept on screen, and P8 should weigh whether that is
-  most of them. Second gate: **no vault ships in Golem** (nothing in `system/`
+  most of them. Second gate: **no vault ships in Standard** (nothing in `system/`
   installs KeePassXC, Bitwarden or any sibling), so like A24's charge threshold this
   action comes into existence only on a machine whose owner installed one.
 - **Sentence:** "Your password vault is still unlocked, do you want it locked?" —
@@ -1861,7 +1861,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `crates/daemon/Cargo.toml:24`); for KeePassXC that is its documented
   `lockAllDatabases` method on its own D-Bus interface. **Condition (i) discharged
   as a rule, not a promise: where an app publishes no documented lock command, this
-  action does not exist for that app** — Golem does not aim a signal at another
+  action does not exist for that app** — Standard does not aim a signal at another
   program's process to make it do something it did not offer to do, which is the
   same treatment A24 gives absent hardware and A37 gives an absent preference key.
   The per-app command is verified per app and per version before the class is
@@ -1872,13 +1872,13 @@ each is discharged **inside its own block**, in writing, against the real tree:
   the action — a person who leaves the vault open on purpose has a threat model, and
   it is not ours to correct.
 - **Gear:** (a) **how long unattended before asking** (default 4 hours); (b) **which
-  vaults** — the classes Golem knows a lock command for, each removable; (c) **lock
+  vaults** — the classes Standard knows a lock command for, each removable; (c) **lock
   it on its own after this long**, the ladder's automatic rung; (d) don't offer this
   again.
 - **Ladder:** assisted = **[lock it]**, this once. Automatic = **the vault's own
   idle-lock preference**, turned on in the vault's own settings — **condition (ii)
-  discharged**: doctrine 6 says that when an app owns the behaviour Golem flips the
-  app's switch, and here it matters more than usual, because a Golem timer racing
+  discharged**: doctrine 6 says that when an app owns the behaviour Standard flips the
+  app's switch, and here it matters more than usual, because a Standard timer racing
   the vault's own timer produces two locks, two prompts and a bug report nobody can
   reproduce. The rung is revocable in the vault's UI, where a vault user already
   looks for it.
@@ -1908,7 +1908,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   provenance is **[live] and declared**, not inferred: the offer *tells* us, in a
   type name the clipboard code is already enumerating (`best_text_mime(&types)`,
   `clipboard.rs:493–502`). **Hunt #1's gate on OBSERVED non-clearing is honoured:**
-  Golem speaks only after **≥2 occasions** where a vault-born clip was **still the
+  Standard speaks only after **≥2 occasions** where a vault-born clip was **still the
   current offer after the window elapsed** — an *absence* on an event stream that
   already exists, **settled by the next clipboard offer's arrival**, the second
   event doctrine 9 asks for, so no detector owns a clock and nothing is read,
@@ -1929,7 +1929,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   Revocation is deleting that line.
 - **Refusal:** not now **retires it outright**. This is the batch's only single-
   refusal action, and deliberately so: the offer is made once, after evidence, about
-  a risk the user may already be managing by hand; a second asking would be Golem
+  a risk the user may already be managing by hand; a second asking would be Standard
   insisting it knows the user's password hygiene better than they do.
 - **Gear:** (a) **the window** — 15 / 30 / 60 seconds; (b) **what counts as
   vault-born** — clips the vault itself marks (default) or also anything copied
@@ -1974,7 +1974,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   there.
 - **Sentence:** "You clear your history most times you finish with the browser, do
   you want the browser to do it itself on the way out?"
-- **Verb(s):** **[clear it on the way out]** — **Golem never touches the history
+- **Verb(s):** **[clear it on the way out]** — **Standard never touches the history
   store.** It turns on **the browser's own clear-on-shutdown preference**, scoped to
   history, written **while the browser is not running**, and the browser does the
   deleting it has always known how to do. **The three F6 conditions are carried
@@ -1984,7 +1984,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `prefs.js` of the default profile, written while closed; `user.js` was considered
   and **rejected**, because it re-asserts at every start and takes the setting away
   from the browser's own UI, which is authorship the user never signed. **For
-  Golem's default browser, Chrome, the answer is no.** `programs.chromium` ships
+  Standard's default browser, Chrome, the answer is no.** `programs.chromium` ships
   `google-chrome` as the desktop's browser (`system/home/home.nix:169–171`), and
   Chrome's only documented scoped mechanism is an **enterprise policy**
   (`ClearBrowsingDataOnExitList`, which does take browsing history) — written into
@@ -2011,17 +2011,17 @@ each is discharged **inside its own block**, in writing, against the real tree:
   qualifies; (c) **turn it back off** — flips the browser's preference back, so the
   undo lives beside the do; (d) don't offer this again.
 - **Ladder:** the rule **is** the offer (doctrine 3), and there is no rung above it:
-  the browser is already doing it every time. The rung *below* — Golem clearing the
+  the browser is already doing it every time. The rung *below* — Standard clearing the
   history itself — is the one F6 removed, and it stays removed.
 - **Privacy note:** a u8 count of observed clear-dialog appearances plus the
-  **≈32 B** lifecycle row — **≈33 B**. Golem knows **that** you clear, never
+  **≈32 B** lifecycle row — **≈33 B**. Standard knows **that** you clear, never
   **what** was cleared: no URL, no title text, no history entry is ever read, and
   the preference write is a boolean in another program's config file. This is
   Constitution VI.2's own example, honoured literally.
-- **Fires:** **one sentence, ever** — and **zero on a stock Golem desktop**, because
+- **Fires:** **one sentence, ever** — and **zero on a stock Standard desktop**, because
   the browser that ships is the one this action does not exist for. Habit unlock, no
   cluster, waits behind everything expiring. **Flagged for P8:** the constitution's
-  flagship illustration is, on today's Golem, mute — which is a finding about the
+  flagship illustration is, on today's Standard, mute — which is a finding about the
   distro's browser choice, not about the action.
 
 ---
@@ -2046,7 +2046,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   `max_brightness` as a percent, on the collector's existing poll, **no new
   wakeup** — which makes this **[cheap], in our own tree**, the same shape as unit
   3's six. One discipline is binding and is the reason the evidence is not simply
-  "the level changed": **Golem's own dimming must never count.** The shipped
+  "the level changed": **Standard's own dimming must never count.** The shipped
   `system.battery_dim` OPTION (§4.29) sets 40 % itself, and an engine that counted
   that would learn its own behaviour and offer it back — the identical trap A17
   avoids by counting only the user's own DND toggles, and A39 avoids below. **Three
@@ -2126,7 +2126,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   branches (`main.rs:4292` on activate, `main.rs:4306` on launch), and `usage.json`
   is the one sort key the dock ranks by; a Golem-run morning would therefore teach
   the launcher that the user clicks six apps every day that they never clicked,
-  re-ordering their own dock around Golem's behaviour. One bool on the launch path
+  re-ordering their own dock around Standard's behaviour. One bool on the launch path
   fixes it, and that bool is why this action is **[cheap]-pending rather than
   live**.
 - **Refusal:** not now = silent **for a fortnight**, and then only if the set is
@@ -2195,7 +2195,7 @@ each is discharged **inside its own block**, in writing, against the real tree:
   still stands between the user and a lost document. This is hunt #1's repair of
   R05's data-loss hazard and it lives in the verb line, not in a footnote. The one
   name to verify before this ships is the **fork's Lua spelling of the close
-  dispatcher**: the legacy `hyprctl` form is rejected by Golem's fork (A29's
+  dispatcher**: the legacy `hyprctl` form is rejected by Standard's fork (A29's
   finding), so the Lua dispatch is the only road, and the channel that carries it is
   already proven. Stopping playback rides `playerctl`, which the daemon already
   shells out to (`main.rs:2789`) — that is **U0068**'s home, the music going off as
@@ -2256,5 +2256,5 @@ budget is a debt, not a gate** — expiring moments overrun it and tighten the n
 day. And the batch's honest headline, recounted block by block in P9: **10 of 34
 can speak on today's engine; 24 cannot** (hunt #2 fixed 13→11 by removing A01 and
 A07; P9 then removed A19, whose own block says no annotator or screenshots dir
-ships on a stock Golem). Next: batch 2, phase P0.*
+ships on a stock Standard). Next: batch 2, phase P0.*
 

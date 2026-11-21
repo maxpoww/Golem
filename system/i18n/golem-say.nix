@@ -1,4 +1,4 @@
-# golem-say — Golem's own messages in the owner's language (golem-say.sh says
+# golem-say — Standard's own messages in the owner's language (golem-say.sh says
 # how). Every module that posts a notification takes it the same way:
 #
 #   golemSay = pkgs.callPackage <path to>/system/i18n/golem-say.nix { };

@@ -1,5 +1,5 @@
 # boot/systemd-boot — RETIRED from the chooser 2026-09-15 (#92, Max:
-# "i want Golem to look and feel the same no matter if it is booting on
+# "i want Standard to look and feel the same no matter if it is booting on
 # grub or Systemd"). systemd-boot cannot be themed AT ALL — font,
 # colors, geometry are compiled in — so one look everywhere means one
 # menu everywhere: boot/grub-efi.nix now takes firmware=uefi, carrying

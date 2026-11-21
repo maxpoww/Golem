@@ -1,14 +1,14 @@
-# Golem OS — Features a finished OS needs
+# Standard OS — Features a finished OS needs
 
 > Compiled 2026-08-29 from macOS (Tahoe 26), Windows 11 (2026), Ubuntu/Fedora,
 > GNOME (50), and KDE Plasma 6 — plus what any laptop/touchscreen user simply
 > expects. This is the *universe of user needs*, not a commitment: items get
 > promoted from here into `OPTIONS/modules.md` / `roadmap.md` when we decide to
-> build them. Being useful is the point — a user should never hit "Golem can't
+> build them. Being useful is the point — a user should never hit "Standard can't
 > do that basic thing."
 >
-> Legend: **✔** Golem has it today · **~** partial · (blank) missing.
-> Marks checked against the code of `main` on 2026-11-16 (Golem `355bb22`,
+> Legend: **✔** Standard has it today · **~** partial · (blank) missing.
+> Marks checked against the code of `main` on 2026-11-16 (Standard `355bb22`,
 > launcher `0ddf6d60`); a line in italics under an item says what is there and
 > what is not. Eight items could not be settled from the code and keep their
 > old mark: sound effects, media-key popups, webcam, audio hotplug,
@@ -130,7 +130,7 @@
 - ✔ Web browser (ship a default; webapps catalog ✔ complements)
   *Seam.*
 - ✔ Text editor (simple, instant)
-- ✔ Terminal (foot ships; Golem's promise = you never *need* it)
+- ✔ Terminal (foot ships; Standard's promise = you never *need* it)
 - Calculator
 - Calendar (+ event notifications)
 - ~ Clock: alarms, timers, stopwatch, world clocks
@@ -178,7 +178,7 @@
 - Find my device (someday)
 - Verified boot chain (someday; TPM story)
 
-## 8. Updates, backup & maintenance (Golem's home turf — Nix superpowers)
+## 8. Updates, backup & maintenance (Standard's home turf — Nix superpowers)
 - ~ OS updates: atomic, background, rollback-able (nixos-rebuild generations
   = better than every OS listed; needs a "roll back" button)
   *Has: daily background updates, an Updates page, automatic rollback after a crash loop. Missing: a go-back button.*
@@ -229,13 +229,13 @@
 ---
 
 ### How to read this file
-Golem's real gaps on 2026-11-16, by weight: **the small everyday apps (§6:
+Standard's real gaps on 2026-11-16, by weight: **the small everyday apps (§6:
 calculator, calendar, weather, camera, photos, recorder, contacts, help),
 accessibility (§9: high contrast, sticky keys, on-screen keyboard, captions,
 colour filters), backup (§8), an input method (§10), casting and remote
 desktop (§4), and the first-run tour.** Settings (§3) and laptop plumbing
 (§5), the gaps of September, are mostly built. Most §6 items are a curation
-decision (`apps.md`: build / curate / webapp). §8 is where Golem can *lead*,
+decision (`apps.md`: build / curate / webapp). §8 is where Standard can *lead*,
 not catch up: a versions page with "roll back" is a feature no mainstream OS
 matches, and it is still not built.
 

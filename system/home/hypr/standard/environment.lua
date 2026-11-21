@@ -1,4 +1,4 @@
-local M = require("golem.lib").machine
+local M = require("standard.lib").machine
 
 ---- ENVIRONMENT VARIABLES ----
 -- The owner's REAL login shell (machine.shell, from users.users.<owner>.shell):

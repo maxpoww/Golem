@@ -1,13 +1,13 @@
-# Golem OS
+# StandardOS
 
 A NixOS-based desktop built around one idea: the whole environment — dock,
 launcher, notifications, clipboard, workspace overview — is a single coherent
 organism, not a pile of configured parts. OPTIONS is its soul. See
-[docs/vision/Golem.md](docs/vision/Golem.md) for the vision and
+[docs/vision/StandardOS.md](docs/vision/StandardOS.md) for the vision and
 [docs/vision/roadmap.md](docs/vision/roadmap.md) for where it's going.
 
 **Status: pre-alpha.** This repo is the distribution itself (the flake at the
-root builds every Golem machine, the installer ISO and the test matrices), plus
+root builds every Standard machine, the installer ISO and the test matrices), plus
 its documentation and worklog.
 
 ## The map — where everything lives
@@ -20,18 +20,18 @@ its documentation and worklog.
 | `system/Modular/` | **The distro**: one leaf per concern (base, boot, cpu, gpu, disk, desktop…), `composition.nix` + the `choose.nix` chooser | ⚠ Path is rendered into installed machines' `modules.nix`. Never rename |
 | `system/` (other files) | The older all-in-one profile (`configuration.nix`, `home/`, `golem-apps.nix`…), ported into `Modular/` leaf by leaf | Port, don't grow |
 | `system/home/` | The home layer (home-manager), one file a concern: `hypr/` (Hyprland's configuration, in Lua modules: its README is the map) and `hyprland.nix` (this machine's generated facts), `dock.nix`, `look.nix`, `terminal.nix`, `editor.nix`, `files.nix`, `default-apps.nix`, `idle.nix`, `fits.nix`, zsh… `home.nix` is the list | |
-| `system/modules/` | **The app modules** — the dock's Modules (Gaming, Development, Music Production… 25): one file per module, the programs the owner switched on AND the system each needs. The catalog is the dock's own `modules.json`; its README is the map | A module's id is its option's name (`golem.modules.<id>`) and what a machine's selection file names: never rename one |
-| `system/machine/` + `machine.nix` | **One computer, from its own folder**: the `/etc/nixos` layout — `lib.golem.machine`, Golem as root's editable copy (`golem-update`, `golem-recover`, `golem-status`), the nightly update, the dock's installs and the first-boot build of that layout, the folder's template. [docs/system/Layout.md](docs/system/Layout.md); its README is the map | `machine.nix` (repo root) is what every machine's own `flake.nix` calls: never move or rename it. The template's file names are a contract too |
+| `system/modules/` | **The app modules** — the dock's Modules (Gaming, Development, Music Production… 25): one file per module, the programs the owner switched on AND the system each needs. The catalog is the dock's own `modules.json`; its README is the map | A module's id is its option's name (`standard.modules.<id>`) and what a machine's selection file names: never rename one |
+| `system/machine/` + `machine.nix` | **One computer, from its own folder**: the `/etc/nixos` layout — `lib.standard.machine`, Standard as root's editable copy (`golem-update`, `golem-recover`, `golem-status`), the nightly update, the dock's installs and the first-boot build of that layout, the folder's template. [docs/system/Layout.md](docs/system/Layout.md); its README is the map | `machine.nix` (repo root) is what every machine's own `flake.nix` calls: never move or rename it. The template's file names are a contract too |
 | `system/i18n/` | Golem's own messages (notifications, the greeter, the last-resort screen) in the owner's language: `golem-say` + one catalogue per language, keyed by the English like the shell's | A message changed in a script is a new key: run `bash system/i18n/check.sh` |
-| `hosts/` | Per-machine instances: `target/` (installed Golem), `golem/`, `vm.nix`, `iso.nix` | |
+| `hosts/` | Per-machine instances: `target/` (installed Standard), `golem/` (this build machine), `vm.nix`, `iso.nix` | |
 | `Installer/preinstall/` | The installer ISO's implementation (the flake the ISO is built from, `fixtures/` for the eval matrix, `run-vm.sh`) | `fixtures/` is read by the build. Don't move it |
 | `Installer/installing/` | The live INSTALLING program: `spec.md`, per-machine ledgers, delivery `tools/` | |
-| `seam/` | Seam, Golem's browser (Mozilla build + policies + chrome + 4h update lane) | ⚠ The dev box's `/etc/nixos` and `seam-update.service` use this absolute path. Never move |
-| `updates/` | **How Golem updates**: the update lane (build every system, cache its pieces on GitHub, publish `stable`), the client side every install gets, README + RUNBOOK | Installs follow `stable`, never `main`. ⚠ `client.nix` is imported by `system/Modular/composition.nix` |
+| `seam/` | Seam, Standard's browser (Mozilla build + policies + chrome + 4h update lane) | ⚠ The dev box's `/etc/nixos` and `seam-update.service` use this absolute path. Never move |
+| `updates/` | **How Standard updates**: the update lane (build every system, cache its pieces on GitHub, publish `stable`), the client side every install gets, README + RUNBOOK | Installs follow `stable`, never `main`. ⚠ `client.nix` is imported by `system/Modular/composition.nix` |
 | `golem-connectd/` | Rust daemon (phone link) | |
 | `docs/` | All design and maintainer documentation (below) | |
 | `work/` | The living worklog: `GRIND.md`, `NOTES.md`, `todo/` (incl. `issues.md`) | Scratch, not spec |
-| `tools/` | Dev scripts: `parity/` (**golem-parity**: a Golem machine's live desktop vs the dev box's), `iso-smoke.sh`, `golem-mirror`, `loop/` (Gulum overnight loop), `latest/` (**what Golem uses of NixOS and Hyprland, against the latest of each**: run `tools/latest/check.sh` before moving either pin) | Run `tools/parity/golem-parity max@<ip>` after every install/deploy; findings go in `work/parity.md` |
+| `tools/` | Dev scripts: `parity/` (**golem-parity**: a Standard machine's live desktop vs the dev box's), `iso-smoke.sh`, `golem-mirror`, `loop/` (Gulum overnight loop), `latest/` (**what Standard uses of NixOS and Hyprland, against the latest of each**: run `tools/latest/check.sh` before moving either pin) | Run `tools/parity/golem-parity max@<ip>` after every install/deploy; findings go in `work/parity.md` |
 
 ### `docs/`, following the Modes / Shell / Installing sketch ([docs/STRUCTURE-sketch.md](docs/STRUCTURE-sketch.md))
 
@@ -39,11 +39,11 @@ its documentation and worklog.
 |---|---|
 | `docs/vision/` | Manifesto, roadmap, features, apps, android, system landscape, accessibility research |
 | `docs/shell/options/` | **OPTIONS**: constitution, UXRules, catalog, contexts, options-list, modules, method, PLAN |
-| `docs/shell/actions/` | ACTIONS (Golem speaks first): constitution, conditions, the research agent + its `work/` output |
+| `docs/shell/actions/` | ACTIONS (Standard speaks first): constitution, conditions, the research agent + its `work/` output |
 | `docs/shell/dockmenu/` | Dock + menu box maintainer program: README, INVARIANTS, SECURITY, AUDIT, harness, machines |
 | `docs/shell/` | onboarding design, keyboard audit |
-| `docs/installing/` | **`install.md`: how a Golem install works today** (the media, the screens, the disk, first boot, updates, the lab door, testing, limits). The older files there point to it; `preinstall/HISTORY.md` + `preinstall/testing/` keep the six-round lab archive |
-| `docs/system/` | **`Layout.md`: where everything lives** (the machine in `/etc/nixos`, Golem pinned and read-only, nothing of the system in a home; the stages to get there), `GolemModules.md` (the module/app-bundle design) |
+| `docs/installing/` | **`install.md`: how a Standard install works today** (the media, the screens, the disk, first boot, updates, the lab door, testing, limits). The older files there point to it; `preinstall/HISTORY.md` + `preinstall/testing/` keep the six-round lab archive |
+| `docs/system/` | **`Layout.md`: where everything lives** (the machine in `/etc/nixos`, Standard pinned and read-only, nothing of the system in a home; the stages to get there), `GolemModules.md` (the module/app-bundle design) |
 | `docs/security/` | `GolemSecurity.md` |
 | `docs/omarchy.md` | What was taken from Omarchy for speed, what was not, and what each was measured at |
 | `docs/release/` | `release-checklist.md` |
@@ -57,7 +57,7 @@ its documentation and worklog.
 | `~/Golem-web` | golem-os.com | none |
 | `/etc/nixos` | The dev box's own config (Max's machine; imports `~/Golem/seam`) | none |
 
-A component change reaches Golem machines only after it is **pushed**, the
+A component change reaches Standard machines only after it is **pushed**, the
 pin is **bumped** here (`nix flake lock --update-input waverunner`, or
 `waveview`, then commit `flake.lock`), and the update lane has built and
 published that commit to `stable` ([updates/README.md](updates/README.md)).
@@ -89,18 +89,18 @@ nix build "$G#iso"                                            # the OLD live med
 
 **GPL-3.0-or-later.** Copyright © 2026 Max Power. See [LICENSE](LICENSE).
 
-Golem is free software: you may use, study, share and modify it. If you
+Standard is free software: you may use, study, share and modify it. If you
 distribute a modified version, you must pass those same freedoms on — nobody
-gets to take Golem, add telemetry or ads, and ship it closed. That is the
+gets to take Standard, add telemetry or ads, and ship it closed. That is the
 manifesto written in a form that holds up in court.
 
 GPL-3 also chosen because the planned Android companion forks
 [kdeconnect-android](https://invent.kde.org/network/kdeconnect-android), which
 is GPL-3.0, so the phone side is copyleft regardless — one license across the
 project is simpler than two. The anti-tivoization clause matters too: nobody can
-ship Golem on hardware where the user can't replace it.
+ship Standard on hardware where the user can't replace it.
 
-Golem builds on and ships other people's software under their own licenses —
+Standard builds on and ships other people's software under their own licenses —
 the Linux kernel (GPL-2.0), NixOS (MIT), Hyprland (BSD-3-Clause), the GNOME
 applications (GPL) and others. Those are aggregated, not absorbed; each keeps
 its own terms.

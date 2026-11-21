@@ -9,7 +9,7 @@
 #     it would COMPILE on the owner's computer: tens of minutes and several
 #     GB, at an install or in the middle of a nightly update, and a build
 #     that fails there stops every update after it. A faster model is tuning,
-#     not what the program needs to work (README, rule 2), until Golem's own
+#     not what the program needs to work (README, rule 2), until Standard's own
 #     cache carries that build. By hand, on a machine that wants it, in its
 #     configuration:  services.ollama.package = pkgs.ollama-cuda;
 #     (AMD's ROCm supports few cards and the census cannot tell a card from a

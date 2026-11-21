@@ -1,26 +1,30 @@
-# base/core — every Golem machine's identity and plumbing, stage 0.
+# base/core — every Standard machine's identity and plumbing, stage 0.
 # Lifted verbatim from system/configuration.nix (2026-09-10); the WHY
 # comments travel with their lines. No facts read here — this is what
-# is true of EVERY Golem, or it doesn't belong in this file.
+# is true of EVERY Standard, or it doesn't belong in this file.
 { config, pkgs, lib, ... }:
 
 {
   # mkDefault so the installer's machine.nix can name the machine
   # without a conflicting-definition death (the GECOS lesson).
-  networking.hostName = lib.mkDefault "Golem";
-  system.nixos.distroName = "Golem";
+  networking.hostName = lib.mkDefault "Standard";
+  # THE NAME. The system is StandardOS ("Standard" where it is said short:
+  # the boot menu's "Start Standard"); Golem is the one who works inside it
+  # (docs/vision/StandardOS.md): its commands, its services and its notices
+  # keep its name.
+  system.nixos.distroName = "StandardOS";
   system.stateVersion = "26.05";
 
-  # Golem ships unfree and does not ask (webapp engine, firmware,
+  # Standard ships unfree and does not ask (webapp engine, firmware,
   # nvidia): an install-time "unfree?" question whose "no" breaks the
   # app set is not a question.
   nixpkgs.config.allowUnfree = true;
 
-  # A system monitor on EVERY Golem, minimal included (Max, 2026-09-18).
+  # A system monitor on EVERY Standard, minimal included (Max, 2026-09-18).
   # pciutils (#97): the rule-6 / GPU driver-binding audit asks for
   # `lspci -nnk`, but pciutils shipped only in the fat/desktop set — so the
   # literal command failed on a freshly installed minimal (the lenovo nvidia
-  # audit had to read sysfs instead). A few hundred KB, on every Golem, so
+  # audit had to read sysfs instead). A few hundred KB, on every Standard, so
   # every future hardware audit can just run lspci.
   environment.systemPackages = [ pkgs.btop pkgs.pciutils ];
 
@@ -33,7 +37,7 @@
     "L+ /usr/bin/env - - - - ${config.environment.usrbinenv}"
   ];
 
-  # Force-importing ZFS pools at boot risks data loss; Golem ships no
+  # Force-importing ZFS pools at boot risks data loss; Standard ships no
   # ZFS root — this only protects a tester who plugs in pools.
   boot.zfs.forceImportRoot = false;
 
@@ -61,7 +65,7 @@
     "vm.dirty_writeback_centisecs" = 1500;
   };
 
-  # The quiet boot — Golem's console is silent until Golem speaks. But
+  # The quiet boot — Standard's console is silent until Standard speaks. But
   # QUIET, not BLANK: a stage-0 machine has no compositor, so fbcon IS
   # its only display. The two params that HIDE the framebuffer console —
   # `fbcon=map:1` (maps the console to framebuffer 1) and `splash` — are
@@ -109,9 +113,9 @@
 
   # (The stale-boot-pin cleanup moved to boot/systemd-boot.nix — it is
   # bootctl, i.e. UEFI-only, and running it on a BIOS machine printed
-  # "Not booted with UEFI." onto Golem's silent boot every time. #68.)
+  # "Not booted with UEFI." onto Standard's silent boot every time. #68.)
 
-  # Run-anything conveniences — tiny, and part of "feels like Golem".
+  # Run-anything conveniences — tiny, and part of "feels like Standard".
   programs.nix-ld.enable = true;
   services.envfs.enable = true;
 

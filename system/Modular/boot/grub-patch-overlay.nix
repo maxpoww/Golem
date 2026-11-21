@@ -1,4 +1,4 @@
-# boot/grub-patch-overlay — the Golem grub patches as ONE overlay, shared by
+# boot/grub-patch-overlay — the Standard grub patches as ONE overlay, shared by
 # the installed bootloader leaves (grub-patched.nix) and the ISO medium
 # (Installer/preinstall/iso.nix).
 #

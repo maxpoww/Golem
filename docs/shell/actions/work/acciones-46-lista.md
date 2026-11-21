@@ -1,7 +1,7 @@
 # La lista de ACCIONES — las 46, de ambos lotes
 
 Compilado de los registros cerrados `work/batch-01/actions-40.md` y
-`work/batch-02/actions-40.md`. Formato por acción: **la frase que Golem dice** ·
+`work/batch-02/actions-40.md`. Formato por acción: **la frase que Standard dice** ·
 la pastilla-verbo que ofrece · el disparador (cuándo se activa) · estado actual.
 
 El estado es el libro honesto del lote: **[live]** = puede hablar en el motor de
@@ -40,7 +40,7 @@ entrega 12 (2 activas).
 ### A05 — la devolución
 - **frase:** "Tu llamada ha terminado, ¿quieres ver lo que retuve?"
 - **verbo:** [muéstramelo]
-- **disparador:** el micrófono se desactiva después de que Golem retuviera la cola de notificaciones
+- **disparador:** el micrófono se desactiva después de que Standard retuviera la cola de notificaciones
 - **estado:** [live] (después de la forma permanente de A04; si no, silenciosa)
 
 ### A07 — pausa cuando me aparto
@@ -137,7 +137,7 @@ entrega 12 (2 activas).
 - **frase:** "Mantienes la pantalla despierta a mano mientras lees, ¿quieres que se quede despierta aquí?"
 - **verbo:** [mantenla despierta aquí]
 - **disparador:** retorno de inactividad sin nada que lo siga, ≥3×
-- **estado:** **dormant** — Golem no entrega ningún gestor de inactividad sobre el que actuar
+- **estado:** **dormant** — Standard no entrega ningún gestor de inactividad sobre el que actuar
 
 ### A27 — seguir a mis auriculares
 - **frase:** "Pasas el sonido a mano cada vez que llegan estos auriculares, ¿quieres que lo tomen solos?"
@@ -173,7 +173,7 @@ entrega 12 (2 activas).
 - **frase:** "Bloqueas la pantalla a mano cada vez que te levantas, ¿quieres que quede bloqueada en cuanto duerma?"
 - **verbo:** [bloquear al dormir la pantalla]
 - **disparador:** el bloqueo propio del usuario seguido de inactividad, ≥3×
-- **estado:** **dormant** — Golem no entrega ni gestor de inactividad ni candado
+- **estado:** **dormant** — Standard no entrega ni gestor de inactividad ni candado
 
 ### A34 — otro dedo
 - **frase:** "El lector de huellas falla la mitad de las veces, ¿quieres añadir otro dedo?"
@@ -195,7 +195,7 @@ entrega 12 (2 activas).
 
 ### A37 — de salida
 - **frase:** "Borras tu historial casi cada vez que terminas con el navegador, ¿quieres que el navegador lo haga él solo al salir?"
-- **verbo:** [bórralo al salir] — la preferencia del propio navegador, Golem jamás toca el historial
+- **verbo:** [bórralo al salir] — la preferencia del propio navegador, Standard jamás toca el historial
 - **disparador:** aparece el diálogo de borrar datos del navegador, ≥3× en días distintos
 - **estado:** [new] en espera — existe para Firefox; deliberadamente NO existe para el Chrome incluido
 

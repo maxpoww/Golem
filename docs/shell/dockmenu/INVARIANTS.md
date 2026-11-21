@@ -1,6 +1,6 @@
 # INVARIANTS — the bullet-proof contract
 
-> Testable statements the dock/menubox must hold on every Golem machine,
+> Testable statements the dock/menubox must hold on every Standard machine,
 > from first boot to year 5. `harness/aging-check.sh` asserts the
 > machine-checkable ones; the rest are held by code + tests in
 > `~/launcher`. A violated invariant is a finding, always.

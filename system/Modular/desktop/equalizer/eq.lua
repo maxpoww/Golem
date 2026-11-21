@@ -1,4 +1,4 @@
--- Golem: the owner's equalizer, one per output, put back whenever the output
+-- Standard: the owner's equalizer, one per output, put back whenever the output
 -- appears (start, a profile switch, a Bluetooth device connecting).
 --
 -- The dock owns the equalizer: its pages change the sound live (pw-cli on

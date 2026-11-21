@@ -9,7 +9,7 @@ prose only, coverage fixed by conditions.md §2.*
 
 ---
 
-**1.** Golem's shell already puts the right tool under the hand when the hand is on
+**1.** Standard's shell already puts the right tool under the hand when the hand is on
 the object; ACTIONS is the other half — the few moments the system speaks first,
 having noticed something and formed an intention on the user's behalf. The shape is
 fixed and small: a sensed condition, one sentence, one verb in a nested pill, a
@@ -40,7 +40,7 @@ Thirteen of the thirty-four can speak on today's engine. The twenty-one that can
 fail in three shapes: three dormant on work tagged [new]; the majority waiting on
 named [cheap] work in our own tree, always one level deeper in a collector that
 already runs — a title event the parser drops, one more file inside the `read_dir`
-that answers `has_backlight`; and two dormant on an absence, since Golem ships no
+that answers `has_backlight`; and two dormant on an absence, since Standard ships no
 idle manager and no locker at all.
 
 **3.** The surface is not hypothetical: the sunset prototype has been live since

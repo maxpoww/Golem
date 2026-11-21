@@ -25,7 +25,7 @@ open(f"{PROF}/user.js", "w").write("\n".join([
  'user_pref("browser.shell.checkDefaultBrowser", false);', 'user_pref("browser.aboutwelcome.enabled", false);',
  'user_pref("browser.startup.homepage_override.mstone", "ignore");', 'user_pref("datareporting.policy.dataSubmissionEnabled", false);', '']))
 STATE = f"{PROF}/.local/state"; os.makedirs(f"{STATE}/golem/theme")
-def theme(**rows):   # the dock's theme file: Golem's dark pair, the site is a webapp's
+def theme(**rows):   # the dock's theme file: Standard's dark pair, the site is a webapp's
     c = dict(dark=True, base01="#1d2026", base05="#e6e3dd", webapp_hosts=["127.0.0.1"]); c.update(rows)
     t = f"{STATE}/golem/theme/colors.json.tmp"; open(t, "w").write(json.dumps(c)); os.replace(t, f"{STATE}/golem/theme/colors.json")
 theme(web=False, apps=True)

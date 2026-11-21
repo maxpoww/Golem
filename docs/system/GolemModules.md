@@ -9,7 +9,7 @@
 >
 > Status (2026-11-19): the SYSTEM SIDE IS BUILT, in `system/modules/`
 > (README there): one file per module of the dock's catalog, the option shape
-> below (`golem.modules.<module>.<tool>.enable`, plus the module's own
+> below (`standard.modules.<module>.<tool>.enable`, plus the module's own
 > `enable` and `install`), each program's system setup keyed on the installed
 > program (what was `desktop/app-setup.nix`), `checks.modules-matrix`.
 > The catalog itself is the dock's `modules.json` (§4 below is the first
@@ -17,13 +17,13 @@
 > not hand-declared options but the catalog's entries, checked at evaluation;
 > no group that is root is ever given (§4.2's `libvirtd`/`docker` groups
 > became the owner's own libvirt session and rootless Docker). NOT built:
-> §6's apply pipeline for a selection file (`golem.modules.listPath` reads
+> §6's apply pipeline for a selection file (`standard.modules.listPath` reads
 > one; nothing writes it yet — the dock's Apply installs the programs through
 > the app list, and their setup follows from that).
 
 ## 1. The idea
 
-A fresh Golem install should stay clean: nobody wants Steam, virt-manager
+A fresh Standard install should stay clean: nobody wants Steam, virt-manager
 and DaVinci Resolve pre-seeded on a laptop that will only ever browse and
 write documents. But the moment someone DOES want to game, or edit video,
 or run VMs, they should get more than a package — they should get the
@@ -45,7 +45,7 @@ AND is configured for it.
 software: the UI never generates configuration and never installs anything
 that wasn't already authored, reviewed and committed to this flake. The
 only thing a user action ever does is flip a pre-declared boolean —
-`golem.modules.<category>.<tool>.enable` — against a **closed set** of
+`standard.modules.<category>.<tool>.enable` — against a **closed set** of
 options that exist in the evaluated config. This is the same trust
 boundary `waverunner-apply.nix` already enforces for packages (§3), moved
 up one level: instead of validating "is this a legal nixpkgs attr name,"
@@ -66,7 +66,7 @@ not reconstructed per install the way a forum answer is.
 |---|---|---|
 | The gated-module pattern itself: one family per file, permanently imported, internally `mkIf`-gated on a fact, every value `mkDefault` | `system/hardware/*.nix`, spec'd in `GolemInstall.md` §5 | built — this doc's `system/modules/*.nix` is the same pattern, gated on a user *choice* instead of a hardware *fact* |
 | The declarative-install pipeline: user-writable selection file → `systemd.path` watch → root validates → regenerates a tracked Nix file → `nixos-rebuild switch` → snapshot last-good on success / restore on failure → status JSON back to the UI | `system/waverunner-apply.nix` | built — today it only ever emits a flat `home.packages` list; §6 generalizes it to flip option booleans instead |
-| "Clean fresh install" is already policy, not aspiration: `golem.lean` strips the launcher-installed list and the non-essential CURATE set for the ISO; an installed machine starts from nothing and grows only through user action | `system/configuration.nix` (`golem.lean`) | built |
+| "Clean fresh install" is already policy, not aspiration: `standard.lean` strips the launcher-installed list and the non-essential CURATE set for the ISO; an installed machine starts from nothing and grows only through user action | `system/configuration.nix` (`standard.lean`) | built |
 | The UI half already ships: waverunner's **Install section**, described in `apps.md` as `Software center — ✔ shipped`, drives `waverunner-apply.nix` today by writing `packages.list` | `apps.md` (BUILD table), `~/launcher` (out of scope for this repo — see §9) | built, single-tier |
 | Rebuild-vs-reboot honesty: `rebuild-golem` already diagnoses "activated == latest" vs "REBOOT REQUIRED" by comparing `/run/current-system`, the system profile and `/run/booted-system` | `system/configuration.nix` (`rebuild-golem` script) | built — §7 reuses this signal for modules that need more than a rebuild |
 
@@ -94,7 +94,7 @@ module that wires firewall ports and the FHS wrapper correctly, so the
 just be a Steam sub-toggle rather than its own checkbox), Lutris, Heroic
 (Epic/GOG), MangoHud (perf overlay), a controller-config note (`hardware.
 uinput.enable` already on for golem-connectd — confirm no conflict).
-**Hardware gate:** old-hardware honesty — a machine `golem.hardware.gpu`
+**Hardware gate:** old-hardware honesty — a machine `standard.hardware.gpu`
 reports as pre-Turing nouveau-floor or ancient Intel should see this
 category with a visible caveat, not a silent invitation to install Steam
 onto a GPU that will chug (same posture as the [[golem-show-linux-trauma-hardware-working]] rule: reveal it, don't hide it, don't oversell it).
@@ -109,7 +109,7 @@ own re-login caveat), `virtualisation.waydroid.enable` (Android app
 compat — genuinely useful on a distro courting Android-adjacent users per
 the phone-as-lab-driver work) as a candidate.
 **Hardware gate:** KVM needs `vmx`/`svm` in `/proc/cpuinfo` — worth a real
-check (`golem.hardware.cpuVendor` already exists; a `virtEnabled` fact is
+check (`standard.hardware.cpuVendor` already exists; a `virtEnabled` fact is
 a cheap addition) so the box is honestly greyed out on hardware without
 hardware virtualization rather than installing a stack that can't run.
 
@@ -164,11 +164,11 @@ category overlap the WEBAPP catalog enough that it's not really a
 On-device inference: Ollama (`services.ollama.enable` already exists
 upstream in nixpkgs with a `hardware`/`acceleration` option worth reusing
 rather than re-inventing), llama.cpp, a local web UI (Open WebUI or
-similar). **Hardware gate is the whole story here:** Golem's stated
+similar). **Hardware gate is the whole story here:** Standard's stated
 priority is broad old-hardware support ([[golem-north-star-and-rounds]]) —
 most of the lab fleet cannot run useful local models. This category must
 be the most honest about it: CPU-only inference offered without
-inflated promises, GPU acceleration only where `golem.hardware.gpu`
+inflated promises, GPU acceleration only where `standard.hardware.gpu`
 actually supports it (nvidia CUDA / ROCm), and a plain "this will be slow
 on this machine" note rather than silence, matching the reveal-and-affirm
 posture already set for hardware.
@@ -177,13 +177,13 @@ posture already set for hardware.
 nixpkgs' CUDA build of Ollama is in no cache (CUDA is unfree), so on an
 owner's machine it would compile for tens of minutes at an install or inside
 a nightly update, and a build that fails there stops every update after it.
-GPU acceleration waits for Golem's own cache to carry that build (the update
+GPU acceleration waits for Standard's own cache to carry that build (the update
 lane); until then it is one line by hand in a machine's configuration.*
 
 ### 4.9 Music Production — BUILT (first real category, 2026-09-08)
 
 Max's request directly: "check all, one click, add" — no per-tool picks in
-v1, one switch (`golem.modules.music-production.enable`) turns on the whole
+v1, one switch (`standard.modules.music-production.enable`) turns on the whole
 kit. Live at `system/modules/music-production.nix`, imported in
 `system/configuration.nix`, evaluated clean against the golem host
 (`environment.systemPackages` resolved to real store paths, `nix eval`
@@ -260,8 +260,8 @@ casing (nixpkgs renamed it from `surge-XT`) and the `linuxPackages-rt`
 removal.
 
 **To test (Max, on the real machine):** add
-`golem.modules.music-production.enable = true;` to the `golem` host's
-module list in `flake.nix` (next to `golem.flakeDir`), then
+`standard.modules.music-production.enable = true;` to the `golem` host's
+module list in `flake.nix` (next to `standard.flakeDir`), then
 `rebuild-golem`. Whatever the organ actually needs beyond "plug in a
 class-compliant USB MIDI/audio device" — it should just work via ALSA/
 PipeWire without extra udev rules, but this is exactly the sentence real
@@ -286,7 +286,7 @@ system/modules/
   local-ai.nix
 ```
 
-Each declares, per tool: `options.golem.modules.<category>.<tool>.enable =
+Each declares, per tool: `options.standard.modules.<category>.<tool>.enable =
 lib.mkEnableOption "<human label — this doubles as UI catalog text, see
 §8>";` and `config = lib.mkIf cfg.enable { … };`. Category-level shared
 plumbing (§4.1/4.2's "shared" blocks) is `mkIf (lib.any (t: t.enable)
@@ -303,12 +303,12 @@ surfaces (arbitrary attr names vs. a closed option set) that keeping them
 separate services is simpler than merging:
 
 - **Selection file:** `~/.config/golem/modules.list`, user-writable, one
-  `golem.modules.<category>.<tool>` token per line (mirrors the
+  `standard.modules.<category>.<tool>` token per line (mirrors the
   attr-per-line shape of `packages.list`).
 - **Validation:** for each line, confirm it names a real, currently
   evaluated `.enable` option (a closed set baked into the generated file
   at build time, or checked via a small `nix eval --json` of
-  `options.golem.modules` — needs picking one; either keeps the "never
+  `options.standard.modules` — needs picking one; either keeps the "never
   interpret user text as code" rule `waverunner-apply.nix` already
   states). Anything else is dropped and logged, exactly like an invalid
   package name is today.

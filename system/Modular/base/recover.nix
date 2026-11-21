@@ -10,7 +10,7 @@
 # (system.configurationRevision) and the machine layer it was built from
 # (/etc/golem/machine, flake.nix). `golem-recover [system]` puts the source
 # back to exactly that — default: the running system:
-#   1. the owner's edits to Golem's own files are kept in
+#   1. the owner's edits to Standard's own files are kept in
 #      ~/Golem-local-edits/<when>/ (never lost);
 #   2. git goes to the system's revision (reset --hard on the owner's branch);
 #   3. hosts/target comes back from the system's own copy and is staged
@@ -24,8 +24,8 @@
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
-  dir = toString config.golem.flakeDir;
+  owner = config.standard.owner;
+  dir = toString config.standard.flakeDir;
   home = config.users.users.${owner}.home;
   recover = pkgs.writeShellApplication {
     name = "golem-recover";
@@ -131,8 +131,8 @@ let
       #    machine layer equal to the system's own copy. Until 2026-11-12
       #    this blessed whatever the reset produced, and golem-rollback (no
       #    password) runs it: rewritten objects, then root built them.
-      if ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
-         || GOLEM_SEAL_TRUSTED_MACHINE="$trusted" ${config.golem.seal.heal}/bin/golem-seal-heal; then
+      if ${config.standard.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         || GOLEM_SEAL_TRUSTED_MACHINE="$trusted" ${config.standard.seal.heal}/bin/golem-seal-heal; then
         :
       else
         echo "golem-recover: the source is reset but not sealed (not upstream's, or offline); the next update checks it again" >&2
@@ -223,13 +223,13 @@ let
       fi
       echo "golem-git-heal: still damaged — a fresh checkout of the upstream, keeping this machine's files" >&2
       asowner mv "$g" "$g.damaged-$now"
-      ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
+      ${config.standard.seed.adopt}/bin/golem-seed-adopt || true
       healthy || { echo "golem-git-heal: could not repair the checkout (offline?)" >&2; exit 1; }
     '';
   };
 in
 {
-  options.golem.gitHeal = lib.mkOption {
+  options.standard.gitHeal = lib.mkOption {
     type = lib.types.package;
     internal = true;
     readOnly = true;
@@ -238,13 +238,13 @@ in
   };
   # (Not read-only: the /etc/nixos layout has no checkout to reset and gives
   # its own, which puts the machine folder's pin back — machine/layout.nix.)
-  options.golem.recover = lib.mkOption {
+  options.standard.recover = lib.mkOption {
     type = lib.types.package;
     internal = true;
     default = recover;
     description = "golem-recover: put the source back to what built a given system.";
   };
-  config = lib.mkIf (config.golem.flakeDir != null) {
+  config = lib.mkIf (config.standard.flakeDir != null) {
     environment.systemPackages = [ recover heal ];
   };
 }

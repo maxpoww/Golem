@@ -5,7 +5,7 @@
   # ── Default apps (roadmap S5) ─────────────────────────────────────────
   # Every file type opens in the CURATE pick from golem-apps.nix. Without
   # this, "open with" is whatever alphabetical accident the desktop-file
-  # scan lands on — the difference between Golem feeling assembled and
+  # scan lands on — the difference between Standard feeling assembled and
   # feeling like a pile of packages.
   #
   # Not wired here: text/html and the http/https schemes. Those ARE the
@@ -100,7 +100,7 @@
       };
     };
 
-  # Golem's defaults sit BELOW the owner's choice (2026-10-13, the control
+  # Standard's defaults sit BELOW the owner's choice (2026-10-13, the control
   # panel's "Default apps"). home-manager writes the table twice: as
   # ~/.config/mimeapps.list, and as ~/.local/share/applications/mimeapps.list.
   # The first is the file `xdg-mime default` and every "always open with" box

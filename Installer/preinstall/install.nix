@@ -6,23 +6,23 @@
 # evaluation out — never assembled configuration prose):
 #
 #   1. size the hibernation swap by ASKING THE FLAKE for the rule
-#      (lib.golem.swapForHibernationMB) rather than reimplementing it here
+#      (lib.standard.swapForHibernationMB) rather than reimplementing it here
 #   2. partition GPT: ESP + swap + root, labelled ESP / swap / golem
-#   3. gather Golem and this machine's files in a root-only stage on the
+#   3. gather Standard and this machine's files in a root-only stage on the
 #      new root (until 2026-11-19 they were seeded into the owner's home and
 #      stayed there: the system lived in ~/Golem)
 #   4. drop the four per-machine files into the stage's hosts/target/:
 #        golem-hardware.nix           the probe's facts
 #        hardware-configuration.nix   nixos-generate-config's filesystems
 #        machine.nix                  the human choices
-#        postinstall-questions.json   what Golem deliberately did NOT
+#        postinstall-questions.json   what Standard deliberately did NOT
 #                                      decide (postinstall/postinstall.md,
 #                                      changes.md #33), for the installed
 #                                      system's golem-postinstall-ask to
 #                                      read back after first login
 #   5. make the machine's FOLDER from them — /etc/nixos (configuration.nix,
-#      hardware-configuration.nix, machine/ data) with Golem as root's own
-#      editable copy in /etc/nixos/golem (docs/system/Layout.md,
+#      hardware-configuration.nix, machine/ data) with Standard as root's own
+#      editable copy in /etc/nixos/standard (docs/system/Layout.md,
 #      system/machine/{relocate,checkout}.sh) — and ask for the first-boot
 #      build (/var/lib/golem/first-boot.pending)
 #   6. build (or accept) the toplevel and nixos-install it
@@ -31,7 +31,7 @@
 # (built 2026-09-05). --luks gives ESP + one LUKS2 container with LVM
 # inside it holding swap and root; without it, the original three-partition
 # layout, untouched. Everything after the partitioning is identical because
-# both branches label their root `golem` and their swap `swap`.
+# both branches label their root `standard` and their swap `swap`.
 #
 # ONE container rather than two, because HIBERNATION IS LOCKED: resume has
 # to read the swap from initrd, and separate volumes would mean either two
@@ -61,7 +61,7 @@
 # DESTRUCTIVE (unless --rehearse). The named disk is repartitioned without
 # recovery. --yes is required for a non-interactive run precisely so that
 # a mistyped device in a script cannot quietly eat a machine.
-{ pkgs, golemSrc, overrideArgs, golemRev ? "" }:
+{ pkgs, standardSrc, overrideArgs, standardRev ? "" }:
 
 pkgs.writeShellApplication {
   name = "golem-install";
@@ -72,10 +72,10 @@ pkgs.writeShellApplication {
     diffutils gnutar gzip
   ];
   text = ''
-    disk=""; owner="max"; fullname=""; hostname="Golem"
+    disk=""; owner="max"; fullname=""; hostname="Standard"
     system=""; labkey=""; labwifi=""; assume_yes=false
     prepare_only=false; skip_prepare=false; rehearse=false
-    src="${golemSrc}"
+    src="${standardSrc}"
 
     # The keyboard step's answer, already derived into its four values by
     # the time it reaches here: the installer surface asks ONE question
@@ -250,7 +250,7 @@ pkgs.writeShellApplication {
     ram_mb=$(( $(grep -m1 MemTotal /proc/meminfo | grep -oE '[0-9]+') / 1024 ))
     swap_mb=$(nix eval --offline --no-write-lock-file --raw \
       ${overrideArgs} \
-      "path:$src#lib.golem.swapForHibernationMB" \
+      "path:$src#lib.standard.swapForHibernationMB" \
       --apply "f: toString (f $ram_mb)" 2>/dev/null)
     [[ "$swap_mb" =~ ^[0-9]+$ ]] || {
       echo "golem-install: could not get the swap rule from the flake" >&2; exit 1; }
@@ -281,7 +281,7 @@ pkgs.writeShellApplication {
     # machine with two — or, with no /dev/sda at all (virtio, NVMe), fails
     # at the very end, after the wipe. Refuse before anything is written.
     # Only the COPY of a baked system has this: a system built here (no
-    # manifest on the medium, golem-minimal from the seed) reads machine.nix
+    # manifest on the medium, standard-minimal from the seed) reads machine.nix
     # and installs GRUB on the chosen disk.
     if [[ "$firmware" == "bios" && -z "$system" && -r /etc/golem/baked-manifest.json ]] \
        && [[ "$(readlink -f "$disk")" != /dev/sda ]]; then
@@ -289,15 +289,15 @@ pkgs.writeShellApplication {
     fi
 
     # R5-2: the --skip-prepare resume never gets --answers, so this header
-    # printed the DEFAULT hostname ("Golem") while the seed's machine.nix
+    # printed the DEFAULT hostname ("Standard") while the seed's machine.nix
     # carried the real one (the ASUS's first real install: header said
-    # Golem, the machine says asus). Display-only, but a header must not
+    # Standard, the machine says asus). Display-only, but a header must not
     # lie about the run it resumes — read the name from the seed this run
     # is about to install, and say where it came from. Best-effort: /mnt
     # not mounted yet or no machine.nix leaves the default (the resume
     # preflight right after the plan still enforces both).
     hostname_src=""
-    if [[ "$skip_prepare" == true && "$hostname" == "Golem" ]]; then
+    if [[ "$skip_prepare" == true && "$hostname" == "Standard" ]]; then
       seed_machine="/mnt/var/lib/golem/install-stage/hosts/target/machine.nix"
       if [[ -r "$seed_machine" ]]; then
         seed_host=$(sed -n 's/.*networking\.hostName *= *"\([^"]*\)".*/\1/p' "$seed_machine" | head -1)
@@ -319,7 +319,7 @@ pkgs.writeShellApplication {
         echo "  bios-boot   1 MiB         (GRUB core, no filesystem)"
       fi
       echo "  swap        $swap_mb MiB  label swap   (hibernation, locked)"
-      echo "  root        rest          label golem"
+      echo "  root        rest          label standard"
       echo "  owner       $owner ($fullname)"
       echo "  hostname    $hostname$hostname_src"
       if [[ "$luks" == true ]]; then
@@ -424,7 +424,7 @@ pkgs.writeShellApplication {
       if [[ "$eval_is_local" == false ]]; then
         check_warn "ram: $ram_mb MB is below the local-eval floor — fine here: this run does not evaluate (the system is built elsewhere and delivered)"
       else
-        check_fail "ram: this machine has $ram_mb MB — installing Golem needs about 4 GB of RAM"
+        check_fail "ram: this machine has $ram_mb MB — installing Standard needs about 4 GB of RAM"
       fi
     else
       check_ok "ram: $ram_mb MB is enough to evaluate the system locally"
@@ -446,17 +446,17 @@ pkgs.writeShellApplication {
       mkdir -p "$mnt"
     fi
     # THE STAGE (2026-11-19, the /etc/nixos layout): where this run gathers
-    # Golem and the machine's files before they become its folder. Root's,
+    # Standard and the machine's files before they become its folder. Root's,
     # on the target disk (a resumed run finds it there), never in a home;
     # removed once the folder is made.
     seed="$mnt/var/lib/golem/install-stage"
 
-    # THE MACHINE'S FOLDER, AND GOLEM BESIDE IT (docs/system/Layout.md). From
+    # THE MACHINE'S FOLDER, AND STANDARD BESIDE IT (docs/system/Layout.md). From
     # here on this machine IS /etc/nixos: the answers and the measured
     # hardware gathered in the stage become its configuration.nix,
     # hardware-configuration.nix and machine/ data (system/machine/
-    # relocate.sh), and Golem — the medium's own files — becomes root's
-    # editable copy in /etc/nixos/golem (checkout.sh; its git history
+    # relocate.sh), and Standard — the medium's own files — becomes root's
+    # editable copy in /etc/nixos/standard (checkout.sh; its git history
     # arrives with the first update). Nothing of the system goes into a
     # home. The baked system is of the same layout;
     # /var/lib/golem/first-boot.pending asks it to build this machine's own
@@ -467,10 +467,10 @@ pkgs.writeShellApplication {
         probe=$(jq -r '.[0].toplevel // empty' /etc/golem/baked-manifest.json 2>/dev/null || true)
       fi
       if [[ -n "$probe" && -e "$probe/sw/bin/Hyprland" ]]; then profile=desktop; fi
-      # Which Golem these files are: the commit the medium was built from
+      # Which Standard these files are: the commit the medium was built from
       # (Installer/preinstall/flake.nix), else what a baked system says of
       # itself.
-      rev=${pkgs.lib.escapeShellArg golemRev}
+      rev=${pkgs.lib.escapeShellArg standardRev}
       if [[ ! "$rev" =~ ^[0-9a-f]{40}$ && -n "$probe" && -x "$probe/sw/bin/nixos-version" ]]; then
         rev=$("$probe/sw/bin/nixos-version" --configuration-revision 2>/dev/null | sed 's/-dirty$//' || true)
       fi
@@ -481,21 +481,21 @@ pkgs.writeShellApplication {
         rm -rf "$mnt/etc/nixos"
         mkdir -p "$mnt/etc"
         if bash "$src/system/machine/relocate.sh" --from "$seed" --to "$mnt/etc/nixos" \
-             --golem "$src" --profile "$profile" >>"$logdir/folder.log" 2>&1; then
+             --standard "$src" --profile "$profile" >>"$logdir/folder.log" 2>&1; then
           check_ok "folder: this machine's own files are in /etc/nixos ($profile)"
         else
           check_fail "folder: could not make /etc/nixos (folder.log has the trace)"
           return 1
         fi
       fi
-      if [[ ! -f "$mnt/etc/nixos/golem/flake.nix" ]]; then
-        rm -rf "$mnt/var/lib/golem/golem.git" "$mnt/etc/nixos/golem"
-        # (The address and the branch are base/seed.nix's golem.upstream.)
+      if [[ ! -f "$mnt/etc/nixos/standard/flake.nix" ]]; then
+        rm -rf "$mnt/var/lib/golem/golem.git" "$mnt/etc/nixos/standard"
+        # (The address and the branch are base/seed.nix's standard.upstream.)
         if bash "$src/system/machine/checkout.sh" --root "$mnt" --tree "$src" \
              --url https://github.com/maxpoww/Golem --branch stable "''${revarg[@]}" >>"$logdir/folder.log" 2>&1; then
-          check_ok "folder: Golem ''${rev:0:12} is root's own copy in /etc/nixos/golem"
+          check_ok "folder: Standard ''${rev:0:12} is root's own copy in /etc/nixos/standard"
         else
-          check_fail "folder: could not put Golem in /etc/nixos/golem (folder.log has the trace)"
+          check_fail "folder: could not put Standard in /etc/nixos/standard (folder.log has the trace)"
           return 1
         fi
       fi
@@ -517,7 +517,7 @@ pkgs.writeShellApplication {
     # Release the target disk COMPLETELY before wiping, or wipefs dies
     # "Device or resource busy" on a disk that already holds an OS. The old
     # three lines only touched /mnt and a hardcoded LUKS name "golem", so on
-    # the FIRST real metal install (the asus's dogfood Golem, changes.md #105,
+    # the FIRST real metal install (the asus's dogfood Standard, changes.md #105,
     # 2026-09-23) they missed the partition the live medium had auto-mounted
     # elsewhere, and wipefs failed at 1/6 (16%). Tear down whatever sits on
     # THIS disk, wherever it landed — swap, mounts, LVM, LUKS/dm — best-effort;
@@ -530,12 +530,12 @@ pkgs.writeShellApplication {
       [ -n "$_m" ] && { umount -R "$_m" 2>/dev/null || umount -l "$_m" 2>/dev/null || true; }
     done < <(lsblk -nro MOUNTPOINT "$disk" 2>/dev/null | grep -v '^$' | sort -r)
     # device-mapper backed by this disk: LVM down, then remove crypt/dm leaves
-    # (a re-install over an encrypted or LVM Golem, deepest first)
+    # (a re-install over an encrypted or LVM Standard, deepest first)
     vgchange -an 2>/dev/null || true
     while read -r _dm; do
       dmsetup remove -f "$_dm" 2>/dev/null || true
     done < <(lsblk -nrpo NAME,TYPE "$disk" 2>/dev/null | awk '$2 ~ /crypt|lvm|dm|raid|mpath/ {print $1}' | sort -r)
-    cryptsetup close golem 2>/dev/null || true
+    cryptsetup close standard 2>/dev/null || true
     udevadm settle 2>/dev/null || true
     # The gate — with RETRIES that KILL holders. On a RE-INSTALL the medium
     # re-grips the disk in the window right after teardown: systemd's GPT
@@ -587,7 +587,7 @@ pkgs.writeShellApplication {
 
       run cryptsetup luksFormat --type luks2 --batch-mode \
         --key-file "$luks_key" "$(part 2)"
-      run cryptsetup open --key-file "$luks_key" "$(part 2)" golem
+      run cryptsetup open --key-file "$luks_key" "$(part 2)" standard
       # The passphrase has done its job. It was written to a 0600 file on
       # the medium's tmpfs — RAM, never a disk — and it goes now rather
       # than at the end, so no later failure can leave it lying around.
@@ -599,15 +599,15 @@ pkgs.writeShellApplication {
         shred -u "$luks_key" 2>/dev/null || rm -f "$luks_key"
       fi
 
-      run pvcreate /dev/mapper/golem
-      run vgcreate golemvg /dev/mapper/golem
-      run lvcreate -L "''${swap_mb}M" -n swap golemvg
-      run lvcreate -l 100%FREE -n root golemvg
+      run pvcreate /dev/mapper/standard
+      run vgcreate standardvg /dev/mapper/standard
+      run lvcreate -L "''${swap_mb}M" -n swap standardvg
+      run lvcreate -l 100%FREE -n root standardvg
       run udevadm settle
 
       run mkfs.fat -F32 -n ESP "$(part 1)"
-      run mkswap -L swap /dev/golemvg/swap
-      run mkfs.ext4 -F -L golem /dev/golemvg/root
+      run mkswap -L swap /dev/standardvg/swap
+      run mkfs.ext4 -F -L standard /dev/standardvg/root
       # The UUID of the CONTAINER, not of anything inside it: that is what
       # initrd has to be told to unlock, and it is stable across reboots
       # where /dev/sda2 is not.
@@ -620,13 +620,13 @@ pkgs.writeShellApplication {
     elif [[ "$firmware" == uefi ]]; then
       run sgdisk -n1:0:+512M   -t1:ef00 -c1:ESP   "$disk"
       run sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
-      run sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
+      run sgdisk -n3:0:0       -t3:8300 -c3:standard "$disk"
       run partprobe "$disk" 2>/dev/null || true
       run udevadm settle
 
       run mkfs.fat -F32 -n ESP "$(part 1)"
       run mkswap -L swap "$(part 2)"
-      run mkfs.ext4 -F -L golem "$(part 3)"
+      run mkfs.ext4 -F -L standard "$(part 3)"
     else
       # ── BIOS/legacy LAYOUT: GPT + a BIOS-boot partition + GRUB ──────
       # GPT even on BIOS (not MBR) so the disk can grow into dual-boot; a
@@ -636,17 +636,17 @@ pkgs.writeShellApplication {
       # reads /boot straight off the root ext4. So: bios-boot, swap, root.
       run sgdisk -n1:0:+1M     -t1:ef02 -c1:bios  "$disk"
       run sgdisk -n2:0:+"$swap_mb"M -t2:8200 -c2:swap  "$disk"
-      run sgdisk -n3:0:0       -t3:8300 -c3:golem "$disk"
+      run sgdisk -n3:0:0       -t3:8300 -c3:standard "$disk"
       run partprobe "$disk" 2>/dev/null || true
       run udevadm settle
 
       run mkswap -L swap "$(part 2)"
-      run mkfs.ext4 -F -L golem "$(part 3)"
+      run mkfs.ext4 -F -L standard "$(part 3)"
     fi
     run udevadm settle
 
     # by-label works for both layouts: the encrypted branch labels its
-    # logical volumes `golem` and `swap` exactly as the plain branch labels
+    # logical volumes `standard` and `swap` exactly as the plain branch labels
     # its partitions, so everything downstream of here is identical.
     # The mount TARGETS are spelled /mnt, not $mnt: in a real install the
     # two are the same, and in a rehearsal the mounts are recorded, not
@@ -655,7 +655,7 @@ pkgs.writeShellApplication {
     # (the first VM calibration recorded the shadow path here, which is a
     # transcript lying about the install it rehearses).
     echo "##golem 10/100 fs"
-    run mount /dev/disk/by-label/golem /mnt
+    run mount /dev/disk/by-label/standard /mnt
     # The ESP is mounted only on UEFI (plain or LUKS). On BIOS there is no
     # ESP: /boot lives on the root fs GRUB already reads, so nothing to mount.
     if [[ "$firmware" == uefi ]]; then
@@ -705,9 +705,9 @@ pkgs.writeShellApplication {
     # The chooser's output — hosts/target/modules.nix, THE MACHINE as a
     # modular pointer list (Installing spec). Computed from the SAME facts
     # written above, so the leaves this machine gets and the census it ran
-    # on can never disagree. Load-bearing for the modular golem-minimal
+    # on can never disagree. Load-bearing for the modular standard-minimal
     # (its self-rebuild evaluates modules.nix); inert for the fat
-    # golem-target (which imports the individual files, never this). A
+    # standard-target (which imports the individual files, never this). A
     # chooser that THROWS — an unmatchable machine, e.g. an nvidia box
     # before its leaves land — is surfaced as a warning here rather than
     # blocking, because the fat path does not need it; a minimal install
@@ -715,7 +715,7 @@ pkgs.writeShellApplication {
     # reason. (Finding #62: without this drop the installed minimal seed
     # cannot reproduce itself — caught by the VM self-rebuild proof.)
     if modules_nix=$(nix eval --impure --raw --expr \
-         "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).golem.hardware; }).rendered" 2>"$logdir/choose.err"); then
+         "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).standard.hardware; }).rendered" 2>"$logdir/choose.err"); then
       printf '%s' "$modules_nix" > "$seed/hosts/target/modules.nix"
       note "chose $(grep -c 'Modular/' "$seed/hosts/target/modules.nix") modules → hosts/target/modules.nix"
     else
@@ -723,7 +723,7 @@ pkgs.writeShellApplication {
       tail -c 500 "$logdir/choose.err" >> "$CHK" 2>/dev/null || true
     fi
 
-    # The fourth dropped file: what Golem is deliberately NOT deciding for
+    # The fourth dropped file: what Standard is deliberately NOT deciding for
     # this machine (postinstall/postinstall.md). Computed from the SAME
     # facts just written above, so a question's trigger and the census
     # this install actually ran on can never disagree. An empty "[]" is the
@@ -739,7 +739,7 @@ pkgs.writeShellApplication {
       # measured half and a guaranteed half: --show-hardware-config reads
       # this machine's kernel modules without wanting a root, and the
       # filesystems are what the partitioning above guarantees by
-      # construction — both branches label root `golem`, boot `ESP`, swap
+      # construction — both branches label root `standard`, boot `ESP`, swap
       # `swap`. The real file will name the same devices by-uuid; the
       # header inside says so, so nobody mistakes synthesis for
       # measurement.
@@ -749,7 +749,7 @@ pkgs.writeShellApplication {
         echo "  # REHEARSAL SYNTHESIS — the real install measures these from the"
         echo "  # mounted target and writes by-uuid paths. Same devices, found a"
         echo "  # different way; the labels are guaranteed by the partitioning."
-        echo "  fileSystems.\"/\" = { device = \"/dev/disk/by-label/golem\"; fsType = \"ext4\"; };"
+        echo "  fileSystems.\"/\" = { device = \"/dev/disk/by-label/standard\"; fsType = \"ext4\"; };"
         # UEFI has an ESP mounted at /boot; BIOS keeps /boot on the root fs
         # (GRUB reads it there), so no /boot filesystem entry.
         if [[ "$firmware" == uefi ]]; then
@@ -762,7 +762,7 @@ pkgs.writeShellApplication {
     else
       nixos-generate-config --root /mnt
       cp /mnt/etc/nixos/hardware-configuration.nix "$seed/hosts/target/"
-      # nixos-generate-config also drops a stock configuration.nix. Golem is
+      # nixos-generate-config also drops a stock configuration.nix. Standard is
       # a flake distro; leaving a second, channel-shaped config on the disk
       # is only an invitation to rebuild the wrong thing.
       rm -f /mnt/etc/nixos/configuration.nix
@@ -781,15 +781,15 @@ pkgs.writeShellApplication {
       echo "# Everything else about this system comes from the flake."
       echo "{ ... }:"
       echo "{"
-      echo "  golem.owner = \"$owner\";"
+      echo "  standard.owner = \"$owner\";"
       echo "  networking.hostName = \"$hostname\";"
       echo "  users.users.$owner.description = \"$fullname\";"
       echo
       echo "  # The language step's answer. Drives i18n.defaultLocale and"
       echo "  # which locales get generated — an ungenerated locale falls"
       echo "  # back to C at first boot without saying so."
-      echo "  golem.locale.defaultLocale = \"$locale\";"
-      echo "  golem.locale.timeZone = \"$timezone\";"
+      echo "  standard.locale.defaultLocale = \"$locale\";"
+      echo "  standard.locale.timeZone = \"$timezone\";"
       # The owner's password is NOT written here: anything in this file is
       # copied into the world-readable Nix store. It goes to the root-only
       # /var/lib/golem/secrets/owner-password-hash (below, and applied to
@@ -803,7 +803,7 @@ pkgs.writeShellApplication {
         echo
         echo "  # Unlocked once in initrd; swap and root are LVM inside it,"
         echo "  # which is what lets hibernation resume from an encrypted swap."
-        echo "  boot.initrd.luks.devices.golem.device = \"/dev/disk/by-uuid/$luks_uuid\";"
+        echo "  boot.initrd.luks.devices.standard.device = \"/dev/disk/by-uuid/$luks_uuid\";"
       fi
       # On BIOS the target installs GRUB, which needs the DISK to embed into
       # (the config default is a placeholder). This names the real target
@@ -834,7 +834,7 @@ pkgs.writeShellApplication {
       echo "  # input block — wired from these in system/configuration.nix"
       echo "  # and system/home/hyprland.nix. A comma in layout means a second"
       echo "  # Latin group so a non-Latin script can still type a URL."
-      echo "  golem.keyboard = {"
+      echo "  standard.keyboard = {"
       echo "    layout = \"$kb_layout\";"
       echo "    variant = \"$kb_variant\";"
       echo "    options = \"$kb_options\";"
@@ -847,7 +847,7 @@ pkgs.writeShellApplication {
       if [[ -n "$labkey" ]]; then
         echo
         echo "  # --lab-ssh: this machine is a lab testbed, reachable from the"
-        echo "  # dev box. Golem ships no sshd by default; this is NOT what a"
+        echo "  # dev box. Standard ships no sshd by default; this is NOT what a"
         echo "  # stranger's install gets."
         echo "  services.openssh.enable = true;"
         echo "  services.openssh.settings.PasswordAuthentication = false;"
@@ -956,7 +956,7 @@ pkgs.writeShellApplication {
       # --impure: choose.nix is pure nix (no inputs), but importing it by
       # ABSOLUTE path needs impure mode (same as the modules.nix eval above).
       leaves_json=$(nix eval --impure --no-write-lock-file --json \
-        --expr "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).golem.hardware; }).leaves" \
+        --expr "(import $seed/system/Modular/choose.nix { facts = (import $seed/hosts/target/golem-hardware.nix { }).standard.hardware; }).leaves" \
         2>/dev/null || true)
       if [[ -r /etc/golem/baked-manifest.json ]]; then
         # exact leaf-list match → the IDEAL baked toplevel for this hardware.
@@ -1026,7 +1026,7 @@ pkgs.writeShellApplication {
     if [[ -e "$system/etc/golem/lab-door" ]]; then
       printf '%s\n' "# This machine is a lab testbed: the dev box reaches it over SSH" \
         "# (system/Modular/lab/lab-door.nix). Written by golem-install from a lab medium." \
-        "{ golem.lab.door = true; }" > "$seed/hosts/target/lab.nix"
+        "{ standard.lab.door = true; }" > "$seed/hosts/target/lab.nix"
       note "lab: the installed system keeps the lab door (/etc/nixos/modules/lab.nix)"
     fi
 
@@ -1113,7 +1113,7 @@ pkgs.writeShellApplication {
     # ── 5b. Make gen-1 USABLE (the opt-A/baked path installs a GENERIC
     # toplevel that never imported this machine's machine.nix, so its owner
     # has no password and no key — the machine boots to a login nobody can
-    # pass). Golem sets no users.mutableUsers, so the NixOS default (true)
+    # pass). Standard sets no users.mutableUsers, so the NixOS default (true)
     # holds: /etc/shadow and ~/.ssh are NOT reasserted on activation, so an
     # imperative password + authorized_keys set here PERSIST on the generic
     # system — it is loginable on first boot, offline, with no rebuild. The
@@ -1215,7 +1215,7 @@ pkgs.writeShellApplication {
     # "will this boot?" asked on /mnt BEFORE the reboot, not hoped for after it.
     # Results go to the LOG; the surface shows only the bar and, at the end, the
     # verdict (§10 — never claim healthy unless it is; "terminada" is the soft
-    # tell to read the log). Golem does not race the clock — it double-checks.
+    # tell to read the log). Standard does not race the clock — it double-checks.
     # /mnt is still mounted here (the script never unmounts).
     vlog="$logdir/verify.txt"; : > "$vlog"
     vfail=0
@@ -1247,8 +1247,8 @@ pkgs.writeShellApplication {
 
     echo "##verify 76/100 seed"
     if [ -f /mnt/etc/nixos/flake.nix ] && [ -f /mnt/etc/nixos/configuration.nix ] \
-       && [ -f /mnt/etc/nixos/golem/flake.nix ] && [ -d /mnt/var/lib/golem/golem.git ]; then
-      echo "ok   the machine's folder (/etc/nixos) and Golem beside it" >> "$vlog"
+       && [ -f /mnt/etc/nixos/standard/flake.nix ] && [ -d /mnt/var/lib/golem/golem.git ]; then
+      echo "ok   the machine's folder (/etc/nixos) and Standard beside it" >> "$vlog"
     else echo "FAIL /etc/nixos is not whole (the first build is owed)" >> "$vlog"; vfail=$(( vfail + 1 )); fi
     sleep 1
 
@@ -1292,7 +1292,7 @@ pkgs.writeShellApplication {
     umount -R /mnt 2>/dev/null || true
 
     echo "── done ─────────────────────────────────────────"
-    echo "  installed to $disk; this machine's files are in /etc/nixos, Golem beside them (/etc/nixos/golem)"
+    echo "  installed to $disk; this machine's files are in /etc/nixos, Standard beside them (/etc/nixos/standard)"
     echo "  verify: $vlog"
   '';
 }

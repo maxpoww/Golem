@@ -106,7 +106,7 @@ distro-permanent:
   restarts, the daemon never accumulates zombies. Webapp launches
   self-heal a stale Chrome profile lock first.
 - **Terminal dependency**: `Terminal=true` entries and CLI tiles run
-  under the config's `terminal` (Golem ships `foot`, which is part of
+  under the config's `terminal` (Standard ships `foot`, which is part of
   the SYSTEM closure — not uninstallable through the grid — so the
   dependency cannot be pulled out from under the tiles). An
   unresolvable command is warned before exec (`warn_if_unresolvable`).
@@ -120,7 +120,7 @@ distro-permanent:
   detached child (exec 127) dies into /dev/null — the journal warns
   beforehand when resolvable-checking can predict it, but the tile
   gives no visual failure feedback. Queued as UX polish; unreachable on
-  a stock Golem (the terminal always exists).
+  a stock Standard (the terminal always exists).
 
 ## F. Corruption/crash drill matrix (status)
 

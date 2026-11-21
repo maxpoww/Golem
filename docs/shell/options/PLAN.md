@@ -29,7 +29,7 @@ the code already knows it is serving.
 
 | Pillar | Built | Missing |
 |---|---|---|
-| **1 — the environment is the assistant** | no helper object exists anywhere in Golem: no assistant panel, no help menu, no mascot. Intellihide, the bar's own conceal, the clock and the bell carry the help as furniture | the topbar pill band is a **nameable object** — chosen for mechanism reasons, and a standing debt against this pillar (**#80**) |
+| **1 — the environment is the assistant** | no helper object exists anywhere in Standard: no assistant panel, no help menu, no mascot. Intellihide, the bar's own conceal, the clock and the bell carry the help as furniture | the topbar pill band is a **nameable object** — chosen for mechanism reasons, and a standing debt against this pillar (**#80**) |
 | **2 — reads your actions and reacts** | **the reading half is complete and untouched by the deletion.** Eleven collectors → one `ContextState`. Two app-bridge clients (zsh, nvim). The Mind is still the only place context becomes options | **it reacts to nothing today** — `PROVIDERS` is empty by design until the curated list is built in (one entry went in and out on 2026-09-13). Four surfaces still sense for themselves (**#70**); window-pills is fed the raw snapshot rather than the `OptionSet` (**#71**) |
 | **3 — appear when their use is logical** | **the machinery is strong and intact.** `settle.rs`: 1200ms appear-dwell on an unbroken run, immediate withdrawal, Warnings skip the wait. Relevance ranking, the cap, the bystander cap, the freshness gate | it has nothing to rank. `primary_modules` and `fits_activity` are empty seams — they are **the curated context list expressed in code**, and they get filled a row at a time from [contexts.md](contexts.md) |
 | **4 — adjusts the help to your performance** | `calibrate()` per kind (Action ×(1−0.6·skill), Info ×(1−0.3·skill), Control and Warning never faded) and `effective_skill` = base − friction, where friction is churn + shell errors + diagnostics + hesitation. Unit-tested and kept | **half the pillar.** `brain.rs` hands the Mind a constant `skill: 0.5` — demonstrated competence is never learned, so it calibrates to your last few seconds and never to your history (**#79**). The curated list is also the chance to fix **#82**: the deleted set was 57 Controls to 2 scaffolding Actions, which left pillar 4 almost nothing to act on |
@@ -128,7 +128,7 @@ is in [constitution.md](constitution.md#the-acceptance-test).
 Worth stating precisely, because it is easy to get wrong in both
 directions.
 
-- **The golem-vm** proved all 45 slices — batched sessions, screenshots,
+- **The standard-vm** proved all 45 slices — batched sessions, screenshots,
   virtio GPU on a fast host. **And that proof bought nothing**, because
   the slices were never curated and are now deleted. The lesson is worth
   more than the slices were: *validating a thing well does not make it

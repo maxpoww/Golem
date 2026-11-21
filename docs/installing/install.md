@@ -1,6 +1,6 @@
-# Installing Golem: how it works today
+# Installing Standard: how it works today
 
-This is the one document about the Golem install. It was written on
+This is the one document about the Standard install. It was written on
 2026-11-16 from the code on branch `next-1116` (commit `ccc38d3`). It covers
 the installer medium, the install screens, what lands on the disk, the first
 boot and the updates after it.
@@ -36,11 +36,11 @@ When this document and the code disagree, the code wins. Fix this document.
    public medium. A lab build adds the lab door.
 2. Boot the stick and pick **Install**. The machine measures itself while
    you answer six screens.
-3. Press ENTER on "Install Golem?". The installer erases the drive and copies
-   a ready-made Golem system that matches the machine's hardware class.
+3. Press ENTER on "Install Standard?". The installer erases the drive and copies
+   a ready-made Standard system that matches the machine's hardware class.
    Nothing is compiled and no network is needed. It writes the machine's own
    files, checks the result and asks you to pull the USB.
-4. First boot: the desktop opens at once. Behind it, Golem goes online,
+4. First boot: the desktop opens at once. Behind it, Standard goes online,
    becomes a checkout of GitHub's `stable` branch and rebuilds itself for the
    measured hardware and your answers. That version starts at the next
    restart, and the account then takes the name you typed.
@@ -71,7 +71,7 @@ never make a lab medium by accident. The lab door is section 6.
 
 | Item | Where on the medium | Why |
 |---|---|---|
-| The Golem source | `/etc/golem/src` | the census evaluates it; the install copies it to the disk |
+| The Standard source | `/etc/golem/src` | the census evaluates it; the install copies it to the disk |
 | Every pinned input (nixpkgs, home-manager, waverunner, waveview) | `/etc/golem/inputs` and the store | offline evaluation, each input passed with `--override-input` |
 | The baked matrix: finished systems | the medium's Nix store | the install copies one; nothing is built |
 | The manifest of the baked systems | `/etc/golem/baked-manifest.json` | maps a leaf list and a language to a system |
@@ -87,7 +87,7 @@ medium (`hosts/iso.nix`, the all-in-one profile). It installs nothing.
 
 ### The baked matrix
 
-The install never builds Golem on the target machine. The medium carries
+The install never builds Standard on the target machine. The medium carries
 finished systems, made when the ISO is built (`bakedMatrix` and
 `bakedManifest` in the root `flake.nix`).
 
@@ -97,8 +97,8 @@ finished systems, made when the ISO is built (`bakedMatrix` and
 | Firmware | BIOS and UEFI, for every class |
 | The floor | one per firmware, for a machine nothing was detected on with confidence: GPU `auto` (boots on any GPU) |
 | Language | `en_US.UTF-8` only |
-| Content | the full desktop: Hyprland, the dock and OPTIONS, Seam, the apps. It rebuilds itself as `golem-desktop`. |
-| Account | the default owner in the code (`golem.owner`, today `max`) |
+| Content | the full desktop: Hyprland, the dock and OPTIONS, Seam, the apps. It rebuilds itself as `standard-desktop`. |
+| Account | the default owner in the code (`standard.owner`, today `max`) |
 
 Each baked system finds its disks by label (`golem`, `ESP`, `swap`), has a
 broad initrd that reaches a disk on any common controller, resumes from the
@@ -172,7 +172,7 @@ touches a disk.
 
 1. `golem-hw-evidence` dumps the raw hardware (lspci, lsusb, DMI, sysfs).
 2. `golem-hw-detect` writes the facts (`golem-hardware.nix`).
-3. `golem-hw-decide` evaluates Golem against those facts, offline, and
+3. `golem-hw-decide` evaluates Standard against those facts, offline, and
    writes what it decided (`summary.txt`, `decision.json`).
 
 The results are in `/var/log/golem-audit/`. Its `status` file says `ok` or
@@ -204,12 +204,12 @@ one line.
 
 | # | Screen | What you do | What it sets |
 |---|---|---|---|
-| 1 | Language | A line rotates through several languages ("Press ENTER to select your language"). ENTER or any letter opens the list. | The system language (`golem.locale.defaultLocale`). The installer itself speaks English, Spanish, French, German, Italian and Portuguese; other languages see it in English. |
-| 2 | Select your Timezone | Every zone on the medium. The zones where the chosen language is spoken come first. | `golem.locale.timeZone`. The answer line shows the local time, to check against a clock. |
+| 1 | Language | A line rotates through several languages ("Press ENTER to select your language"). ENTER or any letter opens the list. | The system language (`standard.locale.defaultLocale`). The installer itself speaks English, Spanish, French, German, Italian and Portuguese; other languages see it in English. |
+| 2 | Select your Timezone | Every zone on the medium. The zones where the chosen language is spoken come first. | `standard.locale.timeZone`. The answer line shows the local time, to check against a clock. |
 | 3 | Select your Keyboard | A list, starting at the layout of the time zone's country, else the language's. | One name sets the console keymap, the XKB layout, variant, options and model, and a console font if needed. The keymap is loaded at once, so every password after this is typed with it. |
 | 4 | Select your Drive | Disks by model and size, internal ones first. The title warns that everything on the drive will be erased. The last row is **Advanced**. | The target disk. Nothing is erased yet. |
-| 5 | You | Four fields: **Name this Device** (an empty ENTER takes "Golem"), **User Name**, the password, the password again. | Host name, account name, password. The password is masked, and hashed (yescrypt) as soon as it is confirmed; the text never leaves that screen. |
-| 6 | Install Golem? | Read the summary and press ENTER. ESC goes back. | Starts the install. |
+| 5 | You | Four fields: **Name this Device** (an empty ENTER takes "Standard"), **User Name**, the password, the password again. | Host name, account name, password. The password is masked, and hashed (yescrypt) as soon as it is confirmed; the text never leaves that screen. |
+| 6 | Install Standard? | Read the summary and press ENTER. ESC goes back. | Starts the install. |
 
 What the "You" fields accept:
 
@@ -244,9 +244,9 @@ the encrypted container exists.
 The confirm screen shows three things:
 
 - your answers;
-- what Golem decided: zram, the swap for hibernation, thermald, the lid
+- what Standard decided: zram, the swap for hibernation, thermald, the lid
   action, the disk scheduler, and the screen scale when it is not 1.0;
-- what Golem found, read live from the machine: each GPU with its tested
+- what Standard found, read live from the machine: each GPU with its tested
   verdict, Wi-Fi, Ethernet, audio, Bluetooth, fingerprint reader, touchpad
   and touchscreen, each with the driver bound to it. A device that is not
   there gets no row.
@@ -256,7 +256,7 @@ the mode is for experts. It changes nothing today.
 
 ### After ENTER: two bars
 
-1. **The copy bar.** Formatting the drive, filesystems, copying Golem, the
+1. **The copy bar.** Formatting the drive, filesystems, copying Standard, the
    hardware profile, then package names fly by while the system is copied.
    At 100% it says "Installed".
 2. **The verify bar.** Six checks on the new disk: the bootloader, the
@@ -302,7 +302,7 @@ GPT on every machine.
 | Firmware | Encryption | Layout |
 |---|---|---|
 | UEFI | off (default) | 1: ESP, 512 MiB, FAT32, label `ESP`. 2: swap, label `swap`. 3: root, ext4, label `golem`, the rest of the disk. |
-| UEFI | on | 1: ESP, 512 MiB. 2: one LUKS2 container (partition label `crypt`) holding the LVM group `golemvg` with the volume `swap` (label `swap`) and the volume `root` (ext4, label `golem`). |
+| UEFI | on | 1: ESP, 512 MiB. 2: one LUKS2 container (partition label `crypt`) holding the LVM group `standardvg` with the volume `swap` (label `swap`) and the volume `root` (ext4, label `golem`). |
 | BIOS | off | 1: BIOS boot partition, 1 MiB, no filesystem (GRUB lives here). 2: swap. 3: root, ext4. No ESP: `/boot` is on the root. |
 | BIOS | on | refused |
 
@@ -310,7 +310,7 @@ One container, not two: hibernation reads the swap from the initrd, so swap
 and root open with one password, asked once.
 
 The swap is sized for hibernation, which every install has
-(`lib.golem.swapForHibernationMB`): the RAM plus the larger of a tenth of the
+(`lib.standard.swapForHibernationMB`): the RAM plus the larger of a tenth of the
 RAM and 2 GiB, rounded up to whole GiB.
 
 | RAM | Swap | Smallest disk (512 MiB + swap + 20 GiB root) |
@@ -329,7 +329,7 @@ RAM and 2 GiB, rounded up to whole GiB.
    the chosen language.
 3. No match in that language: the same list in `en_US`.
 4. No match at all: the floor for this firmware.
-5. The last resort, which should never be reached: build `golem-minimal`
+5. The last resort, which should never be reached: build `standard-minimal`
    from the copied source, offline.
 
 Then `nixos-install --root /mnt --system <baked system> --no-root-password
@@ -340,7 +340,7 @@ root account gets no password; the owner uses `sudo` with their own.
 |---|---|
 | UEFI | GRUB-EFI at the removable fallback path (`EFI/BOOT/BOOTX64.EFI`). No firmware (NVRAM) entry is written. At most 3 entries, so the 512 MiB ESP never fills. |
 | BIOS | GRUB in the BIOS boot partition, up to 15 entries |
-| Both | a 1 s menu, then "Start Golem"; older systems under "Previous Versions". Editing an entry asks for a boot password (user `golem`), made on the machine and shown by `sudo golem-boot-password`. |
+| Both | a 1 s menu, then "Start Standard"; older systems under "Previous Versions". Editing an entry asks for a boot password (user `golem`), made on the machine and shown by `sudo golem-boot-password`. |
 
 ### The account
 
@@ -360,7 +360,7 @@ first-boot step (section 4).
 ### The machine's own files: `hosts/target/`
 
 The copied source is the machine's own flake, `/home/<account>/Golem`
-(`golem.flakeDir`). Its `hosts/target/` folder holds what makes this machine
+(`standard.flakeDir`). Its `hosts/target/` folder holds what makes this machine
 itself. `.gitignore` lists the facts, hardware, machine, modules and questions
 files, so the published repo never carries one machine's answers (`lab.nix`
 and `apps.nix` are not listed). On the machine, `golem-seed-adopt`
@@ -373,8 +373,8 @@ because a git flake sees only tracked or staged files.
 | `modules.nix` | the chooser | the hardware leaves, each with its reason, and the groups left empty. If the chooser fails, the file is missing and the install warns. |
 | `hardware-configuration.nix` | `nixos-generate-config --root /mnt` | the measured filesystems (by UUID), the swap, the initrd modules |
 | `machine.nix` | `golem-install` | owner, host name, full name (the user name), language, time zone, keyboard; the LUKS container's UUID when encrypted; the GRUB disk by its stable `by-id` name on BIOS |
-| `postinstall-questions.json` | `golem-postinstall-questions` | questions Golem chose not to decide. Today there is one (a second GPU that failed its wake test). Usually `[]`. |
-| `lab.nix` | `golem-install`, only when the copied system has `/etc/golem/lab-door` | `{ golem.lab.door = true; }` |
+| `postinstall-questions.json` | `golem-postinstall-questions` | questions Standard chose not to decide. Today there is one (a second GPU that failed its wake test). Usually `[]`. |
+| `lab.nix` | `golem-install`, only when the copied system has `/etc/golem/lab-door` | `{ standard.lab.door = true; }` |
 | `apps.nix` | later, the dock's installs (`waverunner-apply`) | the owner's app list |
 | `default.nix` | distro source, not written by the install | the import list of the old all-in-one target; installs do not use it |
 
@@ -386,15 +386,15 @@ A shortened `machine.nix`, as the engine writes it (example values):
 ```nix
 { ... }:
 {
-  golem.owner = "ana";
-  networking.hostName = "Golem";
+  standard.owner = "ana";
+  networking.hostName = "Standard";
   users.users.ana.description = "ana";
-  golem.locale.defaultLocale = "es_ES.UTF-8";
-  golem.locale.timeZone = "Europe/Madrid";
-  golem.keyboard = {
+  standard.locale.defaultLocale = "es_ES.UTF-8";
+  standard.locale.timeZone = "Europe/Madrid";
+  standard.keyboard = {
     layout = "es"; variant = ""; options = ""; model = "pc105"; consoleKeyMap = "es";
   };
-  # encrypted installs: boot.initrd.luks.devices.golem.device = "/dev/disk/by-uuid/...";
+  # encrypted installs: boot.initrd.luks.devices.standard.device = "/dev/disk/by-uuid/...";
   # BIOS installs:      boot.loader.grub.device = "/dev/disk/by-id/...";
 }
 ```
@@ -410,7 +410,7 @@ into the world-readable Nix store.
 | `/etc/shadow` | the hash, set on the copied account, so the first login works without a rebuild |
 | `/home/<account>/.config/golem/settings.json` | language, time zone and keyboard as live settings. The dock reads them when the first session starts, so the desktop already speaks the chosen language. |
 | `/etc/vconsole.conf` | the console keymap and font |
-| `/etc/nixos/configuration.nix` | deleted: Golem is a flake system, and a second configuration would only invite the wrong rebuild |
+| `/etc/nixos/configuration.nix` | deleted: Standard is a flake system, and a second configuration would only invite the wrong rebuild |
 
 Last, the engine gives the whole home to the account, syncs, and unmounts the
 disk cleanly, so the first boot does not have to recover the journal.
@@ -421,7 +421,7 @@ disk cleanly, so the first boot does not have to recover the journal.
 |---|---|
 | Power on | GRUB for 1 s. An encrypted disk asks for its password on the boot bar and waits as long as needed. |
 | Boot | The boot bar, then the desktop starts by itself as the baked account (greetd's first session of the boot needs no password). The password unlocks the lock screen and `sudo`. |
-| First session | A generic system: host name `Golem`, system time zone UTC, the broad initrd, an English system locale. The desktop already uses the chosen language, time zone and keyboard (`settings.json`), and the home folders are named in that language. |
+| First session | A generic system: host name `Standard`, system time zone UTC, the broad initrd, an English system locale. The desktop already uses the chosen language, time zone and keyboard (`settings.json`), and the home folders are named in that language. |
 | 30 s after boot | The `golem-first-boot` timer starts the first-boot step, at the lowest priority. The desktop never waits for it. |
 
 The first-boot step (`system/Modular/base/first-boot.nix`) runs once:
@@ -442,8 +442,8 @@ The first-boot step (`system/Modular/base/first-boot.nix`) runs once:
    `/var/lib/golem/seed.manifest` and a root-only copy,
    `/var/lib/golem/blessed`.
 5. Root builds its own copy of the sealed files: `golem-rebuild boot` of
-   `golem-desktop`. It downloads from `cache.nixos.org`, and from the
-   version's Golem cache when the update lane published one.
+   `standard-desktop`. It downloads from `cache.nixos.org`, and from the
+   version's Standard cache when the update lane published one.
 6. On success it writes `/var/lib/golem/first-boot.done`. A failure leaves no
    stamp, so the step runs again at the next boot.
 
@@ -471,7 +471,7 @@ The full story is [updates/README.md](../../updates/README.md). In short:
 
 | Piece | What it does |
 |---|---|
-| Branch | Installs follow `stable` (`golem.upstream.branch`). Only the update lane moves it, after every baked Golem system has built and the desktop has booted in a VM. |
+| Branch | Installs follow `stable` (`standard.upstream.branch`). Only the update lane moves it, after every baked Standard system has built and the desktop has booted in a VM. |
 | When | `golem-autoupdate`, once a day: at the machine's own moment between 00:00 and 06:00 (derived from its machine-id), or within 10 minutes of power-on when it was off at that moment. |
 | Wave | A new version waits the machine's wave: 0 to 6 days from its machine-id (the lab: 0), counted from when the machine first saw it was behind, or from the version's publication if that is earlier. |
 | How | Wait for the internet; pull `stable`, fast-forward only; check that every changed file is upstream's own code (`golem-seal-heal`); build root's copy with `golem-rebuild boot`. |
@@ -479,12 +479,12 @@ The full story is [updates/README.md](../../updates/README.md). In short:
 | Failure | A version that does not build: the source goes back to what built the running system (`golem-recover`). A version that crash-loops the desktop: the machine rolls back and holds that revision. |
 | The owner is told | "Golem has an update ready" after 2 days waiting for a restart; "Golem could not update" after 7 days without a run that worked. Nothing leaves the machine. |
 | Update now | The Controls button starts `golem-update-now`: one run that skips the wave. |
-| The owner's own edits | Edits to Golem's files outside `hosts/target/` are copied to `~/Golem-local-edits/<time>/` and put back before a pull. To build their own change the owner runs `rebuild-golem` (asks for the password, builds a copy and seals that same copy) or approves it with `sudo golem-bless`. Root never builds a change nobody approved. |
+| The owner's own edits | Edits to Standard's files outside `hosts/target/` are copied to `~/Golem-local-edits/<time>/` and put back before a pull. To build their own change the owner runs `rebuild-golem` (asks for the password, builds a copy and seals that same copy) or approves it with `sudo golem-bless`. Root never builds a change nobody approved. |
 
 ## 6. The lab door
 
 The lab door is `system/Modular/lab/lab-door.nix`, option
-`golem.lab.door`. It makes a machine a lab testbed that the dev box can reach.
+`standard.lab.door`. It makes a machine a lab testbed that the dev box can reach.
 
 | Part | Detail |
 |---|---|
@@ -641,7 +641,7 @@ awk '{print $5}' /sys/block/sdX/stat      # writes completed: must not move
 | First boot moves to GitHub | The first-boot step stays at the installed revision only when GitHub has that commit. Otherwise it builds the head of `stable`, which can differ from what was installed (an old `stable` can bring back what the medium removed). Build media only from a pushed commit, best one already on `stable`. |
 | Updates only fast-forward | A machine follows `stable` only while its checkout is part of `stable`'s history. A machine installed from a commit that never becomes part of `stable` stops updating, and says so after 7 days. |
 | Post-install questions are never asked | The engine writes `postinstall-questions.json`, but the services that ask and apply (`system/postinstall.nix`) are only in the old all-in-one profile, not in the modular system installs run. A second GPU that failed its wake test stays on the safe default, `hold`: available, never autosuspended. |
-| The confirm screen's decisions come from the old profile | `golem-hw-decide` evaluates `lib.golem.mkTarget`, the all-in-one composition, not the modular system that is copied. Its rows can drift from what is installed. |
+| The confirm screen's decisions come from the old profile | `golem-hw-decide` evaluates `lib.standard.mkTarget`, the all-in-one composition, not the modular system that is copied. Its rows can drift from what is installed. |
 | A light sensor (suspected, not yet seen) | `golem-hw-detect` writes `lightSensor = true` when it finds an ambient light sensor. The old profile (`system/hardware.nix`) does not declare that fact, and both `golem-hw-decide` and `golem-postinstall-questions` evaluate the old profile. On such a machine the census should report `FAILED at: golem-hw-decide`, and the install should stop at the hardware profile phase, after the disk was wiped. No fixture carries the fact, so the flake checks never met it. |
 | The logs of a FAILED install die with the medium | A finished install copies `/var/log/golem-install/` into the new system (18-Nov, below). A failed one keeps them only in the medium's RAM: read them on tty2 before pressing ENTER. |
 | The BIOS GRUB disk | The baked BIOS systems install GRUB to `/dev/sda`, the default in `system/Modular/boot/grub-bios.nix`; the chosen disk's `by-id` name in `machine.nix` takes effect only with the first-boot rebuild. So since 18-Nov a BIOS install that COPIES a baked system onto any other disk is REFUSED before anything is written (a system built on the machine, with no manifest on the medium, reads `machine.nix` and is not refused) (it would have put GRUB into the first disk's boot code, or failed after the wipe where there is no `/dev/sda`); the screen shows the reason. Both cases were installed in VMs on 18-Nov from a test medium of the branch: on a virtio disk the install stopped with that reason and the disk stayed empty; on `run-vm.sh --sata` (`/dev/sda`) it installed and booted. The real fix is a baked BIOS system that installs GRUB where it is told (`nodev` plus the engine's own `grub-install` on the chosen disk), tested on a BIOS VM install. |
@@ -717,11 +717,11 @@ Two rules hold for every change:
 
 | Date | Decision |
 |---|---|
-| 2026-09-03 | The installer is Golem's own, not calamares. The disk scope is the whole disk, with an encryption switch. The boot menu is Start and Install, with no timeout. |
+| 2026-09-03 | The installer is Standard's own, not calamares. The disk scope is the whole disk, with an encryption switch. The boot menu is Start and Install, with no timeout. |
 | 2026-09-05 | The screens are a console conversation, one question at a time, not a painted TUI. The default install: no encryption, ext4, swap sized for hibernation, the whole disk erased. Encryption, one partition and dual boot sit behind Advanced. |
 | 2026-09-05 | The keyboard comes before the disk, so a drive password is never typed with the wrong keymap. |
 | 2026-09-08 | What the installer cannot judge honestly (a second GPU that fails its wake test) is held in a safe state and left to the owner (#33). |
-| 2026-09-15 | Secure Boot is out of scope: Golem requires it off. Microsoft's signing review is out of reach, and an owner-enrolled key means firmware visits and a signed kernel on every rebuild, forever. `boot/systemd-boot.nix` stays retired but kept, and lanzaboote stays the way back in if this is ever reopened. |
+| 2026-09-15 | Secure Boot is out of scope: Standard requires it off. Microsoft's signing review is out of reach, and an owner-enrolled key means firmware visits and a signed kernel on every rebuild, forever. `boot/systemd-boot.nix` stays retired but kept, and lanzaboote stays the way back in if this is ever reopened. |
 | 2026-09-18 | Install by copying baked systems; never build on the target. |
 | 2026-10-01 | The desktop is baked: the first boot is the real desktop. |
 | 2026-11-12 | The lab door only on lab machines (`hosts/target/lab.nix`). |
@@ -749,7 +749,7 @@ wins.
 | Old document said | The code does |
 |---|---|
 | GolemInstall.md: the installer's hardware output is two files; everything else is one library on every machine, switched on by facts | It writes up to six files (`golem-hardware.nix`, `hardware-configuration.nix`, `machine.nix`, `modules.nix`, `postinstall-questions.json`, and `lab.nix` from a lab medium). Installs import only the leaves the chooser picked. |
-| GolemInstall.md: `nixos-install --flake <checkout>#golem-target`; the first boot is already correct | `nixos-install --system <baked system>`, a copy. The first boot converges online and is live at the next restart. Installs rebuild themselves as `golem-desktop`. |
+| GolemInstall.md: `nixos-install --flake <checkout>#standard-target`; the first boot is already correct | `nixos-install --system <baked system>`, a copy. The first boot converges online and is live at the next restart. Installs rebuild themselves as `standard-desktop`. |
 | GolemInstall.md: baking the common hardware combinations onto the medium is an open plan | Built: every lab class in both firmwares, plus the floor, English only, with the desktop. |
 | postinstall.md: built; the owner is asked at the first graphical login | Not on installs: the ask and apply services are only in the old all-in-one profile. |
 | preinstall/README.md: the spec is `~/Golem/GolemInstall.md` | It was `docs/installing/GolemInstall.md`; now this file. |
@@ -761,7 +761,7 @@ wins.
 | ARCHITECTURE.md: the checkout goes to `/home/<owner>/Golem` | It goes to the baked account's home until the rename. |
 | ARCHITECTURE.md and OPERATIONS.md: `--lab-ssh` gives a lab machine its key | The screen never passes it; the door comes from a lab medium and `lab.nix`. |
 | OPERATIONS.md: the VM gate and lab machines are driven over SSH; the stick joins the lab Wi-Fi | Only with a lab medium. |
-| OPERATIONS.md: a real install is prepare-only, a `golem-target` build on the dev box, `nix copy`, then finish | The Install entry copies a baked system. The `--prepare-only` and `--skip-prepare` seams remain, but that recipe builds `golem-target`, which installs no longer run. |
+| OPERATIONS.md: a real install is prepare-only, a `standard-target` build on the dev box, `nix copy`, then finish | The Install entry copies a baked system. The `--prepare-only` and `--skip-prepare` seams remain, but that recipe builds `standard-target`, which installs no longer run. |
 | OPERATIONS.md: the first-boot checklist expects `golem-postinstall-apply.path` | There is no such unit on an install. |
 | OPERATIONS.md and EXTENDING.md: installed machines get fixes through their copy on the deploy loop | Through the update lane and `stable`. |
 | DEBUGGING.md: a rehearsal's `target/` holds four files; `journalctl -u golem-postinstall-apply` | It also holds `modules.nix`. No such unit on installs. |

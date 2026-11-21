@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# iso-smoke.sh — the "it can't happen" gate for the Golem ISO.
+# iso-smoke.sh — the "it can't happen" gate for the Standard ISO.
 #
 # Every showstopper we shipped got through because it was committed on
 # reasoning and never checked against real behavior:
@@ -20,7 +20,7 @@ set -uo pipefail
 
 GOLEM="/home/max/Golem"
 cd "$GOLEM" || exit 1
-ISO_ATTR=".#nixosConfigurations.golem-iso.config"
+ISO_ATTR=".#nixosConfigurations.standard-iso.config"
 fail() { printf '\033[31m✗ %s\033[0m\n' "$1"; exit 1; }
 ok()   { printf '\033[32m✓ %s\033[0m\n' "$1"; }
 
@@ -29,7 +29,7 @@ command -v nix >/dev/null || fail "nix not found"
 echo "── static checks ──"
 
 # 1. All configs evaluate (catches Nix-level breakage).
-for c in golem golem-vm golem-iso; do
+for c in golem standard-vm standard-iso; do
   nix eval --raw ".#nixosConfigurations.$c.config.system.build.toplevel.drvPath" >/dev/null 2>&1 \
     || fail "$c does not evaluate"
 done
@@ -86,7 +86,7 @@ ok "wpa_supplicant present (wifi can work)"
 ok "greetd + oomd enabled"
 
 # 6. No specific panel hardcoded as the default (the catch-all must be present).
-grep -q 'output = ""' system/home/hypr/golem/monitors.lua \
+grep -q 'output = ""' system/home/hypr/standard/monitors.lua \
   || fail "no generic monitor catch-all — a hardcoded panel will misconfigure others"
 ok "monitors auto-configure (generic catch-all present)"
 
@@ -121,25 +121,25 @@ nix eval --raw '.#nixosConfigurations.golem.config.systemd.services.nix-gc.scrip
   && fail "nix-gc still deletes generations by age — an idle week erases every rollback"
 ok "gc keeps rollback: count-based retention, no age-based generation deletion"
 
-# 9. The owner is ONE option (release-checklist §2.2). golem.owner replaced
+# 9. The owner is ONE option (release-checklist §2.2). standard.owner replaced
 #    five hardcoded "max"es; a future edit that bakes the name back in would
 #    quietly re-break every non-max install (the S9 installer's whole rename
 #    path). Re-evaluate the vm config with a different owner and assert the
 #    chain follows and no max user reappears.
 OWNER_CHECK="$(nix eval --impure --json --expr '
   let f = builtins.getFlake "'"$GOLEM"'";
-      c = (f.nixosConfigurations.golem-vm.extendModules {
-            modules = [ { golem.owner = "smoketest"; } ]; }).config;
+      c = (f.nixosConfigurations.standard-vm.extendModules {
+            modules = [ { standard.owner = "smoketest"; } ]; }).config;
   in { noMax = !(c.users.users ? max);
        greet = c.services.greetd.settings.default_session.user;
        home  = c.home-manager.users.smoketest.home.homeDirectory; }' 2>/dev/null)"
 grep -q '"noMax":true' <<<"$OWNER_CHECK" \
-  || fail "a hardcoded max user came back — golem.owner no longer covers every site"
+  || fail "a hardcoded max user came back — standard.owner no longer covers every site"
 grep -q '"greet":"smoketest"' <<<"$OWNER_CHECK" \
-  || fail "greetd does not follow golem.owner"
+  || fail "greetd does not follow standard.owner"
 grep -q '"home":"/home/smoketest"' <<<"$OWNER_CHECK" \
-  || fail "the home layer does not follow golem.owner"
-ok "golem.owner drives the whole chain (no baked-in max)"
+  || fail "the home layer does not follow standard.owner"
+ok "standard.owner drives the whole chain (no baked-in max)"
 
 echo "── static checks passed ──"
 
@@ -197,7 +197,7 @@ grep -q 'hypr=1'         <<<"$line" || fail "Hyprland not running in the booted 
 grep -q 'wr=1'           <<<"$line" || fail "waverunner not running in the booted ISO"
 grep -q 'supp=active'    <<<"$line" || fail "wpa_supplicant not active in the booted ISO"
 grep -q 'binsh=yes'      <<<"$line" || fail "/bin/sh missing in the booted ISO"
-# Identity (release-checklist §1.2): a booted Golem must be able to name its
+# Identity (release-checklist §1.2): a booted Standard must be able to name its
 # build — configurationRevision comes from self.rev/dirtyRev (77a8c82). An
 # empty/None answer means bug reports can't be tied to a build again.
 grep -qE 'rev=[0-9a-f]{9}' <<<"$line" \

@@ -1,10 +1,10 @@
-# Golem NVIDIA policy, fact-gated — the ported dev-host module
+# Standard NVIDIA policy, fact-gated — the ported dev-host module
 # (/etc/nixos/nvidia-module.nix, spec §3 "port pending" → done). The origin
 # gesture generalized: this is the nvidia.nix Max pasted into /etc/nixos
 # after every reinstall, now shipped to every machine, dormant until a
 # facts file wakes it (GolemInstall.md §1).
 #
-# WHAT THE FACTS DECIDE (golem.hardware.*, see system/hardware.nix):
+# WHAT THE FACTS DECIDE (standard.hardware.*, see system/hardware.nix):
 #   gpu == "nvidia"            an NVIDIA dGPU is present — nothing activates
 #                              without this
 #   nvidiaGen == "turing+"     open GSP kernel module + current branch, plus
@@ -31,12 +31,12 @@
 # hand override in the machine's flake always wins without mkForce.
 #
 # Wayland note: the PRIME bus IDs only reach generated X11 Device sections;
-# on a Wayland-only Golem (greetd + Hyprland) they are inert — kept for
+# on a Wayland-only Standard (greetd + Hyprland) they are inert — kept for
 # X-fallback correctness and as the override point.
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.hardware;
+  cfg = config.standard.hardware;
   hybrid = cfg.nvidiaBusId != null && cfg.intelBusId != null;
   # The census picks the PRIMARY gpu by boot_vga (round 3, #17b), so on an
   # offload laptop the nvidia chip arrives as gpu2 — this module now wakes

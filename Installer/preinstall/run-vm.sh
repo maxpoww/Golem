@@ -22,7 +22,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-ISO="result/iso/golem-installer.iso"
+ISO="result/iso/standardos-installer.iso"
 HEADLESS=false
 UEFI=false
 NOCD=false
@@ -45,11 +45,11 @@ args=(
   -enable-kvm -cpu host -smp 4 -m 4096
   -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:2222-:22
   -monitor unix:/tmp/golem-vm-hmp,server,nowait
-  -name "Golem installer (minimal)"
+  -name "Standard installer (minimal)"
   # The guest-agent channel. virt-guest.nix turns qemu-guest-agent on when
   # the census says vmGuest="qemu", and without this device the unit is
   # enabled but can never start — the first installed system showed it
-  # "inactive (dead)" and that looked like a Golem bug when it was a
+  # "inactive (dead)" and that looked like a Standard bug when it was a
   # missing virtio-serial port (same class as the -vga none miss above).
   -device virtio-serial
   -chardev socket,path=/tmp/golem-vm-qga,server=on,wait=off,id=qga0
@@ -61,9 +61,9 @@ if [ "$NOCD" = false ]; then
   args+=(-cdrom "$ISO" -boot d)
 fi
 
-# Golem installs systemd-boot and wants EFI variables
+# Standard installs systemd-boot and wants EFI variables
 # (system/configuration.nix:100). qemu's default is SeaBIOS, so an
-# installed Golem simply has nothing to boot from in a default VM —
+# installed Standard simply has nothing to boot from in a default VM —
 # --uefi is REQUIRED to test the install, not a nicety. OVMF_VARS is
 # copied per-VM because the firmware writes the boot entry into it, and a
 # store path is read-only.

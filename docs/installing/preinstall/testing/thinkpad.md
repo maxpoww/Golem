@@ -136,7 +136,7 @@ with a panelDpi fact on metal, and the first UEFI rehearsal on NVMe
 Driven from the dev box over SSH at 192.168.1.149.
 
 - **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sda`). Markers confirmed:
-  `golem-setup` unwrapped has 1 `valid_host Golem` hit and 4
+  `golem-setup` unwrapped has 1 `valid_host Standard` hit and 4
   `cancel_install` hits with the `#34` trap pair (`trap cleanup EXIT` /
   `trap cancel_install INT TERM`) at 3933–3934; `golem-postinstall-
   questions` present. UEFI. `golem-audit.service` already `ok` when

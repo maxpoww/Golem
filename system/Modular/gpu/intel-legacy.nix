@@ -139,8 +139,8 @@ in
 
   # These iGPUs can't afford the compositor's blur: on the 2013 MacBook Air
   # the 3D engine sat at 98% during YouTube and the video stuttered; blur off
-  # freed 13-17 points (options.nix, golem.desktop.effects).
-  golem.desktop.effects = "light";
+  # freed 13-17 points (options.nix, standard.desktop.effects).
+  standard.desktop.effects = "light";
 
   environment.etc."opt/chrome/policies/managed/golem-legacy-video.json".text =
     builtins.toJSON {

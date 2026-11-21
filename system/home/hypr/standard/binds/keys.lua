@@ -1,10 +1,10 @@
--- golem/binds/keys.lua: the keyboard's own keys: power, volume, brightness,
+-- standard/binds/keys.lua: the keyboard's own keys: power, volume, brightness,
 -- the keyboard's light, the player, Print Screen.
-local ctl = require("golem.lib").ctl
+local ctl = require("standard.lib").ctl
 
 -- The control keys below all carry `submap_universal = true`: they keep working
 -- inside any submap, which is what keeps volume/brightness/media alive while
--- Golem's STAGE mode has taken every other bind away (see the "stage" submap).
+-- Standard's STAGE mode has taken every other bind away (see the "stage" submap).
 -- The power key (Max, 2026-11-03): a SHORT press brings the banner's power
 -- pills right of the gear (hibernate, and sleep and restart behind it on
 -- hover); a LONG one is logind's and powers off (desktop/idle.nix). Sent when

@@ -1,4 +1,4 @@
-# Golem core — everything common to every Golem machine.
+# Standard core — everything common to every Standard machine.
 # Ported from /etc/nixos/configuration.nix; hardware (nvidia, disks) lives
 # in hosts/, home config in ./home/, wired up by flake.nix.
 { config, pkgs, lib, ... }:
@@ -10,7 +10,7 @@
     ./golem-apps.nix
     ./hardware.nix
     # The hardware module library (GolemInstall.md §5): one family each,
-    # permanently imported, internally mkIf-gated on golem.hardware facts.
+    # permanently imported, internally mkIf-gated on standard.hardware facts.
     # Families too small to split yet live in hardware.nix itself.
     ./hardware/broadcom-wifi.nix
     ./hardware/fingerprint.nix
@@ -31,10 +31,10 @@
     ./golem-seal.nix
     ./waverunner-apply.nix
     ./postinstall.nix
-    # (golem.postinstall.answers, declared for the old profile; the modular
+    # (standard.postinstall.answers, declared for the old profile; the modular
     # one declares it in base/options.nix)
     ({ lib, ... }: {
-      options.golem.postinstall.answers = lib.mkOption {
+      options.standard.postinstall.answers = lib.mkOption {
         type = lib.types.attrsOf lib.types.str;
         default = { };
         internal = true;
@@ -47,39 +47,39 @@
     ./modules/legacy/music-production.nix
   ];
 
-  options.golem.flakeDir = lib.mkOption {
+  options.standard.flakeDir = lib.mkOption {
     type = lib.types.nullOr lib.types.str;
     default = null;
     description = ''
-      Local checkout of the Golem flake on this machine. Enables the
+      Local checkout of the Standard flake on this machine. Enables the
       waverunner declarative-install apply service and points rebuild-golem
       at it. null (a machine without a checkout) disables both.
     '';
   };
 
-  options.golem.flakeAttr = lib.mkOption {
+  options.standard.flakeAttr = lib.mkOption {
     type = lib.types.str;
     default = "golem";
     description = ''
       Which nixosConfigurations attr this machine rebuilds itself as
-      (the VM is golem-vm; apply/rebuild must rebuild what actually runs).
+      (the VM is standard-vm; apply/rebuild must rebuild what actually runs).
     '';
   };
 
-  options.golem.owner = lib.mkOption {
+  options.standard.owner = lib.mkOption {
     type = lib.types.str;
     default = "max";
     description = ''
       The machine's single human user — the account greetd logs in, the home
       layer configures, waverunner-apply watches, and sudo trusts. ONE knob
       instead of the hardcoded name scattered across five files
-      (release-checklist §2.2 "Every Golem user is named max"): the S9
+      (release-checklist §2.2 "Every Standard user is named max"): the S9
       installer's rename job becomes setting this option. The GECOS full
       name (users.users.<owner>.description) stays the installer's to set.
     '';
   };
 
-  options.golem.locale = {
+  options.standard.locale = {
     defaultLocale = lib.mkOption {
       type = lib.types.str;
       default = "en_US.UTF-8";
@@ -106,7 +106,7 @@
     };
   };
 
-  options.golem.keyboard = {
+  options.standard.keyboard = {
     layout = lib.mkOption {
       type = lib.types.str;
       default = "us";
@@ -114,7 +114,7 @@
         XKB layout for this machine, as chosen in the installer's keyboard
         step. May be a comma-separated list: every non-Latin script gets
         "<script>,us" so the owner can still type a URL, a password or a
-        shell command. See options.golem.keyboard.options for the toggle.
+        shell command. See options.standard.keyboard.options for the toggle.
       '';
     };
     variant = lib.mkOption {
@@ -171,7 +171,7 @@
     };
   };
 
-  options.golem.lean = lib.mkOption {
+  options.standard.lean = lib.mkOption {
     type = lib.types.bool;
     default = false;
     description = ''
@@ -187,13 +187,13 @@
 
   config = {
     # The owner's launcher-installed app list rides the home layer only on
-    # non-lean systems (see options.golem.lean above; home/home.nix says why
+    # non-lean systems (see options.standard.lean above; home/home.nix says why
     # it lives here and not there). Read as data (home/app-list.nix), never
     # imported: the file is the owner's, outside the seal.
-    golem.appsListPath = lib.mkDefault
+    standard.appsListPath = lib.mkDefault
       (if builtins.pathExists ./home/waverunner-packages.nix then ./home/waverunner-packages.nix else null);
-    home-manager.users.${config.golem.owner}.imports =
-      lib.optional (!config.golem.lean) (import ./home/app-list.nix config.golem.appsListPath);
+    home-manager.users.${config.standard.owner}.imports =
+      lib.optional (!config.standard.lean) (import ./home/app-list.nix config.standard.appsListPath);
 
     # /bin/sh and /usr/bin/env on FRESH roots (found booting the ISO in qemu,
     # 2026-09-01). This nixpkgs boots stage 2 through nixos-init (toplevel
@@ -201,7 +201,7 @@
     # no-op — and on the ISO's tmpfs root nothing else created the links, so
     # /bin sat EMPTY. First casualty: greetd, whose worker execve's a
     # hardcoded "/bin/sh" (worker.rs:277) — it panicked with ENOENT, restarted
-    # five times, hit the start limit, and the "live session IS Golem" booted
+    # five times, hit the start limit, and the "live session IS Standard" booted
     # to a black screen with a running system underneath. Max's machine never
     # showed it because its stateful root carries /bin/sh from years of
     # generations. Verified live in the guest: symlinking /bin/sh and
@@ -215,7 +215,7 @@
     ];
 
     # Bootloader follows the firmware the machine booted (census
-    # golem.hardware.firmware): UEFI gets systemd-boot, BIOS/legacy gets
+    # standard.hardware.firmware): UEFI gets systemd-boot, BIOS/legacy gets
     # GRUB. 3 of 5 lab machines boot BIOS, and it is where dual-boot will
     # live — so this is a real fork, not a fallback. GRUB (not systemd-boot,
     # which is UEFI-only) is also what chainloads other OSes, which is why
@@ -223,7 +223,7 @@
     # a layout dual-boot can grow into rather than MBR's 4-partition dead end.
     boot.loader = lib.mkMerge [
       { timeout = 3; }
-      (lib.mkIf (config.golem.hardware.firmware == "uefi") {
+      (lib.mkIf (config.standard.hardware.firmware == "uefi") {
         efi.canTouchEfiVariables = true;
         systemd-boot = {
           enable = true;
@@ -231,7 +231,7 @@
           editor = false;
         };
       })
-      (lib.mkIf (config.golem.hardware.firmware == "bios") {
+      (lib.mkIf (config.standard.hardware.firmware == "bios") {
         grub = {
           enable = true;
           efiSupport = false;
@@ -245,12 +245,12 @@
     ];
     # The 26.11 default, set early (surfaced by the first `nix flake check`,
     # 2026-09-03): force-importing ZFS pools at boot risks data loss on a
-    # pool that was live elsewhere. Golem ships no ZFS root — this only
+    # pool that was live elsewhere. Standard ships no ZFS root — this only
     # protects a tester who plugs in a machine that has pools.
     boot.zfs.forceImportRoot = false;
 
     # vm.* memory sysctls (swappiness, cache pressure, dirty ratios) live
-    # in hardware/memory.nix now — RAM-tiered on the golem.hardware facts,
+    # in hardware/memory.nix now — RAM-tiered on the standard.hardware facts,
     # same historical values when no detection ran.
     #
     # fq+BBR came in with the /etc/nixos port and STAY as distro policy
@@ -302,18 +302,18 @@
     # mkDefault, and it was not until 2026-09-05. The installer writes the
     # owner's chosen hostname into machine.nix, and a base value at normal
     # priority made that a CONFLICTING DEFINITION — evaluation failed, so
-    # every install that named its machine anything but "Golem" would have
+    # every install that named its machine anything but "Standard" would have
     # died at nixos-install with a message about option priorities.
     # Identical to the GECOS collision recorded in Installer/preinstall/PLAN.md:
     # a base value a per-machine file cannot override is not a default,
     # it is a decision.
-    networking.hostName = lib.mkDefault "Golem";
+    networking.hostName = lib.mkDefault "Standard";
 
     # The distro's NAME — what os-release (NAME/PRETTY_NAME) and the
-    # systemd-boot entry titles say. Lives here (every Golem machine), not in
+    # systemd-boot entry titles say. Lives here (every Standard machine), not in
     # the ISO module, per release-checklist §1.2. The generation label / tags,
     # distroId, and the full version string are DECIDE items and stay Max's.
-    system.nixos.distroName = "Golem";
+    system.nixos.distroName = "StandardOS";
 
     networking.networkmanager.enable = true;
 
@@ -324,12 +324,12 @@
       allowedTCPPorts = [ 53317 ];
     };
 
-    # Language, from the installer's first question (golem.locale).
+    # Language, from the installer's first question (standard.locale).
     #
     # WHAT WAS HERE UNTIL 2026-09-05, and why it had to go: a hardcoded
     # `time.timeZone = "America/La_Paz"` and nine LC_* lines pinned to
     # es_BO. Those are ONE OWNER'S SETTINGS, and they were sitting in the
-    # file that defines every Golem machine — so a stranger installing on
+    # file that defines every Standard machine — so a stranger installing on
     # their own laptop got Bolivian dates, money, paper size and clock no
     # matter what they picked in the installer. They now live in
     # hosts/golem/locale.nix, which is where one machine's facts belong.
@@ -340,17 +340,17 @@
     # English interface, local formats — is real but it is a preference, and
     # preferences belong to OPTIONS rather than to a question asked of every
     # stranger during setup.
-    i18n.defaultLocale = lib.mkDefault config.golem.locale.defaultLocale;
+    i18n.defaultLocale = lib.mkDefault config.standard.locale.defaultLocale;
     # The chosen locale must actually be GENERATED or it silently falls back
     # to C at first boot — the same class of failure as an XKB name that
     # does not exist. en_US stays alongside it because a rescue shell and
     # most error messages assume it.
     i18n.supportedLocales = lib.mkDefault (lib.unique [
-      "${config.golem.locale.defaultLocale}/UTF-8"
+      "${config.standard.locale.defaultLocale}/UTF-8"
       "en_US.UTF-8/UTF-8"
       "C.UTF-8/UTF-8"
     ]);
-    time.timeZone = lib.mkDefault config.golem.locale.timeZone;
+    time.timeZone = lib.mkDefault config.standard.locale.timeZone;
 
     # Creates the `uinput` group and a udev rule giving it 0660 on
     # /dev/uinput. Without this the node is 0600 nobody:nogroup and nothing
@@ -359,7 +359,7 @@
     # (games read evdev directly) the way the pointer and keyboard do.
     hardware.uinput.enable = true;
 
-    users.users.${config.golem.owner} = {
+    users.users.${config.standard.owner} = {
       isNormalUser = true;
       # GECOS full name: the installer's to personalize alongside the owner
       # (line 54, and spec §6's machine.nix). mkDefault is what makes that
@@ -381,22 +381,22 @@
       ];
     };
 
-    # Keyboard, from the installer's one question (golem.keyboard). THREE
+    # Keyboard, from the installer's one question (standard.keyboard). THREE
     # SINKS, and they are not interchangeable: the TTY reads console.keyMap,
     # X11/XWayland clients read services.xserver.xkb, and the actual desktop
     # reads NEITHER — Hyprland has its own input block, wired in
     # home/hyprland.nix. Setting only the two here leaves the session on us,
     # which is exactly the bug this replaces.
-    console.keyMap = lib.mkDefault config.golem.keyboard.consoleKeyMap;
-    console.font   = lib.mkIf (config.golem.keyboard.consoleFont != null)
-                       (lib.mkDefault config.golem.keyboard.consoleFont);
+    console.keyMap = lib.mkDefault config.standard.keyboard.consoleKeyMap;
+    console.font   = lib.mkIf (config.standard.keyboard.consoleFont != null)
+                       (lib.mkDefault config.standard.keyboard.consoleFont);
     services.xserver = {
       enable = true;
       xkb = {
-        layout  = lib.mkDefault config.golem.keyboard.layout;
-        variant = lib.mkDefault config.golem.keyboard.variant;
-        options = lib.mkDefault config.golem.keyboard.options;
-        model   = lib.mkDefault config.golem.keyboard.model;
+        layout  = lib.mkDefault config.standard.keyboard.layout;
+        variant = lib.mkDefault config.standard.keyboard.variant;
+        options = lib.mkDefault config.standard.keyboard.options;
+        model   = lib.mkDefault config.standard.keyboard.model;
       };
     };
 
@@ -410,9 +410,9 @@
     # AS ROOT; git's ownership guard (CVE-2022-24765) and nix's libgit2
     # copy of it must both be told that's safe. Both read /etc/gitconfig —
     # the only level libgit2 honors (never -c, never env).
-    programs.git = lib.mkIf (config.golem.flakeDir != null) {
+    programs.git = lib.mkIf (config.standard.flakeDir != null) {
       enable = true;
-      config.safe.directory = config.golem.flakeDir;
+      config.safe.directory = config.standard.flakeDir;
     };
 
     # Graphics drivers, in full (todo9 item 4): the open stack needs nothing
@@ -433,14 +433,14 @@
       settings = {
         default_session = {
           command = "uwsm start hyprland-uwsm.desktop";
-          user = config.golem.owner;
+          user = config.standard.owner;
         };
       };
     };
 
     # SH F4/F7: the daemon's glyphs need the Nerd Font; its "sans-serif"
     # request used to fall back to DejaVu by fontconfig accident — ship
-    # DejaVu and make that default deliberate. (Choosing a real Golem UI
+    # DejaVu and make that default deliberate. (Choosing a real Standard UI
     # font is an open design call — todo7.)
     fonts.packages = with pkgs; [
       jetbrains-mono
@@ -456,7 +456,7 @@
     # only ever READ (hosts/golem/hardware-configuration.nix:32, for
     # microcode). enableAllFirmware is the wider set — the broadcom/b43-era
     # laptops a stranger might hand us live in the gap between the two — and
-    # it implies the redistributable one. It needs allowUnfree, which Golem
+    # it implies the redistributable one. It needs allowUnfree, which Standard
     # sets below regardless.
     hardware.enableAllFirmware = true;
 
@@ -467,7 +467,7 @@
     # a future OPTIONS surface — no surprise reboots.
     services.fwupd.enable = lib.mkDefault true;
 
-    # Golem ships unfree and does not ask. The webapp engine is google-chrome
+    # Standard ships unfree and does not ask. The webapp engine is google-chrome
     # (home/home.nix), the firmware above is partly unfree, and nvidia's
     # driver is unfree (hosts/golem/nvidia.nix): an install-time "unfree?"
     # question (todo9 item 4) would be a question whose "no" breaks the app
@@ -478,7 +478,7 @@
     services.envfs.enable = true;
 
     # Remote filesystems in the file manager. Without this Thunar cannot open
-    # dav:// or sftp:// at all — it is what lets the Golem phone appear as a
+    # dav:// or sftp:// at all — it is what lets the Standard phone appear as a
     # browsable location rather than needing a FUSE mount.
     services.gvfs.enable = true;
     # Enabling the daemon is not enough: GTK apps only speak to it if gvfs's
@@ -493,10 +493,10 @@
       networkmanagerapplet  # network GUI (nm-connection-editor)
       # brightnessctl + golem-brightness come from ./golem-brightness.nix now
       # (system-wide, not the user's launcher list). The keys call the latter.
-    ] ++ lib.optional (config.golem.flakeDir != null)
+    ] ++ lib.optional (config.standard.flakeDir != null)
       (pkgs.writeShellScriptBin "rebuild-golem" ''
         set -euo pipefail
-        sudo golem-rebuild switch --flake "${config.golem.flakeDir}#${config.golem.flakeAttr}" "$@"
+        sudo golem-rebuild switch --flake "${config.standard.flakeDir}#${config.standard.flakeAttr}" "$@"
       # Built and switched with sudo: that IS the owner's consent to what is
       # in the checkout now. Re-seal it, or every app install from the dock
       # would be refused until a separate `sudo golem-bless`.
@@ -523,7 +523,7 @@
     zramSwap.enable = true;
 
     # Survive memory pressure instead of freezing under it. On an 8 GB DDR3
-    # machine (the i5-6th-gen / HD 530 class Golem must serve) a spike — a
+    # machine (the i5-6th-gen / HD 530 class Standard must serve) a spike — a
     # heavy webapp next to a nixos-rebuild eval, which wants 2-3 GB — pushes
     # the kernel into swap-thrash and the whole desktop locks, mouse and all.
     # systemd-oomd watches PSI pressure per cgroup and kills the GREEDIEST
@@ -567,10 +567,10 @@
       ACTION=="add|change",SUBSYSTEM=="input",KERNEL=="event*",ENV{ID_INPUT_TOUCHSCREEN}=="1",ENV{LIBINPUT_IGNORE_DEVICE}="1"
     '';
 
-    # Golem dev loop: max (and Claude working as max) rebuilds without a
+    # Standard dev loop: max (and Claude working as max) rebuilds without a
     # password. Build always runs before switch; generations are the net.
     security.sudo.extraRules = [{
-      users = [ config.golem.owner ];
+      users = [ config.standard.owner ];
       commands = [{
         command = "/run/current-system/sw/bin/nixos-rebuild";
         options = [ "NOPASSWD" ];

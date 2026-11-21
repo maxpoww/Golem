@@ -1,12 +1,12 @@
 # ── LAB DOOR — lab machines only (2026-11-12). ───────────────────────────
 #
-# Max, 2026-09-24: "an installed Golem should let you go in via ssh and test —
+# Max, 2026-09-24: "an installed Standard should let you go in via ssh and test —
 # that is the whole idea of the lab." Until 2026-11-12 the door was in the BASE:
-# every installed Golem, a stranger's too, came up with sshd taking the dev
+# every installed Standard, a stranger's too, came up with sshd taking the dev
 # box's keys for root and the owner, and joining the lab Wi-Fi (the privacy
 # study's first gap). Max, 2026-11-12, approved "remove the lab door from
-# normal installs": it is now a machine's own choice, golem.lab.door, set by
-# hosts/target/lab.nix (`{ golem.lab.door = true; }`) on the lab's machines.
+# normal installs": it is now a machine's own choice, standard.lab.door, set by
+# hosts/target/lab.nix (`{ standard.lab.door = true; }`) on the lab's machines.
 #
 #  - Lab laptops already installed: the file is put in their machine layer by
 #    the deploy (and sealed with it). Without it a machine loses the door at
@@ -32,19 +32,19 @@ let
   ];
 in
 {
-  options.golem.lab.door = lib.mkOption {
+  options.standard.lab.door = lib.mkOption {
     type = lib.types.bool;
     default = builtins.getEnv "GOLEM_LAB" == "1";
     description = "This machine is a lab testbed: the dev box's SSH keys, the lab Wi-Fi, wave 0 (hosts/target/lab.nix).";
   };
 
-  config = lib.mkIf config.golem.lab.door {
+  config = lib.mkIf config.standard.lab.door {
     # What golem-install reads to know it is copying a lab system.
     environment.etc."golem/lab-door".text = "This machine is a lab testbed (system/Modular/lab/lab-door.nix).\n";
     # The lab meets every new version first (wave 0, updates/client.nix);
     # installs spread over the week.
-    golem.update.wave = lib.mkDefault 0;
-    users.users.${config.golem.owner}.openssh.authorizedKeys.keys = devKeys;
+    standard.update.wave = lib.mkDefault 0;
+    users.users.${config.standard.owner}.openssh.authorizedKeys.keys = devKeys;
     users.users.root.openssh.authorizedKeys.keys = devKeys;
     # The lab's machines keep their real Wi-Fi address (base/network.nix gives
     # installs a private one): the lab reaches each machine at the address its
@@ -67,7 +67,7 @@ in
     # The lab's Hyprland keeps its full log, with times (Hyprland's default
     # drops its own lines once the config is in; only aquamarine's remain):
     # a start's 3.4 s on the 2013 MacBook Air can be read. In /run, tmpfs. The line
-    # is home/hypr/golem/lab.lua's, on when home/hyprland.nix's facts say so (it
+    # is home/hypr/standard/lab.lua's, on when home/hyprland.nix's facts say so (it
     # knows a lab machine by the heartbeat below): ahead
     # of the owner's live settings, which stay last (desktop-matrix holds it).
 

@@ -1,4 +1,4 @@
-# tools/latest/nixos-options.nix — what Golem DEFINES of NixOS, against the
+# tools/latest/nixos-options.nix — what Standard DEFINES of NixOS, against the
 # latest NixOS (tools/latest/check.sh runs it; README.md beside this file).
 #
 # Every NixOS option that the app modules (system/modules), the loopback-
@@ -20,9 +20,9 @@ let
   ml = import (src + "/system/modules/lib.nix") { inherit lib; };
   ids = builtins.attrNames ml.categories;
 
-  base = (f.lib.golem.machine (src + "/system/machine/fixtures/thinkpad")).system;
+  base = (f.lib.standard.machine (src + "/system/machine/fixtures/thinkpad")).system;
   all = base.extendModules {
-    modules = [ { golem.modules = lib.genAttrs ids (_: { enable = true; install = "all"; }); } ];
+    modules = [ { standard.modules = lib.genAttrs ids (_: { enable = true; install = "all"; }); } ];
   };
   opts = all.options;
   pkgs = all.pkgs;
@@ -36,7 +36,7 @@ let
     else if builtins.isAttrs v && !(v ? _type) then lib.concatLists (lib.mapAttrsToList (n: x: collect (path ++ [ n ]) x) v)
     else [ ([ "NOT-AN-OPTION" ] ++ path) ];
 
-  args = { config = all.config; inherit lib pkgs; options = opts; golemSource = src; };
+  args = { config = all.config; inherit lib pkgs; options = opts; standardSource = src; };
   # What a module file returns, and what the modules it imports inline
   # (lib.nix's mkModule) return.
   body = m:
@@ -54,7 +54,7 @@ let
   bad = lib.filter (p: builtins.head p == "NOT-AN-OPTION") defined;
   good = lib.filter (p: builtins.head p != "NOT-AN-OPTION") defined;
 
-  # Only what NixOS itself declares (Golem's own options and home-manager's
+  # Only what NixOS itself declares (Standard's own options and home-manager's
   # are not NixOS's to keep).
   np = toString f.inputs.nixpkgs.outPath;
   ofNixos = p: lib.all (d: lib.hasPrefix np (toString d)) (lib.getAttrFromPath p opts).declarations;
@@ -83,7 +83,7 @@ let
 
   # The catalog's programs, by attribute, in the latest nixpkgs: which names
   # will no longer be there at the next move of the pin.
-  catalog = builtins.fromJSON (builtins.readFile all.config.golem.modules.catalog);
+  catalog = builtins.fromJSON (builtins.readFile all.config.standard.modules.catalog);
   attrs = lib.unique (lib.concatMap (c: lib.concatMap (g: lib.concatMap (p: lib.optional (p ? pkg) p.pkg) (g.programs or [ ])) (c.groups or [ ])) (catalog.modules or [ ]));
   has = set: a: lib.hasAttrByPath (lib.splitString "." a) set;
 in

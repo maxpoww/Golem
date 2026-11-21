@@ -13,7 +13,7 @@
 { lib, pkgs, choose }:
 
 let
-  facts = path: (import path { }).golem.hardware;
+  facts = path: (import path { }).standard.hardware;
 
   rows = [
     {

@@ -9,10 +9,10 @@
 # services, ports, device rules and kernel bits a program needs to work.
 #
 # The option shape (docs/system/GolemModules.md §2, §5):
-#   golem.modules.<module>.enable            the module is on
-#   golem.modules.<module>.install           what `enable` takes: "recommended"
+#   standard.modules.<module>.enable            the module is on
+#   standard.modules.<module>.install           what `enable` takes: "recommended"
 #                                            (the catalog's picks), "all", "chosen"
-#   golem.modules.<module>.<tool>.enable     one program: true, false, or unsaid
+#   standard.modules.<module>.<tool>.enable     one program: true, false, or unsaid
 # The set is closed: a tool the catalog does not have is an evaluation error.
 { lib }:
 
@@ -97,7 +97,7 @@ rec {
       // lib.optionalAttrs (!(p ? pkg) && p ? web) { inherit (p) web; })
       raw;
 
-  # The machine's selection file (golem.modules.listPath), READ AS DATA: one
+  # The machine's selection file (standard.modules.listPath), READ AS DATA: one
   # `<module>` or `<module>.<tool>` per line, `#` starts a comment. Never
   # imported: the file is written without a password, so a line is only ever
   # a name that is looked up. → { modules = [ id ]; tools = { id = [ tool ]; };
@@ -129,21 +129,21 @@ rec {
   #   any [ … ]     one of them is
   #   on "gaming"   the module is on (switched on, or one of its tools is)
   scope = config: rec {
-    owner = config.golem.owner;
-    has = name: builtins.elem name config.golem.modules.installed;
+    owner = config.standard.owner;
+    has = name: builtins.elem name config.standard.modules.installed;
     any = names: lib.any has names;
-    on = id: builtins.elem id config.golem.modules.active;
+    on = id: builtins.elem id config.standard.modules.active;
   };
 
   # The half every module has in common: its options, its programs' packages,
   # its web programs as data, and the checks that keep the set closed.
   mkModule = { id, description }: { config, pkgs, ... }:
     let
-      cfg = config.golem.modules.${id};
-      owner = config.golem.owner;
-      tools = toolsOf config.golem.modules.catalogData categories.${id};
+      cfg = config.standard.modules.${id};
+      owner = config.standard.owner;
+      tools = toolsOf config.standard.modules.catalogData categories.${id};
       ids = map (t: t.id) tools;
-      listed = config.golem.modules.listData;
+      listed = config.standard.modules.listData;
 
       # What was said tool by tool (in a configuration, or in the list).
       named = builtins.removeAttrs cfg reserved;
@@ -177,7 +177,7 @@ rec {
       clash = lib.filter (i: builtins.elem i reserved) ids;
     in
     {
-      options.golem.modules.${id} = mkOption {
+      options.standard.modules.${id} = mkOption {
         default = { };
         inherit description;
         type = types.submodule {
@@ -216,26 +216,26 @@ rec {
         assertions = [
           {
             assertion = unknown == [ ];
-            message = "golem.modules.${id}: ${lib.concatStringsSep ", " unknown} — not a program of the ${categories.${id}} module"
-              + (if tools == [ ] then " (this system has no module catalog: golem.modules.catalog)" else " (the catalog's ids: ${lib.concatStringsSep " " ids})");
+            message = "standard.modules.${id}: ${lib.concatStringsSep ", " unknown} — not a program of the ${categories.${id}} module"
+              + (if tools == [ ] then " (this system has no module catalog: standard.modules.catalog)" else " (the catalog's ids: ${lib.concatStringsSep " " ids})");
           }
           {
             assertion = twice == [ ] && clash == [ ];
-            message = "golem.modules.${id}: the catalog gives two programs one id, or one of the module's own words (${lib.concatStringsSep ", " (twice ++ clash)}) — give it an id in system/modules/lib.nix (idOverrides)";
+            message = "standard.modules.${id}: the catalog gives two programs one id, or one of the module's own words (${lib.concatStringsSep ", " (twice ++ clash)}) — give it an id in system/modules/lib.nix (idOverrides)";
           }
         ];
         warnings =
-          map (t: "golem.modules.${id}: '${t.pkg}' (${t.name}) is not in nixpkgs or does not evaluate there today — skipped") missing
-          ++ map (n: "golem.modules list: '${id}.${n}' is not a program of the ${categories.${id}} module — skipped") unknownListed;
+          map (t: "standard.modules.${id}: '${t.pkg}' (${t.name}) is not in nixpkgs or does not evaluate there today — skipped") missing
+          ++ map (n: "standard.modules list: '${id}.${n}' is not a program of the ${categories.${id}} module — skipped") unknownListed;
 
         # Where the dock's installs go (hosts/target/apps.nix → the owner's
-        # home packages), at the same low priority: Golem's own copy of a
+        # home packages), at the same low priority: Standard's own copy of a
         # shared file wins.
         home-manager.users.${owner}.home.packages =
           map lib.lowPrio (lib.filter (p: p != null) (map (t: find t.pkg) withPkg));
 
-        golem.modules.active = lib.optional (enabled || chosen != [ ]) id;
-        golem.modules.web =
+        standard.modules.active = lib.optional (enabled || chosen != [ ]) id;
+        standard.modules.web =
           map (t: { module = id; inherit (t) id name; url = t.web; }) (lib.filter (t: t ? web) chosen);
       };
     };

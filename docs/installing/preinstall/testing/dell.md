@@ -28,7 +28,7 @@ only). Reachable via the Realtek USB wifi dongle.
      Nothing to install to; the only block device is the medium itself, so
      the target≠medium and disk-fit checks also fail. A real fail-early
      case.
-  3. **1790 MB RAM** — the lab's lowest, below Golem's memory tuning floor
+  3. **1790 MB RAM** — the lab's lowest, below Standard's memory tuning floor
      (tiers start ~4 GB). The `nix eval` of the target thrashed so hard the
      machine swapped past 5 minutes and starved SSH — it could not
      complete. Reinforces the closure-delivery open question (PLAN.md): a
@@ -72,7 +72,7 @@ UEFI-check catch WITH a completed eval and a real target.
     match boot audit · `ok` **eval instantiates in 171 s** → `nixos-system-dell`.
   - eval 171 s vs Acer 31 s / MacBook 58 s: Sandy Bridge + a 5400 rpm
     Hitachi is slow, but on 3.8 GB it COMPLETES — where 1.8 GB thrashed
-    forever. So Golem's practical eval floor sits above 1.8 GB and at/below
+    forever. So Standard's practical eval floor sits above 1.8 GB and at/below
     ~3.8 GB.
   - **`sdb` byte-identical before and after** (xfs + ext4 "home") — the
     prior system's data is safe.
@@ -93,7 +93,7 @@ UEFI-check catch WITH a completed eval and a real target.
   `intelLegacy = true` → i965 (right for Sandy Bridge HD 3000),
   **`firmware = "bios"`** (new fact, correct), bluetooth, laptop, swap
   8 GiB for hibernation. No panelDpi (same as round 1, correctly absent).
-- **Machine pathologies, diagnosed over SSH (NOT Golem bugs — rig/metal):**
+- **Machine pathologies, diagnosed over SSH (NOT Standard bugs — rig/metal):**
   1. **mei/ME dead** — the photo's error: `mei mei0: init clients timeout
      hbm_state = 4` → `reached maximal consecutive resets: disabling the
      device` (fw status `1E000042`). The ME firmware never comes up; the
@@ -155,7 +155,7 @@ UEFI-check catch WITH a completed eval and a real target.
   the round-1 correction.
 - **Verdict:** PASS — the BIOS/GRUB branch is proven on a second machine
   with 0 findings, on a box whose ME is dead, whose EC is storming, and
-  whose RTC is a decade off. Golem didn't blink.
+  whose RTC is a decade off. Standard didn't blink.
 
 ## Round 3 — 2026-09-08 — PASS · 0 findings · the mei console spam silenced
 
@@ -222,7 +222,7 @@ UEFI-check catch WITH a completed eval and a real target.
   reads as a flaky router/DHCP day rather than a stick regression —
   but watch round 6; if the pattern persists on a different day it
   becomes a finding.
-- **Machine quirks documented (lab notes, not Golem findings):**
+- **Machine quirks documented (lab notes, not Standard findings):**
   - **Phantom load ~65** on the 2c/4t box: dozens of kworkers stuck
     in D-state on `kec_query` — the dead keyboard's embedded
     controller never answers Dell SMBIOS queries and each one parks a

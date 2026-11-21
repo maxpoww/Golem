@@ -2,15 +2,15 @@
 # /etc/nixos layout. (The twin of base/first-boot.nix, which says at length
 # why it exists.)
 #
-# An installed Golem boots a system that was BAKED on the medium and copied
+# An installed Standard boots a system that was BAKED on the medium and copied
 # as it is: generic — the broad "boots on anything" initrd, the medium's own
 # account, hostname and language — because nothing is ever built on the
 # target during the install (a 2 GB machine cannot). The machine's own
 # answers and measured hardware are already in /etc/nixos; this builds them,
 # once, online and behind the owner's first session:
 #
-#   golem-update --converge     the newest Golem of the branch, merged into
-#                               root's copy (/etc/nixos/golem), and this
+#   golem-update --converge     the newest Standard of the branch, merged into
+#                               root's copy (/etc/nixos/standard), and this
 #                               machine's own system built from the folder —
 #                               even when there is no newer version
 #
@@ -52,12 +52,12 @@ in
       # do not start until the desktop is up (base/quiet-login).
       Nice = 19;
       IOSchedulingClass = "idle";
-      ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
+      ExecStartPre = lib.optional (config.standard ? quietLogin) "${config.standard.quietLogin}/bin/golem-quiet-login";
       # 75 = the network, not the build: again in an hour.
       RestartForceExitStatus = "75";
       RestartSec = "1h";
     };
-    path = [ config.golem.machine.updateCommand pkgs.coreutils ];
+    path = [ config.standard.machine.updateCommand pkgs.coreutils ];
     script = ''
       set -euo pipefail   # a failed build must not reach the last line
       ${golemWaitOnline}/bin/golem-wait-online || exit 75

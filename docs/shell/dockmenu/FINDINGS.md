@@ -60,7 +60,7 @@
 
 ## 2026-09-09 — #49/#50 landed + drilled live
 
-- Both shipped in launcher `8bb6c72`, Golem lock bumped, ASUS rebuilt
+- Both shipped in launcher `8bb6c72`, Standard lock bumped, ASUS rebuilt
   from seed (daemon `mfzr434j…`).
 - **Live corruption drill on the ASUS:** wrote garbage into
   `usage.json`, restarted — the daemon logged the loud rescue, preserved
@@ -126,7 +126,7 @@
 
 ## 2026-09-09/10 night — #56 IMPLEMENTED + drilled live; #58 found on the way
 
-- **#56 (LANDED · Golem `fa4d1a3`+`332920f`)** — the seed blessing gate
+- **#56 (LANDED · Standard `fa4d1a3`+`332920f`)** — the seed blessing gate
   is LIVE on the ASUS. Acceptance drill on metal:
   1. TOFU: first helper run sealed the seed (221 files →
      `/var/lib/golem/seed.manifest`, root 0700/0600).
@@ -275,7 +275,7 @@ preserved here.
   build succeeded. Confirmed in the apply journal ("Unit ... was
   already loaded", exit 1). Same corpse bit the ASUS seal deploy
   earlier (recovered by an external switch then).
-- **Fix (Golem `f949925`)**: both apply helpers (seed
+- **Fix (Standard `f949925`)**: both apply helpers (seed
   waverunner-apply + postinstall, and the dev-box channel helper in
   /etc/nixos) `systemctl reset-failed` the transient unit before
   building. A RUNNING unit isn't "failed" → a live switch is untouched.

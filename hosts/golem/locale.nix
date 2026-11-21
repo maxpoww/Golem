@@ -8,13 +8,13 @@
 #
 # They are correct HERE: this file is one machine's facts, the same way
 # nvidia.nix and hardware-configuration.nix beside it are. An installed
-# stranger's machine gets golem.locale from the installer instead, and the
+# stranger's machine gets standard.locale from the installer instead, and the
 # LC_* split below is exactly the preference the distro deliberately does
 # not ask about (see the note in system/configuration.nix).
 { lib, ... }:
 
 {
-  golem.locale = {
+  standard.locale = {
     defaultLocale = "en_US.UTF-8";
     timeZone = "America/La_Paz";
   };

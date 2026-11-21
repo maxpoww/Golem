@@ -1,8 +1,8 @@
 # The DESKTOP STAGE (stage 1) — everything a machine gains climbing from the
-# minimal base to the Golem desktop, added BY REBUILD, never by reinstall
+# minimal base to the Standard desktop, added BY REBUILD, never by reinstall
 # (Installer/installing/spec.md, the stage ladder). Attached via the
-# `golem-desktop` flake attr (base composition + this bundle); a machine climbs
-# by setting golem.flakeAttr = "golem-desktop" and running rebuild-golem — the
+# `standard-desktop` flake attr (base composition + this bundle); a machine climbs
+# by setting standard.flakeAttr = "standard-desktop" and running rebuild-golem — the
 # existing self-rebuild loop (base/loop.nix, base/selfrebuild.nix), no new
 # mechanism.
 #
@@ -19,7 +19,7 @@
     ./audio.nix             # pipewire   (from system/audio.nix)
     ./bluetooth.nix         # bluez + blueman, census-gated (from system/bluetooth.nix)
     ./fonts.nix             # JetBrains Mono Nerd + DejaVu (from configuration.nix)
-    ../../../seam           # Seam, Golem's browser (system half: build + policies +
+    ../../../seam           # Seam, Standard's browser (system half: build + policies +
                             # update lane). Its home half (seam/home.nix) needs the
                             # golem-seam overlay this module provides — without it the
                             # home layer fails to evaluate (pkgs.golem-seam missing).
@@ -52,7 +52,7 @@
                             #   GTK's for the rest (file chooser, look), nobody for Secret
     ./ups.nix               # `ups`: bleeding-edge upstream apps in rootless containers,
                             # an overlay on the stock app (ups erase brings it back)
-    ../../postinstall.nix       # the post-install questions (F2.3): what Golem left for the
+    ../../postinstall.nix       # the post-install questions (F2.3): what Standard left for the
                                 #   owner to judge (the ASUS's failing second GPU) is asked
                                 #   once at the desktop, and the answer applied by a rebuild
                                 #   of root's own copy; the answers file is read as data
@@ -66,20 +66,20 @@
     #   ime.nix          fcitx5 + engines     (NEW — the global-input hole)
     #   + the home layer (home-manager: hyprland.lua, waverunner, foot, neovim)
     # NOTE: desktop/test-chrome.nix is TEST-ONLY and deliberately NOT here —
-    # it is composed only into the golem-desktop-test cut.
+    # it is composed only into the standard-desktop-test cut.
   ];
 
   # The machine's own app list lives beside its other per-machine files.
-  golem.appsFile = "hosts/target/apps.nix";
+  standard.appsFile = "hosts/target/apps.nix";
 
   # A machine running the desktop REBUILDS ITSELF AS the desktop. Every
   # self-rebuild (first-boot, autoupdate, rebuild-golem, waverunner-apply)
-  # targets golem.flakeAttr, and base/loop.nix defaults it to golem-minimal.
+  # targets standard.flakeAttr, and base/loop.nix defaults it to standard-minimal.
   # Left there, a desktop machine rebuilt itself WITHOUT the desktop: on the
   # thinkpad (2026-09-29) a drag-install of Brave switched live to stage 0,
   # took Hyprland down mid-session and killed the install; first-boot had
   # already staged the desktop-less generation as the boot default.
   # 900: beats base/loop.nix's mkDefault (1000); an explicit setting (a test
   # cut, machine.nix) still wins.
-  golem.flakeAttr = lib.mkOverride 900 "golem-desktop";
+  standard.flakeAttr = lib.mkOverride 900 "standard-desktop";
 }

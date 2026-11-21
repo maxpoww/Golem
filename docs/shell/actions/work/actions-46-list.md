@@ -1,7 +1,7 @@
 # The ACTIONS list — all 46, both batches
 
 Compiled from the closed registers `work/batch-01/actions-40.md` and
-`work/batch-02/actions-40.md`. Format per action: **the sentence Golem speaks** ·
+`work/batch-02/actions-40.md`. Format per action: **the sentence Standard speaks** ·
 the verb pill it offers · the trigger (when it fires) · current status.
 
 Status is the batch's own honest ledger: **[live]** = can speak on today's
@@ -39,7 +39,7 @@ an engine absence. Batch 01 ships 34 (10 live); batch 02 ships 12 (2 live).
 ### A05 — the hand-back
 - **sentence:** "Your call is over, do you want to see what I held back?"
 - **verb:** [show me]
-- **trigger:** mic goes inactive after Golem held the notification queue
+- **trigger:** mic goes inactive after Standard held the notification queue
 - **status:** [live] (after A04's standing form, else silent)
 
 ### A07 — pause when I step away
@@ -136,7 +136,7 @@ an engine absence. Batch 01 ships 34 (10 live); batch 02 ships 12 (2 live).
 - **sentence:** "You keep the screen awake by hand while you read, do you want it to stay awake here?"
 - **verb:** [keep it awake here]
 - **trigger:** resumed from idle with nothing following it, ≥3×
-- **status:** **dormant** — Golem ships no idle manager to act on
+- **status:** **dormant** — Standard ships no idle manager to act on
 
 ### A27 — follow my headphones
 - **sentence:** "You move the sound over by hand every time these headphones arrive, do you want them to take it automatically?"
@@ -172,7 +172,7 @@ an engine absence. Batch 01 ships 34 (10 live); batch 02 ships 12 (2 live).
 - **sentence:** "You lock the screen by hand whenever you get up, do you want it locked as soon as the screen sleeps?"
 - **verb:** [lock as soon as the screen sleeps]
 - **trigger:** the user's own lock followed by idle, ≥3×
-- **status:** **dormant** — no idle manager and no locker ship with Golem
+- **status:** **dormant** — no idle manager and no locker ship with Standard
 
 ### A34 — another finger
 - **sentence:** "The fingerprint reader has been missing about half the time, do you want to add another finger?"
@@ -194,7 +194,7 @@ an engine absence. Batch 01 ships 34 (10 live); batch 02 ships 12 (2 live).
 
 ### A37 — on the way out
 - **sentence:** "You clear your history most times you finish with the browser, do you want the browser to do it itself on the way out?"
-- **verb:** [clear it on the way out] — the browser's own preference, never Golem touching history
+- **verb:** [clear it on the way out] — the browser's own preference, never Standard touching history
 - **trigger:** the browser's clear-browsing-data dialog appears, ≥3× across days
 - **status:** [new] wait — exists for Firefox, deliberately does NOT exist for the shipped Chrome
 

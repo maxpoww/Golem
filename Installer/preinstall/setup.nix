@@ -4,7 +4,7 @@
 # argued over as `mockup/install-cli`, but a mockup in a directory the flake
 # never reads is not on the stick: until this file existed, a lab machine
 # booting MiniGolem had golem-install and the census and NO WAY to answer
-# the six questions. The whole idea of "minimal Golem, no graphics, tested
+# the six questions. The whole idea of "minimal Standard, no graphics, tested
 # on five old machines" hinged on a script that never left the dev box.
 #
 # NOT writeShellApplication, deliberately. That would run shellcheck over
@@ -15,7 +15,7 @@
 # shellcheck never could (see the 2026-09-06 debug round: both real bugs
 # were invisible to static analysis).
 #
-# THE TABLES COME FROM lib.golem AT BUILD TIME. The script carries dev
+# THE TABLES COME FROM lib.standard AT BUILD TIME. The script carries dev
 # fallbacks of the keyboard table so it runs from a bare checkout, but the
 # package must not trust them: GOLEM_KEYBOARDS is baked into the wrapper
 # pointing at a table rendered from the SAME nix data CI verifies

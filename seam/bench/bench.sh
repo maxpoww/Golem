@@ -2,7 +2,7 @@
 # bench.sh — Seam vs stock Firefox, headless, same Mozilla binary, same measurement.
 #   ./bench.sh [runs]        (default 5 runs per variant; prints medians)
 # Variants:
-#   stock  Mozilla firefox-bin 156.x as shipped: no policies, no prefs, no Golem layer
+#   stock  Mozilla firefox-bin 156.x as shipped: no policies, no prefs, no Standard layer
 #   seam   the Seam build: policies (uBO, ATBC), user.js prefs, userChrome/Content, golem-chrome.js
 # Both get the identical bench hook (bench-hook.js). Local corpus → no network noise.
 # Each variant runs from a PRE-WARMED profile template (extensions installed once, untimed).
@@ -138,7 +138,7 @@ first=$(grep -n -m1 'GOLEM chrome script' "$BL/mozilla.cfg" | cut -d: -f1)
 head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam.cfg"; cat "$seam/golem-chrome.js" >> "$W/seam.cfg"
 SET=${BENCH_SET:-stock seam}
 if [ -n "${BENCH_ALT_SCRIPT:-}" ]; then head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam-alt.cfg"; cat "$BENCH_ALT_SCRIPT" >> "$W/seam-alt.cfg"; fi
-head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam-nocfg.cfg"   # wrapper header only, no Golem script
+head -n $((first-2)) "$BL/mozilla.cfg" > "$W/seam-nocfg.cfg"   # wrapper header only, no Standard script
 CHROME_BIN=${CHROME_BIN:-$(for d in /nix/store/*-google-chrome-1*/; do echo "$(basename "$d" | sed 's/.*google-chrome-//') $d"; done | sort -V | tail -1 | cut -d' ' -f2)bin/google-chrome-stable}
 for v in $SET; do case $v in
   chrome) [ -x "$CHROME_BIN" ] || { echo "no Chrome found"; exit 2; }; echo "chrome=$CHROME_BIN" ;;

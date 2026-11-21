@@ -152,7 +152,7 @@
 
 /* ===================== THE BAR IS ONE ROW WITH THE TRAFFIC LIGHTS =====================
    (Max, 2026-10-04: "the whole bar to feel aligned but also the traffic buttons to feel
-   as equal as on the other windows as possible".) The lights sit where every Golem
+   as equal as on the other windows as possible".) The lights sit where every Standard
    window has them (golem-chrome.js: 2px lower than the title bar's, centre 15px from the
    top); Firefox's bar was 40px tall with its buttons and the address field centred at
    20, 7px under them. The bar is now 32px: the field 30 (was 32) with 1px above and

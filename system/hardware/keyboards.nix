@@ -8,7 +8,7 @@
 # answer into machine.nix, and CI, which proves every row is real.
 #
 #   nix build .#checks.x86_64-linux.keyboard-table
-#   nix eval  .#lib.golem.keyboards.derive --apply 'f: f "colemak"'
+#   nix eval  .#lib.standard.keyboards.derive --apply 'f: f "colemak"'
 #
 # THREE NAMESPACES, THREE COLUMNS. These used to be one field used as all of
 # them, which was wrong in a way that ships broken installs: console keymaps

@@ -9,7 +9,7 @@ hl.config({
         -- workspace it jumps to the next occupied one. Provided by the
         -- hyprland-workspace-swipe-one-empty.patch overlay; overrides use_r.
         workspace_swipe_one_empty = true,
-        -- A swipe stays on the screen's own workspaces (golem/screens.lua):
+        -- A swipe stays on the screen's own workspaces (standard/screens.lua):
         -- hyprland-workspace-swipe-screen.patch.
         workspace_swipe_bound = true,
     },

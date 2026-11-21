@@ -1,15 +1,15 @@
 # Music Production — GolemModules.md §4's first real category. ONE switch,
 # not a per-tool checklist yet (Max, 2026-09-08: "check all, one click, add"):
-# every package and tweak below rides golem.modules.music-production.enable.
+# every package and tweak below rides standard.modules.music-production.enable.
 # Splitting it into per-tool toggles is future work once the bundle itself
 # is proven on real hardware (Max's electric organ).
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.modules.music-production;
+  cfg = config.standard.modules.music-production;
 in
 {
-  options.golem.modules.music-production.enable = lib.mkEnableOption ''
+  options.standard.modules.music-production.enable = lib.mkEnableOption ''
     Music Production — the full studio in one switch: DAWs, a loop/beat
     workstation, synthesizers (including a Hammond/tonewheel organ
     emulator), a live looper, audio-interface control, effect plugins, a
@@ -102,7 +102,7 @@ in
       soundfont-fluid
       linuxsampler
 
-      # AUDIO INTERFACE, answered directly: Golem doesn't need to "become"
+      # AUDIO INTERFACE, answered directly: Standard doesn't need to "become"
       # one — PipeWire+ALSA already drive any class-compliant USB Audio
       # interface (which covers the overwhelming majority of consumer
       # gear, most electric organs' USB audio/MIDI included) with zero

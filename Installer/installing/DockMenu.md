@@ -9,7 +9,7 @@
 
 ## Why this matters to the installer
 
-The dock/menubox (waverunner) is the first thing an installed Golem user
+The dock/menubox (waverunner) is the first thing an installed Standard user
 touches and the ONLY interface to installing software. Every install
 round from here on inherits: (a) the #45–#48 pipeline fixes proven today
 on the ASUS, and (b) a written reliability contract with a harness that
@@ -62,7 +62,7 @@ free dogfood data for DockMenu.
 
 ## 2026-09-09 late — the security pass
 
-Max: "this one can't be Golem's backdoor." Full threat model written
+Max: "this one can't be Standard's backdoor." Full threat model written
 (`~/Golem/docs/shell/dockmenu/SECURITY.md`). The privilege boundary
 (packages.list → root helper) audited SOUND — data-parsed, charset-gated,
 no injection, no privilege the user lacks. Three fixes staged in

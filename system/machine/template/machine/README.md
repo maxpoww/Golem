@@ -1,8 +1,8 @@
-# What Golem's tools recorded about this computer
+# What Golem recorded about this computer
 
 These files are **data**. Golem reads them as text, validates every line and
 looks every name up; none of them is ever run as code. They are written by
-Golem's own tools (the installer, the dock's installer, the Modules page);
+Golem itself (the installer, the dock's installer, the Modules page);
 you can edit them by hand too.
 
 | File | What | Written by |

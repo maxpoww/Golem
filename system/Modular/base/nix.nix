@@ -16,7 +16,7 @@
   nix.settings.fsync-store-paths = true;
 
   # Flakes-only, no channels. Without this, every `nix-shell` / `nix search`
-  # on an installed Golem prints:
+  # on an installed Standard prints:
   #   warning: Nix search path entry '/nix/var/nix/profiles/per-user/root/channels' does not exist
   # — a channel profile a flakes system never creates. Turn channels off and
   # point <nixpkgs> at the flake registry instead, so nix-shell -p still works

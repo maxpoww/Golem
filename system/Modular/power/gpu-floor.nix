@@ -25,7 +25,7 @@
 # Intel graphics may use is set to 80 % of its highest (1200 of 1500 MHz
 # there: the lowest value that held the full rate in every pass). Off the
 # charger, or with only 60 Hz screens, it is the hardware's own lowest: on the
-# battery it matters more and Golem's screens go to 60 Hz anyway, and a 60 Hz
+# battery it matters more and Standard's screens go to 60 Hz anyway, and a 60 Hz
 # screen gives a frame 16 ms — the lab's Haswell laptops (200 to 1000 MHz,
 # 60 Hz panels) are left exactly as they were. The floor only counts while
 # the chip is awake: asleep (RC6), it draws what it always did.

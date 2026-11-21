@@ -1,4 +1,4 @@
--- test/mock.lua: Golem's Hyprland configuration run with NO compositor.
+-- test/mock.lua: Standard's Hyprland configuration run with NO compositor.
 --
 --   lua mock.lua <config root> [handlers]
 --
@@ -147,7 +147,7 @@ local function run(root, with_handlers)
     _G.hl = hl
     package.path = root .. "/?.lua;" .. root .. "/?/init.lua"
     for name in pairs(package.loaded) do
-        if name == "user" or name:match("^golem%.") then
+        if name == "user" or name:match("^standard%.") then
             package.loaded[name] = nil
         end
     end

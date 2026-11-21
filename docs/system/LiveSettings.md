@@ -11,19 +11,19 @@ Built so far: **Scale** and **Resolution** (per screen).
 
 | Layer | File | Written by | Changes when |
 |---|---|---|---|
-| Golem's defaults | `~/.config/hypr/hyprland.lua` (the one store link: a generated entry that points at this build's tree, one folder in the store) | the system (`system/home/hypr/`, in modules, + the machine's facts `hyprland.nix` writes into the tree as `golem/machine.lua`) | the system updates |
-| The machine's own | `golem/extra.lua` in the tree | the machine's configuration (`golem.home.hyprlandExtra`) | the machine is rebuilt |
+| Standard's defaults | `~/.config/hypr/hyprland.lua` (the one store link: a generated entry that points at this build's tree, one folder in the store) | the system (`system/home/hypr/`, in modules, + the machine's facts `hyprland.nix` writes into the tree as `standard/machine.lua`) | the system updates |
+| The machine's own | `standard/extra.lua` in the tree | the machine's configuration (`standard.home.hyprlandExtra`) | the machine is rebuilt |
 | The owner's own Lua | `~/.config/hypr/user.lua` (optional) | the owner, by hand | the owner saves it (Hyprland reloads) |
 | The owner's choices | `~/.config/golem/settings.json` | the control panel (the dock) | the owner changes a setting |
 | The compositor's copy of them | `~/.config/golem/settings.lua` | the dock, generated from the JSON | same moment |
 
 `settings.json` is the one file every consumer of a live setting reads; each
-part of Golem owns its own keys and must write the others back untouched (the
+part of Standard owns its own keys and must write the others back untouched (the
 dock does). `settings.lua` is derived: never edit it, it is rewritten on every
 change.
 
-Golem's `hyprland.lua` (the entry, `system/home/hypr/hyprland.lua`) **ends**
-by running `settings.lua` (its `LIVE SETTINGS` block): after Golem's modules,
+Standard's `hyprland.lua` (the entry, `system/home/hypr/hyprland.lua`) **ends**
+by running `settings.lua` (its `LIVE SETTINGS` block): after Standard's modules,
 after a weak GPU's light effects, after the machine's own `hyprlandExtra`,
 after the owner's `user.lua`. So a choice
 
@@ -99,7 +99,7 @@ login reads.
 }
 ```
 
-A screen is keyed by the rule selector Golem's own rules use (`desc:` + its
+A screen is keyed by the rule selector Standard's own rules use (`desc:` + its
 description), so a choice follows the panel across ports. `position` is
 optional (`auto` when absent); nothing sets it yet.
 
@@ -114,7 +114,7 @@ waverunner-ctl display                      # log what is on the screen
 waverunner-ctl display scale 1.25
 waverunner-ctl display mode 1920x1080@60    # tried: 15 s to keep
 waverunner-ctl display keep | back
-waverunner-ctl display reset                # Golem's defaults again (reloads the config)
+waverunner-ctl display reset                # Standard's defaults again (reloads the config)
 waverunner-ctl display show scale|resolution
 ```
 
@@ -136,9 +136,9 @@ of its own. Where each choice lives:
 | Wi-Fi, Bluetooth | `nmcli radio`, `bluetoothctl power` | their services |
 | Power mode | `powerprofilesctl` | its daemon |
 | Brightness | `golem-brightness` | the backlight |
-| Default apps | `xdg-mime default` | the owner's `~/.config/mimeapps.list` (Golem's table sits below it, in `~/.local/share/applications`) |
+| Default apps | `xdg-mime default` | the owner's `~/.config/mimeapps.list` (Standard's table sits below it, in `~/.local/share/applications`) |
 | Notifications | the dock's do-not-disturb | the dock |
-| Updates, About Golem, Battery, Privacy | read-only, with "More…" into the gear box | — |
+| Updates, About Standard, Battery, Privacy | read-only, with "More…" into the gear box | — |
 
 ```json
 {

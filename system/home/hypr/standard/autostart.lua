@@ -1,4 +1,4 @@
-local M = require("golem.lib").machine
+local M = require("standard.lib").machine
 
 ---- AUTOSTART ----
 hl.on("hyprland.start", function()
@@ -25,7 +25,7 @@ end
 -- came up at every start before the owner's own — Max, 2026-10-13: "cuando
 -- recargás aparece el fondo viejo"). Until the dock puts the chosen
 -- wallpaper up (controls.rs `reassert`), and whenever none can be shown,
--- the screen is the compositor's bare grey (misc.background_color, golem/misc.lua).
+-- the screen is the compositor's bare grey (misc.background_color, standard/misc.lua).
 -- waypaper is gone: the wallpaper is chosen in the dock's own box.
 hl.exec_cmd("prlimit --core=1 awww-daemon --no-cache")
 -- Bluetooth only where there is an adapter: the census turns the stack off

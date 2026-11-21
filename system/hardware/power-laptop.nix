@@ -15,7 +15,7 @@
 { config, lib, ... }:
 
 {
-  config = lib.mkIf (config.golem.hardware.chassis == "laptop") (lib.mkMerge [
+  config = lib.mkIf (config.standard.hardware.chassis == "laptop") (lib.mkMerge [
     {
       # Battery state on DBus — what any battery pill/indicator reads.
       services.upower.enable = lib.mkDefault true;
@@ -43,7 +43,7 @@
     # an old Intel laptop cooking (the 95 °C VP9 measurements); this is
     # the daemon written for exactly that. Intel-only by design, laptop-
     # gated because that's where thermal headroom is the whole game.
-    (lib.mkIf (config.golem.hardware.cpuVendor == "intel") {
+    (lib.mkIf (config.standard.hardware.cpuVendor == "intel") {
       services.thermald.enable = lib.mkDefault true;
     })
   ]);

@@ -76,7 +76,7 @@ ensure_mounted() {
   ssh $SSHOPTS "$HOST" '
     mountpoint -q /mnt && { echo MOUNTED; exit 0; }
     mkdir -p /mnt
-    if mount /dev/disk/by-label/golem /mnt 2>/dev/null; then echo MOUNTED; else echo NOMOUNT; fi
+    if mount /dev/disk/by-label/standard /mnt 2>/dev/null; then echo MOUNTED; else echo NOMOUNT; fi
   ' 2>/dev/null | tail -1
 }
 
@@ -99,7 +99,7 @@ round=0
 while :; do
   round=$((round+1))
   wait_for_host || { say "host up but no ssh — retrying"; sleep 30; continue; }
-  [[ "$(ensure_mounted)" == MOUNTED ]] || { say "could not mount LABEL=golem at /mnt — retrying"; sleep 60; continue; }
+  [[ "$(ensure_mounted)" == MOUNTED ]] || { say "could not mount LABEL=standard at /mnt — retrying"; sleep 60; continue; }
 
   # ASK THE DB, NOT THE FILESYSTEM. The last death left a truncated
   # nix-manual sitting in /mnt/nix/store that the database had never

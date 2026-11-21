@@ -1,5 +1,5 @@
 # The MENUBOX shows Seam and nothing else (Max, 2026-09-29: "i only want seam
-# on it (Golem browser) all rest on the menubox is bloat").
+# on it (Standard browser) all rest on the menubox is bloat").
 #
 # Everything hidden here stays INSTALLED — the terminal behind Super+E, yazi,
 # the editor, the player, the system plumbing. It just isn't something you
@@ -8,8 +8,8 @@
 # overrides a system one with the same ID — so hiding is an override here,
 # never a patch to the package.
 #
-# Hiding is for what comes WITH Golem. What the owner installed from the dock is
-# theirs to see, and to open: btop ships in every Golem (base/core.nix), so its stub
+# Hiding is for what comes WITH Standard. What the owner installed from the dock is
+# theirs to see, and to open: btop ships in every Standard (base/core.nix), so its stub
 # outlived an install of it, and the dock took the app for a command-line tool with no
 # entry: a shell saying "btop is ready" where the dev box opens btop (the ASUS,
 # 2026-10-31). The same went for mpv, Neovim, yazi, lf, foot, xterm and Blueman.
@@ -44,9 +44,9 @@ let
     lib.optionals (!lib.any (p: builtins.elem p picked) packages) entries;
 in
 {
-  # golem.home.menubox.hidePlumbing (./options.nix): on for every install;
+  # standard.home.menubox.hidePlumbing (./options.nix): on for every install;
   # the dev box keeps its hand-arranged grid (parity P1).
-  xdg.dataFile = lib.mkIf config.golem.home.menubox.hidePlumbing (lib.listToAttrs (
+  xdg.dataFile = lib.mkIf config.standard.home.menubox.hidePlumbing (lib.listToAttrs (
     unlessPicked [ "foot" ] (
       [ (hideCopy "foot" config.programs.foot.package) ]
       ++ map hideStub [ "footclient" "foot-server" ]

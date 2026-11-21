@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # golem-parity collector: a snapshot of how THIS machine's desktop actually
 # behaves, read from the running session (not from the config we think we
-# shipped). Runs as the desktop's owner, on any Golem machine, with nothing
+# shipped). Runs as the desktop's owner, on any Standard machine, with nothing
 # but bash + coreutils + grep; `golem-parity` runs it over ssh and compares.
 #
 # Output: sections, each opened by a line "===<name>===".
@@ -91,7 +91,7 @@ section shell
 s="${henv[SHELL]:-}"
 if [[ -n "$s" && -x "$s" ]]; then echo "ok $s"; else echo "MISSING ${s:-<unset>}"; fi
 
-# The config the session actually loaded: one file on a Golem from before
+# The config the session actually loaded: one file on a Standard from before
 # the modules (system/home/hypr); since them, a generated entry that names
 # this build's tree (one folder in the store: the tree's entry, every module,
 # the machine's generated facts), and the owner's own file if there is one.
@@ -105,7 +105,7 @@ lua=$(mktemp)
   cat "$hyprdir/user.lua"; } > "$lua" 2>/dev/null
 section lua; cat "$lua" 2>/dev/null
 # The dock's tool as the binds call it (the modules read it from the facts).
-ctl=$(sed -n 's/^ *ctl = "\(.*\)",$/\1/p' "$hyprtree/golem/machine.lua" 2>/dev/null | head -1)
+ctl=$(sed -n 's/^ *ctl = "\(.*\)",$/\1/p' "$hyprtree/standard/machine.lua" 2>/dev/null | head -1)
 
 # Every command the config can run: does its program exist in the session PATH?
 section commands
@@ -137,7 +137,7 @@ if [[ -n "$installed" && "$running" != "$installed" ]]; then
 else echo "ok hyprland"; fi
 so=$(grep -oE 'plugin load [^"]+' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null | head -1 | cut -d' ' -f3)
 # (Since the modules, the plugin's path is one of the machine's facts.)
-[[ -n "$so" ]] || so=$(sed -n 's/^ *plugin = "\(.*\)",$/\1/p' "$hyprtree/golem/machine.lua" 2>/dev/null | head -1)
+[[ -n "$so" ]] || so=$(sed -n 's/^ *plugin = "\(.*\)",$/\1/p' "$hyprtree/standard/machine.lua" 2>/dev/null | head -1)
 if [[ -n "$so" ]]; then
   want=$(tr '\0' '\n' < "$so" 2>/dev/null | grep -xE '[0-9]+\.[0-9]{2}' | sort -u | head -1)
   have=$("$hyprctl" -j plugin list 2>/dev/null | grep -oE '"version": "[^"]+"' | head -1 | cut -d'"' -f4)
@@ -216,7 +216,7 @@ else echo n/a; fi
 # The upkeep that keeps a machine from filling up or rotting: the store's gc
 # policy, the cleanup and check timers, how many system versions sit on disk,
 # how full the disk is. The dev box ran its own age-based gc for weeks and
-# reached 99 % full with 68 system versions while every installed Golem kept
+# reached 99 % full with 68 system versions while every installed Standard kept
 # 15; nothing here compared it (2026-10-16).
 section upkeep
 # (Inside a Toolbx container — the dev box's reference run — systemd and

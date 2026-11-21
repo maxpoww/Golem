@@ -1,4 +1,4 @@
-# The owner's shell on a Golem install is BASH (effect-matrix #108: plain
+# The owner's shell on a Standard install is BASH (effect-matrix #108: plain
 # bash, not zsh). Until 2026-09-30 everything the terminal was meant to have
 # lived only in zsh.nix — the prompt, zoxide, fzf, `EDITOR=nvim`, and the
 # OPTIONS app-bridge that tells the Brain what the terminal is doing — so an

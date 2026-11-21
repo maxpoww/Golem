@@ -74,7 +74,7 @@ The topbar surface never takes keys at all (`surface.rs:91`,
 |---|---|---|
 | Window (current-task) | left = focus-next, right = focus-other | `SUPER+TAB` / `SUPER+SHIFT+TAB` (`hyprland.lua:273-274`) |
 | Close | close focused window (or the overview while it owns the screen) | `SUPER+Q` (`hyprland.lua:267`); Esc / `SUPER+R` for the overview |
-| Pseudo | Golem pseudo toggle | `SUPER+P` (`hyprland.lua:279`) |
+| Pseudo | Standard pseudo toggle | `SUPER+P` (`hyprland.lua:279`) |
 | Fullscreen | fullscreen the focused window | **no keyboard path** — no fullscreen bind exists anywhere in `hyprland.lua` (grepped). The pill is the only trigger; apps' own F11 covers only themselves |
 | Notif (bell) | click the peek pill = open the *newest* notification (`notif.rs:2086-2102`); the history box opens by **scrolling** over the pill (`notif.rs:2359-2363`) | **no keyboard path** to either |
 | NotifMute | mute notifications | **no keyboard path** |

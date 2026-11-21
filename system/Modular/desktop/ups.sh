@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 #
-# ups — the Golem upstream lane.
+# ups — the Standard upstream lane.
 #
-# The OPTION to run bleeding-edge upstream apps on Golem, for users who want
+# The OPTION to run bleeding-edge upstream apps on Standard, for users who want
 # them — installed the way a package manager would, but backed by per-app
 # rootless containers so the reproducible NixOS base is never touched.
 #
 #   ups add    <name>   install the upstream build. It takes its REAL name
 #                       (no prefix): `ups add opencode` gives you `opencode`.
 #                       If a GUI app, its icon lands on the app-box automatically.
-#                       If the name collides with a stock Golem command, ups asks
+#                       If the name collides with a stock Standard command, ups asks
 #                       whether the upstream build should take that command over.
 #   ups erase  <name>   remove it. The container, the command, the icon, the
 #                       cached image — gone; the stock app (if any) returns.
@@ -438,7 +438,7 @@ cmd_add() {
   ensure_tools; valid_name "$name"; load_recipe "$name"
   container_exists "$name" && die "'$name' is already installed  (ups update $name to refresh, ups erase $name to remove)."
 
-  # If an upstream bin would take over a stock Golem command, ask first.
+  # If an upstream bin would take over a stock Standard command, ask first.
   if [[ $yes -eq 0 && -n "${UPS_BINS:-}" ]]; then
     local bin p conflicts=""
     for bin in $UPS_BINS; do
@@ -446,7 +446,7 @@ cmd_add() {
       [[ -n "$p" && "$p" != "$BIN_DIR/"* ]] && conflicts="$conflicts $bin"
     done
     if [[ -n "$conflicts" ]]; then
-      printf 'ups: you already have the stock Golem build of:%s\n' "$conflicts" >&2
+      printf 'ups: you already have the stock Standard build of:%s\n' "$conflicts" >&2
       printf 'ups: install the bleeding-edge upstream build and let it take over that command? [Y/n] ' >&2
       local ans=""; read -r ans </dev/tty 2>/dev/null || ans=""
       case "$ans" in [Nn]*) die "aborted — nothing changed." ;; esac
@@ -744,7 +744,7 @@ path_hint() {
 
 usage() {
   cat >&2 <<'EOF'
-ups — the Golem upstream lane. Run bleeding-edge upstream apps, installed under
+ups — the Standard upstream lane. Run bleeding-edge upstream apps, installed under
 their real name and backed by per-app rootless containers, without touching the
 declarative base. Reversible: erase and the stock app returns.
 

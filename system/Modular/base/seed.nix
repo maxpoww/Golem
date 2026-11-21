@@ -9,7 +9,7 @@
 #
 # `golem-seed-adopt` turns the copy into that checkout, once, when the network
 # is there (first-boot and autoupdate both call it after golem-wait-online):
-#   1. clone golem.upstream.url, branch golem.upstream.branch;
+#   1. clone standard.upstream.url, branch standard.upstream.branch;
 #   2. sit on the INSTALLED revision when it is known and published (so the
 #      first autoupdate is a real fast-forward from what the machine runs),
 #      else on the branch head;
@@ -23,12 +23,12 @@
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.upstream;
-  owner = config.golem.owner;
-  flakeDir = config.golem.flakeDir;
+  cfg = config.standard.upstream;
+  owner = config.standard.owner;
+  flakeDir = config.standard.flakeDir;
   # Declared by the desktop's waverunner-apply.nix; a stage-0 base has no such
   # option, hence the fallback to the desktop's path.
-  appsFile = config.golem.appsFile or "hosts/target/apps.nix";
+  appsFile = config.standard.appsFile or "hosts/target/apps.nix";
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
   # Root, speaking to the owner: in their language, from their settings.
   ownerSettings = "${config.users.users.${owner}.home}/.config/golem/settings.json";
@@ -138,19 +138,19 @@ let
       # 2026-11-12 this blessed whatever it found — and deleting ~/Golem/.git
       # (anything running as the owner can) made the next update adopt again,
       # carrying an edited machine.nix into the seal.
-      if ! ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
-         && ! ${config.golem.seal.heal}/bin/golem-seal-heal; then
+      if ! ${config.standard.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         && ! ${config.standard.seal.heal}/bin/golem-seal-heal; then
         echo "golem-seed-adopt: the checkout is not sealed (changes nobody approved, or upstream unreachable)" >&2
       fi
     '';
   };
 in
 {
-  options.golem.upstream = {
+  options.standard.upstream = {
     url = lib.mkOption {
       type = lib.types.str;
       default = "https://github.com/maxpoww/Golem";
-      description = "Where an installed Golem pulls its updates from (a git URL); empty = never adopt.";
+      description = "Where an installed Standard pulls its updates from (a git URL); empty = never adopt.";
     };
     branch = lib.mkOption {
       type = lib.types.str;
@@ -160,14 +160,14 @@ in
       description = "The branch installs follow.";
     };
   };
-  options.golem.seed.adopt = lib.mkOption {
+  options.standard.seed.adopt = lib.mkOption {
     type = lib.types.package;
     readOnly = true;
     description = "golem-seed-adopt: turn the seeded copy into a checkout of the upstream.";
   };
 
   config = lib.mkIf (flakeDir != null) {
-    golem.seed.adopt = adopt;
+    standard.seed.adopt = adopt;
     environment.systemPackages = [ adopt ];
   };
 }

@@ -1,10 +1,10 @@
-# golem-lane — Golem's update lane (updates/README.md has the whole story).
+# golem-lane — Standard's update lane (updates/README.md has the whole story).
 #
 #   golem-lane run [--now] [--bump] [--base REF] [--no-publish]
 #       The daily job. Once a week (PUBLISH_DAYS): take main (or REF), jump
 #       to the next NixOS release when it is due, else move nixpkgs +
 #       home-manager to their release branch's newest tested commit, BUILD
-#       and BOOT every Golem system (the gate), put that version's heavy
+#       and BOOT every Standard system (the gate), put that version's heavy
 #       pieces into its cache (a signed GitHub release of golem-cache), and
 #       only then move `stable` to it — the branch every install follows.
 #       Anything that fails stops the run before stable moves: no install
@@ -62,13 +62,13 @@ notify() {  # the maintainer's desktop, if they are logged in
   local bus
   bus=/run/user/$(id -u)/bus
   [ -S "$bus" ] || return 0
-  DBUS_SESSION_BUS_ADDRESS=unix:path=$bus notify-send -a "Golem update lane" "$1" "$2" 2>/dev/null || true
+  DBUS_SESSION_BUS_ADDRESS=unix:path=$bus notify-send -a "Standard update lane" "$1" "$2" 2>/dev/null || true
 }
 
 fail() {  # fail <phase> <message>
   say "FAILED ($1): $2"
   status "$1" false "$2"
-  notify "Golem update lane: $1 failed" "$2 — nothing was published. Log: $LOG"
+  notify "Standard update lane: $1 failed" "$2 — nothing was published. Log: $LOG"
   exit 1
 }
 
@@ -77,7 +77,7 @@ fail() {  # fail <phase> <message>
 stopped() {  # the EXIT trap of a run: stopped <exit code>
   [ "$1" = 0 ] || [ "$OK" = false ] || {
     status "$PHASE" false "stopped (exit $1); journalctl -u golem-lane, log: $LOG"
-    notify "Golem update lane: $PHASE stopped" "Exit $1. journalctl -u golem-lane, log: $LOG"
+    notify "Standard update lane: $PHASE stopped" "Exit $1. journalctl -u golem-lane, log: $LOG"
   }
 }
 
@@ -132,11 +132,11 @@ bump() {
       || fail bump "the package index could not be refreshed for nixpkgs ${after:0:12}"
     git -C "$TREE" add system/home/package-index.tsv system/home/package-index.rev tools/package-index/dropped.txt
   fi
-  git -C "$TREE" -c user.name="Golem update lane" commit -q -m "flake.lock: weekly upstream — nixpkgs ${before:0:12} → ${after:0:12}, home-manager
+  git -C "$TREE" -c user.name="Standard update lane" commit -q -m "flake.lock: weekly upstream — nixpkgs ${before:0:12} → ${after:0:12}, home-manager
 
 Moved by the update lane (updates/README.md): the newest tested commit of
 both release branches, with the dock's package index made for it. Built for
-every Golem system before publishing."
+every Standard system before publishing."
   BUMPED=1
   say "bumped nixpkgs ${before:0:12} → ${after:0:12}"
 }
@@ -152,7 +152,7 @@ checks() {  # every flake check, as build targets
     | jq -r --arg f "$(flake)" --arg s "$SYSTEM" '.[] | "\($f)#checks.\($s).\(.)"'
 }
 
-# THE GATE: the flake's checks (the boot test among them) + every Golem
+# THE GATE: the flake's checks (the boot test among them) + every Standard
 # system, built. A failure here is the whole point of the lane: it stops
 # before anything is published. gate_try reports in GATE_ERR instead of
 # stopping the run; its gc root is gcroots/<name> (default gate: the
@@ -160,10 +160,10 @@ checks() {  # every flake check, as build targets
 gate_try() {
   local targets root=$STATE/gcroots/${1:-gate}
   GATE_ERR=
-  say "gate: building every Golem system"
+  say "gate: building every Standard system"
   if ! nix "${NIXF[@]}" build --keep-going -L --out-link "$root" \
         "$(flake)#packages.$SYSTEM.update-gate" >> "$LOG" 2>&1; then
-    GATE_ERR="a Golem system does not build ($(grep -acE '^error: Cannot build' "$LOG" || true) failed builds): $(last_error)"
+    GATE_ERR="a Standard system does not build ($(grep -acE '^error: Cannot build' "$LOG" || true) failed builds): $(last_error)"
     return 1
   fi
   GATE_OUT=$(readlink -f "$root")
@@ -255,9 +255,9 @@ cache() {
   rm -rf "$EXPORT_OUT/nar" "$EXPORT_OUT/log" "$EXPORT_OUT/realisations"
   sed -i 's|^URL: nar/|URL: |' "$EXPORT_OUT/"*.narinfo
 
-  notes="Cache of Golem $rev ($n pieces, built and signed by the update lane).
+  notes="Cache of Standard $rev ($n pieces, built and signed by the update lane).
 
-Kernel of every Golem system in this version:
+Kernel of every Standard system in this version:
 
 $(report | sed 's/^/    /')"
   if [ "$draft" = true ]; then
@@ -265,7 +265,7 @@ $(report | sed 's/^/    /')"
     gh release edit "$tag" --repo "$CACHE_REPO" --notes "$notes" >/dev/null || true
   else
     gh release create "$tag" --repo "$CACHE_REPO" --draft --target main \
-       --title "Golem ${rev:0:12}" --notes "$notes" \
+       --title "Standard ${rev:0:12}" --notes "$notes" \
        >/dev/null || fail cache "creating release $tag failed"
   fi
   left=$(upload_release "$tag" "$EXPORT_OUT") \
@@ -420,17 +420,17 @@ calendar() {
   left=$(( ( $(date -d "$eol" +%s) - $(date +%s) ) / 86400 ))
   if git ls-remote --exit-code -q https://github.com/NixOS/nixpkgs "refs/heads/nixos-$next" >/dev/null 2>&1; then
     [ -s "$STATE/release-seen-$next" ] || date +%s > "$STATE/release-seen-$next"
-    CALENDAR="NixOS $next is out; Golem is on $cur, supported $left more days. The lane moves Golem to $next by itself on $(date -d "@$(( $(cat "$STATE/release-seen-$next") + RELEASE_WAIT_DAYS * 86400 ))" +%F) or later, if every system builds and boots on it."
+    CALENDAR="NixOS $next is out; Standard is on $cur, supported $left more days. The lane moves Standard to $next by itself on $(date -d "@$(( $(cat "$STATE/release-seen-$next") + RELEASE_WAIT_DAYS * 86400 ))" +%F) or later, if every system builds and boots on it."
   elif [ "$left" -lt 31 ]; then
     CALENDAR="NixOS $cur stops getting fixes in $left days ($eol) and $next is not out yet."
   fi
   if [ -n "${CALENDAR:-}" ] && [ ! -e "$STATE/calendar-$next-$(date +%G-%V)" ]; then
     : > "$STATE/calendar-$next-$(date +%G-%V)"   # once a week
-    notify "Golem: NixOS $next" "$CALENDAR"
+    notify "Standard: NixOS $next" "$CALENDAR"
   fi
 }
 
-# THE RELEASE JUMP happens by itself (Max, 2026-10-29: Golem's users never
+# THE RELEASE JUMP happens by itself (Max, 2026-10-29: Standard's users never
 # think about NixOS versions, and neither should the maintainer). NixOS
 # creates nixos-YY.MM about two weeks before it announces the release; the
 # lane jumps RELEASE_WAIT_DAYS (28) after it first saw that branch, so the
@@ -462,11 +462,11 @@ move_release() {  # move_release <to>
   nix "${NIXF[@]}" flake update nixpkgs home-manager --flake "$(flake)" >> "$LOG" 2>&1 || return 1
   (cd "$TREE" && tools/package-index/refresh.sh) >> "$LOG" 2>&1 || return 1
   git -C "$TREE" add flake.nix flake.lock system/home/package-index.tsv system/home/package-index.rev tools/package-index/dropped.txt
-  git -C "$TREE" -c user.name="Golem update lane" commit -q -m "flake: NixOS $from → $to
+  git -C "$TREE" -c user.name="Standard update lane" commit -q -m "flake: NixOS $from → $to
 
 Moved by the update lane (updates/README.md, the release jump): NixOS $to
 and home-manager release-$to, with the dock's package index made for it.
-Built and booted for every Golem system before publishing."
+Built and booted for every Standard system before publishing."
 }
 
 cmd_run() {
@@ -520,14 +520,14 @@ cmd_run() {
 
   BUMPED=0 JUMPED='' from=$(current_release)
   if [ -z "$base" ] && to=$(release_due); then
-    status release true "moving Golem to NixOS $to"
+    status release true "moving Standard to NixOS $to"
     say "release: NixOS $to is due — trying it"
     if move_release "$to" && gate_try; then
       JUMPED=$to BUMPED=1
-      say "release: every Golem system builds and boots on NixOS $to"
+      say "release: every Standard system builds and boots on NixOS $to"
     else
-      say "release: NixOS $to is not ready for Golem yet: ${GATE_ERR:-moving the inputs failed}"
-      notify "Golem: NixOS $to not ready yet" "${GATE_ERR:-moving the inputs failed}. This week's update goes out on $from; the lane tries $to again next week. Log: $LOG"
+      say "release: NixOS $to is not ready for Standard yet: ${GATE_ERR:-moving the inputs failed}"
+      notify "Standard: NixOS $to not ready yet" "${GATE_ERR:-moving the inputs failed}. This week's update goes out on $from; the lane tries $to again next week. Log: $LOG"
       prepare_tree origin/main
     fi
   fi
@@ -568,9 +568,9 @@ cmd_run() {
   status "done" true "published ${rev:0:12}: stable moved, installs take it in their wave" \
     "$(report | jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {(.[0]): .[1]}) | add | {kernels: .}')"
   if [ -n "$JUMPED" ]; then
-    notify "Golem moved to NixOS $JUMPED" "${rev:0:12} built and booted for every Golem system; the lab takes it tonight, installs over the next ${GOLEM_LANE_WAVES:-7} days."
+    notify "Standard moved to NixOS $JUMPED" "${rev:0:12} built and booted for every Standard system; the lab takes it tonight, installs over the next ${GOLEM_LANE_WAVES:-7} days."
   else
-    notify "Golem ${rev:0:12} published" "Built and booted for every Golem system; installs take it over the next ${GOLEM_LANE_WAVES:-7} days."
+    notify "Standard ${rev:0:12} published" "Built and booted for every Standard system; installs take it over the next ${GOLEM_LANE_WAVES:-7} days."
   fi
 }
 
@@ -588,7 +588,7 @@ cmd_release() {
   move_release "$to" || { say "release $to: moving the inputs failed; log: $LOG"; exit 1; }
   say "release $to: building the gate on $branch — this is the slow one"
   if nix "${NIXF[@]}" build --keep-going -L --no-link "$(flake)#packages.$SYSTEM.update-gate" >> "$LOG" 2>&1; then
-    say "release $to: every Golem system builds. Next: a lab round on $branch (RUNBOOK.md), then merge to main."
+    say "release $to: every Standard system builds. Next: a lab round on $branch (RUNBOOK.md), then merge to main."
   else
     say "release $to: some systems do not build. The errors:"
     grep -a -E '^ *error:' "$LOG" | sort -u | head -20 >&2 || true

@@ -3,7 +3,7 @@
 A module of programs (system/modules: Gaming, Music Production…) may bring
 window rules or keys of its own. They go here as `<name>.lua`, and are loaded
 only on a machine that has the module on (`machine.modules`: the system's
-`golem.modules.active`, read by system/home/hyprland.nix), after Golem's own modules and before the
+`standard.modules.active`, read by system/home/hyprland.nix), after Standard's own modules and before the
 machine's and the owner's. No file is needed for a module with nothing to add.
 
 - `gaming.lua` — a game that fills the screen keeps the computer awake (a

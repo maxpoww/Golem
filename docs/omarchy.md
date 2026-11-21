@@ -1,7 +1,7 @@
-# What Golem took from Omarchy
+# What Standard took from Omarchy
 
 Omarchy (github.com/omacom/omarchy, read at 717175d4a on 2026-10-30) is the closest
-thing to Golem: an opinionated Hyprland system. Max asked what it does for speed on fast
+thing to Standard: an opinionated Hyprland system. Max asked what it does for speed on fast
 and slow machines, and to apply everything that serves us.
 
 "They do X" is not "X is faster". Omarchy publishes numbers for its shell, almost none
@@ -164,13 +164,13 @@ the dock itself draws 1 frame a second, so it was left alone. The overview read 
 17 % GPU, but my own terminal was animating on a workspace it shows, so that says nothing.
 
 The whole machine at rest starts 3.9 processes a second (the kernel's counter), and the
-sampler found the toolbox's keepalive behind what it could see: nothing of Golem's.
+sampler found the toolbox's keepalive behind what it could see: nothing of Standard's.
 
 ## The spinning disk (ASUS X550LC, 2026-10-31)
 
 i5-4200U, 7.4 GB, a TOSHIBA MQ01ACF032 hard disk, HD 4400 (GL only), 1366x768, on the charger with a
 dead battery. A whole night on it: everything measured on the system as it was, updated to the
-newest Golem, everything measured again. Times are seconds from the kernel's start; add 5.4 s for the
+newest Standard, everything measured again. Times are seconds from the kernel's start; add 5.4 s for the
 firmware and GRUB. Three clean boots each.
 
 | | Old system (df2c916) | First update (103969b) | Now |
@@ -225,7 +225,7 @@ Measured and NOT changed, each its own small result:
 
   | | foot | Files | Seam |
   |---|---|---|---|
-  | BFQ, Golem's | 6.9, 5.3 | 5.3, 6.3 | 74.9, 65.4 |
+  | BFQ, Standard's | 6.9, 5.3 | 5.3, 6.3 | 74.9, 65.4 |
   | mq-deadline | 41.8, 41.0 | 38.9, 36.2 | 60.8, 60.1 |
   | Kyber, Omarchy's | 46.1, 41.5 | 40.6, 41.1 | 61.6, 58.3 |
 
@@ -248,7 +248,7 @@ Measured and NOT changed, each its own small result:
 
 Where the rest goes now, as the next places to look: the initrd's 11 s (perl for users and `/etc`; userborn and an `/etc` overlay would cut it, not tried: it moves Wi-Fi keys and host keys on machines already installed); login to compositor 11 s (uwsm's Python, three starts; a compiled `aux exec` or its modules in one zip); compositor to dock 7 s (two `--version-json` runs and an `lspci` in Hyprland's own start, and Mesa with LLVM); on the dock 1.2 to 1.6 s each for creating the first surfaces, once its first frame is up.
 
-## Golem already had it
+## Standard already had it
 
 - oomd on memory pressure, 50 %, with the desktop's memory protected and tested with a
   runaway app on the Acer (`Modular/base/nix.nix`). Omarchy limits the killing to `app.slice`;
@@ -276,8 +276,8 @@ Where the rest goes now, as the next places to look: the initrd's 11 s (perl for
 | `MALLOC_ARENA_MAX=2`, `malloc_trim` (the idea of releasing memory after closing) | 175 against 176 MB; 6 MB of 177 |
 | Rounding 0, no blur | The look is Max's decision |
 | `usbcore.autosuspend=-1` | Costs battery; no problem seen |
-| plocate on AC only | Golem has no locate |
-| thermald on the dev box, intel-lpmd | Not tried. Golem's Intel laptops have thermald. lpmd saves battery, it does not add speed |
+| plocate on AC only | Standard has no locate |
+| thermald on the dev box, intel-lpmd | Not tried. Standard's Intel laptops have thermald. lpmd saves battery, it does not add speed |
 
 ## Still to do
 

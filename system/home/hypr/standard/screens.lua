@@ -1,4 +1,4 @@
-local mainMod = require("golem.lib").mainMod
+local mainMod = require("standard.lib").mainMod
 
 ---- SCREENS: EACH ITS OWN WORKSPACES ----
 -- Every screen has its own 18 workspaces (the overview's 3x3, two pages), as a

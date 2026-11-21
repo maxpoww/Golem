@@ -6,7 +6,7 @@
 > is waverunner code and S8 has not opened (Arc 1 is SH→S7→S9, under the
 > fix-don't-grow freeze).
 >
-> **Provenance.** Everything about Golem's current behaviour is cited to a
+> **Provenance.** Everything about Standard's current behaviour is cited to a
 > file:line in this repo and is checkable. Nothing here describes waverunner
 > internals: that tree (`github:maxpoww/launcher`) is a pinned flake input,
 > not readable from this repo, so where the design needs something from the
@@ -20,7 +20,7 @@
 > complete novices to master complex systems — no manual, no training, no
 > fear. They did it with dynamic, diegetic, context-aware design that
 > surfaces the right tool at the right moment and removes the rest."
-> — `Golem.md:20`
+> — `StandardOS.md:20`
 
 The tour is not an exception to OPTIONS. It **is** OPTIONS, pointed at the
 one context every user passes through exactly once. So it inherits the
@@ -28,16 +28,16 @@ module Definition of Done (`OPTIONS/modules.md:56`) unchanged — including
 rule 6, *"if it needs a manual to use, it's not done"*, which a tour that is
 itself a manual fails by definition.
 
-Three refusals, from `Golem.md:53` ("Interruptions dressed as help") and the
+Three refusals, from `StandardOS.md:53` ("Interruptions dressed as help") and the
 item's own wording ("game onboarding, not a slideshow"):
 
 1. **No mode.** There is no "tour running" state to be in or to escape. A
-   lesson is an ordinary affordance that happens to be about Golem.
+   lesson is an ordinary affordance that happens to be about Standard.
 2. **No sequence.** No step 1-of-7, no progress bar, no "next". Ordering is
    emergent — whatever the user does next decides what is teachable next.
 3. **No repetition.** Every lesson has a *learned* predicate that retires it
    permanently. Without that, a lesson is a nag, and a nag is the thing
-   Golem's front page says it refuses.
+   Standard's front page says it refuses.
 
 ## 1. What "first run" means today
 
@@ -98,7 +98,7 @@ this is the one.**
 
 `Super+F` is worth flagging separately: it opens `yazi`, a modal terminal
 file manager, at a person who has been promised they never need a terminal
-(`Golem.md:51`). Teaching that bind to a novice would be actively harmful
+(`StandardOS.md:51`). Teaching that bind to a novice would be actively harmful
 until `Super+F` points at Nautilus, which `apps.md` already ships and which
 owns `inode/directory` (NOTES, todo5). A lesson is not a fix for a bind
 pointed at the wrong thing.
@@ -113,7 +113,7 @@ collector exists (S2, `OPTIONS/modules.md:10`), the rest are marked *new*.
 it is free.* A person arriving from another OS presses the chord their hands
 know. In `hyprland.lua`, most of those chords are **bound to nothing**:
 
-| Reflex | From | Golem's answer | Today |
+| Reflex | From | Standard's answer | Today |
 |---|---|---|---|
 | `Alt+Tab` | Windows, Linux | `Super+Tab` | unbound — nothing happens |
 | `Super` alone | Windows | the openbox | unbound — nothing happens |
@@ -122,9 +122,9 @@ know. In `hyprland.lua`, most of those chords are **bound to nothing**:
 | `Cmd+Space` | macOS | `Super+Space` | **already works** — same physical key |
 
 An unbound-but-meaningful keypress is a stated intention that produced
-nothing. The user has told Golem what they want, in a language Golem
-understands, and Golem knows for a fact they did not get it. No other
-trigger in the OS is that unambiguous — and `Golem.md:31` already promises
+nothing. The user has told Standard what they want, in a language Standard
+understands, and Standard knows for a fact they did not get it. No other
+trigger in the OS is that unambiguous — and `StandardOS.md:31` already promises
 exactly this ("the topbar welcomes the Mac user, the openbox welcomes the
 Windows user"). *Sensing: new — a bind on the dead chord itself, which is
 also the cheapest possible collector.* See the fork in §6.1.
@@ -190,7 +190,7 @@ Two consequences worth deciding early:
   not separate work; it is this store's second reader. Building the skill
   collector for the tour and the skill seed for Tuning as two things would
   produce two disagreeing models of the same person.
-- **It is behaviour data.** `Golem.md:51` refuses telemetry inside the OS.
+- **It is behaviour data.** `StandardOS.md:51` refuses telemetry inside the OS.
   Local-only, user-readable, user-deletable, never leaves the machine —
   and stated as such where a person can find it. waverunner's existing
   user-visible state files (`groups.json`, `pins.json`, `todoSH.md:110`) are
@@ -202,13 +202,13 @@ new surface, no new transport, no new daemon.
 ## 6. The forks — Max's, not an agent's
 
 **6.1 Teach the reflex, or bind it?** M1 can be answered two ways. Teach:
-`Alt+Tab` surfaces "Golem uses Super+Tab" and the person learns Golem's
+`Alt+Tab` surfaces "Standard uses Super+Tab" and the person learns Standard's
 language. Bind: `Alt+Tab` simply *does* the focus cycle and there is nothing
 to teach. Bind is cheaper, invisible, and closer to "you should not operate
-a computer; you should *use* it" (`Golem.md:15`) — but it makes Golem a
+a computer; you should *use* it" (`StandardOS.md:15`) — but it makes Standard a
 dialect of Windows in the places it is copied, and the muscle memory it
-builds is not Golem's. This decision sets the ceiling on how large S8 is:
-bound reflexes delete whole lessons. It is a values call about what Golem
+builds is not Standard's. This decision sets the ceiling on how large S8 is:
+bound reflexes delete whole lessons. It is a values call about what Standard
 is, so it is the owner's.
 
 **6.2 Where do language and user get chosen?** todo8 item 1 says first boot;

@@ -5,8 +5,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  # Golem's own icons (tools/icons writes them): folders, files, devices in
-  # the dock's cast metal, in two tones — Golem (silver, the light look) and
+  # Standard's own icons (tools/icons writes them): folders, files, devices in
+  # the dock's cast metal, in two tones — Standard (silver, the light look) and
   # Golem-Dark (graphite, the dark one); the dock's Dark mode switches the
   # apps and itself between them. Every other name falls through to Papirus.
   golemIcons = pkgs.runCommand "golem-icon-theme" { } ''
@@ -26,8 +26,8 @@ in
   #   fonts   → the ones configuration.nix already ships and defaults to
   #   icons   → Golem-Dark (system/home/icons, built by tools/icons): Golem's
   #             own folders, files and devices, inheriting Papirus-Dark for the
-  #             rest; Golem in the light look. waverunner's config.toml names
-  #             "Golem" and the dock picks the tone itself
+  #             rest; Standard in the light look. waverunner's config.toml names
+  #             "Standard" and the dock picks the tone itself
   #   corners → nothing to do: libadwaita's radius isn't configurable, and
   #             Hyprland rounds every window to 12 anyway, which is what
   #             Adwaita draws — they already agree.
@@ -39,7 +39,7 @@ in
       size = 11;
     };
     iconTheme = {
-      # Golem ships dark; the dock writes the light one when that is chosen.
+      # Standard ships dark; the dock writes the light one when that is chosen.
       name = "Golem-Dark";
       package = golemIcons;
     };
@@ -48,7 +48,7 @@ in
     # palette.rs), libadwaita follows the portal's colour scheme (and warns
     # about this key, which it ignores). Forced dark here kept GTK 3 apps dark
     # in the light look (2026-10-15).
-    # No window buttons in the apps' own header bars: Golem's titlebar
+    # No window buttons in the apps' own header bars: Standard's titlebar
     # already has close/minimize/maximize (red/yellow/green), and GNOME apps
     # showed a second close × beside it (ASUS dogfood, 2026-10-02; Max: "yes
     # hide it, floating is the default anyway"). The libadwaita half is the

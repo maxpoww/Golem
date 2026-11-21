@@ -3,7 +3,7 @@
 ## ★ GRADUATION — 2026-09-10 (Max's call, end of round 6's cut)
 
 **The preinstall program is graduated.** The claim it set out to prove —
-that Golem can figure out what is on a machine, collect the hardware
+that Standard can figure out what is on a machine, collect the hardware
 facts that matter, ask a stranger only questions a stranger can answer,
 and assemble a working system from the answers — is proven on the
 record, not assumed:
@@ -41,7 +41,7 @@ stays too — the eval matrix consumes it).
 
 ---
 
-> The build-and-track doc for raising Golem's install story from scratch on
+> The build-and-track doc for raising Standard's install story from scratch on
 > real hardware. The spec (WHAT and WHY) is `../GolemInstall.md`; this file
 > is the HOW and the scoreboard — keep it current as machines pass.
 >
@@ -80,7 +80,7 @@ time:
 5. only once the census is right across the lab: install to a laptop's
    disk (guinea pigs — wipe them) and watch first boot. The mechanics are
    built and proven in the VM, but **this is the last step, not the
-   next one** — a machine whose census is wrong installs the wrong Golem,
+   next one** — a machine whose census is wrong installs the wrong Standard,
    and the whole point of the lab is to find that out before any disk is
    touched.
 
@@ -122,7 +122,7 @@ flow, earned without wiping anything.
 - [x] Minimal console ISO, own flake pinned to the parent's nixpkgs
       (`flake.nix`, `iso.nix`)
 - [x] Boot menu: Start / Install only, centered, tight selection, no
-      timeout (`iso-image-golem.nix` vendored — header documents the diff);
+      timeout (`iso-image-standard.nix` vendored — header documents the diff);
       Install carries `golem.install` on the kernel cmdline
 - [x] SSH-ready stick: key-only sshd, dev-machine key baked in
       (`~/.ssh/id_ed25519.pub` embedded in iso.nix), IP printed on the
@@ -156,7 +156,7 @@ flow, earned without wiping anything.
       medium → re-run, no reflash — the fast path works as designed.
 - [x] **The mechanism — WHAT the install installs** (2026-09-04, parent
       repo): the flow finally has a target. `hosts/target/` +
-      `..#golem-target` is the installed-Golem shape (per-machine surface =
+      `..#standard-target` is the installed-Golem shape (per-machine surface =
       the three dropped files); the module library opened
       (`system/hardware/gpu-nvidia.nix` — the dev-host port, generation-
       gated with the iron-law nouveau floor; `power-laptop.nix` — the
@@ -167,7 +167,7 @@ flow, earned without wiping anything.
       permutations — BOTH lab fixtures included, so this lab's dumps now
       gate the parent repo's CI. Green.
 - [x] Memory family (2026-09-04, parent repo): hibernation LOCKED per Max
-      — every install gets disk swap (`..#lib.golem.swapForHibernationMB`
+      — every install gets disk swap (`..#lib.standard.swapForHibernationMB`
       sizes it: RAM+10%, 2 GiB floor, whole GiB) + zram in front
       (priority 100); swappiness/cache-pressure/dirty/page-cluster tiered
       on `ramMB` (180/50/5-2 on the 4 GB class → 10/10/10-5 at 16 GB+);
@@ -197,18 +197,18 @@ flow, earned without wiping anything.
       consulted. Verified with a deliberately cold fetcher cache, and
       `--offline` keeps it honest.
 - [x] `golem-hw-decide` (`decide.nix` + `../system/hardware/decide.nix`):
-      probe the machine, then evaluate the REAL `golem-target` on it and
+      probe the machine, then evaluate the REAL `standard-target` on it and
       print every choice — zram/swappiness/page-cluster, video drivers,
       nvidia gen+PRIME, microcode, bluez, thermald, fprintd, swap size,
       resume, lid, panel scale, BFQ, nix job limits. It runs through
-      `lib.golem.mkTarget`, the one composition the matrix and the
+      `lib.standard.mkTarget`, the one composition the matrix and the
       installer also use, so CI, the stick and the install cannot drift.
       **Live on the VM 2026-09-04: 5.9 s, offline, on 4 GB**, verdict
       correct on all 13 facts+decisions. Laziness is load-bearing — the
       panel scale is the only field that forces the home-manager fixpoint
       and it is gated on `panelDpi > 0`.
 - [x] **The machine audits itself at boot** (`audit.nix`, 2026-09-04 —
-      Max: "i press [start], Golem audits the device, makes the decisions,
+      Max: "i press [start], Standard audits the device, makes the decisions,
       chooses the modules, and generates a summary that you audit via
       ssh"). `golem-audit.service` runs collector + probe + decide as root
       at boot and leaves `summary.txt`, `decision.json`,
@@ -234,7 +234,7 @@ flow, earned without wiping anything.
       last of the six flow screens, built to PLAN.md's own old law: "the
       summary stays put and fills in as each part lands." Pressing ENTER
       after the password REVEALS the census into the same stack as the
-      answers — everything Golem decided on its own (zram, driver, VA-API,
+      answers — everything Standard decided on its own (zram, driver, VA-API,
       microcode, bluetooth, thermald, lid, scheduler) lands as more `·`
       items, read from `/var/log/golem-audit/decision.json` via jq, in
       decide.nix's order, renderer still dumb. Then one question, then a
@@ -248,7 +248,7 @@ flow, earned without wiping anything.
       the bar stops at "prepared", and the resume command is printed. ESC
       on the confirm walks back into the You step like every other back.
       Proven on a dev box (`--fake-census --fake-install`): reveal → confirm
-      → bar 1/6…6/6 → "restarting into Golem". Metal/VM run against real
+      → bar 1/6…6/6 → "restarting into Standard". Metal/VM run against real
       golem-install is the next check.
 - [x] **The surface is ON the medium** (2026-09-06, `setup.nix`): the CLI
       conversation built in `mockup/install-cli` is packaged as
@@ -259,7 +259,7 @@ flow, earned without wiping anything.
       notes: makeWrapper + patchShebangs (NOT writeShellApplication —
       shellcheck over 2,600 lines of interactive redraw bash fails on
       lints the tmux-driven tests are the real answer to); the keyboard
-      table is baked in from `lib.golem.keyboards.table`, the same data
+      table is baked in from `lib.standard.keyboards.table`, the same data
       the keyboard-table CI check verifies, so stick and CI cannot drift;
       deps (loadkeys, lsblk, mkpasswd…) are wrapped into PATH and the
       package runs under `env -i`. Bare `golem-setup` defaults
@@ -274,7 +274,7 @@ flow, earned without wiping anything.
       found to install on." before anyone has typed a name — the exact
       fail-early property the step order was designed for.
 - [x] **Rehearsal mode** (2026-09-06, Max: "when I enter on 'Install
-      Golem?' Golem should fake the installation… do a test and send it
+      Standard?' Standard should fake the installation… do a test and send it
       to you… until we know this installer knows what it's doing").
       `golem-install --rehearse` is the SAME installer with every
       destructive verb routed through one runner that records instead of
@@ -302,7 +302,7 @@ flow, earned without wiping anything.
       Not yet proven on metal or in the VM.
 - [x] **The default install, decided** (Max, 2026-09-05): *"no encryption,
       ext4, swap + hibernation, format, erase the disk, and install
-      Golem."* That is the plain branch, which is also the one proven end
+      Standard."* That is the plain branch, which is also the one proven end
       to end on row 0. Everything else — encryption, installing onto a
       single partition, dual boot — lives behind the disk step's
       **Advanced** row, so the ordinary install is one keypress and a
@@ -325,7 +325,7 @@ flow, earned without wiping anything.
       `/dev/vda`, dropped the three files, took an 18.8 GiB closure, and
       `nixos-install`ed it. The machine then booted **from its own disk**
       and every decision was checked at RUNTIME — the first time any
-      Golem decision has ever actually run:
+      Standard decision has ever actually run:
 
       | decision | eval said | the booted machine says |
       |---|---|---|
@@ -386,7 +386,7 @@ boot the machine's own `decision.json` was compared against what CI
 computes from the committed fixture:
 
 ```
-nix eval …#lib.golem.decide (import fixtures/acer-aspire-e5-573/facts.nix)
+nix eval …#lib.standard.decide (import fixtures/acer-aspire-e5-573/facts.nix)
   ==  /var/log/golem-audit/decision.json   # byte for byte
 ```
 
@@ -406,7 +406,7 @@ Two smaller notes from the double-check:
   without a reboot and reprints it — that is also the fast path for
   iterating probe logic over SSH.
 
-*Fixed 2026-09-05 (Max: "Golem now confuses 4 threads = 4 cores on a
+*Fixed 2026-09-05 (Max: "Standard now confuses 4 threads = 4 cores on a
 2 cores cpu"):* `cores` used to be `nproc`, i.e. logical CPUs, so this
 machine's dual-core i5-5200U with SMT read as a quad. The probe now
 reports **`cores`** (distinct `physical id`:`core id` pairs — 2 here) and
@@ -440,12 +440,12 @@ hardware is exactly what the lab exists to surface, and it did so on the
 first boot.
 
 *And a surface fix in the same pass (2026-09-06):* the hostname step's
-"Golem" default was passed as the field's INITIAL VALUE, so typing a name
-appended to it — the Acer rehearsal recorded `Golemacer-lab`. "Golem" is
+"Standard" default was passed as the field's INITIAL VALUE, so typing a name
+appended to it — the Acer rehearsal recorded `Golemacer-lab`. "Standard" is
 now a GHOST placeholder (shown dimmed, taken on ENTER only if nothing was
 typed); the initial value is the empty/real hostname, so typing starts
 clean and an ESC-reopen still edits the prior value. A placeholder is not a
-value. Verified in tmux: clean `acer-lab`, ENTER→`Golem`, ESC-reopen keeps
+value. Verified in tmux: clean `acer-lab`, ENTER→`Standard`, ESC-reopen keeps
 `myhost` editable.
 
 ## What running it on a real machine cost, in bugs
@@ -453,7 +453,7 @@ value. Verified in tmux: clean `acer-lab`, ENTER→`Golem`, ESC-reopen keeps
 Eight findings. Every one was invisible to the eval matrix and fell out of
 actually booting the thing. Recording them because they are the argument
 for putting the census on real hardware early — and note that **two of the
-seven were the test rig lying to the probe**, not Golem being wrong. When
+seven were the test rig lying to the probe**, not Standard being wrong. When
 a census result looks wrong, suspect the harness first.
 
 1. **`gpu = "auto"` on a machine with a GPU** — not a probe bug: the
@@ -516,7 +516,7 @@ a census result looks wrong, suspect the harness first.
    surfaces by dropping to the GRUB command line (`c`) and re-running
    `normal` by hand. Do that FIRST next time instead of rebuilding.
 8. **`qemu-guest-agent` enabled but dead** — again the harness, not
-   Golem: no `virtio-serial` + `org.qemu.guest_agent.0` port in the VM,
+   Standard: no `virtio-serial` + `org.qemu.guest_agent.0` port in the VM,
    so the unit could never start. `run-vm.sh` now provides the channel;
    agent confirmed `active` afterwards. Two of five findings were the
    test rig lying about the hardware — worth remembering when a census
@@ -526,7 +526,7 @@ a census result looks wrong, suspect the harness first.
 
 No medium's store can hold what it installs: the stick's store is a tmpfs
 overlay in RAM and the system closure is **18.8 GiB** (8.4 GiB with
-`golem.lean`). So `golem-install` splits at `--prepare-only` /
+`standard.lean`). So `golem-install` splits at `--prepare-only` /
 `--skip-prepare`, and the closure is delivered to the *mounted target*
 between the halves. In the lab that is, from the dev box:
 
@@ -555,7 +555,7 @@ that asks a question is a screen a stranger can get wrong.
 | # | Screen | Carries |
 |---|---|---|
 | 1 | **Language** | english · español · … |
-| 2 | **Keyboard** | set while Golem reads the device |
+| 2 | **Keyboard** | set while Standard reads the device |
 | 3 | **Evaluation** | what it found · what it will build |
 | 4 | **Disk** | target · encryption · passphrase |
 | 5 | **You** | hostname · user · password |
@@ -575,8 +575,8 @@ Why this order, and not the obvious one:
   one part that takes real time and cannot be hurried, so it runs while the
   user does the one task that needs a human anyway. Nobody watches a
   spinner. The line must stay true on a fast machine, where the audit may
-  finish first — "Golem is reading this device" survives both cases,
-  "while Golem reads" does not.
+  finish first — "Standard is reading this device" survives both cases,
+  "while Standard reads" does not.
 - **Keyboard before disk is load-bearing, not cosmetic.** With encryption
   on, the disk step wants a passphrase. A passphrase typed under the wrong
   keymap locks the owner out of their own disk with no rescue — worse than

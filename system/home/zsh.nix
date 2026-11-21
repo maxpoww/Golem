@@ -175,7 +175,7 @@ programs.fzf = {
 
     # Updated to initContent (Home Manager 26.05+)
     initContent = ''
-      # ── OPTIONS app-bridge (Golem's Brain) ──────────────────────────────
+      # ── OPTIONS app-bridge (Standard's Brain) ──────────────────────────────
       # Feed the shell's last command + exit code to the options-engine bridge
       # socket, so OPTIONS can sense terminal context (a failed build → "Search
       # the error", friction → skill calibration). Uses zsh's built-in unix

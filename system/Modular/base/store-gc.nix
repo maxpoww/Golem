@@ -10,7 +10,7 @@ let
   # Count-based rollback depth: keep the newest 15 system generations, then
   # collect. Age-based deletion once silently evaporated rollback on a
   # machine not rebuilt for 8 days. On a disk with under 15 GiB free, only
-  # the newest 3: a Golem system is 10-12 GiB, a weekly NixOS update changes
+  # the newest 3: a Standard system is 10-12 GiB, a weekly NixOS update changes
   # a good part of it, and 15 versions nothing may collect would fill a
   # small disk (audit, 2026-10-29). 3 is also the UEFI boot menu's depth
   # (boot/grub-efi.nix).

@@ -8,7 +8,7 @@
       login → postinstall-answers.json → golem-postinstall-apply rebuild)
       is imported only by the dev box's system/configuration.nix, never by
       the Modular composition; base/options.nix declares
-      golem.postinstall.answers and says the asker "arrives with the
+      standard.postinstall.answers and says the asker "arrives with the
       desktop stage" — that port never happened. Seen on the ASUS X550LC
       (2026-10-02): its GF117M failed the wake test, hosts/target/
       postinstall-questions.json holds the gpu2-failing-action question,
@@ -21,7 +21,7 @@
 - [ ] **SOON — a non-English install must be in its language end to end**
       THE RULE (Max, 2026-10-01): "a system on spanish for spanish, french
       for french" — the language picked in the installer is the language of
-      EVERYTHING Golem shows, from the first login on: shell, OPTIONS,
+      EVERYTHING Standard shows, from the first login on: shell, OPTIONS,
       settings, notifications, folders, browser. English only as the
       per-string fallback, never as the default.
       (ThinkPad installed in FRENCH from the final ISO:
@@ -30,7 +30,7 @@
       fr_FR.UTF-8, Europe/Paris; the session runs LANG=fr_FR.UTF-8
       LANGUAGE=fr_FR:fr; coreutils already answer in French). What stays
       English:
-      1. OUR shell — dock, OPTIONS, settings panel, Golem's own
+      1. OUR shell — dock, OPTIONS, settings panel, Standard's own
          notifications: waverunner has no translations (the i18n pass
          below only made strings extractable). Needs: a catalogue per
          language (fr first, es, pt, it — the installer's roster), the
@@ -49,7 +49,7 @@
          first session (known since 3a79533; the language arrives after
          first-boot + a reboot).
       Acceptance: install in French in the VM, log in once, and NOTHING
-      the user sees from Golem is English.
+      the user sees from Standard is English.
 
 
 - [x] i18n pass: shell strings extractable, Spanish first (dictionary
@@ -97,7 +97,7 @@
 - [x] Accessibility research: what a11y means for a layer-shell/wgpu surface
       (hard problem — investigate early, don't leave for last; features.md §9)
       → `accessibility-research.md`. The finding that reorders the work:
-      Golem has three renderers with three different stories, and **the
+      Standard has three renderers with three different stories, and **the
       parts that are ours are the inaccessible ones** — every GTK app we
       ship is one Nix option from being screen-reader usable (no
       `at-spi2-core`, no `orca`, no accessibility bus anywhere in this
@@ -109,7 +109,7 @@
       (magnifier — the fork already animates a `zoomFactor` leaf, colour/
       contrast output shader, on-screen keyboard) are roughly a day each;
       (b) a perfect tree still leaves Orca **undrivable**, because Wayland
-      grants no global key grabs and only GNOME has the plumbing — Golem
+      grants no global key grabs and only GNOME has the plumbing — Standard
       forks the compositor, so that route is ours to build and no plan
       works without it. §6 orders the cheap true steps, §7 is the checklist
       for a session with a machine, §8 answers the last item in this file.

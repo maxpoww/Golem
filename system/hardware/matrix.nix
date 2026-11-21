@@ -2,9 +2,9 @@
 # harness Installer/preinstall/PLAN.md promised ("the laptops teach once; the repo
 # remembers forever").
 #
-# Every gated fact permutation is evaluated as a FULL golem-target system
-# (the exact composition `nixos-install --flake …#golem-target` builds —
-# golemModules + hosts/target + a fake disk), and semantic expectations
+# Every gated fact permutation is evaluated as a FULL standard-target system
+# (the exact composition `nixos-install --flake …#standard-target` builds —
+# standardModules + hosts/target + a fake disk), and semantic expectations
 # are asserted on the evaluated config: not just "it evaluates" but "the
 # no-bluetooth machine really dropped bluez", "the unknown nvidia really
 # stayed off the proprietary driver". The committed lab fixtures' facts
@@ -25,7 +25,7 @@ let
   # bootable system needs so the eval can reach a toplevel.
   fakeDisk = {
     nixpkgs.hostPlatform = "x86_64-linux";
-    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
     fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
   };
 
@@ -65,7 +65,7 @@ let
         (ex "4GB tier: one build job" (cfg.nix.settings.max-jobs == 1))
         (ex "102 DPI panel: NO generated scale rule (the 2026-09-02 lesson)"
           (lib.hasInfix "panel_scale = nil,"
-            cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts))
+            cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts))
       ];
     }
     {
@@ -81,7 +81,7 @@ let
       name = "intel-legacy"; # the 2013-Air class (Haswell and older)
       # (lightSensor: the Air has one, and every fact golem-hw-detect can
       # write must evaluate here — this one did not, 2026-11-17.)
-      facts.golem.hardware = { gpu = "intel"; intelLegacy = true; ramMB = 4096; cores = 4; cpuVendor = "intel"; chassis = "laptop"; lightSensor = true; };
+      facts.standard.hardware = { gpu = "intel"; intelLegacy = true; ramMB = 4096; cores = 4; cpuVendor = "intel"; chassis = "laptop"; lightSensor = true; };
       expect = cfg: [
         (ex "legacy picks i965" (cfg.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
         (ex "H.264 fallback policy shipped"
@@ -90,7 +90,7 @@ let
     }
     {
       name = "amd";
-      facts.golem.hardware = { gpu = "amd"; ramMB = 16384; cores = 12; cpuVendor = "amd"; chassis = "desktop"; };
+      facts.standard.hardware = { gpu = "amd"; ramMB = 16384; cores = 12; cpuVendor = "amd"; chassis = "desktop"; };
       expect = cfg: [
         (ex "amd microcode on" cfg.hardware.cpu.amd.updateMicrocode)
         (ex "mid tier: zram 50%" (cfg.zramSwap.memoryPercent == 50))
@@ -101,13 +101,13 @@ let
     {
       name = "nvidia-hybrid-ada"; # the Slim Pro 9i shape, from detection
       facts = {
-        golem.hardware = {
+        standard.hardware = {
           gpu = "nvidia"; nvidiaGen = "turing+";
           nvidiaBusId = "PCI:1:0:0"; intelBusId = "PCI:0:2:0";
           ramMB = 32768; cores = 20; cpuVendor = "intel"; chassis = "laptop";
         };
         # What the install flow creates on every machine (hibernation is
-        # locked): disk swap, sized by lib.golem.swapForHibernationMB.
+        # locked): disk swap, sized by lib.standard.swapForHibernationMB.
         swapDevices = [ { device = "/dev/disk/by-label/swap"; } ];
       };
       expect = cfg: [
@@ -138,7 +138,7 @@ let
       facts = {
         imports = [ ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix ];
         # What the install flow creates on this laptop (hibernation is
-        # locked): a disk swap, sized by lib.golem.swapForHibernationMB.
+        # locked): a disk swap, sized by lib.standard.swapForHibernationMB.
         swapDevices = [ { device = "/dev/disk/by-label/swap"; } ];
       };
       expect = cfg: [
@@ -164,12 +164,12 @@ let
         (ex "hasBluetooth → bluez/blueman on" cfg.services.blueman.enable)
         (ex "239 DPI panel: generated eDP scale rule at 1.6"
           (lib.hasInfix "panel_scale = 1.6,"
-            cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts))
+            cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts))
       ];
     }
     {
       name = "nvidia-desktop-ada"; # no iGPU → direct drive, no PRIME
-      facts.golem.hardware = { gpu = "nvidia"; nvidiaGen = "turing+"; ramMB = 32768; cores = 16; cpuVendor = "amd"; chassis = "desktop"; };
+      facts.standard.hardware = { gpu = "nvidia"; nvidiaGen = "turing+"; ramMB = 32768; cores = 16; cpuVendor = "amd"; chassis = "desktop"; };
       expect = cfg: [
         (ex "nvidia driver active" (lib.elem "nvidia" cfg.services.xserver.videoDrivers))
         (ex "no PRIME without both bus ids" (!cfg.hardware.nvidia.prime.offload.enable))
@@ -177,7 +177,7 @@ let
     }
     {
       name = "nvidia-pre-turing"; # GTX 9xx/10xx: the 580 legacy branch
-      facts.golem.hardware = { gpu = "nvidia"; nvidiaGen = "pre-turing"; ramMB = 8192; cores = 8; cpuVendor = "intel"; chassis = "desktop"; };
+      facts.standard.hardware = { gpu = "nvidia"; nvidiaGen = "pre-turing"; ramMB = 8192; cores = 8; cpuVendor = "intel"; chassis = "desktop"; };
       expect = cfg: [
         (ex "nvidia driver active" (lib.elem "nvidia" cfg.services.xserver.videoDrivers))
         (ex "proprietary kmod (open is Turing+)" (cfg.hardware.nvidia.open == false))
@@ -186,7 +186,7 @@ let
     }
     {
       name = "nvidia-unknown-gen"; # THE IRON LAW: uncertain → the floor
-      facts.golem.hardware = { gpu = "nvidia"; ramMB = 8192; cores = 8; };
+      facts.standard.hardware = { gpu = "nvidia"; ramMB = 8192; cores = 8; };
       expect = cfg: [
         (ex "unclassified nvidia stays on the floor"
           (!(lib.elem "nvidia" cfg.services.xserver.videoDrivers)))
@@ -194,7 +194,7 @@ let
     }
     {
       name = "gpu2-failing-default-hold"; # changes.md #33: the ASUS shape, unanswered
-      facts.golem.hardware = {
+      facts.standard.hardware = {
         gpu = "intel"; intelBusId = "PCI:0:2:0";
         gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
       };
@@ -206,11 +206,11 @@ let
     {
       name = "gpu2-failing-answered-off"; # the owner answered the post-install question
       facts = {
-        golem.hardware = {
+        standard.hardware = {
           gpu = "intel"; intelBusId = "PCI:0:2:0";
           gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
         };
-        golem.postinstall.answers."gpu2-failing-action" = "off";
+        standard.postinstall.answers."gpu2-failing-action" = "off";
       };
       expect = cfg: [
         (ex "off wins once explicitly chosen"
@@ -220,14 +220,14 @@ let
     {
       name = "gpu2-failing-unrecognized-answer"; # never a default pass to the destructive branch
       facts = {
-        golem.hardware = {
+        standard.hardware = {
           gpu = "intel"; intelBusId = "PCI:0:2:0";
           gpu2 = "nvidia"; gpu2BusAddr = "0000:01:00.0"; gpu2Health = "failing";
         };
         # A stale id from an older question set, or hand-edited garbage —
         # either way this must NOT read as "off" (that branch is a PCI
         # remove; "hold" is the only safe interpretation of "not sure").
-        golem.postinstall.answers."gpu2-failing-action" = "garbage";
+        standard.postinstall.answers."gpu2-failing-action" = "garbage";
       };
       expect = cfg: [
         (ex "unrecognized answer falls back to hold, never off"
@@ -236,7 +236,7 @@ let
     }
     {
       name = "no-bluetooth";
-      facts.golem.hardware = { hasBluetooth = false; };
+      facts.standard.hardware = { hasBluetooth = false; };
       expect = cfg: [
         (ex "bluez and blueman dropped" (!cfg.services.blueman.enable && !cfg.hardware.bluetooth.enable))
       ];
@@ -248,7 +248,7 @@ let
       # permutation — round ramMB, no chassis — so the assertions below
       # keep holding even when the lab's VM is retired or re-specced.
       name = "vm-qemu";
-      facts.golem.hardware = { gpu = "virtio"; vmGuest = "qemu"; ramMB = 4096; cores = 4; };
+      facts.standard.hardware = { gpu = "virtio"; vmGuest = "qemu"; ramMB = 4096; cores = 4; };
       expect = cfg: [
         (ex "qemu guest agent on" cfg.services.qemuGuest.enable)
         (ex "spice agent on" cfg.services.spice-vdagentd.enable)
@@ -257,22 +257,22 @@ let
     }
     {
       name = "fingerprint-reader";
-      facts.golem.hardware = { fingerprint = true; chassis = "laptop"; };
+      facts.standard.hardware = { fingerprint = true; chassis = "laptop"; };
       expect = cfg: [
         (ex "fprintd on" cfg.services.fprintd.enable)
       ];
     }
     {
       name = "hidpi-panel"; # 239 = the Slim Pro's probe-measured DPI (34cm/3200px)
-      facts.golem.hardware = { gpu = "intel"; panelDpi = 239; chassis = "laptop"; ramMB = 16384; cores = 8; };
+      facts.standard.hardware = { gpu = "intel"; panelDpi = 239; chassis = "laptop"; ramMB = 16384; cores = 8; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
+        let lua = cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts;
         in [
           (ex "generated eDP scale rule at 1.6"
             (lib.hasInfix "panel_scale = 1.6," lua
              # …and the module that reads the fact makes the rule of it
              && lib.hasInfix ''hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = M.panel_scale })''
-               (builtins.readFile ../home/hypr/golem/monitors.lua)))
+               (builtins.readFile ../home/hypr/standard/monitors.lua)))
         ];
     }
 
@@ -296,9 +296,9 @@ let
     # any check that only looks at NixOS options.
     {
       name = "install-answer-colemak"; # a variant layout, single group
-      facts = { golem.keyboard = keyboards.derive "colemak"; };
+      facts = { standard.keyboard = keyboards.derive "colemak"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
+        let lua = cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts;
         in [
           (ex "console keymap is kbd's name, not xkb's"
             (cfg.console.keyMap == "colemak"))
@@ -311,14 +311,14 @@ let
             (lib.hasInfix ''variant = "colemak",'' lua))
           (ex "HYPRLAND is not left on the default (us, no variant), and its input block reads the answer"
             (!lib.hasInfix ''variant = "",'' lua
-             && lib.hasInfix "kb_variant = keyboard.variant," (builtins.readFile ../home/hypr/golem/input.lua)))
+             && lib.hasInfix "kb_variant = keyboard.variant," (builtins.readFile ../home/hypr/standard/input.lua)))
         ];
     }
     {
       name = "install-answer-russian"; # non-latin: the second group + font
-      facts = { golem.keyboard = keyboards.derive "ru"; };
+      facts = { standard.keyboard = keyboards.derive "ru"; };
       expect = cfg:
-        let lua = cfg.home-manager.users.${cfg.golem.owner}.golem.home.hyprFacts;
+        let lua = cfg.home-manager.users.${cfg.standard.owner}.standard.home.hyprFacts;
             xkb = cfg.services.xserver.xkb;
         in [
           (ex "a latin group is appended, or the owner cannot type a URL"
@@ -336,7 +336,7 @@ let
     }
     {
       name = "install-answer-japanese"; # the physical-board case
-      facts = { golem.keyboard = keyboards.derive "jp"; };
+      facts = { standard.keyboard = keyboards.derive "jp"; };
       expect = cfg: [
         (ex "JIS model, or henkan/muhenkan have no keycodes"
           (cfg.services.xserver.xkb.model == "jp106"))
@@ -348,7 +348,7 @@ let
     }
     {
       name = "install-answer-language"; # step 1's answer, and what it must NOT leak
-      facts = { golem.locale.defaultLocale = "es_ES.UTF-8"; };
+      facts = { standard.locale.defaultLocale = "es_ES.UTF-8"; };
       expect = cfg: [
         (ex "the chosen language is the default locale"
           (cfg.i18n.defaultLocale == "es_ES.UTF-8"))
@@ -369,10 +369,10 @@ let
       # the seal. It was imported as a system module: whatever a program
       # running as the owner wrote there, root's next build ran (17-Nov).
       name = "post-install answers file with code in it";
-      facts = { golem.postinstall.generatedFile = ../postinstall-hostile.fixture; };
+      facts = { standard.postinstall.generatedFile = ../postinstall-hostile.fixture; };
       expect = cfg: [
         (ex "the answer in it arrives, and only it (read as data)"
-          (cfg.golem.postinstall.answers == { "gpu2-failing-action" = "off"; }))
+          (cfg.standard.postinstall.answers == { "gpu2-failing-action" = "off"; }))
         (ex "the code in it does not run"
           (!(cfg.environment.etc ? "golem-planted")
            && !(lib.elem "ssh-ed25519 AAAAplanted" cfg.users.users.root.openssh.authorizedKeys.keys)
@@ -384,9 +384,9 @@ let
       # outside the seal, and was imported as a home module: one that renames
       # its user made root run its activation (18-Nov).
       name = "app list with code in it";
-      facts = { golem.appsListPath = ../home/app-list-hostile.fixture; };
+      facts = { standard.appsListPath = ../home/app-list-hostile.fixture; };
       expect = cfg:
-        let owner = cfg.golem.owner; home = cfg.home-manager.users.${owner}; in [
+        let owner = cfg.standard.owner; home = cfg.home-manager.users.${owner}; in [
           (ex "the app in it arrives (read as data)"
             (lib.any (p: lib.getName p == "hello") home.home.packages))
           (ex "the code in it does not run: no activation as root, none planted"

@@ -7,7 +7,7 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
 
 1. ☐ **`system/modules/base/`** — network, ssh, zsh, users, console,
    nix, selfrebuild. Lifted verbatim from the current system where the
-   config already exists (zsh especially: Golem's identity, unchanged).
+   config already exists (zsh especially: Standard's identity, unchanged).
 2. ☐ **Hardware leaves, first cut** — boot/ (systemd-boot, grub-bios),
    cpu/, gpu/ (intel, intel-legacy, virtio — only what round I1's
    machines need; nvidia/amd leaves land when their machines enter),
@@ -18,7 +18,7 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    explained, loud on unmatchable). Engine phase 4 drops it with the
    other target files; `hosts/target/default.nix` imports it when
    present.
-4. ☐ **`golem-minimal` composition** — `nixosConfigurations` attr:
+4. ☐ **`standard-minimal` composition** — `nixosConfigurations` attr:
    base + chosen leaves, nothing else. Closure size measured and
    recorded (target: ≤3 GiB).
 5. ✅ **Matrix: chosen-list AND effect assertions** (2026-09-10) —
@@ -27,18 +27,18 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    (Max: build & test the hardware modules on source) composes each
    machine's chosen leaves via `mkMinimal` and asserts the evaluated
    config — the acer's 20 effects (iHD, systemd-boot, tier1 sysctls,
-   thermald, laptop stack, flakeAttr=golem-minimal, no nvidia, no
+   thermald, laptop stack, flakeAttr=standard-minimal, no nvidia, no
    hyprland) + qemu-virtio's. The acer's composed toplevel is not just
    instantiated but BUILT on source (2.92 GiB, sysctls + LIBVA=iHD +
    rebuild-golem verified in the store path). `nix flake check` green.
 6. ✅ **VM gate, both firmwares** (2026-09-10, vm.md) — UEFI (vmi1u) AND
    BIOS (vmi1b): choose → the engine DROPS modules.nix itself → deliver
-   → install → first boot clean → **self-rebuild as golem-minimal → gen
+   → install → first boot clean → **self-rebuild as standard-minimal → gen
    2** from the untouched seed. 2.92 GiB. The BIOS leaf split
    (grub-bios vs systemd-boot) verified.
 7. ✅ **Recut the ISO** (`jd9lgha3…`, round-I1) — `nix flake update`
    done, built artifact verified (golem-install carries the chooser;
-   seed carries Modular + golem-minimal + waverunner 0696b72). The
+   seed carries Modular + standard-minimal + waverunner 0696b72). The
    engine's live modules.nix drop proven on both firmwares. ☐ Reflash
    the stick (Max) — this ISO installs minimal by default.
 8. ✅ **First blessed metal machine, stage 0 — the acer** (2026-09-10,
@@ -116,7 +116,7 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
    - **Inherit #85's lesson:** when it decides "what still needs installing?",
      ask the store DATABASE (`path-info --all`), never `[ -e ]` on the path.
    - Round I1's #63/#64/#65 (+ the whole #62–#98 queue) ride this recut.
-   - **btop** is now on every Golem (base/core.nix, 2026-09-18).
+   - **btop** is now on every Standard (base/core.nix, 2026-09-18).
 
 ## Round I3 — stage 1 climbs (desktop)
 
@@ -133,7 +133,7 @@ Status marks: ☐ open · ◐ in progress · ✅ done (date).
 
 12. ☐ programs/ leaves + GolemModules bundles through the dock.
 13. ☐ The MacBook (boss fight): broadcom-wl.nix quirk leaf, Apple EFI.
-14. ☐ Retirement of the fat path: last concern migrated, `golem.lean`
+14. ☐ Retirement of the fat path: last concern migrated, `standard.lean`
     deleted, finding #1 closed structurally. The ASUS re-installed
     minimal+stages as the final parity proof.
 
@@ -149,7 +149,7 @@ GRUB was already the right loader for this: `grub-bios.nix`'s header
 picked it partly because it chainloads other OSes, and the engine
 already lays GPT + a BIOS-boot partition on both firmware paths.
 
-**v1 policy — DETECT, NEVER RESIZE.** Golem installs into existing
+**v1 policy — DETECT, NEVER RESIZE.** Standard installs into existing
 **free space** and refuses to shrink anyone else's filesystem. Shrinking
 NTFS is where installers earn their reputation for eating data; Windows'
 own Disk Management does it safely, so the instruction is "make room
@@ -160,7 +160,7 @@ there first, then come back". Resize is a v2 question, if ever.
   generations occupy **122 MiB**. A Windows ESP is typically **100 MiB**
   — it cannot hold even one generation. So on a shared disk: reuse the
   EXISTING ESP, mount it at `/boot/efi` for the EFI binaries only, and
-  keep kernels in `/boot` on Golem's own filesystem. Worth taking as the
+  keep kernels in `/boot` on Standard's own filesystem. Worth taking as the
   layout EVERYWHERE rather than a dual-boot special case — BIOS already
   works that way (the comodore's `/boot` is on root), so one shape for
   both firmwares, fewer branches. Note the LUKS interaction: with
@@ -178,7 +178,7 @@ there first, then come back". Resize is a v2 question, if ever.
 - ☐ **e. #95's menu rule gains a case.** os-prober titles read
   `Windows Boot Manager (on /dev/sda1)` (~380px) and would blow past
   the 226px box — rewrite to **`Windows`**, then re-measure. The menu
-  becomes `Start Golem` / `Windows` / `Previous Versions`.
+  becomes `Start Standard` / `Windows` / `Previous Versions`.
 - ☐ **f. #94's default flips here.** Owning `\EFI\BOOT\BOOTX64.EFI`
   saved the acer from firmware that deletes NVRAM entries, but on a
   shared disk it is a liability — Windows Update rewrites that path.
@@ -191,7 +191,7 @@ there first, then come back". Resize is a v2 question, if ever.
   dirty — read-only if at all), and the BitLocker warning belongs in
   the installer's own words before the disk step, not in a wiki.
 - ☐ **h. Prove it in the VM first** — a second OS installed in a qemu
-  disk, then Golem alongside it, both firmwares. Nothing is at risk and
+  disk, then Standard alongside it, both firmwares. Nothing is at risk and
   the VM already gates every ISO. Metal after that, on a machine Max
   blesses; the thinkpad is the only lab box with real Windows.
 

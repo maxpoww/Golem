@@ -21,7 +21,7 @@ that speak whenever the world does the thing — and four of those fire inside t
 same three seconds at the start of a call. **The utterance economy cannot be
 enforced per action. It has to be enforced across the set**, by a shared budget
 and a cluster rule (§2.4). Without them, an unlucky Tuesday in the first week of
-ownership hears eleven sentences and Golem becomes Clippy with better taste.
+ownership hears eleven sentences and Standard becomes Clippy with better taste.
 
 ---
 
@@ -57,7 +57,7 @@ each V-id's `ABSORBS:` list from cut-50.md as gear material.
 - **V:** [quiet my desk]
 
 **A05 — the hand-back** (V05 U0026 T0029 S0076 H0097) · moment · communication
-- **T:** mic goes inactive after a long live stretch AND Golem is holding a queue it silenced [live]
+- **T:** mic goes inactive after a long live stretch AND Standard is holding a queue it silenced [live]
 - **S:** "Your call is over, do you want to see what I held back?"
 - **V:** [show me]
 
@@ -237,7 +237,7 @@ each V-id's `ABSORBS:` list from cut-50.md as gear material.
 **A37 — on the way out** (V37 U0192 T0199 S0421 H0732) · habit · security
 - **T:** the browser's "Clear browsing data" dialog title appears, ≥3× [live]
 - **S:** "You clear your history most times you finish with the browser, do you want the browser to do it itself on the way out?"
-- **V:** [clear it on the way out]  *(verb re-specified in §4.3 — Golem flips the browser's own clear-on-shutdown preference while the browser is closed; it never touches the history store itself)*
+- **V:** [clear it on the way out]  *(verb re-specified in §4.3 — Standard flips the browser's own clear-on-shutdown preference while the browser is closed; it never touches the history store itself)*
 
 ### health/ergonomics — 1
 
@@ -324,7 +324,7 @@ The fix is structural and belongs in P5's blocks and in implementation.md.
      is one event, not three.
    - **the silence family** — A04, A06, A09, A17 all offer to quiet something.
      Different triggers, different scopes, not duplicates (§5), but no more than
-     **one silencing offer per week** or Golem reads as a system that mostly wants
+     **one silencing offer per week** or Standard reads as a system that mostly wants
      you to stop being interrupted.
 
 ### 2.5 Two gates applied in the register above
@@ -372,7 +372,7 @@ different refusals. But they are not independent either — A05 exists only beca
 A04 silenced something (the hand-back rule, F5 doctrine 4).
 
 **Ruling: two actions, bound by three constraints carried into P5.** (i) A05 may
-never fire unless Golem itself held the queue — if A04 was refused, or its standing
+never fire unless Standard itself held the queue — if A04 was refused, or its standing
 form is off, A05 has nothing to hand back and stays silent; the existing
 `notifications.active_count>0` guard is necessary but not sufficient, the
 provenance is. (ii) In the assisted phase the pair costs two sentences per call,
@@ -405,7 +405,7 @@ F5 flagged the verb honestly: MPRIS can press play, it cannot queue a named
 playlist. Two attempts at a sentence, both fail:
 
 - *"You put the same thing on most mornings, do you want it playing?"* — names a
-  thing Golem cannot guarantee to deliver. If the player is closed, the verb
+  thing Standard cannot guarantee to deliver. If the player is closed, the verb
   launches it and the player resumes whatever it last had, which may not be the
   observed title. **A sentence that promises what the verb cannot honour is not a
   register problem, it is a lie.**
@@ -437,11 +437,11 @@ only in the notebook. *Standing rules must be revocable where they hurt.*
 ### 4.3 V37, the only [new] verb — KEPT, with the verb re-specified
 
 The constitution's own illustration deserves better than a hand-wave. The original
-verb ("local cleanup of the profile at browser exit") means Golem writing into
+verb ("local cleanup of the profile at browser exit") means Standard writing into
 another application's private data store — corruption risk, sync side-effects,
 profile locks, and a maintenance burden that renews with every browser release.
 
-**Ruling: keep the action, change the hand.** Golem does not clear anything; it
+**Ruling: keep the action, change the hand.** Standard does not clear anything; it
 turns on **the browser's own clear-on-shutdown preference**, written while the
 browser is closed (Firefox's sanitize-on-shutdown family, scoped to history only;
 Chromium's equivalent is narrower and per-profile). The action then requires
@@ -506,7 +506,7 @@ they were on the bench rather than in the 40:
   version they actually demonstrated. **Fails admission.**
 - **R02** (dark theme at sunset) — not daily, and a third mouth in the evening
   cluster. **Fails EVERYDAY + §2.4.**
-- **R03** (the overnight notifications) — the hand-back rule: Golem did not silence
+- **R03** (the overnight notifications) — the hand-back rule: Standard did not silence
   the night, so it owes no summary of it. **Fails doctrine 4.**
 - **R04** (the charger that only bites at one angle) — still no verb. **Fails
   doctrine 3.** The finest observation in the batch and still not an action.
@@ -544,7 +544,7 @@ Ranked by this unit's suspicion, not by V-id order:
    discover by simply looking at the window that just appeared. Test the
    one-keystroke rule against it.
 4. **A23** — the only verb in the batch that is purely a future sentence. It
-   promises a notification, which is the world's voice, not Golem's.
+   promises a notification, which is the world's voice, not Standard's.
 5. **A16** — nag risk, explicitly flagged at F5. Check the escalation-toward-silence
    requirement is expressible in the gear.
 6. **A18** — the batch's narrowest audience (bilingual users only).

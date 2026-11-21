@@ -50,7 +50,7 @@ omitted module is worse than a wrongly dormant one ever was.
 ## 5. Stages climb by rebuild, never by reinstall
 
 Stage 0 must leave every machine reachable (SSH), rebuildable (seed +
-appliers), and recognizable (Golem's zsh at the tty). Stage 1 and 2
+appliers), and recognizable (Standard's zsh at the tty). Stage 1 and 2
 arrive as module additions applied by rebuild on a proven rung. A
 machine that needs reinstalling to advance is a finding against
 stage 0.
@@ -69,7 +69,7 @@ booted" is not a record.
 Unchanged, and paid for again during round 5: root SSH creating
 `user@0`, store paths picked by glob, a flaky router convicting three
 machines, a phone's randomized MAC. Rule out the rig before blaming
-Golem — and drive installed machines from the owner's session, never
+Standard — and drive installed machines from the owner's session, never
 leave a root SSH holding a switch.
 
 ## 8. Record passes too — and the human hour

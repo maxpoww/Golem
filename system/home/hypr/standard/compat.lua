@@ -1,4 +1,4 @@
--- golem/compat.lua: what apps need from the compositor to behave
+-- standard/compat.lua: what apps need from the compositor to behave
 -- (XWayland's scaling, popups and dialogs that would open hidden, unfocused
 -- or tiled). The windows' LOOK by state is rules.lua.
 

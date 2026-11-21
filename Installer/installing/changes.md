@@ -15,7 +15,7 @@ surface items are `I<round>-<n>`.
 - Nothing lands in an ISO mid-round. Round closes → work the queue top
   to bottom → `nix flake update` → rebuild → verify the built artifact
   → VM gate → reflash → move applied entries below with their round.
-- Waverunner-side fixes ride the launcher → Golem lock → seed pipeline
+- Waverunner-side fixes ride the launcher → Standard lock → seed pipeline
   and are marked with their launcher rev.
 - The live-fix refinement applies: a queued fix may be verified on a
   booted machine as a RAM overlay / seed update, marked
@@ -64,14 +64,14 @@ sshd/multi-user`) — a `.after` mkForce only adds a redundant drop-in, doesn't 
 it. Overriding NixOS's whole networking order for a slow-link-only gain isn't worth
 it; the dongle is the dongle. **where:** `install.nix` (end). **size:** small, done.
 
-### 125. THE GENERAL BOOT PASS — skip legacy serial probing + don't wait on the network — [DONE 2026-09-24 · Max: "make a second pass for general purposes on general boot of Golem … the best booting process you can do (reliable + fast as possible)"]
+### 125. THE GENERAL BOOT PASS — skip legacy serial probing + don't wait on the network — [DONE 2026-09-24 · Max: "make a second pass for general purposes on general boot of Standard … the best booting process you can do (reliable + fast as possible)"]
 On top of #124 (systemd initrd + udev GPU), two more GENERAL boot wins profiled over
 SSH on the comodore/HP metal — portable, not comodore-specific:
 1. **`8250.nr_uarts=0`** — skip the legacy 8250 serial-port autoconfig. On old
    chipsets that probe runs slow loopback/IRQ tests on every port; `ttyS0-3` alone
    ate **~22 s** of udev work on BOTH old lab machines, dragging the initrd's device
    settle and congesting userspace udev (which delays the disk/swap device units the
-   boot waits on). Golem is a desktop OS with no serial console (tty0 VGA is
+   boot waits on). Standard is a desktop OS with no serial console (tty0 VGA is
    untouched), so nothing is lost. BASE = installed systems only; the installer
    MEDIUM keeps its serial for lab diagnostics.
 2. **`NetworkManager-wait-online` off** — nothing in a desktop boot should block on
@@ -79,7 +79,7 @@ SSH on the comodore/HP metal — portable, not comodore-specific:
    link/DHCP/a slow wifi dongle (that wait was ~10 s on the comodore's rtl8187).
    Standard hygiene; the auto-upgrade's own `golem-wait-online` gate is unaffected.
 **VM-gated (I3k):** install clean → boot **5.49 s** → bar paints (`card0=bochs-drm`,
-udev) → `Golem login:`; SSH confirms `8250.nr_uarts=0` applied, **no `ttyS`
+udev) → `Standard login:`; SSH confirms `8250.nr_uarts=0` applied, **no `ttyS`
 devices/units**, wait-online **masked**. No regression. Metal (old-chipset) speedup
 owed once the comodore is reliably reachable. **where:**
 `system/Modular/boot/boot-speed.nix` (new), `composition.nix`. **size:** small, done.
@@ -100,11 +100,11 @@ so the slow probe STILL blocked even under systemd initrd) to
 `boot.initrd.availableKernelModules` (udev-loaded, gates nothing). **VM-gated (I3j,
 SeaBIOS, SSH into the install):** disk `sda` now appears at **1.05 s** (was 3.7 s
 under force-load), initrd **2.0 s** (was 4.9 s), total boot **5.8 s** — and the bar
-still paints (`card0 = bochs-drm`, udev-loaded) and it reaches `Golem login:`. The
+still paints (`card0 = bochs-drm`, udev-loaded) and it reaches `Standard login:`. The
 metal 48 s→~6 s proof is owed on the HP (I'll SSH in and measure). **where:**
 `system/Modular/boot/plymouth.nix`. **size:** small, done; recut = I3j.
 
-### 123. THE LAB DOOR — every installed Golem is SSH-reachable by the dev box (until the first FINISHED ISO) — [DONE 2026-09-24 · Max: "an installed Golem should let you go in via ssh and test — that is the whole idea of the lab. all the isos should do that; we close the ssh only when we finish, on the first finished Golem iso. now, do it."]
+### 123. THE LAB DOOR — every installed Standard is SSH-reachable by the dev box (until the first FINISHED ISO) — [DONE 2026-09-24 · Max: "an installed Standard should let you go in via ssh and test — that is the whole idea of the lab. all the isos should do that; we close the ssh only when we finish, on the first finished Standard iso. now, do it."]
 The BIOS+Intel Plymouth investigation (below) stalled on "read me the console" — no
 good over a broken-shift HP console. The lab is built to avoid exactly that: an
 installed machine joins the lab wifi and the dev box SSHes in. But `base/ssh.nix`
@@ -119,7 +119,7 @@ retries=0) straight into the toplevel (not machine.nix, which gen-1 never runs).
 a fresh install is reachable the moment it boots — `ssh max@<ip>` from the dev box
 (both on 192.168.1.x). **scope:** DELIBERATELY overrides the "no lab keys" rule for
 the lab period — Max's call. **DELETE `lab/lab-door.nix` + its composition.nix
-import at the first finished Golem ISO.** Verified in the baked comodore toplevel:
+import at the first finished Standard ISO.** Verified in the baked comodore toplevel:
 key in `authorized_keys.d/{max,root}`, profile `ssid=HOLA autoconnect`. **where:**
 `system/Modular/lab/lab-door.nix` (new), `composition.nix`. **size:** small, done;
 recut = I3h.
@@ -144,14 +144,14 @@ hardware-config, which already omits `/boot` on BIOS. **where:** `flake.nix`
 (`bakedFakeDisk`, `mkBakedEntry`). **size:** small, done. **gate (I3f, SeaBIOS
 VM, end-to-end):** floor+qemu BIOS toplevels' baked fstab now have NO ESP (UEFI
 keeps it); `golem-install --yes` → bios-boot/swap/golem layout, `local-fs.target.
-wants` EMPTY (no `boot.mount`); reboot → **`Golem login:`** on tty1, no hang, no
+wants` EMPTY (no `boot.mount`); reboot → **`Standard login:`** on tty1, no hang, no
 emergency. This + #120 are the two halves of "the comodore boots."
 
 ### 121. THE MEDIUM'S BIOS BOOT SHOWS THE KERNEL DECOMPRESSOR ("No EFI environment detected.") — [FOUND + FIXED 2026-09-24 · the comodore, I3 BIOS metal · Max escalated: "we need to fix that. some users will just turn off the pc as they see that."]
 #93 hid this on the INSTALLED system's GRUB with `gfxpayloadBios = "keep"` (hand
 over in graphics so the real-mode stub's VGA-text write lands in invisible
 memory). But the MEDIUM boots BIOS via isolinux/syslinux (the vendored
-iso-image-golem.nix), which hands over in TEXT mode — so the kernel decompressor
+iso-image-standard.nix), which hands over in TEXT mode — so the kernel decompressor
 console ("early console in extract_kernel", "Decompressing Linux… No EFI
 environment detected.", "Booting the kernel…") is visible before the installer.
 Reproduced in a SeaBIOS VM. **fix:** the isolinux `vga=` IS the gfxpayload=keep
@@ -167,7 +167,7 @@ EFI…" text (bright 0.033); I3l's is BLACK (0.0) — gone — and the Start/Ins
 
 ### 120. THE 8e INSTALL REFUSED THE COMODORE (1970 MB) — the local-eval RAM floor fired on a direct-copy install — [FOUND + FIXED 2026-09-24 · the comodore, I3 BIOS metal · the install failed, "diagnose instant", restart]
 On the comodore the install died instantly at the confirm and restarted. The log:
-`error: exit 1` → `golem-install: ram: this machine has 1970 MB — installing Golem
+`error: exit 1` → `golem-install: ram: this machine has 1970 MB — installing Standard
 needs about 4 GB of RAM`. The RAM floor (< 3300 MB) exists to gate the LOCAL EVAL
 (which thrashes a small box), and it correctly WARNS-not-fails for
 `--prepare-only`/`--skip-prepare` (eval-free). But the 8e PRODUCT install is ALSO
@@ -184,18 +184,18 @@ match or the firmware floor, so the eval fallback never runs). **where:**
 The census-status line (shown while the audit reads the machine behind the
 questions) said "Reading this device" / "Device read". "Diagnosing" is the truer
 verb — the census reads AND decides — and it rhymes with the #118 verify bar:
-Golem DIAGNOSES the device, then VERIFIES the install (the "careful, double-
+Standard DIAGNOSES the device, then VERIFIES the install (the "careful, double-
 checks itself" positioning). Changed `reading`→"Diagnosing this device" and its
 `read_ok` counterpart→"Device diagnosed", all 6 languages, kept parallel.
 **where:** `mockup/install-cli` (S[*:reading], S[*:read_ok]). **PROCESS:** rides
 the next recut (§2). **size:** done.
 
-### 118. THE AUTO-REBOOT BOOTS THE USB AGAIN — an unattended install loops back into the installer — [FOUND 2026-09-23 · the acer, I2-close roster · Max: "if the user is not there the pc will boot to the usb again instead of booting to Golem. how do we handle that?"]
+### 118. THE AUTO-REBOOT BOOTS THE USB AGAIN — an unattended install loops back into the installer — [FOUND 2026-09-23 · the acer, I2-close roster · Max: "if the user is not there the pc will boot to the usb again instead of booting to Standard. how do we handle that?"]
 At 100% `golem-install` finishes and install-cli does `systemctl reboot` (step_go
 — "the full bar IS the signal, reboot immediate", Max 2026-09-06). But the USB is
 still in, and most firmwares boot removable media before the internal disk — so
 the reboot re-enters the INSTALLER, and unattended it loops instead of landing in
-Golem. Breaks the 8e "reliable as fuck, never fail" promise for a walk-away
+Standard. Breaks the 8e "reliable as fuck, never fail" promise for a walk-away
 install.
 - **poweroff — REJECTED by Max:** doesn't actually fix it. The user comes back,
   powers ON with the USB still in → it boots the USB anyway. poweroff just delays
@@ -205,9 +205,9 @@ install.
   instalación" (~5–6 s of REAL post-install checks on /mnt), then "la instalación
   está sana — remove the USB and press ENTER" → ENTER reboots. Gated on a
   keypress, so **unattended it HOLDS at the message and never loops** — that is
-  the fix. Present, you pull the stick then press ENTER → Golem.
-  - **WHY, the brand turn:** Golem will not beat Omarchy on install TIME (~10 s).
-    So it competes on TRUST instead — "Golem takes a few minutes, but it is
+  the fix. Present, you pull the stick then press ENTER → Standard.
+  - **WHY, the brand turn:** Standard will not beat Omarchy on install TIME (~10 s).
+    So it competes on TRUST instead — "Standard takes a few minutes, but it is
     stable, double-checked." The verify bar IS that promise, made visible.
   - **§10 — it must be REAL, not a 5 s spinner.** "success without verification is
     the lie this lab exists to prevent." The check is the §6 first-boot audit run
@@ -230,12 +230,12 @@ install.
   gated-ENTER reboot) + a small offline health-check the surface runs on /mnt
   (or golem-install emits its verdict). **PROCESS:** §2 — rides the NEXT recut,
   not a mid-roster reburn; the current roster is attended, so it doesn't block.
-  **size:** medium — **BUILT + VM-gated 2026-09-23** (I3): copy bar → verify bar (6 real /mnt checks: bootloader·system·kernel·fstab·seed·account, results to verify.txt) → "La instalación está sana — retira el USB y pulsa ENTER"; it HELD static (no auto-reboot), ENTER rebooted. The unattended USB-loop is gone. The reboot cannot exec `systemctl` off the pulled USB (the installer runs FROM it — Max hit the I/O-error/getty-loop when he removed the stick then pressed ENTER); it reboots through the KERNEL instead — `echo b > /proc/sysrq-trigger`, a bash builtin with no store access — so Max's exact flow survives: pull USB → ENTER → into Golem. sysrq enabled on the medium (iso.nix).
+  **size:** medium — **BUILT + VM-gated 2026-09-23** (I3): copy bar → verify bar (6 real /mnt checks: bootloader·system·kernel·fstab·seed·account, results to verify.txt) → "La instalación está sana — retira el USB y pulsa ENTER"; it HELD static (no auto-reboot), ENTER rebooted. The unattended USB-loop is gone. The reboot cannot exec `systemctl` off the pulled USB (the installer runs FROM it — Max hit the I/O-error/getty-loop when he removed the stick then pressed ENTER); it reboots through the KERNEL instead — `echo b > /proc/sysrq-trigger`, a bash builtin with no store access — so Max's exact flow survives: pull USB → ENTER → into Standard. sysrq enabled on the medium (iso.nix).
 
-### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Golem, blank until login"]
+### 117. THE BOOT BAR DIDN'T RENDER ON AN INSTALLED SYSTEM — no GPU DRM in the minimal initrd — [FOUND + FIXED 2026-09-23 · the I2-close VM install+boot gate · this is the root of Max's earlier "no bar on installed Standard, blank until login"]
 The baked-Plymouth fix (#116c verified `plymouth-start` + the theme in the
 installed closure) was necessary but NOT sufficient. On the I2-close gate the
-installed system booted straight to `Golem login:` with a black screen — the bar
+installed system booted straight to `Standard login:` with a black screen — the bar
 never painted. Root cause: the minimal installed **initrd has no display driver**
 (ahci/ata_piix/hid_*… but no `bochs`/`i915`/`virtio_gpu`), so Plymouth has no DRM
 device in early boot; the GPU module only loads in the main system, after getty
@@ -246,7 +246,7 @@ drivers early (a no-matching-device module no-ops). nouveau/radeon left out
 (nouveau fights the proprietary-nvidia bind; the failing-radeon machine displays
 on its intel). **where:** `boot/plymouth.nix`. **size:** done, re-gated.
 
-### 116. THE BAR EVERYWHERE — a Plymouth boot bar styled as the OPTIONS status bar — [DONE 2026-09-23 · Max: "can we add the same bar as the status bar loading on boot? … lets show our bar everywhere" · chose bar + flying service names, on installed Golem + the installer stick]
+### 116. THE BAR EVERYWHERE — a Plymouth boot bar styled as the OPTIONS status bar — [DONE 2026-09-23 · Max: "can we add the same bar as the status bar loading on boot? … lets show our bar everywhere" · chose bar + flying service names, on installed Standard + the installer stick]
 The quiet boot (base/core.nix) gives a black screen from kernel handoff to the
 compositor; now it fills with the accent bar. A `script`-module Plymouth theme
 (`boot/golem-plymouth/golem.script`) draws the one accent (#d7af87 = fg 180)
@@ -255,7 +255,7 @@ underneath — the boot echo of the installer's flying filenames. `boot/
 plymouth.nix` packages the theme (two 1px colour tiles the script scales),
 enables `boot.plymouth`, and re-adds `splash` + `systemd.show_status=auto`
 (mkAfter, so they beat base's `show_status=false`). Wired into the base
-composition (every installed Golem) AND the installer `iso.nix` (the stick's own
+composition (every installed Standard) AND the installer `iso.nix` (the stick's own
 boot). **VERIFIED in a headless VM** (bochs-drm): the boot came up with the
 accent bar half-filled and "plymouth-read-write.service" flying beneath it —
 exactly the look. **THE #65 TAX:** base drops `splash`/`fbcon=map:1` because the
@@ -308,7 +308,7 @@ owns tty1; we only changed what it execs. **Not** a service.
   (+ HOME/USER/LOGNAME, mirroring the root session `sudo` set up) before
   `exec`ing the surface. **Verified END-TO-END in a headless VM** (40 GB virtio
   target so the fit check passes): drove language→…→you→confirm, ENTER on
-  "Install Golem?" → the install RAN — bar to 79%, the white flying filenames
+  "Install Standard?" → the install RAN — bar to 79%, the white flying filenames
   churning (libxau-1.0.12 → perl5.42.0-HTML-Parser-3), no restart. Also
   incidentally confirmed: #113 white names live, #111 wider bar, tty2 login path
   works. (Diagnosis note: a 12 GB VM disk trips a legit pre-flight `FAIL fit:
@@ -323,9 +323,9 @@ Three metal findings from the flying-names ISO:
   "copying <name>" into verb + name. **where:** `mockup/install-cli`.
 - **The pre-menu splash.** On UEFI, GRUB printed "Loading graphical boot
   menu… / Press 't' to use the text boot menu…" before the Start|Install menu.
-  Removed those echoes from the vendored grub.cfg (`iso-image-golem.nix`);
+  Removed those echoes from the vendored grub.cfg (`iso-image-standard.nix`);
   `clear` still wipes firmware output, so it's black → menu. Text fallback is
-  still 't', unadvertised. **where:** `iso-image-golem.nix`.
+  still 't', unadvertised. **where:** `iso-image-standard.nix`.
 - **The login line that says "golem-install".** DIAGNOSED in a headless VM:
   greeting-blanking works (evaluated `""`), and the surviving line is agetty's
   OWN autologin banner "golem-installer login: nixos (automatic login)" — it
@@ -405,9 +405,9 @@ shows the census anyway, so it is pure noise.
   installer.
 - **where:** `audit.nix`, `iso.nix`. **size:** done.
 
-### 108. GOLEM'S SHELL IS PLAIN BASH NOW, NOT ZSH — [DECIDED + DONE + VM-VERIFIED 2026-09-23 · Max, after installing on the asus: "we don't need the shell teaking on Golem. lets use plain bash, minimal configuration. classic good old shell."]
+### 108. GOLEM'S SHELL IS PLAIN BASH NOW, NOT ZSH — [DECIDED + DONE + VM-VERIFIED 2026-09-23 · Max, after installing on the asus: "we don't need the shell teaking on Standard. lets use plain bash, minimal configuration. classic good old shell."]
 `base/zsh.nix` brought zsh (autosuggestions + syntax highlighting) and the home
-layer's starship / eza / bat / fzf / zoxide / aliases — "Golem's zsh" was even
+layer's starship / eza / bat / fzf / zoxide / aliases — "Standard's zsh" was even
 called the stage-0 IDENTITY (2026-09-10, base/ port). Max reversed it after the
 first real install: plain bash, minimal, the classic shell.
 - **done:** `base/zsh.nix` → `base/shell.nix` (the owner's home-manager config,
@@ -416,8 +416,8 @@ first real install: plain bash, minimal, the classic shell.
   `shell.nix`; `effect-matrix.nix` asserts bash (`hasPrefix "bash"` on
   `shell.pname`, which is "bash-interactive"). `home/zsh.nix` kept on disk (the
   fat config still imports it), just no longer in the minimal path.
-- **VM-PROVEN:** installed → booted the disk → `Golem login: max` → the classic
-  `[max@Golem:~]$` bash prompt; `echo $0` → `-bash`. minimal-matrix green (8
+- **VM-PROVEN:** installed → booted the disk → `Standard login: max` → the classic
+  `[max@Standard:~]$` bash prompt; `echo $0` → `-bash`. minimal-matrix green (8
   composed).
 - **left for Max:** the FAT dogfood config (`system/configuration.nix`) still
   has zsh — his own machine, his call to flip.
@@ -454,26 +454,26 @@ install and again at 66%.
 ### 106. "TESTED, DIDN'T WAKE UP" READ LIKE A BUG ON METAL — a second GPU is now LISTED, not judged — [FOUND + FIXED 2026-09-23 · the asus's old dGPU · Max's call after the first install]
 Max, on the asus's first install: the census showed its old nvidia dGPU as
 "tested, didn't wake up" and he hated it — it reads like a failure when the
-machine is actually FINE. Golem is being unusually diligent: it powers on a
+machine is actually FINE. Standard is being unusually diligent: it powers on a
 second GPU to check its health (#17c), and a failing/asleep dGPU "doesn't
-wake". Golem's answer is the RIGHT one — never bind a driver to it or power it
+wake". Standard's answer is the RIGHT one — never bind a driver to it or power it
 on, so a flaky dGPU (the thing that bricks other distros' installs) can't hang
 the machine — but the WORDING reported a save as a failure.
 - **fix (Max's call):** a second GPU that fails the wake-test is LISTED like
   any other part — its name + driver, NO verdict (`install-cli` hw_row: the
   `failing` case is now the same as the default). Only the GPU DRIVING THE
   SCREEN earns a "working" line; showing hardware is not a promise it works, so
-  Golem neither claims nor scares. `S[*:gpu_dead]` ("tested, didn't wake up")
+  Standard neither claims nor scares. `S[*:gpu_dead]` ("tested, didn't wake up")
   is now unused.
 - **note:** other distros never show this because they don't TEST — they load
-  a driver and you meet the black screen at runtime if the chip is dead. Golem
+  a driver and you meet the black screen at runtime if the chip is dead. Standard
   catches it up front and stays away from it; the message just needed to sound
   like the save it is.
 - **where:** `mockup/install-cli`. **size:** done.
 
 ### 105. THE INSTALLER COULDN'T WIPE A DISK THAT ALREADY HELD AN OS — wipefs died "busy" at 16% on the FIRST real metal install — [FOUND + FIXED 2026-09-23 · the asus, Max's first product install from the recut stick · rides the recut]
 Max installed from the recut stick onto the asus's internal disk (its own fat
-dogfood Golem) and it stopped at 1/6 (16%). `status`: `error: line 136 (exit
+dogfood Standard) and it stopped at 1/6 (16%). `status`: `error: line 136 (exit
 1)`; `transcript`: `run swapoff -a / cryptsetup close golem / umount -R /mnt /
 wipefs -a /dev/sda → died`. The format phase's disk-release was naive — it only
 did `umount -R /mnt` and closed a HARDCODED LUKS name "golem", so it never
@@ -484,7 +484,7 @@ install died before it wrote a single byte (disk intact — nothing lost).
   before wipefs — swapoff; umount every mounted partition of THIS disk wherever
   it landed (`lsblk -o MOUNTPOINT`, deepest first); `vgchange -an` then `dmsetup
   remove -f` every crypt/lvm/dm/raid leaf backed by the disk (a re-install over
-  an encrypted or LVM Golem); `udevadm settle`; THEN wipefs. wipefs is now a
+  an encrypted or LVM Standard); `udevadm settle`; THEN wipefs. wipefs is now a
   guarded gate: on failure it dumps `lsblk` + `fuser` to the transcript and
   fails with a plain "could not free $disk" instead of the cryptic "died at $@".
 - **why the VM never caught it:** the VM's target disk is a blank virtio — there
@@ -495,7 +495,7 @@ install died before it wrote a single byte (disk intact — nothing lost).
 ### 104. THE MEDIUM BOOTED LOUD — the kernel + systemd log spilled over the screen after Start/Install — [FOUND + FIXED + VM-VERIFIED 2026-09-23 · Max's eyes on the first metal boot of the recut · rides the recut]
 Max, booting the recut stick on metal (menu + census confirmed good): *"the only
 thing we need is to make the boot silent. i don't want to see all those letters
-after i pick start or install.. Golem boot is black screen until booted."* The
+after i pick start or install.. Standard boot is black screen until booted."* The
 medium (installation-cd-minimal + `iso.nix`) only lowered `consoleLogLevel` and
 never carried the quiet kernel cmdline the INSTALLED system has
 (`base/core.nix`), so its boot spilled the kernel + systemd log to the
@@ -527,13 +527,13 @@ install" was still OWED**: the 8e gate proved golem-install via SSH-driven
 INDIVIDUAL flags (as root) and proved the autostart LAUNCHES, but never drove
 the product autostart to a finished install.
 - **PROVEN at the recut gate (2026-09-22, VM):** drove the full guided TUI
-  (language→user→password) to "Install Golem?" → stop; `vda` unpartitioned,
+  (language→user→password) to "Install Standard?" → stop; `vda` unpartitioned,
   logdir empty. Re-ran the SAME answers file by hand as `nixos`
   (`golem-install --answers /tmp/golem-answers --disk /dev/vda --yes`) → same
   stop. Prefixed **`sudo`** → the install ran to completion: format → fs →
   seed → probe → **BAKED toplevel direct-copy, offline** → bootloader →
   "installation finished!" → 6/6. Booted the installed disk (removable EFI,
-  #94) → clean quiet boot to `Golem login:` → **login as `max` works**
+  #94) → clean quiet boot to `Standard login:` → **login as `max` works**
   (#101 usable-install, now proven on the recut). So the recut installs
   perfectly; the ONLY defect is the missing privilege.
 - **fix (Max chose 2026-09-22: "sudo the whole autostart"):** `iso.nix`
@@ -545,7 +545,7 @@ the product autostart to a finished install.
   self-elevating golem-install); the surface is an installer, root is fine.
 - **VERIFIED (recut #2, VM, 2026-09-22):** rebuilt the ISO with the fix, booted
   "Install" → the autostart TUI came up (as root), drove it (English) to
-  "Install Golem?" → ENTER → the install ran to completion and **rebooted at
+  "Install Standard?" → ENTER → the install ran to completion and **rebooted at
   6/6 with NO manual sudo** (a failed install shows "stopped" + a shell; a
   reboot is the 6/6 done trigger, step_go). The fresh target disk grew to 5 GB
   (a real system written). The TUI-driven full product install is no longer
@@ -561,7 +561,7 @@ hostname AND its hashed password). Both `hosts/target/default.nix` and
 check` on the plain repo must stay green"); they materialise only when an
 install DROPS them into a seeded checkout. Committed here they:
 - **broke facts-matrix (#98's procedure half):** `mkTarget` composes
-  `golemModules ++ [ ./hosts/target ]`, so the comodore's facts leaked into
+  `standardModules ++ [ ./hosts/target ]`, so the comodore's facts leaked into
   EVERY matrix row — the `floor` row especially, whose whole point is "no
   detection → safe defaults".
 - **would ship in the ISO seed:** `git archive` includes tracked files, so the
@@ -587,7 +587,7 @@ machine's machine.nix, so its owner had no password and no key — the machine
 booted to a login nobody could pass. **Fix (install.nix, step 5b, after
 nixos-install):** apply the answers IMPERATIVELY into /mnt — `chpasswd -e` for
 the owner's hashed password (via `nixos-enter`), and write the SSH key to
-`~owner/.ssh/authorized_keys`. This STICKS because Golem sets no
+`~owner/.ssh/authorized_keys`. This STICKS because Standard sets no
 `users.mutableUsers` → the NixOS default (true) holds → activation does not
 reassert /etc/shadow or ~/.ssh. The seed's machine.nix still carries the
 DECLARATIVE answers (owner, hostName, hashedPassword, keys), so the first
@@ -597,17 +597,17 @@ from-seed path (same values re-applied). Hostname stays the baked default until
 that first rebuild (cosmetic, not a login blocker).
 - **VM-PROVEN on the FLOOR (hardest case — an unbaked VBox+unknown-GPU machine):**
   installed with `--password-hash <sha512> --lab-ssh <key> --hostname golembox`,
-  clean sync, booted the disk alone → **logged in as `max@Golem` over SSH with
+  clean sync, booted the disk alone → **logged in as `max@Standard` over SSH with
   the key** (shell zsh), **and the console password works** (`sudo -S` with
   `golemtest123` → root; wrong password rejected). machine.nix on the installed
   system carries `hostName="golembox"` + hashedPassword + the keys for the first
   rebuild. Every install path gets this (the personalize step runs after any
   nixos-install), so exact-match class installs are usable too.
 - **CONVERGENCE TO IDEAL — works ONLINE, offline is a deliberate non-goal
-  [investigated + decided 2026-09-18].** `rebuild-golem` (→ #golem-minimal, via
+  [investigated + decided 2026-09-18].** `rebuild-golem` (→ #standard-minimal, via
   base/loop.nix's flakeAttr default) converges gen-1 → the IDEAL per-machine
   system. VM-PROVEN ONLINE on the exact-match install: `nixos-rebuild switch
-  --flake …#golem-minimal` built `nixos-system-golembox`, activated **gen-2**
+  --flake …#standard-minimal` built `nixos-system-golembox`, activated **gen-2**
   with the MEASURED hardware-config (fstab now by-uuid, ESP fsck + swap units) +
   real hostname + declarative creds. This is Max's L2 rung (online for the
   ideal). The FLAKE EVAL itself works offline (inputs resolve from the seed's
@@ -632,7 +632,7 @@ floors are in the `bakedMatrix` closure (offline-installable, 0 missing);
 autostarts); firmware detect emits exactly `bios`/`uefi` (matches manifest +
 exact-match is implicitly firmware-correct, the boot leaf is in the leaf-list);
 **exact-match integrity holds** — install evals `$seed/…/choose.nix` from
-`golemSrc`, the SAME tree `bakedManifest` baked from, and **all 8 fixtures
+`standardSrc`, the SAME tree `bakedManifest` baked from, and **all 8 fixtures
 exact-match their correct baked entry** (acer→acer-uefi … asus→asus-uefi w/
 nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
 - **HOLE A — the installer floor was gated behind a successful chooser [FIXED +
@@ -673,7 +673,7 @@ nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
   The definitive live floor gate (VirtualBox+unknown-GPU facts → chooser floors
   → `golem-install` picks floor-uefi → "Installation finished. No error." offline,
   ALL PROVEN) then FAILED to reach multi-user: the installed floor disk, booted
-  alone, hangs `A start job is running for /dev/disk/by-label/golem (…/1min 30s)`
+  alone, hangs `A start job is running for /dev/disk/by-label/standard (…/1min 30s)`
   → systemd-initrd **emergency mode** (root account locked). Root cause, proven
   by unpacking the baked initrd: it carries only the DEFAULT modules
   (`ahci nvme sd_mod xhci libahci`) and **NO `virtio_blk`/`virtio_pci`** — so on
@@ -682,7 +682,7 @@ nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
   as-is, skipping the per-machine `nixos-generate-config` that normally adds the
   measured `boot.initrd.availableKernelModules`. **Blast radius:** any machine
   whose disk controller is outside {ahci,nvme,sd_mod,xhci} — notably ANY
-  virtio-blk VM (a huge share of "a stranger tries Golem in a VM") — installs but
+  virtio-blk VM (a huge share of "a stranger tries Standard in a VM") — installs but
   cannot boot. Real AHCI/NVMe/SATA/USB laptops likely boot (those modules ARE in
   the initrd), which is why the roster (from-seed, MEASURED configs) never hit it
   and the earlier opt-A gate (only checked "GRUB starts") missed it. This means
@@ -696,7 +696,7 @@ nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
   for gen-1, then rebuild to ideal). Proven with `-vga std`+virtio-blk +
   rigged facts; the exact-match class path uses the SAME generic initrd, so it is
   affected identically on any non-{ahci,nvme,sd_mod,xhci} controller.
-- **HOLE E — grub rescue `normal.mod not found` = A TEST ARTIFACT, NOT a Golem
+- **HOLE E — grub rescue `normal.mod not found` = A TEST ARTIFACT, NOT a Standard
   bug [RESOLVED 2026-09-18].** Chased it into the grub-rescue prompt: `set`
   showed correct `root='hd0,gpt1'` + `prefix='(hd0,gpt1)/grub'`; `ls /grub/`
   listed `x86_64-efi/`; but `ls /grub/x86_64-efi/` returned only a PARTIAL set
@@ -709,7 +709,7 @@ nouveau-floor, comodore/hp→bios). Prepare tolerates a chooser throw (guarded).
   guest sync, dropping unflushed FAT writes** — the real product flow REBOOTS
   after the 6/6 marker (a clean sync/unmount). PROVEN: re-installed, then
   `sync; umount -R /mnt` before power-off → `fsck.fat` clean (`344 files`, no LFN
-  errors) → the disk **booted to `Golem login:` on tty1 AND sshd answered
+  errors) → the disk **booted to `Standard login:` on tty1 AND sshd answered
   (`Permission denied (publickey)`) = FULL MULTI-USER.** No code change needed;
   the harness lesson (sync before hard-quit) is noted in vm.md. Below is the
   original discovery record, kept for the trail.
@@ -754,7 +754,7 @@ Max's end goal, decided after the math: **no online install / no 50 G ISO —
 BAKE the whole hardware matrix, install by LOCAL COPY.** DHH's Omarchy does
 ~1-min installs exactly this way (image on the stick, copy-not-download).
 - **DONE + measured:** `flake.nix` `bakedMatrix` (linkFarm of every fixture's
-  minimal toplevel, `bakedFakeDisk` by-label golem/ESP) → `iso.nix`
+  minimal toplevel, `bakedFakeDisk` by-label standard/ESP) → `iso.nix`
   `system.extraDependencies`. **All-in ISO = 2.91 GiB** (union 6.64 GiB
   uncompressed; squashfs + medium overlap compress it), fits 8 GB with ~4.5 GiB
   spare. btop added to base/core.nix. Preinstall flake made self-contained
@@ -764,7 +764,7 @@ BAKE the whole hardware matrix, install by LOCAL COPY.** DHH's Omarchy does
   (UEFI/OVMF), comes up `golem-installer`, carries all 8 class closures offline,
   census runs (virtio/intel/bios), floor logic confirmed.
 - **VM INSTALL-GATE FAILED + CAUGHT A REAL GAP (2026-09-18):** with golem-install
-  building golem-minimal offline from the seed, a VM install died building
+  building standard-minimal offline from the seed, a VM install died building
   cmake/glib/elfutils from SOURCE — the seed-rebuild is
   `…19700101.dirty`, the bake is `…20260829.c5c4a43`, DIFFERENT evals →
   `--offline` can't reuse the bake. **"Rebuild from the seed at install" cannot
@@ -803,7 +803,7 @@ BAKE the whole hardware matrix, install by LOCAL COPY.** DHH's Omarchy does
 - **STILL OWED after opt A:** (1) a USABLE install — the baked-generic has no
   owner/hostname/sshd (no machine.nix); applying the surface's answers means a
   FIRST-BOOT rebuild that must REUSE the baked deps (the deeper reproducibility
-  the gen-1 copy sidestepped — likely needs mkMinimal==golem-minimal so the
+  the gen-1 copy sidestepped — likely needs mkMinimal==standard-minimal so the
   rebuild matches the bake). (4) full multi-user boot capture + a **live floor
   install→boot** (selection+closure proven; the disk-boot of the floor is the
   last gold-standard never-fail proof) + a **TUI-driven full product install**
@@ -845,12 +845,12 @@ Two related gaps the lenovo audit surfaced in `system/hardware/matrix.nix`:
   `fixture-lenovo-slim-pro-9-16irp8` (and ideally the other real fixtures) as
   rows.
 - **Procedure:** `facts-matrix` **cannot be run from an install-seeded
-  checkout** — `mkTarget` composes `golemModules ++ [ ./hosts/target ]`, so the
+  checkout** — `mkTarget` composes `standardModules ++ [ ./hosts/target ]`, so the
   installer's dropped `golem-hardware.nix` (real lenovo facts) leaks into EVERY
   row, and the `floor` row (whose point is "no detection → safe defaults")
   fails on nvidia/laptop-power/resume it should never see. Confirmed: a pristine
   tree (dropped files removed) makes `facts-matrix` green + `nix flake check` =
-  `all checks passed!`. So an installed Golem can self-prove chooser-matrix /
+  `all checks passed!`. So an installed Standard can self-prove chooser-matrix /
   minimal-matrix / keyboard-table / timezone-defaults, but NOT facts-matrix.
   A future audit must be told this or it reads the `floor` failure as a
   regression. (Adding the lenovo row would have caught this as a side effect.)
@@ -872,26 +872,26 @@ pciutils) or `tools/firstboot-audit.sh`. **size:** small.
 
 ### 96. THE FACETIME HD WEBCAM — a new leaf, fact and chooser rule; PROVEN capturing on the installed MacBook — [BUILT + INSTALLED + live-captured 2026-09-18 · the macbook · must ride the recut]
 Max, at the macbook: *"IMPORTANT!! drivers | audio | wifi | BT | WEBCAM |
-etc. …it is important that Golem install the webcam and make it functional."*
+etc. …it is important that Standard install the webcam and make it functional."*
 The 2013 Air's camera is the Broadcom 720p **FaceTime HD (PCI 14e4:1570)** —
 an out-of-tree `facetimehd` (bcwc_pcie) module + an ISP firmware blob nixpkgs
 extracts from a 2 MB byte-range of Apple's OSXUpd10.11.5.dmg (unfree, but
 cached on cache.nixos.org — no live dependency on Apple's CDN).
-- **Made modular, the Golem way** (spec growth rule + rule 4): new census
+- **Made modular, the Standard way** (spec growth rule + rule 4): new census
   fact **`hasFacetimeHD`** (probe detects 14e4:1570), new leaf
   **`quirks/facetimehd.nix`** (`hardware.facetimehd.enable` +
   `allowUnfreePredicate` scoped to the blob, composes with broadcom-wl's
   `allowInsecurePredicate`), chooser rule, matrix assertion + fixture.
-- **THE GOTCHA — the fact must be declared TWICE.** `golem.hardware` options
+- **THE GOTCHA — the fact must be declared TWICE.** `standard.hardware` options
   live in BOTH the Modular `base/options.nix` AND the fat `system/hardware.nix`;
-  `golem-postinstall-questions` evaluates `lib.golem.postinstallQuestions`,
+  `golem-postinstall-questions` evaluates `lib.standard.postinstallQuestions`,
   which routes through the FAT config, so a fact declared only in the Modular
   set makes prepare die at the postinstall-questions drop ("option
-  `golem.hardware.hasFacetimeHD' does not exist"). Declare new facts in both.
-- **THE OTHER GOTCHA — golemSrc must be git, not `path:`.** Building the
+  `standard.hardware.hasFacetimeHD' does not exist"). Declare new facts in both.
+- **THE OTHER GOTCHA — standardSrc must be git, not `path:`.** Building the
   patched engine with `--override-input golem path:$HOME/Golem` baked the
   WHOLE working tree (70 GB of build artifacts) into the closure. The frozen
-  golemSrc is git-based (3 MiB). Use a clean tree (`git archive HEAD` +
+  standardSrc is git-based (3 MiB). Use a clean tree (`git archive HEAD` +
   overlay the uncommitted deltas) for `--override-input golem path:<clean>`.
 - **PROVEN:** live on the medium before the wipe (720p frame), and on the
   INSTALLED system — `/dev/video0` auto-appears at boot, `facetimehd-firmware`
@@ -924,10 +924,10 @@ guessing:
   Fixed by patch: `grub-item-align.patch` adds an `item_align`
   property (left/center/right), using the row's own font and clamping
   at 0 so an over-wide label still clips exactly as before.
-- **The words were NixOS's, not Golem's.** `<distro> - All
+- **The words were NixOS's, not Standard's.** `<distro> - All
   configurations` and `<distro> - Configuration N (date - version)` —
   the latter ~600px, clipping off the box for as long as the theme has
-  existed. The menu now reads **`Start Golem`** / **`Previous
+  existed. The menu now reads **`Start Standard`** / **`Previous
   Versions`**, with **`Gen N - YYYY-MM-DD`** inside. Max landed there
   after weighing snapshots / backups / recover / restore; two traps
   were dodged on the way, and both are claims about what a generation
@@ -972,7 +972,7 @@ guessing:
 ### 94. THE FIRMWARE DELETES YOUR BOOT ENTRY — a loader that lives only in NVRAM is at the mercy of the machine — [FOUND + FIXED 2026-09-15 · the acer, #92's first metal · wire-verified]
 The acer took GRUB-EFI perfectly: `grubx64.efi` installed, a named
 `Golem-boot` NVRAM entry created, BootOrder **`0002,0001,2001,…`** with
-Golem first. One reboot later the firmware had **dropped entry 0002 from
+Standard first. One reboot later the firmware had **dropped entry 0002 from
 BootOrder entirely** (`0001,2001,2002,2003`) and booted its own generic
 `HDD: Hitachi` entry — which runs the removable fallback
 `\EFI\BOOT\BOOTX64.EFI`. That file was still **systemd-boot**, whose
@@ -1032,7 +1032,7 @@ uncompressed stub region).
 - **size:** one line, done.
 
 ### 92. TWO BOOTLOADERS, ONE LOOK — systemd-boot retires, GRUB-EFI takes firmware=uefi — [DECIDED by Max 2026-09-15 · REWIRED in source, matrices green · metal owed on the UEFI machines]
-Max, after the comodore's quiet boot landed: *"i want Golem to look and
+Max, after the comodore's quiet boot landed: *"i want Standard to look and
 feel the same no matter if it is booting on grub or Systemd."* The
 technical fact that decides the shape: **systemd-boot has no theming at
 all** — font, colors, geometry are compiled in — so the grub theme's
@@ -1054,7 +1054,7 @@ MENU everywhere.
   macbook's Apple EFI may need `efiInstallAsRemovable` as a quirk —
   decide on its metal. The ISO's UEFI GRUB gets theme+patch at the
   recut (#89's note) — after which ALL four boot surfaces (ISO
-  BIOS/UEFI, installed BIOS/UEFI) show the same Golem menu, the ISO's
+  BIOS/UEFI, installed BIOS/UEFI) show the same Standard menu, the ISO's
   BIOS syslinux being the one bespoke sibling.
 - **where:** `boot/grub-efi.nix`, `boot/systemd-boot.nix` (header),
   `choose.nix`, both matrices.
@@ -1091,7 +1091,7 @@ it lies INTERMITTENTLY, which is worse than stuck (yesterday's clean
 audit was luck, not health). The quirk stays regardless of today's
 reading.
 Max: *"after like 30s ish, it goes sleep, i have to touch the power
-button to wake it up.. and that is Golem."* It was. Evidence, pulled in
+button to wake it up.. and that is Standard."* It was. Evidence, pulled in
 one of the 30 s wake windows (the machine was then pinned awake by
 masking the sleep targets):
 - `/proc/acpi/button/lid/LID/state` = **closed** — with the lid open
@@ -1126,7 +1126,7 @@ masking the sleep targets):
 - **size:** done for the comodore; small for the fact.
 
 ### 89. GRUB SAYS ITS OWN NAME BEFORE THE THEME CAN STOP IT — the banner, then the blinking cursor — [VERIFIED LIVE 2026-09-15, gens 3→5 on the comodore · software side CLOSED · the UEFI/ISO side owed at the recut]
-**Final state:** boot fully silent from Golem's first MBR instruction to
+**Final state:** boot fully silent from Standard's first MBR instruction to
 the themed menu. Three iterations, Max's eyes as the instrument each
 time (gen 3 banner gone / gen 4 cursor still blinks — window is earlier
 than core / gen 5 cursor-hide as boot.S's OPENING MOVE → one blink
@@ -1166,7 +1166,7 @@ assumed clearing was enough; a flash is still a flash):
   **syslinux/vesamenu** (its boot sector prints nothing and the round-8
   work alpha-zeroed its text); GRUB is only on the stick for UEFI —
   where the SAME flash exists in the ISO's GRUB side. The ISO grub is a
-  different program (`iso-image-golem.nix`); pointing it at the same
+  different program (`iso-image-standard.nix`); pointing it at the same
   patched package is part of the next recut, noted there.
 - **cost note:** a patched grub is not in cache.nixos.org, so a
   machine's LOCAL self-rebuild would compile grub from source (~slow on
@@ -1174,7 +1174,7 @@ assumed clearing was enough; a flash is still a flash):
   throttle exists now) and the local rebuild finds it in the store.
 - **where:** `system/Modular/boot/grub-quiet.patch` (the patch, header
   documents the re-vendor rule), `grub-bios.nix` (the overlay + #89
-  comment), `iso-image-golem.nix` (owed: the UEFI side, next recut).
+  comment), `iso-image-standard.nix` (owed: the UEFI side, next recut).
 - **size:** done in source; live-verify on the comodore = deliver +
   switch + one more power-on with Max watching.
 
@@ -1194,7 +1194,7 @@ buildEnvs differ only by the `nixos-version` input that carries the string.
   so it resolves to a dirtyRev; **the seed is a plain directory copy with
   no `.git`** (confirmed: `du` shows no `.git` in the seed), so it falls
   all the way through to `"unknown"`.
-- **why it matters:** an installed Golem in the field, after its first
+- **why it matters:** an installed Standard in the field, after its first
   self-rebuild, can no longer say what source it is running.
   `nixos-version --json` reports `"configurationRevision":"unknown"`
   forever after. That is the one field whose whole job is traceability,
@@ -1322,7 +1322,7 @@ was a truncated `nix-manual-2.34.8` (plus its `.lock`) left mid-write when
 - **where:** lab method; and a note owed at implementation.md step 8e so
   the offline installer inherits the database check rather than
   rediscovering it.
-- **size:** no Golem source change owed today. Method + a design note.
+- **size:** no Standard source change owed today. Method + a design note.
 
 ### 67. A multi-GB closure delivery over a USB WIFI DONGLE kills the machine — two machines, same night, same signature — [ROOT CAUSE FOUND + ANSWERED 2026-09-14 · it is SATURATION, and a throttle fixes it]
 **ANSWERED (2026-09-14, the comodore).** The killer is **link saturation,
@@ -1368,7 +1368,7 @@ physical power-cycle).
   sustained (188 MB in ~48 min of a 2.95 GiB closure — a ~30 h ETA),
   i.e. the link was already collapsing long before the drop; this is
   not merely "slow old hardware".
-- **not a Golem bug** — it is the LAB's delivery method meeting weak
+- **not a Standard bug** — it is the LAB's delivery method meeting weak
   USB stacks. But it shapes real work: the offline installer exists
   precisely so a machine never needs a 3 GiB network delivery, and
   these two machines are the argument for it.
@@ -1383,16 +1383,16 @@ physical power-cycle).
   design rationale in implementation.md step 8e.
 - **size:** no source change owed. Record + method change.
 
-### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED 2026-09-11 · ⚠ REOPENED-IN-PART 2026-09-14: the floor's PREMISE is wrong for golem-minimal]
+### 66. The #16 RAM floor refused a PREPARE that never evaluates — the guard fired on the wrong verb — [FIXED 2026-09-11 · ⚠ REOPENED-IN-PART 2026-09-14: the floor's PREMISE is wrong for standard-minimal]
 **MEASURED 2026-09-14 on the comodore (1931 MB).** The entry below — and
 #16 before it — rests on "a small machine cannot EVALUATE the target
 config locally without thrashing". **That is true of the FAT
-`golem-target`, which is what it was measured against, and FALSE of
-`golem-minimal`:**
+`standard-target`, which is what it was measured against, and FALSE of
+`standard-minimal`:**
 
 | | |
 |---|---|
-| `rebuild-golem` (`nixos-rebuild switch --flake …#golem-minimal`) | 07:02:28 → **07:05:25**, EXIT=0 |
+| `rebuild-golem` (`nixos-rebuild switch --flake …#standard-minimal`) | 07:02:28 → **07:05:25**, EXIT=0 |
 | peak memory | **~1165 MB** of 1931 |
 | **peak swap** | **1 MB** |
 | result | generation 2, `running`, 0 failed units |
@@ -1402,7 +1402,7 @@ Under three minutes, 60% of RAM, essentially no swap. No thrash.
   the wrong verb, and that fix stands. A *local-eval install of the fat
   target* on a 2 GB box would still be a bad idea.
 - **what is now wrong:** the floor is stated as a property of "installing
-  Golem", and its message says *"installing Golem needs about 4 GB of
+  Standard", and its message says *"installing Standard needs about 4 GB of
   RAM"*. On the minimal path that sentence is simply untrue, and it is
   the sentence a stranger will read.
 - **why this matters beyond wording:** it means **rule 5's ladder holds on
@@ -1411,7 +1411,7 @@ Under three minutes, 60% of RAM, essentially no swap. No thrash.
   and what we could not previously assume. It also removes an argument
   for the offline installer being mandatory on small machines.
 - **fix:** make the floor a property of *which config is being evaluated*
-  (`golem-minimal` vs `golem-target`), not of the machine alone; and
+  (`standard-minimal` vs `standard-target`), not of the machine alone; and
   re-word the message accordingly. Re-measure the fat target on a small
   box before keeping 3300 for it.
 - **where:** `Installer/preinstall/install.nix` (the ram check + its
@@ -1421,7 +1421,7 @@ Under three minutes, 60% of RAM, essentially no swap. No thrash.
 *Original entry:*
 **Found on the comodore's first real install (1931 MB):** `golem-install
 --prepare-only` died at the preflight with *"this machine has 1931 MB —
-installing Golem needs about 4 GB of RAM"*, before touching the disk.
+installing Standard needs about 4 GB of RAM"*, before touching the disk.
 - **why it was wrong:** #16's floor exists because a small machine
   cannot EVALUATE the target config locally without thrashing. But
   `--prepare-only` evaluates nothing — it partitions, mounts, seeds and
@@ -1463,7 +1463,7 @@ whole time (running, 0 failed units) — only the display was dark.
 - **fix (APPLIED to source + verified live):** drop `fbcon=map:1` and
   `splash` from `base/core.nix`; keep the log-quieting params (quiet,
   not blank). Built the fixed toplevel, updated the acer's seed,
-  self-rebuilt `#golem-minimal` → gen 3, rebooted → **Max saw boot
+  self-rebuilt `#standard-minimal` → gen 3, rebooted → **Max saw boot
   loader → quiet blank → `login:` → zsh on the acer's own screen.**
   Running kernel has no fbcon=map:1; vtconsole is `(M) frame buffer
   device` not the dummy. The desktop stage (I2) re-adds its own
@@ -1512,7 +1512,7 @@ configurations, because they retry differently:
 - **the medium** (`iso.nix` `golem-lab`): **no retries key at all** → NM's
   default **4**, then it gives up and stays silent.
 
-A booted installed Golem with a working radio would have retried all night
+A booted installed Standard with a working radio would have retried all night
 and turned up; it did not. A booted MEDIUM goes permanently silent after
 four attempts — which is precisely what was observed. So the theory below
 now has a **successful prediction** behind it, on one of the two machines
@@ -1586,34 +1586,34 @@ not by my tooling error.
   mid-round reburn — the acer installs on the current stick with the
   manual bounce).
 
-### 62. The installed minimal seed can't reproduce itself — the engine never dropped modules.nix, and golem-minimal never wired its self-rebuild loop — [FOUND + FIXED in source, pre-ISO · VM stage-0 self-rebuild proof, 2026-09-10]
-Caught by round I1's first VM stage-0 install (UEFI, golem-minimal),
+### 62. The installed minimal seed can't reproduce itself — the engine never dropped modules.nix, and standard-minimal never wired its self-rebuild loop — [FOUND + FIXED in source, pre-ISO · VM stage-0 self-rebuild proof, 2026-09-10]
+Caught by round I1's first VM stage-0 install (UEFI, standard-minimal),
 exactly by the self-rebuild proof the constitution mandates. Two holes,
 both breaking "a stage-0 machine can rebuild itself":
 - **the engine dropped no `modules.nix`.** Phase 4 wrote golem-hardware
   / hardware-configuration / machine / postinstall-questions, but the
   chooser wasn't part of the engine — so the installed seed had no
-  pointer list, and its `golem-minimal` self-rebuild would evaluate
+  pointer list, and its `standard-minimal` self-rebuild would evaluate
   base-only (no chosen hardware leaves). **Fix:** `install.nix` phase 4
   now runs the chooser (`nix eval … Modular/choose.nix … .rendered`)
   and drops `hosts/target/modules.nix` into the seed, from the same
   facts it just wrote. A chooser THROW (an unmatchable machine) warns
-  rather than blocks — the fat golem-target doesn't need it; a minimal
+  rather than blocks — the fat standard-target doesn't need it; a minimal
   install would then fail visibly at its own rebuild with the reason.
-- **golem-minimal never set flakeDir/flakeAttr.** It doesn't import
+- **standard-minimal never set flakeDir/flakeAttr.** It doesn't import
   `hosts/target/default.nix` (which wires the FAT target), so flakeDir
   stayed null → `selfrebuild.nix` emitted no `rebuild-golem`, and the
   machine had no way to rebuild at all. **Fix:** new leaf
   `Modular/base/loop.nix` (flakeDir = /home/owner/Golem, flakeAttr =
-  golem-minimal), in the base composition. The machine now reproduces
+  standard-minimal), in the base composition. The machine now reproduces
   the composition it actually runs; stage 1/2 are rebuilds of THIS attr
   with more leaves in modules.nix.
 - **proven the same session (UEFI VM):** after both fixes, the installed
-  minimal rebuilt itself `#golem-minimal` from its seed → generation 2,
+  minimal rebuilt itself `#standard-minimal` from its seed → generation 2,
   `is-system-running: running`. The engine's chooser line is verified
   to emit the 7-module list; its LIVE drop is owed on the round-I1 recut
   (this session's stick predates the Modular work, so its seed's
-  flake.nix had no golem-minimal — a harness artifact, not a Golem bug).
+  flake.nix had no standard-minimal — a harness artifact, not a Standard bug).
 - **where:** `Installer/preinstall/install.nix` (phase 4),
   `system/Modular/base/loop.nix`, `system/Modular/composition.nix`.
 - **size:** done (pre-ISO source fix). Verify the engine's live drop +

@@ -1,4 +1,4 @@
-local windowCorner = require("golem.lib").windowCorner
+local windowCorner = require("standard.lib").windowCorner
 
 ---- LOOK AND FEEL ----
 
@@ -41,7 +41,7 @@ hl.config({
         -- ligera punta" on the diagonal. The card's frame is drawn with the
         -- SAME curve (launcher content::WINDOW_CORNER + rounded_rect.wgsl's
         -- WINDOW_POWER): change the three together. `windowCorner` is also
-        -- what the rules (golem/rules.lua) hand back to the windows they frame.
+        -- what the rules (standard/rules.lua) hand back to the windows they frame.
         rounding       = windowCorner,
         rounding_power = 3,
         -- Opaque focused windows: 0.95 forced the compositor to alpha-blend
@@ -57,7 +57,7 @@ hl.config({
         -- legibility audit, 2026-10-23. This is the Dark one, before the dock.)
         dim_strength = 0.25,
         -- How dark the screen goes behind a window carrying `dim_around`. Only
-        -- Golem's STAGE uses that rule, so this number is the stage's backdrop
+        -- Standard's STAGE uses that rule, so this number is the stage's backdrop
         -- and nothing else's.
         dim_around   = 0.8,
 
@@ -86,7 +86,7 @@ hl.config({
             --   size 8 / passes 2 — frosted      — Hyprland 8 % of a core
             -- One point of one core is what the look actually costs. The
             -- earlier pass traded it away on reasoning, having written that it
-            -- "NEEDS a live Golem boot to confirm feel" — this is that boot.
+            -- "NEEDS a live Standard boot to confirm feel" — this is that boot.
             size      = 1,
             passes    = 4,
             vibrancy  = 0.0,
@@ -100,7 +100,7 @@ hl.config({
 
 -- NOTHING IS BLURRED BEHIND A WINDOW (Max, 2026-11-15: "i wont worry about the
 -- blur on the windows we can use transparency on them, with high opacity").
--- The frosted glass is the shell's (the layer rules, golem/layers.lua). A window that
+-- The frosted glass is the shell's (the layer rules, standard/layers.lua). A window that
 -- is see-through shows what is behind it as it is. Blurring behind every
 -- floating window is redone on each frame something under it moves, and on a
 -- fast panel the compositor then misses every other refresh. Measured on the

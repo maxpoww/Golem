@@ -16,7 +16,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
   home = config.users.users.${owner}.home;
   hm = config.home-manager.users.${owner} or null;
   check = pkgs.writeShellScript "golem-home-needs-activation" ''
@@ -45,7 +45,7 @@ let
   # "Your config has errors: cannot open …/hyprland.lua" in a red banner until
   # the next boot, when the condition above saw the missing links. A minute
   # is enough: the same check, run as the owner every minute, re-runs the
-  # home activation when Golem's links are gone; and a deleted app list
+  # home activation when Standard's links are gone; and a deleted app list
   # comes back from the running system's own machine layer, so a dock
   # restart cannot read "no apps" and uninstall everything on the next
   # install.
@@ -67,7 +67,7 @@ let
       echo "golem-home-heal: the app list was missing — rebuilt from the running system"
     fi
     if ${check}; then
-      echo "golem-home-heal: Golem's own files in the home are gone or replaced — putting them back"
+      echo "golem-home-heal: Standard's own files in the home are gone or replaced — putting them back"
       hypr_gone=0; dock_gone=0
       [ -e "${home}/.config/hypr/hyprland.lua" ] || hypr_gone=1
       [ -e "${home}/.config/waverunner/config.toml" ] || dock_gone=1

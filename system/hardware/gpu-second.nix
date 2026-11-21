@@ -35,12 +35,12 @@
 { config, lib, ... }:
 
 let
-  cfg = config.golem.hardware;
+  cfg = config.standard.hardware;
   # Any value other than "off" (including one this module has never heard
   # of) falls to "hold" — the safe, reversible branch. Never a default
   # pass to "off": that direction is destructive-ish (PCI remove) and
   # must be an explicit, validated owner choice, never a guess.
-  action = if (config.golem.postinstall.answers."gpu2-failing-action" or "hold") == "off"
+  action = if (config.standard.postinstall.answers."gpu2-failing-action" or "hold") == "off"
     then "off"
     else "hold";
   neverBootVga = script: ''
@@ -57,16 +57,16 @@ in
   # Both services are declared UNCONDITIONALLY (as attribute names) and
   # individually mkIf-gated at the LEAF — never an outer `if action == …
   # then {A} else {B}` picking between two whole attrsets. That shape
-  # would force `action` (and therefore golem.postinstall.answers, i.e.
+  # would force `action` (and therefore standard.postinstall.answers, i.e.
   # THIS MODULE'S OWN evaluated config through the shared fixpoint) just
   # to discover this module's config SHAPE, before mkIf's own laziness
   # ever gets a chance to short-circuit it — a real infinite recursion,
-  # caught live writing this (golem.postinstall.answers's merge walks
+  # caught live writing this (standard.postinstall.answers's merge walks
   # every module's config structurally, including this one). Gating each
   # service at its own leaf keeps this module's shape static, so `action`
   # is only ever forced once something actually asks for
   # systemd.services.golem-dgpu-{off,hold} specifically — a question
-  # golem.postinstall.answers's own resolution never asks.
+  # standard.postinstall.answers's own resolution never asks.
   config = lib.mkIf (cfg.gpu2Health == "failing" && cfg.gpu2BusAddr != null) {
     systemd.services.golem-dgpu-off = lib.mkIf (action == "off") {
       description = "Power off the failing second GPU (owner chose: power off — changes.md #33)";

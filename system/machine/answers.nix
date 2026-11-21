@@ -1,6 +1,6 @@
 # machine/answers — THE POST-INSTALL ANSWERS on a machine of the /etc/nixos
 # layout. (The framework, and the asking, are system/postinstall.nix: some
-# decisions cannot be made honestly before there is a desktop, so Golem asks
+# decisions cannot be made honestly before there is a desktop, so Standard asks
 # once, after the first login.)
 #
 # What differs here is where things are and who may write them:
@@ -22,8 +22,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  cfg = config.golem.machine;
-  user = config.golem.owner;
+  cfg = config.standard.machine;
+  user = config.standard.owner;
   userHome = config.users.users.${user}.home;
   configDir = "${userHome}/.config/golem";
   answersFile = "${configDir}/postinstall-answers.json";
@@ -36,7 +36,7 @@ let
     name = "golem-postinstall-apply";
     bashOptions = [ "nounset" "pipefail" ];
     runtimeInputs = [
-      config.golem.rebuild
+      config.standard.rebuild
       pkgs.util-linux # runuser, flock
       pkgs.rsync
       pkgs.jq
@@ -103,7 +103,7 @@ let
 
       new="$work/answers.list"
       {
-        echo "# The answers given to Golem's questions after the install (\"question\" = \"answer\";)."
+        echo "# The answers given to Standard's questions after the install (\"question\" = \"answer\";)."
         echo "# Written by golem-postinstall-apply from the owner's answers; data, never code."
         printf '%s\n' "$pairs" | jq -r 'to_entries[] | "\"\(.key)\" = \"\(.value)\";"'
       } > "$new"
@@ -113,7 +113,7 @@ let
       install -d -m 700 /var/lib/golem
       find /var/lib/golem -maxdepth 1 -name 'answers.*' -mmin +1440 -exec rm -rf {} + 2>/dev/null || true
       try=$(mktemp -d /var/lib/golem/answers.XXXXXX)
-      rsync -a --exclude=/golem/.git "$dir/" "$try/"
+      rsync -a --exclude=/standard/.git "$dir/" "$try/"
       install -D -m 644 "$new" "$try/machine/answers.list"
 
       # Prove the answer's EFFECT in the switched system, not just that the
@@ -178,7 +178,7 @@ let
   };
 in
 {
-  options.golem.machine.answersCommand = lib.mkOption {
+  options.standard.machine.answersCommand = lib.mkOption {
     type = lib.types.package;
     internal = true;
     readOnly = true;
@@ -186,9 +186,9 @@ in
   };
 
   config = {
-    golem.machine.answersCommand = applyScript;
+    standard.machine.answersCommand = applyScript;
     # The asking (system/postinstall.nix) reads this machine's questions here.
-    golem.postinstall.questionsFile = questionsFile;
+    standard.postinstall.questionsFile = questionsFile;
 
     environment.systemPackages = [ applyScript ];
 

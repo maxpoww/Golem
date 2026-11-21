@@ -7,7 +7,7 @@ hl.config({
         -- "que se abra al lado de la ventana que está abajo del mouse, como
         -- cuando el mouse enfoca, pero sin enfocar la ventana"; "que siga al
         -- mouse"). It was the window the keyboard is in, always to its right
-        -- or below. The keyboard stays where it was: follow_mouse = 2 (golem/input.lua).
+        -- or below. The keyboard stays where it was: follow_mouse = 2 (standard/input.lua).
         -- Read from DwindleAlgorithm::addTarget (0.55.4) and rig-tested: the
         -- gaps count as the window beside them (the border grab area,
         -- resize_on_border + extend_border_grab_area), the bar splits the

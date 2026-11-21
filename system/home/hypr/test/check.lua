@@ -1,15 +1,15 @@
 -- test/check.lua <root> <layers root> <gaming root> [<home>]: what must hold
--- of Golem's Hyprland configuration, checked with the recording mock
+-- of Standard's Hyprland configuration, checked with the recording mock
 -- (mock.lua) and no compositor. Run through check.sh, which makes the roots:
 --   <root>         the tree with a machine's real generated facts;
 --   <layers root>  the tree with the sample facts, an app module's file
---                  (golem/modules/demo.lua), a machine's own tail
---                  (golem/extra.lua) and an owner's file (user.lua), each
+--                  (standard/modules/demo.lua), a machine's own tail
+--                  (standard/extra.lua) and an owner's file (user.lua), each
 --                  setting general.gaps_in to a number of its own;
 --   <gaming root>  the first root with the Gaming module on (facts.modules);
 --   <home>         ~/.config/hypr as a machine has it: the generated entry
 --                  (it points at <root>, the built tree), the owner's
---                  user.lua (gaps_in 23) and a stray golem/look.lua (24).
+--                  user.lua (gaps_in 23) and a stray standard/look.lua (24).
 -- XDG_CONFIG_HOME/golem/settings.lua (the live settings) sets it to 7.
 
 local here = arg[0]:match("^(.*)/[^/]*$") or "."
@@ -34,7 +34,7 @@ end
 
 ---- 1. a machine's real facts ----
 local lines, binds = run(arg[1], true)
-local facts = dofile(arg[1] .. "/golem/machine.lua")
+local facts = dofile(arg[1] .. "/standard/machine.lua")
 check("the configuration loads and says what it does", #lines > 200, #lines)
 
 local names, twice = {}, {}
@@ -95,13 +95,13 @@ local layers = run(arg[2], false)
 local function gaps(n)
     return index_of(layers, "config({ general = { gaps_in = " .. n .. " } })")
 end
-local golem = index_of(layers, 'name = "move-hyprland-run"') -- the last rule Golem declares
+local golem = index_of(layers, 'name = "move-hyprland-run"') -- the last rule Standard declares
 local module, extra, user, live = gaps(21), gaps(22), gaps(23), gaps(7)
 check("an app module's own Lua is loaded for a module that is on", module ~= nil)
 check("this machine's own Lua is loaded", extra ~= nil)
 check("the owner's user.lua is loaded", user ~= nil)
 check("the live settings are run", live ~= nil)
-check("in order: Golem's modules, the app modules', the machine's, the owner's, the live settings last",
+check("in order: Standard's modules, the app modules', the machine's, the owner's, the live settings last",
     golem and module and extra and user and live and golem < module and module < extra and extra < user and user < live
     and live == #layers)
 
@@ -126,7 +126,7 @@ local awake, times = rule(gaming, "golem-gaming-awake")
 check("Gaming on: a game that fills the screen keeps the computer awake",
     awake ~= nil and times == 1 and gaming[awake]:find('idle_inhibit = "fullscreen"', 1, true) ~= nil
     and gaming[awake]:find("steam_app_", 1, true) ~= nil, awake and gaming[awake])
-check("Gaming's rule comes after every rule Golem declares",
+check("Gaming's rule comes after every rule Standard declares",
     awake ~= nil and (index_of(gaming, 'name = "move-hyprland-run"') or math.huge) < awake)
 
 ---- 4. the home as a machine has it: one generated entry ----
@@ -134,7 +134,7 @@ if arg[4] then
     local direct, deployed = run(arg[1], false), run(arg[4], false)
     local own = index_of(deployed, "config({ general = { gaps_in = 23 } })")
     check("the owner's user.lua, beside the entry, is loaded", own ~= nil)
-    check("a file under golem/ beside the entry does not shadow Golem's module",
+    check("a file under standard/ beside the entry does not shadow Standard's module",
         index_of(deployed, "config({ general = { gaps_in = 24 } })") == nil)
     local same = own ~= nil and #deployed == #direct + 1
     if same then
@@ -145,7 +145,7 @@ if arg[4] then
     end
     check("the generated entry loads this build's tree: every call, in order (" .. #direct .. " lines)", same,
         #deployed .. " lines through the entry")
-    check("the owner's file comes after everything Golem declares, before the live settings",
+    check("the owner's file comes after everything Standard declares, before the live settings",
         own ~= nil and (index_of(direct, 'name = "move-hyprland-run"') or math.huge) < own and own == #direct)
 end
 

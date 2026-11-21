@@ -1,4 +1,4 @@
-# base/users — the owner, stage 0. Data-driven from golem.owner (the
+# base/users — the owner, stage 0. Data-driven from standard.owner (the
 # installer's knob); groups here are the stage-0 set — the desktop leaf
 # adds its own (adbusers, uinput) beside the subsystems that create
 # them. GECOS mkDefault: the installer's machine.nix personalizes it
@@ -6,7 +6,7 @@
 { config, pkgs, lib, ... }:
 
 {
-  users.users.${config.golem.owner} = {
+  users.users.${config.standard.owner} = {
     isNormalUser = true;
     # The password seed: a root-only file, never the system source (below).
     hashedPasswordFile = "/var/lib/golem/secrets/owner-password-hash";
@@ -14,7 +14,7 @@
     shell = pkgs.bashInteractive;
     # Not "input" (2026-11-12): it lets every program the owner runs read
     # every keyboard and mouse directly (/dev/input/event*), keystrokes and
-    # passwords included, past the compositor. Nothing in Golem needs it:
+    # passwords included, past the compositor. Nothing in Standard needs it:
     # Hyprland opens the devices through the login seat (logind), games get
     # their controllers by the seat's own rules (uaccess), and the phone's
     # virtual gamepad writes through uinput, its own group (desktop leaf).
@@ -45,7 +45,7 @@
   system.activationScripts.golemOwnerSecret = {
     text = ''
       f=/var/lib/golem/secrets/owner-password-hash
-      h=$(${pkgs.gnugrep}/bin/grep "^${config.golem.owner}:" /etc/shadow 2>/dev/null | ${pkgs.coreutils}/bin/cut -d: -f2 || true)
+      h=$(${pkgs.gnugrep}/bin/grep "^${config.standard.owner}:" /etc/shadow 2>/dev/null | ${pkgs.coreutils}/bin/cut -d: -f2 || true)
       case "$h" in
         \$*)
           if [ ! -f "$f" ] || [ "$(${pkgs.coreutils}/bin/cat "$f")" != "$h" ]; then
@@ -62,7 +62,7 @@
     { deps = [ "golemOwnerRename" "golemOwnerSecret" ]; };
   system.activationScripts.golemOwnerSecret.deps = [ "golemOwnerRename" ];
 
-  # THE OWNER'S NAME FOLLOWS golem.owner (2026-11-15). The installer copies a
+  # THE OWNER'S NAME FOLLOWS standard.owner (2026-11-15). The installer copies a
   # system built for everybody, whose account has the name it was built with;
   # the name the person typed arrives with machine.nix in the first rebuilt
   # generation. Without this step NixOS would delete the old account and
@@ -74,9 +74,9 @@
   # works both ways, so booting the older generation renames it back.
   # Only when no program of that account is running: in practice at boot
   # (first-boot and autoupdate stage with `boot`). A live `switch` that
-  # changes golem.owner under a running session is refused before it starts
+  # changes standard.owner under a running session is refused before it starts
   # (the pre-switch check below).
-  environment.etc."golem/owner".text = "${config.golem.owner}\n";
+  environment.etc."golem/owner".text = "${config.standard.owner}\n";
 
   # …AND NO SYSTEM OF THE NEW NAME STARTS UNDER THE OLD ACCOUNT'S SESSION
   # (2026-11-20). The step below waits for a restart when the account is in
@@ -95,7 +95,7 @@
   # action; /run/golem-owner-waits says why, for golem-rebuild.)
   system.preSwitchChecks.golemOwner = ''
     case "''${2:-}" in switch | test) ;; *) exit 0 ;; esac
-    new=${lib.escapeShellArg config.golem.owner}
+    new=${lib.escapeShellArg config.standard.owner}
     rec=/var/lib/golem/owner
     old=""
     if [ -f "$rec" ]; then old=$(${pkgs.coreutils}/bin/head -n1 "$rec"); fi
@@ -118,7 +118,7 @@
       (
         set -u
         PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.jq pkgs.procps pkgs.findutils ]}
-        new=${lib.escapeShellArg config.golem.owner}
+        new=${lib.escapeShellArg config.standard.owner}
         rec=/var/lib/golem/owner
         old=
         [ -f "$rec" ] && old=$(head -n1 "$rec")
@@ -203,7 +203,7 @@
 
   # A machine file that still declares the hash (written by an installer
   # before 2026-10-01) keeps working and says so; golem-autoupdate removes it.
-  warnings = lib.optional (config.users.users.${config.golem.owner}.hashedPassword != null)
+  warnings = lib.optional (config.users.users.${config.standard.owner}.hashedPassword != null)
     "golem: the owner's password hash is declared in the system source (hosts/target/machine.nix) and is therefore world-readable in the Nix store; remove that line — the account keeps its password (see base/users.nix).";
 
   # No passwordless sudo on an install (GolemSecurity: "sudo requires a

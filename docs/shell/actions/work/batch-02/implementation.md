@@ -63,7 +63,7 @@ what it contains, and its sentence is gated on that read so the offer cannot
 lie. Nothing nameable rests anywhere: a site, command, file or title is read
 live at the moment of speaking and dropped, per name-at-offer-time. The register
 also obeys the law its earlier rows had to relearn — never learn from your own
-hand — so a launch Golem performed must not teach the launcher a ranking the
+hand — so a launch Standard performed must not teach the launcher a ranking the
 user never made, the lesson A17, A38 and A39 left in place.
 
 **5.** Admission is governance kept running after the blocks ship, and the two

@@ -1,7 +1,7 @@
 { ... }:
 
-# Seam — Golem's browser, as ONE module. Import this directory:
-#   Golem flake: golemModules (desktop composition)
+# Seam — Standard's browser, as ONE module. Import this directory:
+#   Standard flake: standardModules (desktop composition)
 #   dev box:     /etc/nixos/configuration.nix
 # The per-user half (prefs, look, profile) is ./home.nix, imported by the home layer.
 #   ./browser.nix   Firefox build (Mozilla's, pinned) + policies + chrome script

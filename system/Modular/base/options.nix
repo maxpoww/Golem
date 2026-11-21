@@ -4,25 +4,30 @@
 # SET them, the chooser and the data-driven base leaves (locale,
 # console, users, selfrebuild) consume them as answers.
 #
-# Lifted verbatim from system/configuration.nix (golem.owner/locale/
+# Lifted verbatim from system/configuration.nix (standard.owner/locale/
 # keyboard/flakeDir/flakeAttr) and system/hardware.nix
-# (golem.hardware.*) on 2026-09-10 — one home for the schema so the
+# (standard.hardware.*) on 2026-09-10 — one home for the schema so the
 # Modular composition stands without importing the fat tree. When the
 # fat path retires, those files' copies die and this one remains.
 { lib, ... }:
 
 {
-  options.golem.flakeDir = lib.mkOption {
+  # Wherever these options are, so are their names before 2026-11-20
+  # (`golem.owner` and the rest): the files of machines installed before
+  # the system was called StandardOS say them that way (../../legacy-names.nix).
+  imports = [ ../../legacy-names.nix ];
+
+  options.standard.flakeDir = lib.mkOption {
     type = lib.types.nullOr lib.types.str;
     default = null;
-    description = "Local checkout of the Golem flake on this machine (null = none).";
+    description = "Local checkout of the Standard flake on this machine (null = none).";
   };
-  options.golem.flakeAttr = lib.mkOption {
+  options.standard.flakeAttr = lib.mkOption {
     type = lib.types.str;
-    default = "golem-minimal";
+    default = "standard-minimal";
     description = "Which nixosConfigurations attr this machine rebuilds itself as.";
   };
-  options.golem.owner = lib.mkOption {
+  options.standard.owner = lib.mkOption {
     type = lib.types.str;
     default = "max";
     description = "The machine's single human user — one knob for the installer.";
@@ -31,8 +36,8 @@
   # Lean image (the ISO) vs a full install. The home layer reads it to drop the
   # owner's launcher-installed app list + dev extras on lean builds. Declared
   # here (was fat-config-only in system/configuration.nix) so the Modular home
-  # layer composes into golem-desktop; a real installed desktop leaves it OFF.
-  options.golem.lean = lib.mkOption {
+  # layer composes into standard-desktop; a real installed desktop leaves it OFF.
+  options.standard.lean = lib.mkOption {
     type = lib.types.bool;
     default = false;
     description = "Ship only what the system needs (the ISO turns this on); a full install leaves it off and grows its own list.";
@@ -44,14 +49,14 @@
   # at) and defaults to its safe branch. The ask/apply pipeline itself
   # (system/postinstall.nix, asked at graphical login) is imported by the
   # desktop stage (desktop/default.nix, 2026-11-17).
-  options.golem.postinstall.answers = lib.mkOption {
+  options.standard.postinstall.answers = lib.mkOption {
     type = lib.types.attrsOf lib.types.str;
     default = { };
     internal = true;
     description = "Applied post-install question answers; each consuming leaf keys off its own id, falling back to that question's safe default.";
   };
 
-  options.golem.locale = {
+  options.standard.locale = {
     defaultLocale = lib.mkOption {
       type = lib.types.str;
       default = "en_US.UTF-8";
@@ -64,7 +69,7 @@
     };
   };
 
-  options.golem.keyboard = {
+  options.standard.keyboard = {
     layout = lib.mkOption { type = lib.types.str; default = "us"; };
     variant = lib.mkOption { type = lib.types.str; default = ""; };
     options = lib.mkOption { type = lib.types.str; default = ""; };
@@ -86,13 +91,13 @@
   # YouTube playback the 3D engine sat at 98% busy and the video stuttered;
   # blur off freed 13-17 points. Shadows, dimming and rounding cost nothing
   # measurable, so they stay. Every other machine keeps "full".
-  options.golem.desktop.effects = lib.mkOption {
+  options.standard.desktop.effects = lib.mkOption {
     type = lib.types.enum [ "full" "light" ];
     default = "full";
     description = "Desktop effect budget: full, or light for weak GPUs (no compositor blur).";
   };
 
-  options.golem.hardware = {
+  options.standard.hardware = {
     ramMB = lib.mkOption { type = lib.types.int; default = 0; };
     cpuModel = lib.mkOption { type = lib.types.str; default = "unknown"; };
     cores = lib.mkOption { type = lib.types.int; default = 0; };

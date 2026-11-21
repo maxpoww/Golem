@@ -17,7 +17,7 @@
 #
 # THE SESSION NEVER ENDS UNLESS THE OWNER ASKS (Max, 2026-10-14: "el usuario
 # nunca tendría que lidiar con que se le caiga el sistema"; there is no "log
-# out" on Golem — lock, suspend, hibernate, power off). The owner's desktop
+# out" on Standard — lock, suspend, hibernate, power off). The owner's desktop
 # runs inside a KEEPER (`golem-session-keeper`, the initial_session's own
 # process, so the logind session, the seat and the PAM login all stay as they
 # are): when the desktop ends and the machine is not shutting down, the keeper
@@ -27,14 +27,14 @@
 # three ends in ten minutes and the keeper gives up, so a desktop that cannot
 # stay up shows tuigreet with a line saying so, instead of flickering for ever
 # (a compositor crash loop never gets this far: start-hyprland's own watchdog
-# rolls Golem back first, desktop/crash-recovery.nix). The night it was built
+# rolls Standard back first, desktop/crash-recovery.nix). The night it was built
 # for: the session bus died of a file-descriptor leak and uwsm tore the whole
 # session down — the owner was at the greeter, and rebooted.
 { config, lib, pkgs, ... }:
 
 let
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
-  ownerSettings = "${config.users.users.${config.golem.owner}.home}/.config/golem/settings.json";
+  ownerSettings = "${config.users.users.${config.standard.owner}.home}/.config/golem/settings.json";
 
   # tuigreet's own command line, with its line about why it is there in the
   # owner's language. The greeter is a user of its own: with the owner's home
@@ -181,7 +181,7 @@ in
   # (The keeper, where its test finds it: checks.session-keeper.)
   imports = [
     {
-      options.golem.sessionKeeper = lib.mkOption {
+      options.standard.sessionKeeper = lib.mkOption {
         type = lib.types.package;
         internal = true;
         readOnly = true;
@@ -199,7 +199,7 @@ in
         # The keeper around the session: the command still reads "… systemd-cat
         # -t uwsm uwsm start -g -1 hyprland-uwsm.desktop" (desktop-matrix checks it).
         command = "${keeper} ${session}";
-        user = config.golem.owner;
+        user = config.standard.owner;
       };
       # After a logout. --remember keeps the owner's name (the module owns
       # /var/cache/tuigreet); --cmd is what greetd runs for the user once the

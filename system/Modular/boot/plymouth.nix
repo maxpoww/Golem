@@ -1,9 +1,9 @@
-# Golem's boot bar — Plymouth, styled as the OPTIONS status bar.
+# Standard's boot bar — Plymouth, styled as the OPTIONS status bar.
 #
 # Max, 2026-09-23: "can we add the same bar as the status bar loading on boot?
 # … lets show our bar everywhere." The quiet boot (base/core.nix) gives a black
 # screen from kernel handoff to the compositor; this fills that screen with the
-# one thing Golem already speaks in — the accent bar — filling as the machine
+# one thing Standard already speaks in — the accent bar — filling as the machine
 # comes up, with the service that is starting flying past underneath (the boot
 # echo of the installer's flying filenames).
 #
@@ -36,7 +36,7 @@ let
       magick -size 1x1 xc:'#3a3a3a' "$d/track.png"     # dim track
       {
         echo "[Plymouth Theme]"
-        echo "Name=Golem"
+        echo "Name=Standard"
         echo "Description=Golem boot bar"
         echo "ModuleName=script"
         echo ""
@@ -66,8 +66,8 @@ in
 
   # #117 — THE GPU DRM MUST BE IN THE INITRD, or the bar never paints on an
   # INSTALLED system (the I2-close VM gate, 2026-09-23: the install booted to
-  # `Golem login:` with a black screen the whole way — Max's "no bar on installed
-  # Golem"). The minimal installed initrd carries storage + input modules but no
+  # `Standard login:` with a black screen the whole way — Max's "no bar on installed
+  # Standard"). The minimal installed initrd carries storage + input modules but no
   # display driver, so Plymouth has no DRM device in early boot; it only gets one
   # once the main system loads the module, by which time getty already owns the
   # console. (The installer MEDIUM never hit this — installation-cd ships a fat

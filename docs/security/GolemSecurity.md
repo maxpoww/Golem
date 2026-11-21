@@ -1,13 +1,13 @@
 # GolemSecurity — the security model and roadmap
 
-> Max, 2026-09-09: "we need Golem to be secure as fuck. super secure in
+> Max, 2026-09-09: "we need Standard to be secure as fuck. super secure in
 > general for all users." This file is the model, the phases, and the
 > standing rules. Component-level detail for the dock lives in
 > `~/Golem/docs/shell/dockmenu/SECURITY.md`; findings carry changes.md numbers.
 
 ## The threat model, in one paragraph
 
-Golem is a single-owner desktop. The assets are the owner's data and the
+Standard is a single-owner desktop. The assets are the owner's data and the
 machine's integrity; the attackers are (a) malicious code that got to run
 AS the owner (a bad script, a compromised app), (b) other local accounts,
 (c) the network. The line we hold: **user-level compromise must never
@@ -121,7 +121,7 @@ Max approved five items from the next round, the ones nobody sees.
 3. **No `input` group.** It let every program read every keyboard and mouse
    directly. Hyprland opens devices through logind, controllers come by
    uaccess, the phone's gamepad writes through `uinput`.
-4. **The lab door only on lab machines.** `golem.lab.door`, set by the
+4. **The lab door only on lab machines.** `standard.lab.door`, set by the
    machine's own `hosts/target/lab.nix`. A lab medium is built with
    `GOLEM_LAB=1 nix build --impure .#iso`; its baked systems carry the door
    from the first boot and `golem-install` writes `lab.nix` when the system it
@@ -143,7 +143,7 @@ Max approved five items from the next round, the ones nobody sees.
    screen first thing, as the compositor's child (`golem-lock-screen --login`,
    a marker in the runtime dir), whatever the login setting says. The first
    start of a boot shows the lock screen as the login (branch login-live),
-   unless `golem.home.loginLock.enable` is off (disk encryption stays an
+   unless `standard.home.loginLock.enable` is off (disk encryption stays an
    installer option, off by default, Max 2026-11-12). Tested on the ASUS: a SIGSEGV to Hyprland and a stopped
    session both came back on the lock screen.
 

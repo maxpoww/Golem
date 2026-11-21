@@ -1,11 +1,11 @@
-# Golem's app set — the CURATE column of `apps.md`, in one place (roadmap S5).
+# Standard's app set — the CURATE column of `apps.md`, in one place (roadmap S5).
 #
 # The rule from apps.md: we BUILD only what nobody else can build. Everything
 # in this file is an existing app we ship, theme and configure. Picks default
 # to GNOME core/Circle so the set stays libadwaita-consistent and
-# touch-friendly; a pick only deviates where something fits Golem better.
+# touch-friendly; a pick only deviates where something fits Standard better.
 #
-# System-level on purpose: an ISO-installed Golem must come with these for
+# System-level on purpose: an ISO-installed Standard must come with these for
 # *every* user, not just max's home layer.
 #
 # Deliberately NOT here:
@@ -19,7 +19,7 @@
 { config, lib, pkgs, ... }:
 
 {
-  # Two tiers (golem.lean, 2026-09-01). "Core" is what the system needs to
+  # Two tiers (standard.lean, 2026-09-01). "Core" is what the system needs to
   # WORK — open a folder, a text file, an image, a PDF, a zip. Everything
   # else is the full CURATE experience an installed machine gets.
   environment.systemPackages = with pkgs; [
@@ -44,11 +44,11 @@
   # the character into that field, which is the part GNOME Characters
   # (copy, then paste) cannot do.
   #
-  # waylandFrontend = true because Golem is Hyprland: input goes over
+  # waylandFrontend = true because Standard is Hyprland: input goes over
   # text-input-v3 and the candidate popup is a layer surface, instead of
   # every app needing GTK_IM_MODULE set. To back the whole thing out,
   # delete this block — nothing else depends on it.
-  i18n.inputMethod = lib.mkIf (!config.golem.lean) {
+  i18n.inputMethod = lib.mkIf (!config.standard.lean) {
     enable = true;
     type = "fcitx5";
     fcitx5 = {
@@ -63,12 +63,12 @@
   services.udisks2.enable = true;
 
   # Simple Scan finds no scanner at all without the SANE backends.
-  hardware.sane.enable = !config.golem.lean;
+  hardware.sane.enable = !config.standard.lean;
 
   # Shared calendar/contacts backend. GNOME Calendar and Contacts store
   # everything through evolution-data-server; without it both start empty
   # and cannot keep anything.
-  services.gnome.evolution-data-server.enable = !config.golem.lean;
+  services.gnome.evolution-data-server.enable = !config.standard.lean;
 
   # libadwaita apps read their settings — including the dark/accent
   # preference home/look.nix's theming pass writes — from dconf.

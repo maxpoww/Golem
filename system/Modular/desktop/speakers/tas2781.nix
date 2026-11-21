@@ -10,7 +10,7 @@
 # so the amp plays on without them.
 #
 # The fix used to be keeping the card awake forever: a silent ffplay stream
-# plus a WirePlumber rule that never suspended ANY output, on every Golem
+# plus a WirePlumber rule that never suspended ANY output, on every Standard
 # (pipewire 0 → 23 wakeups/s after the first sound, the codec and DSP never
 # powered down). Instead, the driver's own "Speaker Force Firmware Load"
 # switch makes every stream start reload program + configuration +
@@ -19,7 +19,7 @@
 # switch → bad; with it → "suena bien". The reload runs while the stream
 # opens, before any sample reaches the amp, so nothing at the start is lost.
 #
-# Gated at runtime on the ACPI device: every Golem carries the unit, only a
+# Gated at runtime on the ACPI device: every Standard carries the unit, only a
 # machine with the amp runs it.
 { pkgs, ... }:
 

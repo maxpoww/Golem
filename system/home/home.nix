@@ -1,10 +1,10 @@
-# Golem's home layer: the desktop of EVERY Golem machine, the dev box included
+# Standard's home layer: the desktop of EVERY Standard machine, the dev box included
 # (parity P1, 2026-09-30: the dev box imports this directory from its
 # /etc/nixos/home.nix instead of keeping its own copy). What differs per
 # machine is an option in ./options.nix, set by that machine's layer.
 #
 # One leaf per concern (the imports below are the map); what stays in this
-# file is the account, the programs every Golem carries, and the session's
+# file is the account, the programs every Standard carries, and the session's
 # variables.
 { osConfig, pkgs, lib, waverunner, ... }:
 
@@ -40,12 +40,12 @@
 
 
   # The account this home layer configures follows the machine's owner
-  # (golem.owner) — the S9 installer renames ONE option, not five files.
-  home.username = osConfig.golem.owner;
-  home.homeDirectory = "/home/${osConfig.golem.owner}";
+  # (standard.owner) — the S9 installer renames ONE option, not five files.
+  home.username = osConfig.standard.owner;
+  home.homeDirectory = "/home/${osConfig.standard.owner}";
   home.stateVersion = "26.05";
 
-  # Desktop plumbing every Golem needs, lean or not.
+  # Desktop plumbing every Standard needs, lean or not.
   home.packages = with pkgs; [
     adw-gtk3   # libadwaita's look for GTK 3 apps; the dock themes it with the palette (Golem-A/B)
     papirus-icon-theme
@@ -106,13 +106,13 @@
   # Max's dev toolchain (gcc, android-tools, scrcpy, jdk21, claude-code,
   # github-cli, easyeffects, lsp-plugins + JAVA_HOME/ANDROID_HOME) left the
   # distro 2026-09-29 (the debloat): it is one machine's setup, and it lives
-  # in that machine's own config (/etc/nixos), not in Golem.
+  # in that machine's own config (/etc/nixos), not in Standard.
 
   home.sessionVariables = {
     _JAVA_AWT_WM_NONREPARENTING = "1";
   };
 
-  # No Chrome: Seam is Golem's only browser (the debloat, 2026-09-29). The
+  # No Chrome: Seam is Standard's only browser (the debloat, 2026-09-29). The
   # webapps (Chrome --app windows) come back when they move onto Seam.
 
   # The shader cache of before MESA_DISK_CACHE_DATABASE (session.nix): nothing reads it.

@@ -98,10 +98,10 @@ the twelve below in substance — trigger + verb, rewording is repetition:
   the **mic's level**; a level is not a route. The two never speak in the same
   minute (written into A12's Fires). ✓
 - **A13** (strip EXIF before a share): nothing in batch-01 touches metadata;
-  its privacy blocks A36/A37 clear Golem's own or the browser's stores. ✓
+  its privacy blocks A36/A37 clear Standard's own or the browser's stores. ✓
 - **A14** vs batch-01's A36 (vault-born clip → clear after 30 s): A36 clears a
   **single flagged clip** on a timeout via a standing rule; A14 clears
-  **Golem's whole clipboard-history store** at a **suspend**, and only when the
+  **Standard's whole clipboard-history store** at a **suspend**, and only when the
   store is non-empty. Same surface, different object and moment. ✓
 - **A15** (precision-class focus → ease the pointer): batch-01 has no pointer /
   input-setting action; its health block (A38) dims the backlight. ✓
@@ -234,7 +234,7 @@ resolved above on trigger and verb.
      has followed it **[live]** (`zsh.nix` bridge, catalog §4.11);
   2. **~10 minutes have passed with NO new terminal output** — the console
      class `needs_name` on the bridge's stream; a build that is writing either
-     posts or the bridge is the only window Golem has, and the absence of any
+     posts or the bridge is the only window Standard has, and the absence of any
      new console-shaped post across the stretch is this half (the spare name is
      a P8 engine task);
   3. **system CPU has been ~zero for the whole stretch** — the CPU aggregate
@@ -256,7 +256,7 @@ resolved above on trigger and verb.
   **for this command** — no re-offer at 20 minutes about the same build; the
   next occasion is a *different* silent build. Two refusals retire the action
   permanently: someone who lets a ten-minute-silent build run has a reason
-  (a huge link with CPU they accept), and Golem has been told twice it is
+  (a huge link with CPU they accept), and Standard has been told twice it is
   not the build's judge.
 - **Gear:** (a) **how many silent minutes** count (default 10); (a) **the
   classes that count as builds** — the build-tool set (make/ninja/cargo/nix
@@ -313,7 +313,7 @@ resolved above on trigger and verb.
 - **Refusal:** not now = this branch keeps its local ref and is **finished**:
   no re-offer for it, ever — the same branch recurring in the tree again is a
   new event. Three refusals retire the action permanently: a dev who keeps
-  landed branches around is keeping them for a reason Golem does not need to
+  landed branches around is keeping them for a reason Standard does not need to
   know.
 - **Gear:** (a) **also offer for freshly pushed branches** (off by default —
   the absorbed U0099, closing the branch after the push lands); (b) **never
@@ -617,12 +617,12 @@ resolved above on trigger and verb.
   screenshot spawn** — the shipped `window.screenshot` affordance
   (`catalog.md §4.26`: `grim` → `~/Pictures`) fires **in-house** through the
   affordance layer, so the daemon knows the exact path it just wrote: **the
-  image that is about to leave is the one Golem itself just captured**
+  image that is about to leave is the one Standard itself just captured**
   ([live], zero new sensing, identity solved by construction). For a fresh
-  image that is not Golem's (a photo dropped off a camera), the arrival half is
+  image that is not Standard's (a photo dropped off a camera), the arrival half is
   **[cheap]-pending** on a small new poll of `~/Pictures` in the downloads.rs
   shape — named here, not smuggled; until that poll ships, the action speaks
-only on Golem's own screenshots. **The second half of the trigger is the
+only on Standard's own screenshots. **The second half of the trigger is the
    "still carries its metadata" gate, and hunt #2 puts it in the trigger where
    the sentence's truth lives:** the captured image's header is read
    **transiently** for an EXIF/XMP marker (a header-class check, pixels never
@@ -687,9 +687,9 @@ only on Golem's own screenshots. **The second half of the trigger is the
   never hears the sentence. The trigger fires on **ANY suspend**, never a
   bedtime monitor (F4 doctrine 2).
 - **Sentence:** "I'm about to sleep and I still hold your clipboard history, do
-  you want it cleared?" — speaks only when data exists; the store is Golem's,
+  you want it cleared?" — speaks only when data exists; the store is Standard's,
   so "I hold" is the literal truth.
-- **Verb(s):** **[clear my clipboard history]** — empties **Golem's own
+- **Verb(s):** **[clear my clipboard history]** — empties **Standard's own
   `clipboard-history.json`** at `$XDG_DATA_HOME` (the store the clipboard box
   already rolls) — never the user's files, never the system clipboard's current
   contents, never a browser (bounded-storage discipline). **[live]**, in-house:
@@ -745,7 +745,7 @@ only on Golem's own screenshots. **The second half of the trigger is the
 - **Sentence:** "You're in the pixel editor, do you want the pointer eased for
   it?"
 - **Verb(s):** **[ease the pointer]** — lowers the pointer sensitivity
-  (Golem's own input setting — the hyprland/wlroots sensitivity write, the
+  (Standard's own input setting — the hyprland/wlroots sensitivity write, the
   same seam the distro's own input block manages), while the precision-class
   window holds focus. **Hunt #2's repair is in the one-line feasibility it
   leaned on:** the daemon drives the compositor by `hyprctl eval`

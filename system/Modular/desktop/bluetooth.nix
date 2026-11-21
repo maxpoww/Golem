@@ -1,12 +1,12 @@
 # desktop/bluetooth — stage 1. Ported verbatim from system/bluetooth.nix:
-# rides the census (golem.hardware.hasBluetooth) — a machine confidently
+# rides the census (standard.hardware.hasBluetooth) — a machine confidently
 # detected with no radio drops bluez + blueman entirely; undetected defaults to
 # true (the conservatism rule). blueman is a desktop concern, hence stage 1 (the
 # minimal base carries no Bluetooth UI).
 { config, lib, pkgs, ... }:
 
 {
-  config = lib.mkIf config.golem.hardware.hasBluetooth {
+  config = lib.mkIf config.standard.hardware.hasBluetooth {
     services.blueman.enable = true;
 
     # Blueman stays installed (its manager window is there for whoever wants
@@ -60,7 +60,7 @@
     # After a HIBERNATE (not a plain suspend) BlueZ comes back with its
     # trusted devices disconnected, and speakers and headphones stay silent
     # until reconnected by hand. The lid does suspend-then-hibernate on a
-    # Golem laptop, so this is every long lid-close. Waits for the adapter
+    # Standard laptop, so this is every long lid-close. Waits for the adapter
     # to power up, then reconnects each trusted device (4 tries). Ported
     # from the dev box on 2026-09-30 (found by the P1 diff: it only ever
     # lived there).

@@ -1,4 +1,4 @@
-# Golem hardware-aware tuning — the facts an installer/first-boot detects
+# Standard hardware-aware tuning — the facts an installer/first-boot detects
 # about THIS machine, folded into the config it builds.
 #
 # The problem this solves: one flake serves a 4 GB Broadwell laptop, an
@@ -7,7 +7,7 @@
 # and a stranger's nvidia box must not land on nouveau while an Intel box
 # pays for a driver it can't use.
 #
-# The detected facts live in `golem.hardware.*`. The installer (S9) runs
+# The detected facts live in `standard.hardware.*`. The installer (S9) runs
 # `golem-hw-detect` (system/hardware/detect.nix) on the TARGET machine
 # before the first build and writes a small `golem-hardware.nix` that sets
 # these; a machine with no such file gets safe generic defaults (open GPU
@@ -15,10 +15,10 @@
 { config, pkgs, lib, ... }:
 
 let
-  cfg = config.golem.hardware;
+  cfg = config.standard.hardware;
 in
 {
-  options.golem.hardware = {
+  options.standard.hardware = {
     ramMB = lib.mkOption {
       type = lib.types.int;
       default = 0;
@@ -111,7 +111,7 @@ in
         The SECOND display device on a hybrid machine, by PCI vendor. The
         primary `gpu` is the boot_vga card driving the screen; this one is
         named so it is never silently dropped (changes.md #17b — the
-        sticker on the lid stays honest). What Golem does with it is
+        sticker on the lid stays honest). What Standard does with it is
         decided by gpu2Health below.
       '';
     };

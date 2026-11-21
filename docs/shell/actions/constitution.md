@@ -4,7 +4,7 @@
 
 ## What this is about
 
-Golem is a Linux distribution whose soul is OPTIONS: the shell senses your context through the Brain (`options-engine`) and surfaces exactly the right tool at the right moment, then gets out of the way — game-design philosophy applied to an OS. **ACTIONS are the initiative arm of OPTIONS** — the moments where the system speaks FIRST: it noticed something, formed an intention on your behalf, and offers it as one sentence with a verb in your hand.
+Standard is a Linux distribution whose soul is OPTIONS: the shell senses your context through the Brain (`options-engine`) and surfaces exactly the right tool at the right moment, then gets out of the way — game-design philosophy applied to an OS. **ACTIONS are the initiative arm of OPTIONS** — the moments where the system speaks FIRST: it noticed something, formed an intention on your behalf, and offers it as one sentence with a verb in your hand.
 
 The prototype is the sunset OPTION (built and live-verified 2026-09-07): at sunset the current-task pill morphs into *"The sun is set, do you want to turn on eye protection?"* with a nested amber **[turn on]** that fires hyprsunset. Right-click = "not now". That is the register, the scale, and the quality bar for everything that follows.
 
@@ -18,7 +18,7 @@ The prototype is the sunset OPTION (built and live-verified 2026-09-07): at suns
 
 ## II. The Voice
 
-- **Notifications are the world's voice; ACTIONS are Golem's voice — and Golem only speaks about what it has seen.**
+- **Notifications are the world's voice; ACTIONS are Standard's voice — and Standard only speaks about what it has seen.**
 - The voice is a companion, never compliance: observational, warm, zero moralizing, zero guilt. "The sun is set…" is the register. One adjective toward HR-speak and the sentence is wrong.
 - One sentence. If the message needs two, the action isn't ready.
 
@@ -28,7 +28,7 @@ The prototype is the sunset OPTION (built and live-verified 2026-09-07): at suns
 - There are only two legitimate evidence sources:
   - **Moment actions** — the world did something SPECIFIC. Sunset happened; a USB drive containing a camera folder full of photos appeared. Never "a USB was inserted" — specificity is the license to speak.
   - **Habit actions** — the user demonstrated the routine themselves, at least 3 times, and the system offers to carry it ("you erase your history before closing the browser — want me to do it every time?"). The user's manual repetitions are the tutorial; the action is the unlock. The offer describes what the user already does — it never guesses what they might want.
-- The admission question, asked of every candidate: **who demonstrated the need — the user, the world, or the designer's imagination?** The first two ship. The third never does. Golem ships observed helpfulness, never imagined helpfulness.
+- The admission question, asked of every candidate: **who demonstrated the need — the user, the world, or the designer's imagination?** The first two ship. The third never does. Standard ships observed helpfulness, never imagined helpfulness.
 - **The EVERYDAY law:** core actions live in daily-recurring contexts. If the average user would not meet the trigger's context most days, the action is not core.
 
 ## IV. The Utterance Economy

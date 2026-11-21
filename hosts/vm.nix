@@ -1,19 +1,19 @@
-# Hardware-free Golem for the S7 test loop:
-#   nixos-rebuild build-vm --flake .#golem-vm && ./result/bin/run-Golem-vm
+# Hardware-free Standard for the S7 test loop:
+#   nixos-rebuild build-vm --flake .#standard-vm && ./result/bin/run-Golem-vm
 # No nvidia, virtio graphics; greetd autologs the owner straight into
-# Hyprland. Everything owner-shaped derives from golem.owner — this file is
+# Hyprland. Everything owner-shaped derives from standard.owner — this file is
 # "the shape" the S9 installer cribs (see hosts/iso.nix), so it must not
 # re-hardcode the name the core just un-hardcoded.
-{ config, lib, pkgs, golemSrc, modulesPath, ... }:
+{ config, lib, pkgs, standardSrc, modulesPath, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
   ownerHome = "/home/${owner}";
 in
 {
   # qemu-vm imported DIRECTLY (not via vmVariant): the toplevel this config
   # evaluates to IS the running VM system — so an in-VM `nixos-rebuild
-  # switch --flake ...#golem-vm` (waverunner-apply) activates a
+  # switch --flake ...#standard-vm` (waverunner-apply) activates a
   # like-for-like config. Switching to the plain toplevel tried to stop
   # nix-store.mount out from under the running system (exit 4).
   imports = [ (modulesPath + "/virtualisation/qemu-vm.nix") ];
@@ -23,15 +23,15 @@ in
   # The installed-machine shape (what the S9 installer will seed on real
   # hardware): a writable flake checkout, so OPTIONS installs
   # (waverunner-apply) and rebuild-golem work inside the VM. The VM
-  # rebuilds itself as golem-vm — switching to #golem's nvidia config
+  # rebuilds itself as standard-vm — switching to #golem's nvidia config
   # in here would be nonsense.
-  golem.flakeDir = "${ownerHome}/Golem";
-  golem.flakeAttr = "golem-vm";
+  standard.flakeDir = "${ownerHome}/Golem";
+  standard.flakeAttr = "standard-vm";
 
   # The VM's own hardware profile — what golem-hw-detect would find inside
   # it (see system/hardware.nix): 8 GB, virtio graphics. Proves the
   # detected-facts path end to end without a physical target.
-  golem.hardware = {
+  standard.hardware = {
     ramMB = 8192;
     cores = 8;
     gpu = "virtio";
@@ -44,7 +44,7 @@ in
     text = ''
       if [ ! -e ${ownerHome}/Golem ]; then
         mkdir -p ${ownerHome}
-        cp -r ${golemSrc} ${ownerHome}/Golem
+        cp -r ${standardSrc} ${ownerHome}/Golem
         chmod -R u+w ${ownerHome}/Golem
         (
           cd ${ownerHome}/Golem
@@ -54,14 +54,14 @@ in
             commit -qm "seeded from the VM image"
         )
         chown -R ${owner}:users ${ownerHome}/Golem
-      elif ! ${pkgs.diffutils}/bin/cmp -s ${golemSrc}/flake.lock ${ownerHome}/Golem/flake.lock; then
+      elif ! ${pkgs.diffutils}/bin/cmp -s ${standardSrc}/flake.lock ${ownerHome}/Golem/flake.lock; then
         # Keep the checkout in lockstep with the image (preserving the
         # VM's own package list): a stale lock made an in-VM install
         # rebuild SWAP the running daemon to the old pinned build —
         # shell restarted mid-install, pending-install UI lost.
         keep=$(${pkgs.coreutils}/bin/mktemp)
         cp ${ownerHome}/Golem/system/home/waverunner-packages.nix "$keep" || true
-        cp -r --no-preserve=mode,ownership ${golemSrc}/. ${ownerHome}/Golem/
+        cp -r --no-preserve=mode,ownership ${standardSrc}/. ${ownerHome}/Golem/
         cp "$keep" ${ownerHome}/Golem/system/home/waverunner-packages.nix || true
         rm -f "$keep"
         (

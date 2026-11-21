@@ -16,7 +16,7 @@ the expected result: firmware cannot offer an entry for a device that
 is not electrically there. Cable, port, or drive — not boot order.
 
 **A trap avoided, worth recording:** the machine answers at `.85` as
-`asus`, healthy, with a Golem seed — and it is the **FAT DOGFOOD Golem
+`asus`, healthy, with a Standard seed — and it is the **FAT DOGFOOD Standard
 on the internal Toshiba**, not the stage-0. Told apart by three checks
 before anything was written: Hyprland PRESENT (stage 0 is minimal by
 definition), **no `hosts/target/modules.nix`** in the seed (that file IS
@@ -41,7 +41,7 @@ have never met the round-I2 ISO and would teach more.
 
 ASUS X550LC · i5-4200U Haswell (2c/4t) · Intel Haswell-ULT iGPU (boot
 display) + **GF117M nvidia dGPU that FAILS its wake test** · UEFI ·
-7384 MB · internal 298 GB Toshiba = **the lab's dogfooded fat Golem
+7384 MB · internal 298 GB Toshiba = **the lab's dogfooded fat Standard
 (kept, untouched)**. Preinstall + first-install history:
 `~/Golem/docs/installing/preinstall/testing/asus.md` and
 [FirstInstall.md](FirstInstall.md).
@@ -49,7 +49,7 @@ display) + **GF117M nvidia dGPU that FAILS its wake test** · UEFI ·
 ## Round I2 — stage 0 on an EXTERNAL drive — 2026-09-11 — PASS; the #33 hold service live on the machine that invented the question
 
 Max: *"i have an external usb drive… we will install in there, ok? so we
-can keep the lab Golem."* — the modular stage 0 proven on real ASUS
+can keep the lab Standard."* — the modular stage 0 proven on real ASUS
 hardware without losing the fat dogfood install.
 
 ### Safety (the point of this shape)
@@ -60,7 +60,7 @@ hardware without losing the fat dogfood install.
   (#20). Typing "BUP" narrowed to the external alone — no chance of
   hitting the internal.
 - **Internal `sda` untouched: writes-completed = 0 across the whole
-  session**, ESP/swap/`golem` labels intact. The lab Golem survives.
+  session**, ESP/swap/`golem` labels intact. The lab Standard survives.
 
 ### The install
 - **ISO:** round-I2 (`m8vkd2jg…`). Answers driven over SSH; real
@@ -97,7 +97,7 @@ hardware without losing the fat dogfood install.
   **LIBVA_DRIVER_NAME=i965** (Haswell legacy, verified in a login
   shell), seed + modules.nix present, rebuild-golem present, and NO
   hyprland/waverunner (minimal, correct).
-- **SELF-REBUILD proven:** `#golem-minimal` from its own seed →
+- **SELF-REBUILD proven:** `#standard-minimal` from its own seed →
   **generation 2**, still running, hold service intact.
 
 ### Verdict

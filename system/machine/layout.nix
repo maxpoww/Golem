@@ -4,9 +4,9 @@
 # machine to live:
 #
 #   /etc/nixos/                    THE MACHINE: root's. configuration.nix,
-#                                  modules/, machine/ (what Golem's tools
+#                                  modules/, machine/ (what Standard's tools
 #                                  recorded). Never touched by an update.
-#   /etc/nixos/golem/              GOLEM: root's own copy, a git checkout that
+#   /etc/nixos/standard/              GOLEM: root's own copy, a git checkout that
 #                                  root may edit (Max, 2026-11-19: "copia
 #                                  editable por root"). An update merges the
 #                                  new version into it and keeps the edits.
@@ -17,7 +17,7 @@
 #
 # So there is no checkout in a home directory, and with it goes everything
 # that existed to make an owner-writable checkout safe for root to build:
-# golem.flakeDir is null here, which switches off the seal, the seed adoption,
+# standard.flakeDir is null here, which switches off the seal, the seed adoption,
 # the git pulls as the owner and the copies root made of the checkout
 # (base/{seed,first-boot,recover,selfrebuild,autoupdate}.nix, golem-seal.nix,
 # waverunner-apply.nix: every one is guarded on it). Root's checkout needs
@@ -26,10 +26,10 @@
 #   sudo nixos-rebuild switch      the standard command, and it is enough:
 #                                  nixos-rebuild finds /etc/nixos/flake.nix,
 #                                  and builds what the folder holds NOW —
-#                                  an edit in configuration.nix or in golem/
-#   rebuild-golem                  the same behind Golem's one rebuild lock
-#   golem-update                   this machine onto the newest Golem
-#   golem-recover                  Golem's files back to what built a system
+#                                  an edit in configuration.nix or in standard/
+#   rebuild-golem                  the same behind Standard's one rebuild lock
+#   golem-update                   this machine onto the newest Standard
+#   golem-recover                  Standard's files back to what built a system
 #   golem-status                   what was changed here, against upstream
 #
 # The nightly update, the dock's installs and the other services of this
@@ -37,20 +37,53 @@
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.machine;
-  co = "${cfg.dir}/golem";
+  cfg = config.standard.machine;
+  co = "${cfg.dir}/standard";
+
+  # THE FOLDER'S OLD NAME. A machine of this layout installed before the
+  # system was called StandardOS (2026-11-20) has its copy of the system in
+  # /etc/nixos/golem and a flake.nix that names it there. It is moved once:
+  # by the activation of the first system that knows the new name (at the
+  # restart an update stages it for), or by the first of Golem's commands to
+  # run, whichever comes first — the folder, git's note of where its files
+  # are, the one line of flake.nix. Nothing else is touched. (Going back to a
+  # system from before that day leaves its commands looking for the old
+  # name; the next update puts it right.)
+  moveFolder = pkgs.writeShellScript "golem-move-folder" ''
+    set -u
+    PATH=${lib.makeBinPath [ pkgs.coreutils pkgs.gnused pkgs.gnugrep pkgs.git ]}
+    dir=${lib.escapeShellArg cfg.dir}
+    new=${lib.escapeShellArg co}
+    old="$dir/golem"
+    gitdir=${lib.escapeShellArg cfg.gitDir}
+    [ -f "$old/flake.nix" ] || exit 0
+    [ ! -e "$new" ] || exit 0
+    mv -T "$old" "$new" || exit 1
+    if [ -d "$gitdir" ]; then
+      git --git-dir="$gitdir" config core.worktree "$new" || true
+    fi
+    if grep -q '\./golem/machine\.nix' "$dir/flake.nix"; then
+      sed -e 's#\./golem/machine\.nix#./standard/machine.nix#g' \
+          -e 's#Golem is in golem/\.#StandardOS is in standard/.#' \
+          "$dir/flake.nix" > "$dir/flake.nix.golem-tmp" \
+        && chmod --reference="$dir/flake.nix" "$dir/flake.nix.golem-tmp" \
+        && mv -f "$dir/flake.nix.golem-tmp" "$dir/flake.nix"
+    fi
+    echo "golem: this computer's copy of the system is $new now (it was $old)"
+  '';
 
   # GIT IN ROOT'S CHECKOUT. Its data is in /var/lib/golem (root's alone, out
   # of the folder a rebuild copies into the store); the folder holds a .git
-  # FILE that names it, so plain `git status` works there for root. Golem's
+  # FILE that names it, so plain `git status` works there for root. Standard's
   # own commands name both outright and need neither that file nor a setting.
   gitFn = ''
     dir=${lib.escapeShellArg cfg.dir}
     co=${lib.escapeShellArg co}
     gitdir=${lib.escapeShellArg cfg.gitDir}
-    branch=${lib.escapeShellArg config.golem.upstream.branch}
+    branch=${lib.escapeShellArg config.standard.upstream.branch}
     g() { git --git-dir="$gitdir" --work-tree="$co" "$@"; }
     need_checkout() {
+      ${moveFolder} || true
       if [ ! -f "$dir/flake.nix" ] || [ ! -f "$co/flake.nix" ] || [ ! -d "$gitdir" ]; then
         echo "$1: this machine has no $co (or no $gitdir) — nothing to do" >&2
         exit 1
@@ -92,7 +125,7 @@ let
   # named after the RUNNING hostname).
   rebuildGolem = pkgs.writeShellApplication {
     name = "rebuild-golem";
-    runtimeInputs = [ config.golem.rebuild ];
+    runtimeInputs = [ config.standard.rebuild ];
     text = ''
       action=''${1:-switch}; [ $# -gt 0 ] && shift
       if [ "$(id -u)" != 0 ]; then
@@ -102,7 +135,7 @@ let
     '';
   };
 
-  # `golem-status`: what this machine changed in Golem's files.
+  # `golem-status`: what this machine changed in Standard's files.
   status = pkgs.writeShellApplication {
     name = "golem-status";
     runtimeInputs = [ pkgs.git pkgs.coreutils pkgs.gnused ];
@@ -113,7 +146,7 @@ let
       base=$(base_rev)
       if [ -z "$base" ] || ! g rev-parse -q --verify HEAD >/dev/null 2>&1; then
         said=$(said_rev)
-        echo "Golem ''${said:0:12}''${said:+ }(branch $branch), in $co"
+        echo "Standard ''${said:0:12}''${said:+ }(branch $branch), in $co"
         if g rev-parse -q --verify "refs/remotes/origin/$branch" >/dev/null 2>&1; then
           echo "$branch does not know this version (a medium cut from work that was not published): nothing to compare the files with. An update takes the branch's version and sets aside what differs."
         else
@@ -121,30 +154,30 @@ let
         fi
         exit 0
       fi
-      echo "Golem ''${base:0:12} (branch $branch), in $co"
+      echo "Standard ''${base:0:12} (branch $branch), in $co"
       changed=$(g diff --name-status "$base" -- . ':!.golem-rev' || true)
       new=$(g ls-files --others --exclude-standard || true)
       if [ -z "$changed" ] && [ -z "$new" ]; then
-        echo "No file of Golem's was changed on this machine."
+        echo "No file of Standard's was changed on this machine."
       else
         echo "Changed on this machine (kept by an update where it can be):"
         [ -z "$changed" ] || printf '%s\n' "$changed" | sed 's/^/  /'
         [ -z "$new" ] || printf '%s\n' "$new" | sed 's/^/  new  /'
         if grep -q 'seam/sources.json$' <<< "$changed"; then
-          echo "(seam/sources.json is the browser updating itself between Golem's versions: the newer one always stays.)"
+          echo "(seam/sources.json is the browser updating itself between Standard's versions: the newer one always stays.)"
         fi
         echo "See a change:  sudo git -C $co diff ''${base:0:12} -- <file>"
       fi
     '';
   };
 
-  # `golem-update`: this machine onto the newest Golem of the branch it
+  # `golem-update`: this machine onto the newest Standard of the branch it
   # follows.
   #
-  # THE EDITS ARE KEPT. Root may have changed Golem's files here. The update
+  # THE EDITS ARE KEPT. Root may have changed Standard's files here. The update
   # is a three-way merge of the files as they are with the new version, both
   # against the version they started from (git merge-tree, in memory). Where
-  # the same lines changed on both sides, Golem's new version wins and the
+  # the same lines changed on both sides, Standard's new version wins and the
   # machine's file is set aside (/var/lib/golem/local-edits/<when>/): an edit
   # must never freeze a machine on an old version (the ASUS, 2026-10-02, for
   # a month, when its edited checkout could no longer fast-forward).
@@ -163,9 +196,9 @@ let
   update = pkgs.writeShellApplication {
     name = "golem-update";
     runtimeInputs = [
-      config.golem.rebuild
-      config.golem.update.waveCommand
-      config.golem.update.publishedCommand
+      config.standard.rebuild
+      config.standard.update.waveCommand
+      config.standard.update.publishedCommand
       pkgs.git
       pkgs.rsync
       pkgs.gnutar
@@ -221,11 +254,11 @@ let
       fi
       # NEVER BACKWARDS. A machine can be AHEAD of the branch it follows (a
       # medium cut from work that has not reached it yet): what upstream has
-      # is then an older Golem, and "moving to it" would undo the newer one
+      # is then an older Standard, and "moving to it" would undo the newer one
       # file by file. Upstream counts as new only when it has something this
       # machine does not.
       if [ -n "$base" ] && [ "$new" != "$base" ] && g merge-base --is-ancestor "$new" "$base" 2>/dev/null; then
-        echo "golem-update: this machine's Golem (''${base:0:12}) is ahead of $branch (''${new:0:12}) — nothing to take from it"
+        echo "golem-update: this machine's Standard (''${base:0:12}) is ahead of $branch (''${new:0:12}) — nothing to take from it"
         new=$base
       fi
       built=$(/nix/var/nix/profiles/system/sw/bin/nixos-version --configuration-revision 2>/dev/null || true)
@@ -246,7 +279,7 @@ let
 
       if [ "$new" = "$base" ] && [ "$built" = "$base" ] && [ "$converge" = 0 ]; then
         rm -f "$since"
-        echo "golem-update: already on the newest Golem (''${new:0:12})"
+        echo "golem-update: already on the newest Standard (''${new:0:12})"
         exit 0
       fi
 
@@ -298,7 +331,7 @@ let
       elif [ "$mine" = "$base_tree" ] || [ "$mine" = "$(g rev-parse "$new^{tree}")" ]; then
         final=$(g rev-parse "$new^{tree}")
       else
-        local_commit=$(g -c user.name=golem -c user.email=golem@localhost commit-tree "$mine" "''${parent[@]}" -m "this machine's changes to Golem")
+        local_commit=$(g -c user.name=golem -c user.email=golem@localhost commit-tree "$mine" "''${parent[@]}" -m "this machine's changes to Standard")
         # (-z: the tree first, then the files both sides changed, each ended
         # by a NUL — a name is never quoted or cut.)
         mrc=0
@@ -311,7 +344,7 @@ let
         fi
         IFS= read -r -d "" final < "$merged"
         if [ "$mrc" = 1 ]; then
-          # Where both sides changed the same lines: Golem's new version, and
+          # Where both sides changed the same lines: Standard's new version, and
           # the machine's file set aside.
           aside="$state/local-edits/$(date +%Y-%m-%d-%H%M%S)"
           idx=$(mktemp -u "$gitdir/golem-index.XXXXXX")
@@ -329,7 +362,7 @@ let
             if [ -n "$entry" ]; then
               GIT_INDEX_FILE="$idx" g update-index --add --cacheinfo "$entry,$f"
             fi
-            echo "golem-update: $f — changed here and in the new version: Golem's is taken, this machine's is in $aside/$f"
+            echo "golem-update: $f — changed here and in the new version: Standard's is taken, this machine's is in $aside/$f"
           done < "$merged"
           final=$(GIT_INDEX_FILE="$idx" g write-tree)
           rm -f "$idx"
@@ -338,9 +371,9 @@ let
       fi
 
       # THE BROWSER'S PIN (seam/sources.json). Seam's own update lane moves
-      # it here between Golem's versions (seam/lane.nix), and Firefox refuses
+      # it here between Standard's versions (seam/lane.nix), and Firefox refuses
       # a profile that a NEWER version has used: whichever pin is newer
-      # stays, this machine's or the new Golem's. It is the lane's doing,
+      # stays, this machine's or the new Standard's. It is the lane's doing,
       # not an owner's edit: it is never set aside.
       pin=seam/sources.json
       pin_version() { { g show "$1:$pin" 2>/dev/null || true; } | sed -n 's/.*"version": *"\([0-9][0-9a-z.]*\)".*/\1/p' | head -n 1; }
@@ -353,7 +386,7 @@ let
         GIT_INDEX_FILE="$idx" g update-index --add --cacheinfo "$entry,$pin"
         final=$(GIT_INDEX_FILE="$idx" g write-tree)
         rm -f "$idx"
-        echo "golem-update: this machine's browser is newer ($mine_v) than the new Golem's ($final_v) — its pin stays"
+        echo "golem-update: this machine's browser is newer ($mine_v) than the new Standard's ($final_v) — its pin stays"
       fi
       if [ -n "$aside" ] && [ -e "$aside/$pin" ]; then
         rm -f "$aside/$pin"
@@ -372,21 +405,21 @@ let
       trap 'rm -rf "$try"' EXIT
       trap 'exit 143' TERM
       trap 'exit 130' INT
-      rsync -a --exclude=/golem "$dir/" "$try/"
-      mkdir "$try/golem"
-      g archive "$final" | tar -x -C "$try/golem"
+      rsync -a --exclude=/standard "$dir/" "$try/"
+      mkdir "$try/standard"
+      g archive "$final" | tar -x -C "$try/standard"
       if [ "$asis" = 1 ]; then
-        [ ! -f "$co/.golem-rev" ] || cp "$co/.golem-rev" "$try/golem/.golem-rev"
+        [ ! -f "$co/.golem-rev" ] || cp "$co/.golem-rev" "$try/standard/.golem-rev"
       else
-        printf '%s\n' "$new" > "$try/golem/.golem-rev"
+        printf '%s\n' "$new" > "$try/standard/.golem-rev"
       fi
 
       if [ "$asis" = 1 ]; then
         :   # said above
       elif [ "$new" = "$base" ] && [ "$converge" = 1 ]; then
-        echo "golem-update: building this machine's own system from $dir (Golem ''${new:0:12})"
+        echo "golem-update: building this machine's own system from $dir (Standard ''${new:0:12})"
       elif [ "$new" = "$base" ]; then
-        echo "golem-update: Golem ''${new:0:12} is in $co but the newest built system is ''${built:-unknown} — building it"
+        echo "golem-update: Standard ''${new:0:12} is in $co but the newest built system is ''${built:-unknown} — building it"
       else
         echo "golem-update: ''${base:0:12}''${base:+ }→ ''${new:0:12}"
       fi
@@ -418,10 +451,10 @@ let
         # Nothing of the folder changed, and git is told nothing: the files
         # are still of a version it does not have.
         said=$(said_rev)
-        echo "golem-update: this machine is on its own system$([ "$action" = boot ] && echo ' from its next start') (Golem ''${said:-of a version}''${said:+, a version} $branch does not know: an update takes the branch's when it is asked)"
+        echo "golem-update: this machine is on its own system$([ "$action" = boot ] && echo ' from its next start') (Standard ''${said:-of a version}''${said:+, a version} $branch does not know: an update takes the branch's when it is asked)"
         exit 0
       fi
-      rsync -a --checksum --exclude=/.git "$try/golem/" "$co/"
+      rsync -a --checksum --exclude=/.git "$try/standard/" "$co/"
       while IFS= read -r -d "" f; do
         rm -f -- "$co/$f"
       done < <(g diff-tree -r -z --name-only --diff-filter=D "$mine" "$final")
@@ -433,38 +466,40 @@ let
         echo "golem-update: files this machine had changed were set aside in $aside (golem-status shows what is still changed)"
         printf '%s\n' "$aside" > "$state/local-edits/latest"
       fi
-      echo "golem-update: this machine is on Golem ''${new:0:12}$([ "$action" = boot ] && echo ' from its next start')"
+      echo "golem-update: this machine is on Standard ''${new:0:12}$([ "$action" = boot ] && echo ' from its next start')"
     '';
   };
 
-  # `golem-recover [system]`: Golem's files back to what built a given system
+  # `golem-recover [system]`: Standard's files back to what built a given system
   # (the running one by default). Going back a version — after a crash loop,
   # or asked for in Controls → Updates (desktop/crash-recovery.nix) — switches
   # the generation; without this the folder would still hold the version
   # left behind, and the next rebuild would bring it straight back. Every
-  # generation keeps the folder it was built from (/etc/golem/machine), Golem
-  # with this machine's edits included. Only golem/ is put back:
+  # generation keeps the folder it was built from (/etc/golem/machine), Standard
+  # with this machine's edits included. Only standard/ is put back:
   # configuration.nix, modules/ and machine/ are the machine's and stay.
   recover = pkgs.writeShellApplication {
     name = "golem-recover";
     runtimeInputs = [ pkgs.git pkgs.rsync pkgs.coreutils pkgs.diffutils pkgs.gnused ];
     text = ''
       sys=$(readlink -f "''${1:-/run/current-system}")
-      kept="$sys/etc/golem/machine/golem"
+      kept="$sys/etc/golem/machine/standard"
+      # (A system built before the folder had its new name keeps it by the old.)
+      [ -f "$kept/flake.nix" ] || kept="$sys/etc/golem/machine/golem"
       ${gitFn}
       if [ ! -f "$kept/flake.nix" ]; then
-        echo "golem-recover: $(basename "$sys") keeps no copy of Golem — the folder stays as it is" >&2
+        echo "golem-recover: $(basename "$sys") keeps no copy of Standard — the folder stays as it is" >&2
         exit 1
       fi
       if diff -rq --exclude=.git "$kept" "$co" >/dev/null 2>&1; then
-        echo "golem-recover: $co already holds the Golem that built $(basename "$sys")"
+        echo "golem-recover: $co already holds the Standard that built $(basename "$sys")"
         exit 0
       fi
       # (The kept copy is in the store: read-only files. Here they are root's
       # to edit again.)
       rsync -rlp --checksum --delete --exclude=/.git --chmod=u+w "$kept/" "$co/"
       # What those files are made of: said beside them, or (the medium's
-      # baked system keeps Golem as the medium carried it, with no such
+      # baked system keeps Standard as the medium carried it, with no such
       # file) by the system itself.
       rev=""
       [ -f "$co/.golem-rev" ] && rev=$(sed 's/-dirty$//' "$co/.golem-rev")
@@ -477,7 +512,7 @@ let
         g symbolic-ref HEAD "refs/heads/$branch"
         g read-tree "$rev"
       fi
-      echo "golem-recover: $co holds the Golem that built $(basename "$sys") again''${rev:+ (''${rev:0:12})}"
+      echo "golem-recover: $co holds the Standard that built $(basename "$sys") again''${rev:+ (''${rev:0:12})}"
     '';
   };
 
@@ -488,7 +523,7 @@ let
   '';
 in
 {
-  options.golem.machine = {
+  options.standard.machine = {
     dir = lib.mkOption {
       type = lib.types.str;
       default = "/etc/nixos";
@@ -497,18 +532,18 @@ in
     gitDir = lib.mkOption {
       type = lib.types.str;
       default = "/var/lib/golem/golem.git";
-      description = "Git's data for root's checkout of Golem (<dir>/golem), kept out of the folder a rebuild copies.";
+      description = "Git's data for root's checkout of Standard (<dir>/standard), kept out of the folder a rebuild copies.";
     };
     source = lib.mkOption {
       type = lib.types.path;
       internal = true;
-      description = "The Golem source this system is built from.";
+      description = "The Standard source this system is built from.";
     };
     updateCommand = lib.mkOption {
       type = lib.types.package;
       internal = true;
       readOnly = true;
-      description = "golem-update: this machine onto the newest Golem (the nightly update runs it: ./update.nix).";
+      description = "golem-update: this machine onto the newest Standard (the nightly update runs it: ./update.nix).";
     };
     folder = lib.mkOption {
       type = lib.types.path;
@@ -530,32 +565,36 @@ in
 
   config = {
     # No checkout in a home: nothing below base/loop.nix's default applies.
-    golem.flakeDir = null;
-    golem.flakeAttr = "default";
+    standard.flakeDir = null;
+    standard.flakeAttr = "default";
 
     # Every generation keeps the folder it was built from: the machine's own
-    # files and, when Golem is the folder's golem/ (a machine; not a check's
-    # fixture), Golem as it was — this machine's edits included. A generation
+    # files and, when Standard is the folder's standard/ (a machine; not a check's
+    # fixture), Standard as it was — this machine's edits included. A generation
     # can always be rebuilt, and a folder edited into a state that no longer
     # builds can be put back from the running system (golem-recover).
     # (The folder is the build's own source, already in the store: this is a
     # link to it, not another copy.)
     environment.etc."golem/machine".source = "${cfg.folder}";
 
-    # What Golem's tools and a curious owner ask the system: which layout,
+    # What Standard's tools and a curious owner ask the system: which layout,
     # and why this hardware got the modules it got.
     environment.etc."golem/layout.json".text = builtins.toJSON {
       layout = "etc-nixos";
       inherit (cfg) dir profile;
-      golem = co;
+      standard = co;
       leaves = cfg.leaves;
     };
 
     environment.systemPackages = [ rebuildGolem update recover status checkout ];
-    golem.machine.updateCommand = update;
 
-    # Going back a version puts Golem's files back with it (see `recover`).
-    golem.recover = recover;
+    # (The folder's old name, see moveFolder: at the activation of every
+    # system, a no-op once moved.)
+    system.activationScripts.golemMoveFolder = "${moveFolder} || true";
+    standard.machine.updateCommand = update;
+
+    # Going back a version puts Standard's files back with it (see `recover`).
+    standard.recover = recover;
 
     # /var/lib/golem holds the secrets (base/users.nix), the update's
     # root-only tries and the checkout's git data: it exists, root's alone,

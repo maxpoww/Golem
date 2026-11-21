@@ -1,6 +1,6 @@
-# Golem's icons
+# Standard's icons
 
-Golem's own folders, files and devices (Max, 2026-10-14): the dock figures'
+Standard's own folders, files and devices (Max, 2026-10-14): the dock figures'
 cast grey, a gloss and a bevel, and a round symbol engraved in the middle.
 Apps are not here — the theme inherits Papirus-Dark for everything else.
 

@@ -3,7 +3,7 @@
 # installer's answers (docs/system/Layout.md, stage 3: what golem-install
 # calls where it used to write hosts/target/machine.nix).
 #
-#   golem-machine-scaffold --to /mnt/etc/nixos --golem <Golem source> \
+#   golem-machine-scaffold --to /mnt/etc/nixos --standard <Standard source> \
 #     --owner ana --hostname thinkpad --fullname "Ana Pérez" \
 #     --locale es_AR.UTF-8 --timezone America/Argentina/Buenos_Aires \
 #     --kb-layout latam --kb-model pc105 --kb-console la-latin1 \
@@ -11,7 +11,7 @@
 #     [--kb-variant V] [--kb-options O] [--kb-font F] [--profile desktop|minimal] \
 #     [--luks-uuid UUID] [--grub-device /dev/disk/by-id/…]
 #
-# It only writes the folder: no lock (the caller pins the Golem on the
+# It only writes the folder: no lock (the caller pins the Standard on the
 # medium), no build. Every answer is written as a Nix STRING, escaped here:
 # a name with a quote, a backslash or ${ in it stays a name.
 #
@@ -27,7 +27,7 @@ kb_layout="us"; kb_variant=""; kb_options=""; kb_model="pc104"; kb_console="us";
 luks_uuid=""; grub_device=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --to) to=$2 ;; --golem) golem=$2 ;; --profile) profile=$2 ;;
+    --to) to=$2 ;; --standard) golem=$2 ;; --profile) profile=$2 ;;
     --facts) facts=$2 ;; --hardware-config) hwconf=$2 ;;
     --owner) owner=$2 ;; --hostname) hostname=$2 ;; --fullname) fullname=$2 ;;
     --locale) locale=$2 ;; --timezone) timezone=$2 ;;
@@ -40,7 +40,7 @@ while [ $# -gt 0 ]; do
 done
 die() { echo "golem-machine-scaffold: $*" >&2; exit 1; }
 
-[ -n "$to" ] && [ -n "$golem" ] || die "--to <folder> and --golem <Golem source> are needed"
+[ -n "$to" ] && [ -n "$golem" ] || die "--to <folder> and --standard <Standard source> are needed"
 template="$golem/system/machine/template"
 [ -f "$template/configuration.nix" ] || die "no template in $golem (system/machine/template)"
 [ -n "$owner" ] && [ -n "$hostname" ] || die "--owner and --hostname are needed"
@@ -77,12 +77,12 @@ install -m 644 "$hwconf" "$to/hardware-configuration.nix"
 # The lines only some machines have, as the installer wrote them in machine.nix.
 extra=""
 if [ -n "$kb_font" ]; then
-  extra+=$'\n'"  golem.keyboard.consoleFont = \"$(nixstr "$kb_font")\";"$'\n'
+  extra+=$'\n'"  standard.keyboard.consoleFont = \"$(nixstr "$kb_font")\";"$'\n'
 fi
 if [ -n "$luks_uuid" ]; then
   extra+=$'\n'"  # Unlocked once in initrd; swap and root are LVM inside it,"
   extra+=$'\n'"  # which is what lets hibernation resume from an encrypted swap."
-  extra+=$'\n'"  boot.initrd.luks.devices.golem.device = \"/dev/disk/by-uuid/$(nixstr "$luks_uuid")\";"$'\n'
+  extra+=$'\n'"  boot.initrd.luks.devices.standard.device = \"/dev/disk/by-uuid/$(nixstr "$luks_uuid")\";"$'\n'
 fi
 if [ -n "$grub_device" ]; then
   extra+=$'\n'"  # BIOS/legacy boot: GRUB embeds into this disk's BIOS-boot"
@@ -121,7 +121,7 @@ case "$facts" in
   *)
     nix-instantiate --eval --strict --json \
       --argstr file "$(readlink -f "$facts")" \
-      --expr '{ file }: (import file { }).golem.hardware' \
+      --expr '{ file }: (import file { }).standard.hardware' \
       > "$to/machine/facts.json" || die "could not read the facts from $facts"
     ;;
 esac
@@ -138,4 +138,4 @@ if [ -e "$dest/configuration.nix" ]; then
 fi
 cp -a "$to/." "$dest/"
 chmod 755 "$dest"
-echo "golem-machine-scaffold: $dest is this machine's folder. Next: pin its Golem (flake.lock) and build $dest#default."
+echo "golem-machine-scaffold: $dest is this machine's folder. Next: pin its Standard (flake.lock) and build $dest#default."

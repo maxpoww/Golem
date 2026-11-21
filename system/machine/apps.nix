@@ -21,8 +21,8 @@
 { config, pkgs, lib, ... }:
 
 let
-  cfg = config.golem.machine;
-  user = config.golem.owner;
+  cfg = config.standard.machine;
+  user = config.standard.owner;
   userHome = config.users.users.${user}.home;
   listFile = "${userHome}/.config/waverunner/packages.list";
   statusFile = "${userHome}/.config/waverunner/apply-status.json";
@@ -36,7 +36,7 @@ let
     # errexit: nounset + pipefail.
     bashOptions = [ "nounset" "pipefail" ];
     runtimeInputs = [
-      config.golem.rebuild
+      config.standard.rebuild
       config.nix.package
       pkgs.gnugrep
       pkgs.glibc.bin # getent: the connectivity wait
@@ -160,7 +160,7 @@ let
       install -d -m 700 /var/lib/golem
       find /var/lib/golem -maxdepth 1 -name 'apply.*' -mmin +1440 -exec rm -rf {} + 2>/dev/null || true
       try=$(mktemp -d /var/lib/golem/apply.XXXXXX)
-      rsync -a --exclude=/golem/.git "$dir/" "$try/"
+      rsync -a --exclude=/standard/.git "$dir/" "$try/"
       install -D -m 644 "$new" "$try/machine/apps.list"
       flakeref="path:$try#default"
 
@@ -242,14 +242,14 @@ in
 {
   # (For the tests: the helper itself, built — and so shell-checked — with
   # the layout's other commands.)
-  options.golem.machine.applyCommand = lib.mkOption {
+  options.standard.machine.applyCommand = lib.mkOption {
     type = lib.types.package;
     internal = true;
     readOnly = true;
     description = "waverunner-apply: the dock's app list into machine/apps.list, then a rebuild.";
   };
 
-  config.golem.machine.applyCommand = applyScript;
+  config.standard.machine.applyCommand = applyScript;
 
   config.systemd.services.waverunner-apply = {
     description = "Apply the dock's app list (machine/apps.list, then nixos-rebuild switch)";

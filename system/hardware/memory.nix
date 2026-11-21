@@ -1,5 +1,5 @@
 # Memory policy, sized by the machine — swap, zram, and the vm.* knobs,
-# tiered on the `ramMB` fact (Max, 2026-09-04: "Golem has to be aware of
+# tiered on the `ramMB` fact (Max, 2026-09-04: "Standard has to be aware of
 # the quantity of memory and decide how to play"). One family module
 # (spec §5); this supersedes the two zram tiers that lived in
 # hardware.nix and the three vm.* memory sysctls core carried.
@@ -12,7 +12,7 @@
 #                         when zram is full. Hibernation is a LOCKED
 #                         decision (Max, 2026-09-04): the installer
 #                         creates disk swap sized RAM+margin on every
-#                         machine — see `lib.golem.swapForHibernationMB`
+#                         machine — see `lib.standard.swapForHibernationMB`
 #                         in flake.nix for the one sizing rule.
 #
 # TIERS (ramMB; 0 = unknown = exactly the pre-module behavior, per the
@@ -40,7 +40,7 @@
 { config, lib, ... }:
 
 let
-  cfg = config.golem.hardware;
+  cfg = config.standard.hardware;
   known = cfg.ramMB > 0;
   low = known && cfg.ramMB < 6144;
   mid = known && cfg.ramMB >= 6144 && cfg.ramMB <= 16384;

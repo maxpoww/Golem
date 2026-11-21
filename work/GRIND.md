@@ -9,7 +9,7 @@ commits, OPTIONS/catalog.md, or this file.
 
 1. Take the topmost unfinished item from the QUEUE below.
 2. Build it COMPLETELY (for OPTIONS slices: sensed → pill → action performs).
-3. Validate: batch 3–4 items per golem-vm session — do NOT boot/tear a VM
+3. Validate: batch 3–4 items per standard-vm session — do NOT boot/tear a VM
    per item. Screenshot surfaced UI. `cargo test --workspace` stays green.
 4. Commit (repo-local only), tick the item here with the commit hash,
    update OPTIONS/catalog.md if it's a slice.
@@ -38,7 +38,7 @@ commits, OPTIONS/catalog.md, or this file.
 <!-- Fresh agent 2026-09-03: items marked MAX-GATED or REAL-HW below are NOT
      yours — they need Max's hand or real hardware. Work the actionable ones;
      when they run out, extend per the loop rules (harden, test, profile,
-     catalog). Note: launcher is now PUSHED to github and Golem's flake.lock
+     catalog). Note: launcher is now PUSHED to github and Standard's flake.lock
      pins it — after any launcher commit, an ISO only carries it once pushed
      and re-pinned; that push is MAX's call, never yours (local commits only). -->
 
@@ -50,7 +50,7 @@ commits, OPTIONS/catalog.md, or this file.
       (hooked into new/update/destroy output + the topbar configure). Pill text
       measures AND draws at FONT_PX × scale so widths always fit. The mapping is
       pure + unit-tested (options::pill_scale_for: 1.0 ≥900px, h/900 below,
-      0.82 floor). CONFIRMED in golem-vm at 1280x800: Hyprland reports
+      0.82 floor). CONFIRMED in standard-vm at 1280x800: Hyprland reports
       `reserved: 0 25 0 0` (28 × 800/900 → 25, re-reserved post-enumeration),
       pixel scan shows the bell pill ~20px in the 25px bar (19.9 expected),
       clock text fits its pill, the notif box opens anchored to the shrunk band
@@ -122,9 +122,9 @@ commits, OPTIONS/catalog.md, or this file.
       open path re-seeds at the live scale. By-construction (VM can't switch
       modes, see above); real-HW hotplug is the observable.
 
-- [x] VM regression sweep DONE (2026-09-03, FRESH golem-vm rebuilt with
+- [x] VM regression sweep DONE (2026-09-03, FRESH standard-vm rebuilt with
       launcher@ef9a9c4 baked — the old VM's 9p overlay had soured, see
-      NOTES.md "golem-vm test-loop mechanics"): zone 25 on the baked build;
+      NOTES.md "standard-vm test-loop mechanics"): zone 25 on the baked build;
       new ctl usage table renders + two-argv options-trigger works from the
       PROFILE binary; selection chain cycles live (word → define above search,
       URL → "Open copied link"); define end-to-end opens the dict panel seeded
@@ -170,16 +170,16 @@ commits, OPTIONS/catalog.md, or this file.
       "clip box open"/"frame gap" lines while opening boxes.
 <!-- Queue extension 2026-09-03 (actionable items exhausted; per loop rules,
      extended from release-checklist.md + OPTIONS/catalog.md follow-ups). -->
-- [x] (Golem) flake check first-ever run: ALL GREEN; follow-up
+- [x] (Standard) flake check first-ever run: ALL GREEN; follow-up
       boot.zfs.forceImportRoot=false committed (the 26.11 default — no
       data-loss default left armed; warning gone, checks still pass).
 - [x] 2026-09-03 ISO #3 CANDIDATE — built and FULLY gated (static 8/8 at
       build time + real qemu boot: `SMOKE greetd=active hypr=1 wr=1
       supp=active binsh=yes`):
       `/nix/store/fczpi2gdak3758knvxjw2dag16v11l3v-golem.iso`. Cut from a
-      CLEAN tree at the "tick pass K" commit; carries this session's Golem
+      CLEAN tree at the "tick pass K" commit; carries this session's Standard
       fixes on top of ISO #2 — count-based rollback gc, the needle guard,
-      golem.owner, zfs.forceImportRoot=false, source-rev identity
+      standard.owner, zfs.forceImportRoot=false, source-rev identity
       (77a8c82-era). Launcher pin UNCHANGED (still 92e97e6) — daemon-side
       work after that stays MAX-GATED on the push+repin. Static check 9
       (owner chain) landed after this cut; it's in the tree for the next.
@@ -322,13 +322,13 @@ commits, OPTIONS/catalog.md, or this file.
       always; substring/prefix only at normalized length ≥3; claimed ids
       never reused; fuzzy only over newly-appeared apps), all sites share
       them; ring/shine curves bounded+monotonic under test. 348 green.
-- [x] bd5468b golem.owner (release-checklist §2.2) — the five baked-in
+- [x] bd5468b standard.owner (release-checklist §2.2) — the five baked-in
       maxes (user/greetd/sudo/HM wiring, home layer, apply watch path, ISO
       live password, vm host) all derive from ONE option. Proven both ways:
       extendModules{owner="anna"} → no max user, greetd/sudo/home/ssh/
       flakeDir/apply-watch all anna; default owner attrs unchanged;
       iso-smoke 8/8. Installer rename = set one option.
-- [x] VM batch DONE (2026-09-03, FRESH golem-vm baked with launcher@2de7608
+- [x] VM batch DONE (2026-09-03, FRESH standard-vm baked with launcher@2de7608
       via --override-input, fresh qcow2 in the scratchpad): running daemon
       verified as the new build (binary carries the multi_path strings);
       selection.multi_path CONFIRMED live end-to-end — two copied paths →
@@ -349,7 +349,7 @@ commits, OPTIONS/catalog.md, or this file.
       distroId, the one version string + alpha marker, the rollback headline
       copy, the feedback channel pick. All explicitly reserved as Max's
       DECIDE items (configuration.nix:132-135 comment + checklist wording).
-- [ ] MAX-GATED: launcher push + flake.lock re-pin. Golem's pin moved to
+- [ ] MAX-GATED: launcher push + flake.lock re-pin. Standard's pin moved to
       92e97e6 (b052bcf) — everything after (responsive pills 4e02463, passes
       E/F/G, catalog micro-slices 1136e0c, multi-output 8bfdbd9, ctl 784810f,
       open-box collapse ef9a9c4, battery-ladder tests ecf11a2) is LOCAL-ONLY
@@ -381,7 +381,7 @@ commits, OPTIONS/catalog.md, or this file.
       self-suppression). Gate green on the exact image: static 6/6 +
       `SMOKE greetd=active hypr=1 wr=1 supp=active binsh=yes`.
       NOTE for whoever cuts the next one: the ISO carries its own flake source
-      (`golemSrc = self`), so editing ANY tracked file changes the ISO hash —
+      (`standardSrc = self`), so editing ANY tracked file changes the ISO hash —
       commit first, then build, then gate, then don't touch the tree.
 - [ ] REAL-HW: Confirm the screencast fix on real hardware. The blink was diagnosed on
       the 2013 Air (18 `screencast>>1/0` toggles in 8 s from our own 700 ms
@@ -396,7 +396,7 @@ commits, OPTIONS/catalog.md, or this file.
       the old animation rules are considered LOST — do not try to reconstruct
       them; treat this as a fresh design decision WITH him before building.
 
-- [x] VM BATCH DONE (2026-09-02, golem-vm at 1280x800 → options_scale 0.889;
+- [x] VM BATCH DONE (2026-09-02, standard-vm at 1280x800 → options_scale 0.889;
       VM built with `--override-input waverunner git+file:///home/max/launcher`
       and the running daemon verified as the build carrying both changes):
       (a) media box uniform scale (654b88d) — CONFIRMED. Box drew 320x114
@@ -470,7 +470,7 @@ commits, OPTIONS/catalog.md, or this file.
   buffers endless nulls and hangs the SSH command.)
 - [~] 3efd1ee FULLSCREEN PERF (partial — screencopy pause DONE+CONFIRMED; layer
       unmap deferred). (a) PAUSE the topbar screencopy colour-match during
-      fullscreen — DONE. CONFIRMED in golem-vm: directScanoutBlockedBy loses
+      fullscreen — DONE. CONFIRMED in standard-vm: directScanoutBlockedBy loses
       "RECORD" on fullscreen-enter, regains it on exit, across clean cycles;
       topbar stays mapped + renders correctly before/after. This removes the
       dominant per-frame waverunner cost (the 700ms wlr-screencopy GPU readback
@@ -525,12 +525,12 @@ commits, OPTIONS/catalog.md, or this file.
       was wrong). Static checks: all 6 green (configs eval, hyprland.lua parses,
       /bin/sh tmpfiles, wpa_supplicant, greetd+oomd, monitor catch-all). Boot
       check (replicated the script's qemu invocation headless against the given
-      ISO — the script itself would have rebuilt the ISO since my Golem commits
+      ISO — the script itself would have rebuilt the ISO since my Standard commits
       changed the flake source, and would have popped a GTK window):
       **SMOKE greetd=active hypr=1 wr=1 supp=active binsh=yes** — all five
       assertions green. Notes: serial socket path must be short (<108 bytes,
       use /run/user/1000); boot needs >150 s before the serial shell responds
-      (nixos@Golem autologin appears on ttyS0); with `server,nowait` early boot
+      (nixos@Standard autologin appears on ttyS0); with `server,nowait` early boot
       output is dropped, so probe by holding the connection and sending the
       command, reading for ~8 s.
 - [x] 2b2a494 Pill tooltips (discoverability): hover a dynamic OPTION pill →
@@ -538,7 +538,7 @@ commits, OPTIONS/catalog.md, or this file.
       Label/rect rendering; per-char-estimated background, text shapes exactly at
       render; suppressed while the media box is open). Added a debug-hover-option
       IPC verb (no headless cursor warp on this compositor). CONFIRMED in the
-      golem-vm: hovering the screencast pill shows "Screen is being shared". No
+      standard-vm: hovering the screencast pill shows "Screen is being shared". No
       layout regression (renders in the transparent region under the bar).
 - [x] c3a3800+5bab023 Catalog expansion — the 3 highest-value unserved cases
       grounded → spec'd → BUILT (plus the earlier batch: reading-title fallback,
@@ -548,7 +548,7 @@ commits, OPTIONS/catalog.md, or this file.
       2. reading.page_next/prev (§1.11) — PageDown/PageUp keystrokes for
          readers. Confirmed-by-construction (send_shortcut path).
       3. window.record/record_stop (§1.10) — wf-recorder pair with a new
-         is_recording /proc sensor; wf-recorder added to Golem home pkgs
+         is_recording /proc sensor; wf-recorder added to Standard home pkgs
          (862b173). CONFIRMED live in the VM: pair flips both ways, stop ranks
          first while recording, stays reachable after leaving fullscreen.
       Remaining §1 gaps are micro-cases (image/video-editor internals) or
@@ -567,7 +567,7 @@ commits, OPTIONS/catalog.md, or this file.
       style — if uniform wins, apply ddde8f0's pattern to notif (wrap there
       uses a measure closure: scale the measured AND drawn font together).
 - [x] Idle-wakeup profile — DONE + documented (NOTES.md), no code change
-      warranted. Measured in the golem-vm: engine aggregate = 2.1 updates/sec
+      warranted. Measured in the standard-vm: engine aggregate = 2.1 updates/sec
       (new `options-engine` example `genrate` measures it via the generation
       counter); the options-brain thread shows a high WAKEUP count (~350/s park/
       unpark from tokio current-thread timers + llvmpipe workers) but only ~6
@@ -619,8 +619,8 @@ commits, OPTIONS/catalog.md, or this file.
 - Session 2026-09-02 (before GRIND.md existed), all local commits in launcher
   unless noted:
   - RAM: glibc arena cap + lazy-loaded pkg index (gated on launcher-open).
-    Idle VmRSS 420→326 MB, anon 170→97 MB, CONFIRMED in golem-vm. Finding +
-    RSS breakdown in NOTES.md (Golem): the residual Golem-vs-GNOME gap is
+    Idle VmRSS 420→326 MB, anon 170→97 MB, CONFIRMED in standard-vm. Finding +
+    RSS breakdown in NOTES.md (Standard): the residual Golem-vs-GNOME gap is
     session daemons (easyeffects ~135 MB etc.), not waverunner core.
   - Slices: downloads.open + downloads.extract (new collector; CONFIRMED live
     in VM — dropped a .zip, both pills surfaced), system.battery_dim (laptop

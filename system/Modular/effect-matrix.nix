@@ -16,7 +16,7 @@
 let
   fakeDisk = {
     nixpkgs.hostPlatform = "x86_64-linux";
-    fileSystems."/" = { device = "/dev/disk/by-label/golem"; fsType = "ext4"; };
+    fileSystems."/" = { device = "/dev/disk/by-label/standard"; fsType = "ext4"; };
     fileSystems."/boot" = { device = "/dev/disk/by-label/ESP"; fsType = "vfat"; };
   };
 
@@ -25,13 +25,13 @@ let
   rows = [
     {
       name = "acer-e5-573 (THE FIRST BLESSED METAL — stage 0, UEFI, HD 5500)";
-      facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "UEFI → GRUB-EFI on, no systemd-boot (#92)" (c.boot.loader.grub.enable && c.boot.loader.grub.efiSupport && !c.boot.loader.systemd-boot.enable))
         (ex "a frozen machine reboots itself: kernel.panic=10, softlockup_panic=1 (the Air on the progress bar, 2026-10-29)" (c.boot.kernel.sysctl."kernel.panic" == 10 && c.boot.kernel.sysctl."kernel.softlockup_panic" == 1))
-        (ex "autoupdate: an owner's edit to Golem's files is set aside (~/Golem-local-edits) instead of freezing updates, and a seed that still cannot fast-forward FAILS the unit (ASUS 2026-10-02)" (lib.hasInfix "Golem-local-edits" c.systemd.services.golem-autoupdate.script && lib.hasInfix "FAILED, not success" c.systemd.services.golem-autoupdate.script))
+        (ex "autoupdate: an owner's edit to Standard's files is set aside (~/Golem-local-edits) instead of freezing updates, and a seed that still cannot fast-forward FAILS the unit (ASUS 2026-10-02)" (lib.hasInfix "Golem-local-edits" c.systemd.services.golem-autoupdate.script && lib.hasInfix "FAILED, not success" c.systemd.services.golem-autoupdate.script))
         (ex "autoupdate: a run that pulled and died in the rebuild is finished by the next run (compares the newest BUILT system's revision, not only before/after)" (lib.hasInfix "nixos-version --configuration-revision" c.systemd.services.golem-autoupdate.script))
-        (ex "updates: installs follow stable, the branch the update lane publishes (updates/README.md)" (c.golem.upstream.branch == "stable"))
+        (ex "updates: installs follow stable, the branch the update lane publishes (updates/README.md)" (c.standard.upstream.branch == "stable"))
         (ex "updates: a seed that followed main moves to stable once stable exists upstream" (lib.hasInfix "--set-upstream-to=\"origin/$want\"" c.systemd.services.golem-autoupdate.script))
         (ex "updates: the cache's key is trusted NEXT TO cache.nixos.org's, never instead of it" (lib.elem "golem-cache-1:lUUA5lNDJ8EJhxXLuebT5a3bL7c0SRJKUhNooEwO1B0=" c.nix.settings.trusted-public-keys && lib.elem "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" c.nix.settings.trusted-public-keys))
         (ex "updates: each machine asks at its own fixed moment of the night (RandomizedOffsetSec 6 h), never all at once" (c.systemd.timers.golem-autoupdate.timerConfig.RandomizedOffsetSec == "6h"))
@@ -43,9 +43,9 @@ let
         (ex "updates: a broken network is not an unpublished version: the nightly update builds nothing when GitHub cannot be asked for the version's pieces (75) and comes back in an hour, not tomorrow (the ASUS, 2026-11-19)" (lib.hasInfix "GOLEM_REBUILD_NEED_CACHE=1" c.systemd.services.golem-autoupdate.script && lib.hasInfix "golem-wait-online || exit 75" c.systemd.services.golem-autoupdate.script && c.systemd.services.golem-autoupdate.serviceConfig.RestartForceExitStatus == "75" && c.systemd.services.golem-autoupdate.serviceConfig.RestartSec == "1h"))
         (ex "updates: a version out before the machine saw it counts from its publication (an install from an older ISO does not wait its whole wave again)" (lib.hasInfix "golem-update-published" c.systemd.services.golem-autoupdate.script))
         (ex "an install is not the lab: no lab door (no dev-box keys, no lab Wi-Fi, no fixed wave; lab machines opt in with hosts/target/lab.nix, 2026-11-12)"
-          (!c.golem.lab.door && c.users.users.root.openssh.authorizedKeys.keys == [ ]
+          (!c.standard.lab.door && c.users.users.root.openssh.authorizedKeys.keys == [ ]
            && !(c.networking.networkmanager.ensureProfiles.profiles ? golem-lab)
-           && c.golem.update.wave == null && !(c.environment.etc ? "golem/lab-door")))
+           && c.standard.update.wave == null && !(c.environment.etc ? "golem/lab-door")))
         (ex "updates never freeze the machine: the nix daemon yields the disk and CPU (idle I/O class, IOWeight/CPUWeight 10; Acer HDD froze 2026-10-27)" (c.nix.daemonIOSchedClass == "idle" && c.systemd.services.nix-daemon.serviceConfig.IOWeight == 10 && c.systemd.services.nix-daemon.serviceConfig.CPUWeight == 10))
         (ex "first-boot never holds a boot target (the desktop must not wait for its rebuild): timer-started, low priority" (c.systemd.services.golem-first-boot.wantedBy == [ ] && c.systemd.timers ? golem-first-boot && c.systemd.services.golem-first-boot.serviceConfig.IOSchedulingClass == "idle"))
         (ex "first-boot and nix-gc wait for the desktop to be up (base/quiet-login): no heavy disk work during a login" (lib.any (lib.hasSuffix "/bin/golem-quiet-login") c.systemd.services.golem-first-boot.serviceConfig.ExecStartPre && lib.hasSuffix "/bin/golem-quiet-login" (lib.head c.systemd.services.nix-gc.serviceConfig.ExecStartPre)))
@@ -54,9 +54,9 @@ let
            && lib.hasInfix "--unrestricted" c.boot.loader.grub.subEntryOptions
            && lib.hasInfix "--unrestricted" c.boot.loader.grub.entryOptions
            && c.boot.loader.grub.users == { }))
-        (ex "the system names its owner's account (/etc/golem/owner) and renames it before the users step when golem.owner changes (2026-11-15)" (c.environment.etc."golem/owner".text == c.golem.owner + "\n" && lib.elem "golemOwnerRename" c.system.activationScripts.users.deps))
-        (ex "a system whose owner has another name never starts under the old account's session: the switch is refused before it begins, and golem-rebuild stages it (2026-11-20)" (c.system.preSwitchChecks ? golemOwner && lib.hasInfix "/run/golem-owner-waits" c.system.preSwitchChecks.golemOwner && lib.hasInfix "golem-owner-waits" c.golem.rebuild.text))
-        (ex "the owner cannot read every keyboard directly: not in the input group (2026-11-12)" (!lib.elem "input" c.users.users.${c.golem.owner}.extraGroups))
+        (ex "the system names its owner's account (/etc/golem/owner) and renames it before the users step when standard.owner changes (2026-11-15)" (c.environment.etc."golem/owner".text == c.standard.owner + "\n" && lib.elem "golemOwnerRename" c.system.activationScripts.users.deps))
+        (ex "a system whose owner has another name never starts under the old account's session: the switch is refused before it begins, and golem-rebuild stages it (2026-11-20)" (c.system.preSwitchChecks ? golemOwner && lib.hasInfix "/run/golem-owner-waits" c.system.preSwitchChecks.golemOwner && lib.hasInfix "golem-owner-waits" c.standard.rebuild.text))
+        (ex "the owner cannot read every keyboard directly: not in the input group (2026-11-12)" (!lib.elem "input" c.users.users.${c.standard.owner}.extraGroups))
         (ex "no passwordless sudo on an install (GolemSecurity)" (!(lib.any (r: lib.any (cmd: lib.elem "NOPASSWD" (cmd.options or [ ])) (r.commands or [ ])) c.security.sudo.extraRules) && !(lib.hasInfix "NOPASSWD" c.security.sudo.extraConfig)))
         (ex "Broadwell (not legacy) → LIBVA iHD" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "iHD"))
         (ex "intel microcode on" c.hardware.cpu.intel.updateMicrocode)
@@ -70,9 +70,9 @@ let
         (ex "laptop: upower on" c.services.upower.enable)
         (ex "intel laptop: thermald on" c.services.thermald.enable)
         (ex "disk policy: fstrim on" c.services.fstrim.enable)
-        (ex "self-rebuild loop: flakeAttr golem-minimal" (c.golem.flakeAttr == "golem-minimal"))
-        (ex "self-rebuild loop: flakeDir set" (c.golem.flakeDir != null))
-        (ex "bash is the owner's shell (#108: plain bash, not zsh)" (lib.hasPrefix "bash" (c.users.users.${c.golem.owner}.shell.pname or "")))
+        (ex "self-rebuild loop: flakeAttr standard-minimal" (c.standard.flakeAttr == "standard-minimal"))
+        (ex "self-rebuild loop: flakeDir set" (c.standard.flakeDir != null))
+        (ex "bash is the owner's shell (#108: plain bash, not zsh)" (lib.hasPrefix "bash" (c.users.users.${c.standard.owner}.shell.pname or "")))
         (ex "sshd on, key-only" (c.services.openssh.enable && !c.services.openssh.settings.PasswordAuthentication))
         (ex "NO nvidia driver anywhere" (!lib.elem "nvidia" c.services.xserver.videoDrivers))
         (ex "MINIMAL: no hyprland" (!c.programs.hyprland.enable))
@@ -81,7 +81,7 @@ let
     }
     {
       name = "qemu-virtio (VM stage-0 — the proven UEFI install)";
-      facts = (import ../../Installer/preinstall/fixtures/qemu-virtio/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/qemu-virtio/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "virtio: generic stack, no LIBVA pin" ((c.environment.sessionVariables.LIBVA_DRIVER_NAME or null) == null))
         (ex "qemu guest agent on" c.services.qemuGuest.enable)
@@ -93,7 +93,7 @@ let
     }
     {
       name = "lenovo (intel primary + nvidia gpu2 working turing+ — the ported nvidia leaves)";
-      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/lenovo-slim-pro-9-16irp8/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "nvidia driver on (offload)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
         (ex "turing+: open module" (c.hardware.nvidia.open == true))
@@ -109,7 +109,7 @@ let
     }
     {
       name = "hp Pavilion dm4 (FAILING amd Radeon gpu2 — the #33 hold default)";
-      facts = (import ../../Installer/preinstall/fixtures/hp-pavilion-dm4/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/hp-pavilion-dm4/facts.nix { }).standard.hardware;
       expect = c: [
         # No answer yet → the safe HOLD service is on, the destructive OFF is
         # absent entirely (mkIf'd out — `or false` avoids the missing-attr throw).
@@ -123,7 +123,7 @@ let
     }
     {
       name = "macbook air 2013 (Broadcom BCM4360 — the wl quirk, the boss fight)";
-      facts = (import ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/macbook-air-2013/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "wl kernel module requested" (lib.elem "wl" c.boot.kernelModules))
         (ex "broadcom_sta in extraModulePackages"
@@ -141,7 +141,7 @@ let
     }
     {
       name = "comodore GM45 (BIOS + GMA 4500 — the i965 legacy + grub-bios path)";
-      facts = (import ../../Installer/preinstall/fixtures/comodore-gm45/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/comodore-gm45/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "BIOS → GRUB on, no systemd-boot" (c.boot.loader.grub.enable && !c.boot.loader.systemd-boot.enable))
         (ex "Gen4 GMA → LIBVA i965 (not iHD)" (c.environment.sessionVariables.LIBVA_DRIVER_NAME or "" == "i965"))
@@ -154,7 +154,7 @@ let
     }
     {
       name = "thinkpad E15 (AMD Ryzen 4700U + Renoir Vega — the amd path)";
-      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/thinkpad-e15-gen2/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "amd microcode on" c.hardware.cpu.amd.updateMicrocode)
         (ex "NOT intel microcode" (!c.hardware.cpu.intel.updateMicrocode))
@@ -170,7 +170,7 @@ let
     }
     {
       name = "SYNTHETIC nvidia-only desktop, turing (primary nvidia — hardware video decode, gpu/nvidia/vaapi.nix)";
-      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-turing/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-turing/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "nvidia driver on (primary)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
         (ex "turing+: open module package" (c.hardware.nvidia.package == c.boot.kernelPackages.nvidiaPackages.stable))
@@ -184,7 +184,7 @@ let
     }
     {
       name = "SYNTHETIC nvidia-only desktop, pre-turing (primary nvidia — hardware video decode, gpu/nvidia/vaapi.nix)";
-      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-pre-turing/facts.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/synthetic-nvidia-desktop-pre-turing/facts.nix { }).standard.hardware;
       expect = c: [
         (ex "nvidia driver on (primary)" (lib.elem "nvidia" c.services.xserver.videoDrivers))
         (ex "pre-turing: legacy_580 package" (c.hardware.nvidia.package == c.boot.kernelPackages.nvidiaPackages.legacy_580))
@@ -197,19 +197,19 @@ let
       ];
     }
     {
-      name = "a lab testbed (acer facts + hosts/target/lab.nix: golem.lab.door = true)";
-      facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).golem.hardware;
-      extra = [ { golem.lab.door = true; } ];
+      name = "a lab testbed (acer facts + hosts/target/lab.nix: standard.lab.door = true)";
+      facts = (import ../../Installer/preinstall/fixtures/acer-aspire-e5-573/facts.nix { }).standard.hardware;
+      extra = [ { standard.lab.door = true; } ];
       expect = c: [
-        (ex "lab door: the dev box's key reaches root and the owner" (lib.any (lib.hasSuffix " dev-lab") c.users.users.root.openssh.authorizedKeys.keys && lib.any (lib.hasSuffix " dev-lab") c.users.users.${c.golem.owner}.openssh.authorizedKeys.keys))
+        (ex "lab door: the dev box's key reaches root and the owner" (lib.any (lib.hasSuffix " dev-lab") c.users.users.root.openssh.authorizedKeys.keys && lib.any (lib.hasSuffix " dev-lab") c.users.users.${c.standard.owner}.openssh.authorizedKeys.keys))
         (ex "lab door: joins the lab Wi-Fi on its own" (c.networking.networkmanager.ensureProfiles.profiles ? golem-lab))
-        (ex "lab door: wave 0, the lab meets every version first" (c.golem.update.wave == 0))
+        (ex "lab door: wave 0, the lab meets every version first" (c.standard.update.wave == 0))
         (ex "lab door: the system says so (/etc/golem/lab-door, what golem-install reads)" (c.environment.etc ? "golem/lab-door"))
       ];
     }
     {
       name = "asus (gpu=nvidia, unknown gen — the IRON LAW: NO proprietary driver)";
-      facts = (import ../../Installer/preinstall/fixtures/asus/golem-hardware.nix { }).golem.hardware;
+      facts = (import ../../Installer/preinstall/fixtures/asus/golem-hardware.nix { }).standard.hardware;
       expect = c: [
         # Just "no nvidia driver" — deliberately NOT reading
         # hardware.nvidia.open, which evaluates null nvidia internals on

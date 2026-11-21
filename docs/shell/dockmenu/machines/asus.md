@@ -1,4 +1,4 @@
-# asus — the fresh-install dataset (first real installed Golem)
+# asus — the fresh-install dataset (first real installed Standard)
 
 > X550LC · i5-4200U Haswell · 7.5 GB · 5400rpm HDD · GL renderer
 > fallback · 1366×768. Installed 2026-09-09; the #37–#48 dogfood

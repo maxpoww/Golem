@@ -154,7 +154,7 @@ Shows in: any · free space crosses the line
 No network — opens the connection picker
 Shows in: any · the link drops
 
-Golem has an update waiting — applies it
+Standard has an update waiting — applies it
 Shows in: configuring, idle · never mid-work
 ```
 

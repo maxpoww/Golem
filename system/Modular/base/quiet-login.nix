@@ -25,8 +25,8 @@ let
   # On the 2013 MacBook Air the store's collection ran 60 s after the dock
   # was up (Nice 0, best-effort I/O) while the apps were still indexing, and
   # the update's rebuild an hour in, 5 min of both cores (2026-10-29).
-  weak = ((config.golem.hardware.ramMB or 0) > 0 && (config.golem.hardware.ramMB or 0) < 6144)
-    || (config.golem.desktop.effects or "full") == "light";
+  weak = ((config.standard.hardware.ramMB or 0) > 0 && (config.standard.hardware.ramMB or 0) < 6144)
+    || (config.standard.desktop.effects or "full") == "light";
   afterShell = if weak then 900 else 60;
   gate = pkgs.writeShellApplication {
     name = "golem-quiet-login";
@@ -71,7 +71,7 @@ let
   };
 in
 {
-  options.golem.quietLogin = lib.mkOption {
+  options.standard.quietLogin = lib.mkOption {
     type = lib.types.package;
     internal = true;
     readOnly = true;

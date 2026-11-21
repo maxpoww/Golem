@@ -1,6 +1,6 @@
-# GOLEM VENDORED COPY of nixos/modules/installer/cd-dvd/iso-image.nix
+# STANDARD VENDORED COPY of nixos/modules/installer/cd-dvd/iso-image.nix
 # (nixpkgs c5c4a43, the flake's pin), swapped in via disabledModules in
-# ./iso.nix. The boot menu is Golem's first impression and the upstream
+# ./iso.nix. The boot menu is Standard's first impression and the upstream
 # module hardcodes rows we refuse (Max, 2026-09-03: "only Start and
 # Install, nothing else, no timing"). Diff against upstream, kept minimal:
 #   1. syslinux: boot.loader.timeout = null now means TIMEOUT 0 (wait
@@ -20,7 +20,7 @@
   lib,
   utils,
   pkgs,
-  # GOLEM: needed because the vendored copy lives outside the nixpkgs tree,
+  # STANDARD: needed because the vendored copy lives outside the nixpkgs tree,
   # so upstream's relative imports must resolve through modulesPath.
   modulesPath,
   ...
@@ -84,7 +84,7 @@ let
   targetArch = if config.boot.loader.grub.forcei686 then "ia32" else pkgs.stdenv.hostPlatform.efiArch;
 
   # Timeout in syslinux is in units of 1/10 of a second.
-  # GOLEM: null means NO timeout (0 = wait forever), matching grub's -1 —
+  # STANDARD: null means NO timeout (0 = wait forever), matching grub's -1 —
   # upstream mapped null to ~1h then autobooted.
   syslinuxTimeout =
     if config.boot.loader.timeout == null then 0 else config.boot.loader.timeout * 10;
@@ -202,7 +202,7 @@ let
 
     ${menuBuilderIsolinux { label = "boot"; }}
   '';
-  # GOLEM: upstream's "MENU BEGIN Options" submenu tree (built from
+  # STANDARD: upstream's "MENU BEGIN Options" submenu tree (built from
   # optionsSubMenus) is deliberately absent — see the header.
 
   isolinuxMemtest86Entry = ''
@@ -429,9 +429,9 @@ let
         #
 
         ${buildMenuGrub2 { }}
-        # GOLEM: upstream's "Options" submenu is deliberately absent.
+        # STANDARD: upstream's "Options" submenu is deliberately absent.
 
-        # GOLEM: upstream's rEFInd / Memtest86+ / Firmware Setup / Shutdown
+        # STANDARD: upstream's rEFInd / Memtest86+ / Firmware Setup / Shutdown
         # rows are deliberately absent — the menu is the config entries and
         # nothing else.
         EOF
@@ -512,7 +512,7 @@ in
         "fileName"
       ];
     })
-    "${modulesPath}/image/file-options.nix" # GOLEM: was ../../image/file-options.nix
+    "${modulesPath}/image/file-options.nix" # STANDARD: was ../../image/file-options.nix
   ];
 
   options = {
@@ -723,7 +723,7 @@ in
       default = true;
     };
 
-    # GOLEM addition: per-entry indent (vesamenu MENU INDENT) — the only
+    # STANDARD addition: per-entry indent (vesamenu MENU INDENT) — the only
     # way to center a label inside the selection bar, since syslinux trims
     # leading whitespace out of MENU LABEL values (verified on-screen:
     # a " Start" prepend rendered identically to "Start").
@@ -1009,7 +1009,7 @@ in
       lib.optionalString (config.isoImage.edition != "") "-${config.isoImage.edition}"
     }-${config.system.nixos.label}-${pkgs.stdenv.hostPlatform.system}";
     system.build.image = config.system.build.isoImage;
-    # GOLEM: was ../../../lib/make-iso9660-image.nix
+    # STANDARD: was ../../../lib/make-iso9660-image.nix
     system.build.isoImage = pkgs.callPackage "${modulesPath}/../lib/make-iso9660-image.nix" (
       {
         inherit (config.isoImage) compressImage volumeID contents;

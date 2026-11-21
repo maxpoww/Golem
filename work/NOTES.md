@@ -94,7 +94,7 @@
   evaluated or built in-session. `system/golem-apps.nix` is therefore landed
   but unbuilt: package attrs are the top-level GNOME names (the `gnome.`
   namespace is gone in 26.05) and the option names are common ones, but the
-  first `nixos-rebuild build-vm --flake .#golem-vm` is what makes it true.
+  first `nixos-rebuild build-vm --flake .#standard-vm` is what makes it true.
   Most likely failure mode is a missing attr for one of the newer apps
   (showtime, decibels, papers, snapshot) — deleting the offending line is the
   whole fix.
@@ -159,11 +159,11 @@
 - todo7 "Compose golem-apps.nix (from S5)": blocked on the build check, not on
   the composing. The composing is already in the tree and readable:
   `system/golem-apps.nix` is imported by `system/configuration.nix:10`, which
-  is in `golemModules`, so BOTH nixosConfigurations pick it up, and the file is
+  is in `standardModules`, so BOTH nixosConfigurations pick it up, and the file is
   git-tracked (flakes can't see untracked files). What is missing is the only
   thing a tick would be asserting: the eval. This session's harness has no
   `nix` at all (`nix --version` is refused) and no network, so todo5's "BUILD
-  CHECK OWED" is still owed — `nixos-rebuild build-vm --flake .#golem-vm`
+  CHECK OWED" is still owed — `nixos-rebuild build-vm --flake .#standard-vm`
   closes it. Likeliest failure remains one missing attr among the newer GNOME
   apps (showtime, decibels, papers, snapshot); deleting that line is the fix.
 
@@ -172,7 +172,7 @@
   asks for "before ticking", done from this repo:
   * Bluetooth — covered. `services.blueman.enable` (`system/bluetooth.nix:4`)
     ships blueman-manager as a real .desktop app, and `hyprland.lua:38`
-    autostarts blueman-applet. Keep that exec even though Golem has NO tray
+    autostarts blueman-applet. Keep that exec even though Standard has NO tray
     (nothing in this repo implements a StatusNotifier host, so the icon is
     invisible): the applet is also NM-of-bluetooth's pairing AGENT, and its
     PIN/confirm dialogs arrive as ordinary windows.
@@ -194,7 +194,7 @@
   * Finding that is not about GUIs, same stranger, same item: `brightnessctl`,
     which `hyprland.lua:322-323` binds the brightness keys to, is NOT in the
     system stopgap kit — it arrives from `system/home/waverunner-packages.nix`,
-    i.e. Max's own launcher-installed list. A fresh Golem starts that list
+    i.e. Max's own launcher-installed list. A fresh Standard starts that list
     EMPTY (F11), so on a stranger's machine the brightness keys do nothing.
     Moving it into configuration.nix's stopgap block is a one-line fix, left
     undone here only because nothing written in this session can be built.
@@ -234,13 +234,13 @@
     watches `/home/max/.config/waverunner/packages.list` and on an account
     not named `max` **installing an app does not work at all**. Left unfixed
     here on purpose: it is S9's to arrange together with the flake checkout
-    at `golem.flakeDir` (`waverunner-apply.nix:125`, `flake.nix:88`), and
+    at `standard.flakeDir` (`waverunner-apply.nix:125`, `flake.nix:88`), and
     nothing written in this session can be built.
   * "Diegetic tour" — doc landed, tour blocked. The doc's own §6 is the
     reason it can go no further: the biggest fork (teach the foreign reflex,
     or just bind it — `Alt+Tab`, `Super` alone, `Alt+F4`, `Ctrl+Alt+arrow`
     are all bound to nothing in `hyprland.lua`, verified) decides how large
-    S8 even is, and it is a values call about what Golem is.
+    S8 even is, and it is a values call about what Standard is.
   * "Seed skill calibration (Tuning.skill)" — doubly downstream: it needs
     the onboarding choices of item 1 (which do not exist) and Tuning.skill
     itself, a Brain-side artifact in the unreadable tree. The doc's §5 makes
@@ -252,8 +252,8 @@
     default browser is an open owner decision (todo5 above), "install" is a
     minutes-long `nixos-rebuild` with an F10 history of reporting a queued
     install as failed (`todo7.md:110`), and "install" is inert entirely
-    without a flake checkout at `golem.flakeDir`. Also needs a bootable
-    Golem, which is S9.
+    without a flake checkout at `standard.flakeDir`. Also needs a bootable
+    Standard, which is S9.
   * "Test with one real non-Linux human" — blocked on a human and on a
     machine to sit them at; an agent can neither be the human nor watch one.
 
@@ -275,7 +275,7 @@
   todo5 nix items (Read/Edit/git only; no `nix`, no /nix/store, no network),
   so `nix build .#iso` has never run and nothing has booted from it. The nix
   itself is small and mechanical, but two things in it are genuinely unproven
-  and both are called out in `hosts/iso.nix`'s closing comment: (a) Golem core
+  and both are called out in `hosts/iso.nix`'s closing comment: (a) Standard core
   boots a systemd initrd (`system/configuration.nix:54`) while nixpkgs' own
   installer ISOs still use the scripted one, so iso-image.nix's overlay-store
   mounts are the least-travelled path in the whole config — if stage 1 hangs,
@@ -284,26 +284,26 @@
   session looks exactly like a dead machine — tty2 keeps a getty from the
   installation-device profile, so Ctrl+Alt+F2 is the way in. Expect the image
   to be large: the live session carries golem-apps.nix, google-chrome and the
-  full home layer, because "live session boots into REAL Golem" is the item.
+  full home layer, because "live session boots into REAL Standard" is the item.
 
 - todo9 item 2 (decide installer): blocked twice over. Its own decision
   procedure is a *friction test*, which needs the ISO built and two candidate
   images to sit in front of — this harness has no `nix`, no VM and no display
-  — and "the installer is Golem's first impression" makes it the same class of
+  — and "the installer is Standard's first impression" makes it the same class of
   call as the browser and the surface pattern: Max's. Three facts the item's
   binary framing misses, for whoever runs that test:
   * calamares-nixos is not a drop-in. The graphical NixOS ISOs use it with
     `calamares-nixos-extensions`, whose `nixos` job renders
     `/mnt/etc/nixos/configuration.nix` from a TEMPLATE plus the GUI's answers
     and then runs `nixos-install` — i.e. it produces a channel-based plain
-    NixOS with a stock DE, not Golem. Installing Golem through it means
+    NixOS with a stock DE, not Standard. Installing Standard through it means
     forking that extension (Python + template) so it instead seeds a flake
     checkout and instantiates our attr, which is the shape S7 already fixed
-    (`golem.flakeDir`/`golem.flakeAttr`, `hosts/vm.nix:21`). Its cost is a
+    (`standard.flakeDir`/`standard.flakeAttr`, `hosts/vm.nix:21`). Its cost is a
     fork, not an integration.
   * It is also a Qt app: the very first screen a stranger sees would be
     system-wide-nothing-like-Golem, on an ISO whose whole point is that the
-    live session IS Golem.
+    live session IS Standard.
   * The fork is not really two-way. "Our own guided surface" is waverunner
     code (out of reach from ~/Golem) plus privileged disk work; the third
     option nobody wrote down is *neither surface* — `disko` + `nixos-install
@@ -319,11 +319,11 @@
   things the flow will have to handle, found while reading the tree:
   * There is no host attr for a machine that isn't Max's.
     `nixosConfigurations.golem` carries `hosts/golem/hardware-configuration.nix`
-    (his disk UUIDs) and `nvidia.nix`; `golem-vm` is the VM. A stranger's
+    (his disk UUIDs) and `nvidia.nix`; `standard-vm` is the VM. A stranger's
     install needs a generic host whose `hardware-configuration.nix` is
     generated at install time INTO the seeded checkout — the ISO already
     carries the source to seed it from (`/etc/golem/src`, `hosts/iso.nix`).
-  * Encryption may boot to a black screen. Golem core boots silent on
+  * Encryption may boot to a black screen. Standard core boots silent on
     purpose (`quiet`, `loglevel=0`, `kernel.printk` all zeroes,
     `fbcon=map:1`, `system/configuration.nix:43-75`) and ships no plymouth
     at all — the `splash` kernel param in that list is inert today. A LUKS
@@ -334,7 +334,7 @@
 - todo9 item 5 (wifi in the install flow): blocked on the flow (item 2) and,
   underneath it, on a curation call todoSH round 19 already put in Max's
   hands — nm-connection-editor cannot scan and nm-applet is a tray client on
-  a desktop with no tray, so there is no scan-and-join GUI anywhere in Golem
+  a desktop with no tray, so there is no scan-and-join GUI anywhere in Standard
   today; the libadwaita-consistent fix (gnome-control-center's Wi-Fi panel)
   drags in a Settings app that collides with S6's. What this session can add
   is the S9-specific half nobody had written: whether wifi must work DURING
@@ -385,7 +385,7 @@
   be written until todo9 item 2 picks the installer.
 
 - todo10 item 2 (capture real screenshots/screencasts): blocked on a running
-  machine and an eye. It needs a live Golem session on a display, a
+  machine and an eye. It needs a live Standard session on a display, a
   recorder, and — since the item's own point is that "the motion IS the
   pitch" — someone judging which take is worth showing. This harness has no
   nix (every `nix` invocation is permission-blocked, same as the last three
@@ -401,7 +401,7 @@
   today means catching a 3-second boot menu
   (`system/configuration.nix:35`) on a machine that boots deliberately
   silent. Half the claim is true and unmatched; half is a feature that would
-  exist only on a website, which `Golem.md:52` refuses by name. What this
+  exist only on a website, which `StandardOS.md:52` refuses by name. What this
   session could add is the choice, not the copy: `release-checklist.md` §3
   states both halves with the citations and recommends headlining the
   capability with the boot menu shown honestly. Picking the words is Max's.
@@ -425,7 +425,7 @@
   cannot list, let alone build. The dictionary that "leads the way" is a
   waverunner module too. What is reachable from here is a different, smaller
   i18n fact worth not confusing with the item: `system/configuration.nix:98-110`
-  pins `America/La_Paz` and nine `es_BO` `LC_*` settings onto every Golem
+  pins `America/La_Paz` and nine `es_BO` `LC_*` settings onto every Standard
   machine including the ISO — already on the known-issues list
   (`release-checklist.md:130-134`). That is the installer's to ask, not S11's
   to translate, and changing it changes Max's daily driver, so it stays his.
@@ -479,11 +479,11 @@
   last thing in the file — its answer is the sum of items 1-5, all open. The
   answer as of today was still worth writing down rather than leaving to the
   moment someone writes copy: `accessibility-research.md` §8 states it with
-  citations — a blind person cannot use Golem at all, and a pointer-less
-  person can move windows but cannot reach the shell that is Golem's whole
+  citations — a blind person cannot use Standard at all, and a pointer-less
+  person can move windows but cannot reach the shell that is Standard's whole
   point. That is acceptable for an alpha (S11 closes last by design) and
   unacceptable to imply otherwise on a page, which is the same refusal
-  `Golem.md:52` already makes.
+  `StandardOS.md:52` already makes.
 
 - todoSH, the six parked items — one shared wall and one shared shape. SH is
   the "working perfectly" pass, and what makes something work perfectly is a
@@ -549,7 +549,7 @@
     already complete and verified on the wire (battery), so the collector is
     writing a client for a protocol that is answering today, not designing one.
   * **One piece of that job does live in this repo** and is the reason to read
-    this note before starting: the mDNS line above records that the Golem PC
+    this note before starting: the mDNS line above records that the Standard PC
     runs no responder (avahi and systemd-resolved both inactive), so discovery
     is phone-side-only until `system/configuration.nix` enables one. That is a
     ~3-line host change here — but it is not an item in this file, and Arc-1 is
@@ -558,7 +558,7 @@
     first move.
   * **Pairing UX test** (P1) and **"paired in <1 min by a non-technical
     person"** (DoD) are the same test written twice, and the instrument is a
-    person who has never seen Golem. An agent cannot be that person, and an
+    person who has never seen Standard. An agent cannot be that person, and an
     agent that has read the pairing code cannot even simulate one. Max supplies
     a stranger and a stopwatch; both close together.
   * **Distribute: F-Droid first, Play Store second** — an external service, an
@@ -568,7 +568,7 @@
   * **Choose a license** — the item says DECISION NEEDED and it is right. It is
     a values call between GPL-3 (ecosystem/ethos), Apache-2.0 and MPL-2.0
     (wider reuse), and the app being written from scratch is precisely what
-    makes it free — and therefore Max's. One datum for it: Golem OS itself is
+    makes it free — and therefore Max's. One datum for it: Standard OS itself is
     GPL-3.0-or-later (`LICENSE`, and the SPDX header on `flake.nix`), so GPL-3
     is the choice that keeps one licence across the whole project. Everything
     downstream of this — signing, the F-Droid submission — waits on it.
@@ -602,7 +602,7 @@
   nothing about them was attempted or found hard. Re-run after 4pm.
 
 - S9 first boot, VERIFIED 2026-09-01 (qemu, host store): the fixed lean ISO
-  boots to the real Golem session — waverunner topbar (clipboard pill, bell,
+  boots to the real Standard session — waverunner topbar (clipboard pill, bell,
   clock), dock with recycle bin, grim screenshot from inside the guest as
   proof. Two hard-won facts for whoever boots it next:
   * /bin/sh was the killer (commit e381892) — fixed, verified present at
@@ -616,7 +616,7 @@
     INSIDE the guest (grim, per-user profile path
     /etc/profiles/per-user/max/bin/grim) and pull it out base64 over serial.
 
-## Idle CPU / wakeup profile (2026-09-02, golem-vm)
+## Idle CPU / wakeup profile (2026-09-02, standard-vm)
 
 Where the daemon's idle CPU actually goes (measured, not reasoned):
 - The **engine + mind logic is cheap**: the aggregate publishes ~2.1
@@ -634,7 +634,7 @@ Where the daemon's idle CPU actually goes (measured, not reasoned):
   The meaningful follow-up is idle profiling on real hardware, where llvmpipe
   no longer dominates the picture.
 
-## Memory / RSS breakdown (2026-09-02, golem-vm 4 GB idle)
+## Memory / RSS breakdown (2026-09-02, standard-vm 4 GB idle)
 
 Chasing the ~900 MB Golem-vs-GNOME gap measured on the 2013 4 GB laptop.
 Where waverunner's RAM actually goes, and where the gap actually is:
@@ -679,7 +679,7 @@ starts (easyeffects especially).
   can't be validated for GPU-mem in the VM's llvmpipe. Left as the top RAM
   follow-up. No ≥10 MB win taken this pass without a tradeoff/risk.
 
-## golem-vm test-loop mechanics (2026-09-03, learned the hard way)
+## standard-vm test-loop mechanics (2026-09-03, learned the hard way)
 
 The VM's `/nix/store` is an **overlayfs over a live 9p share of the host
 store** (`lowerdir=/nix/.ro-store`, 9p `cache=0xf`). Consequences for the
@@ -713,7 +713,7 @@ the lua-config Hyprland fork rejects `hyprctl keyword monitor`, eval'd
 headless` / `remove` DOES work (used to exercise the output add/remove paths).
 
 **Fresh-VM bake one-liner (2026-09-03, works well):** build the VM runner
-directly — `nix build .#nixosConfigurations.golem-vm.config.system.build.vm
+directly — `nix build .#nixosConfigurations.standard-vm.config.system.build.vm
 --override-input waverunner git+file:///home/max/launcher --out-link
 <scratch>/vm` — then boot headless with a FRESH disk so no soured overlay or
 stale nix db can interfere: `NIX_DISK_IMAGE=<scratch>/golem-test.qcow2

@@ -12,16 +12,16 @@
 #     in the owner's installed apps, and each file's PROGRAM SETUP — keyed on
 #     the installed program's name — gives it the system it needs;
 #   · by hand, in the machine's configuration:
-#         golem.modules.gaming.enable = true;              # the recommended set
-#         golem.modules.gaming.install = "all";            # …or everything
-#         golem.modules.gaming.lutris.enable = true;       # …or one program
-#   · the machine's selection file (golem.modules.listPath), read as data.
+#         standard.modules.gaming.enable = true;              # the recommended set
+#         standard.modules.gaming.install = "all";            # …or everything
+#         standard.modules.gaming.lutris.enable = true;       # …or one program
+#   · the machine's selection file (standard.modules.listPath), read as data.
 { config, lib, ... }:
 
 let
   m = import ./lib.nix { inherit lib; };
-  cfg = config.golem.modules;
-  owner = config.golem.owner;
+  cfg = config.standard.modules;
+  owner = config.standard.owner;
 in
 {
   imports = [
@@ -52,7 +52,7 @@ in
     ./windows-apps.nix
   ];
 
-  options.golem.modules = {
+  options.standard.modules = {
     catalog = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       # The dock's own catalog, wherever the home layer carries the dock (the
@@ -107,7 +107,7 @@ in
       readOnly = true;
       type = lib.types.listOf lib.types.str;
       # Every program among the owner's apps, by lib.getName: what a module
-      # switched on, what was dragged into the grid, Golem's own.
+      # switched on, what was dragged into the grid, Standard's own.
       default = map lib.getName config.home-manager.users.${owner}.home.packages;
       description = "The names of the owner's installed programs (what PROGRAM SETUP is keyed on).";
     };
@@ -117,7 +117,7 @@ in
       type = lib.types.listOf lib.types.str;
       default = [ ];
       # (Also read by the home layer: a module that is on may bring window
-      # rules and keys of its own — system/home/hypr/golem/modules/<module>.lua,
+      # rules and keys of its own — system/home/hypr/standard/modules/<module>.lua,
       # loaded by system/home/hyprland.nix's facts.)
       description = "The modules that are on (what a module's plumbing is keyed on).";
     };
@@ -132,8 +132,8 @@ in
 
   config = {
     warnings =
-      map (l: "golem.modules list: '${l}' is not `<module>` or `<module>.<tool>` — skipped") cfg.listData.bad
-      ++ map (c: "golem.modules list: '${c}' is not a module — skipped")
+      map (l: "standard.modules list: '${l}' is not `<module>` or `<module>.<tool>` — skipped") cfg.listData.bad
+      ++ map (c: "standard.modules list: '${c}' is not a module — skipped")
         (lib.filter (c: !(m.categories ? ${c}))
           (lib.unique (cfg.listData.modules ++ builtins.attrNames cfg.listData.tools)));
 

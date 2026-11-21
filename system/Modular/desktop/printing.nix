@@ -1,7 +1,7 @@
 # desktop/printing — plug a printer or a scanner in, and it works.
 #
 # Max, 2026-10-21: "hacé que funcione enchufar e imprimir en la mayoría de
-# impresoras y scanners posible". Until now Golem had no printing at all: a
+# impresoras y scanners posible". Until now Standard had no printing at all: a
 # plugged-in printer was a /dev/usb/lp0 nobody used, and every print dialog was
 # empty.
 #
@@ -24,13 +24,13 @@
 #   - scanners: SANE (sane-backends' own drivers), sane-airscan (driverless
 #     eSCL/WSD — nearly every networked or IPP-over-USB all-in-one) and HP's.
 #
-# Golem's own part (`golem-printers`): the first printer becomes the default
+# Standard's own part (`golem-printers`): the first printer becomes the default
 # (Files' Print, `lp`, and any app that asks for "the" printer find it), and the
 # owner is told when one is ready, in the desktop's own notifications.
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
   golemSay = pkgs.callPackage ../../i18n/golem-say.nix { };
 
   # Root: whenever CUPS' printer list changes. The first printer becomes the
@@ -136,13 +136,13 @@ let
   };
 in
 {
-  config = lib.mkIf (!config.golem.lean) {
+  config = lib.mkIf (!config.standard.lean) {
     environment.systemPackages = [ printerInk ];
 
     services.printing = {
       enable = true;
       # cups starts on first use (its socket), not at boot: 1.2 s of a weak
-      # machine's login, and Golem's own part below runs three minutes in.
+      # machine's login, and Standard's own part below runs three minutes in.
       startWhenNeeded = true;
       drivers = with pkgs; [
         hplip
@@ -154,7 +154,7 @@ in
         foo2zjs
       ];
       # (A printer added is written to printers.conf at once, not up to 30 s
-      # later: that file is what Golem's own part follows.)
+      # later: that file is what Standard's own part follows.)
       extraConf = "DirtyCleanInterval 0";
     };
 

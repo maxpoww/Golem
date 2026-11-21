@@ -2,7 +2,7 @@
 
 ## 2026-09-15 — #92's first metal: systemd-boot → GRUB-EFI, and the firmware fought back (#94)
 
-**Status in one line:** the acer boots **GRUB-EFI** wearing the same Golem
+**Status in one line:** the acer boots **GRUB-EFI** wearing the same Standard
 menu as the comodore — `booted == current == jr3f86mg…` (a generation
 only GRUB knows), `running`, 0 failed units.
 
@@ -58,9 +58,9 @@ dell's old 465.8 G drive) was wiped.
     ships. Console confirmed visible at the machine.
   - `LIBVA_DRIVER_NAME=iHD` (Broadwell), zsh, swappiness 180 (tier1),
     seed + modules.nix, rebuild-golem, no desktop (minimal ✓).
-- **Self-rebuild:** `#golem-minimal` from its own seed → **generation
+- **Self-rebuild:** `#standard-minimal` from its own seed → **generation
   2**, still running.
-- **Verdict:** **PASS.** The acer now runs a stage-0 Golem built
+- **Verdict:** **PASS.** The acer now runs a stage-0 Standard built
   entirely from the shipping round-I2 image, with no live patches in
   it. Round-I2 turn: done.
 
@@ -83,7 +83,7 @@ check caught before any write (see below).
 
 ## Round I1 — stage 0, minimal — 2026-09-10 — INSTALLED, and caught 4 findings the VM couldn't
 
-First real modular install. golem-minimal, blessed by Max ("acer").
+First real modular install. standard-minimal, blessed by Max ("acer").
 
 ### The install
 - **ISO:** round-I1 stick (`jd9lgha3…`), UEFI. Census `ok`.
@@ -140,7 +140,7 @@ First real modular install. golem-minimal, blessed by Max ("acer").
   - **Fixed live:** dropped `fbcon=map:1` + `splash` from
     `base/core.nix` (kept the log-quieting — quiet, not blank), built
     the fixed toplevel, updated the acer's seed, **self-rebuilt
-    `#golem-minimal` → gen 3**, rebooted. **Verified on the acer's own
+    `#standard-minimal` → gen 3**, rebooted. **Verified on the acer's own
     screen (Max): boot loader → quiet blank → `login:` → zsh.** The
     running kernel has no `fbcon=map:1`; the vtconsole is now `(M)
     frame buffer device`, not the dummy. The desktop stage will own its
@@ -170,7 +170,7 @@ as a rebuild on top of this working stage 0.**
 - **FOUND — #118 (the auto-reboot boots the USB again):** the install's final
   `systemctl reboot` re-enters the installer if the USB is still in and the
   firmware boots removable-first — unattended, it loops instead of landing in
-  Golem. See changes.md #118.
+  Standard. See changes.md #118.
 
 ### Verdict
 **PASS** on the install + boot bar; #118 filed. Roster 2/N of the I2 close.

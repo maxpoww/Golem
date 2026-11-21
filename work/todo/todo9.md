@@ -3,14 +3,14 @@
 <!-- Coarse on purpose — break down on entry. -->
 
 - [x] NixOS ISO module wrapping the S7 flake — live session boots into real
-      Golem (dock, OPTIONS, everything)
-      → `hosts/iso.nix` + `nixosConfigurations.golem-iso` + `packages.iso`:
+      Standard (dock, OPTIONS, everything)
+      → `hosts/iso.nix` + `nixosConfigurations.standard-iso` + `packages.iso`:
       `nix build .#iso`. The live session is the same configuration.nix and
       home layer the installed machine gets; the module is only the seam
       with nixpkgs' installation-cd profile (wpa_supplicant vs
       NetworkManager, no bootloader install, no gc on a read-only store,
       passwordless live `max`, ISO naming), plus /etc/golem/src so the
-      installer can instantiate Golem from the stick.
+      installer can instantiate Standard from the stick.
       UNBUILT AND UNBOOTED HERE — this loop's harness has no `nix` (see
       NOTES). First boot is the test; the file's last comment block names
       the two things to suspect if it doesn't (systemd initrd on an overlay
@@ -35,7 +35,7 @@
       2. THE IMAGE IS 6.4 GiB. That is not weak compression — squashfs is
          already at the nixpkgs default `zstd -Xcompression-level 19` — it
          is genuine payload: google-chrome, the whole golem-apps.nix set and
-         the full home layer, because "live session boots into REAL Golem"
+         the full home layer, because "live session boots into REAL Standard"
          is the item. Record the number and what drives it (`nix path-info
          -rS` on the toplevel will rank the closure). Do NOT start cutting
          apps to shrink it — what ships in the live session is a curation
@@ -58,7 +58,7 @@
       llvm-lib 0.54 GiB, firefox 0.38 GiB (a THIRD browser), spotify
       0.37 GiB, gcc 0.26 GiB. Curation calls for S10 — recorded, not cut.
 - [?] Decide installer: calamares-nixos vs our own guided surface (friction
-      test decides — the installer is Golem's first impression)
+      test decides — the installer is Standard's first impression)
 - [?] Disk flow: guided partitioning, encryption option, one "install" action
 - [x] Hardware: graphics drivers, wifi firmware, unfree toggle
       → wifi firmware was the real hole: NOTHING in this tree enabled
@@ -71,7 +71,7 @@
       nvidia is a HOST choice, so a stranger's nvidia machine lands on
       nouveau — deferred to the generic host in item 3, stated in the
       config. Unfree: already always-on, and the shipped set (google-chrome
-      engine, firmware, nvidia) means a "no" would break Golem — so it is a
+      engine, firmware, nvidia) means a "no" would break Standard — so it is a
       baked-in stance, not a toggle. Comments say all three in place.
 - [?] Wifi in the install flow (an ISO that can't get online on another
       PC fails the Arc-1 exit)

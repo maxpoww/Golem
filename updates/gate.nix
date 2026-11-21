@@ -1,8 +1,8 @@
-# updates/gate — every Golem system a version must BUILD before the lane
+# updates/gate — every Standard system a version must BUILD before the lane
 # publishes it, and whose pieces then go into its cache.
 #
 # The baked matrix is already the right set: one full desktop per hardware
-# class Golem knows (each lab fixture in both firmwares, plus the generic
+# class Standard knows (each lab fixture in both firmwares, plus the generic
 # floor), exactly what an install copies. Added here: the two synthetic
 # nvidia desktops, so the open (Turing+) and legacy (pre-Turing) nvidia
 # drivers are built against every new kernel too. They are what broke when
@@ -19,7 +19,7 @@ let
     name = "${f.name}-uefi-en_US.UTF-8";
     firmware = "uefi";
     isFloor = false;
-    facts = (import f.path { }).golem.hardware // { firmware = "uefi"; };
+    facts = (import f.path { }).standard.hardware // { firmware = "uefi"; };
     locale = "en_US.UTF-8";
   }) synthetic;
 in

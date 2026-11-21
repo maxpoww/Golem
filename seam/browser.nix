@@ -1,16 +1,16 @@
 { ... }:
 
-# Seam (Golem's browser) — the system half: the Firefox build, enterprise policies and
-# the chrome script. Moved here from /etc/nixos/golem-browser.nix (2026-09-25) so the
-# Golem flake and the dev box share ONE Seam. Part of ./default.nix.
+# Seam (Standard's browser) — the system half: the Firefox build, enterprise policies and
+# the chrome script. Moved here from /etc/nixos/standard-browser.nix (2026-09-25) so the
+# Standard flake and the dev box share ONE Seam. Part of ./default.nix.
 #
-# Golem's browser: privacy defaults.
+# Standard's browser: privacy defaults.
 #
 # Two halves, deliberately:
 #   * POLICIES (here) — things that must be true before the first launch and
 #     that the user should not have to install by hand: the content blocker,
 #     telemetry off. Delivered as Firefox enterprise policies baked into the
-#     package, so a fresh Golem install has them on boot.
+#     package, so a fresh Standard install has them on boot.
 #   * PREFS (home.nix) — the tracking-protection settings themselves, which
 #     live alongside the rest of the browser's user.js.
 #
@@ -30,7 +30,7 @@
       # (Until 2026-09-27 this overrode `firefox` itself, so "install Firefox" gave Beam.
       # Seam is its own package now; `pkgs.firefox` is plain Firefox again, side by side.)
       # The extensions come WITH the package (./extensions.json: version, url, sha256) and are
-      # installed from it at first start — a fresh Golem gets its blocker and bar colour with
+      # installed from it at first start — a fresh Standard gets its blocker and bar colour with
       # no network and no "whatever AMO serves today" (2026-10-07, the ISO cut). Firefox keeps
       # updating them from AMO afterwards, as it does for any installed add-on.
       # LANGUAGES (2026-11-10): Mozilla's language packs come with the package too, pinned in
@@ -53,7 +53,7 @@
           final.fetchurl { inherit (lp) url sha256; name = "firefox-${fxVersion}-langpack-${loc}.xpi"; };
         langpacks = final.lib.mapAttrs langpack (pin.langpacks or { });
       in (final.golem-seam-base.override {
-        # The Golem chrome script — privileged UI foundation. extraPrefs
+        # The Standard chrome script — privileged UI foundation. extraPrefs
         # is appended verbatim into mozilla.cfg (the autoconfig file);
         # the sandbox pref below is what elevates it from pref-setting to
         # full chrome JS. Ships with the package, survives FF updates.
@@ -71,7 +71,7 @@
           darkSites = builtins.filter (l: l != "" && builtins.substring 0 1 l != "#")
             (final.lib.splitString "\n" (builtins.readFile ./dark-sites.txt));
         in builtins.readFile ./language.js
-          + "// Golem: Dark Reader's dark-sites list (seam/dark-sites.txt)\nvar DW_DARK_SITES = ${builtins.toJSON darkSites};\n"
+          + "// Standard: Dark Reader's dark-sites list (seam/dark-sites.txt)\nvar DW_DARK_SITES = ${builtins.toJSON darkSites};\n"
           + builtins.readFile ./golem-chrome.js;
 
         extraPolicies = {
@@ -116,7 +116,7 @@
             # AND the look is dark: golem-chrome.js (DARK WEBSITES) enables and
             # disables it from the dock's theme file. normal_installed, not
             # force_installed: a force-installed extension cannot be disabled,
-            # and disabled is its resting state. Out of the toolbar: Golem's
+            # and disabled is its resting state. Out of the toolbar: Standard's
             # switch is the one way to it.
             "addon@darkreader.org" = {
               install_url = "file://${xpi "addon@darkreader.org"}";   # pinned, in the package (./extensions.json)
@@ -229,7 +229,7 @@
                 # without (Chrome: ~120–200 ms). They are anti-bot-check tweaks of the player
                 # request, not the ad blocking itself: a monetized music video played without
                 # them showed no ad, no overlay, no "ad blockers violate" nag (json-prune and the
-                # fetch/XHR response filters still do that work). So Golem excepts exactly these
+                # fetch/XHR response filters still do that work). So Standard excepts exactly these
                 # six (uBO's "My filters", written at every start — a user's own My filters are
                 # replaced; the whole rest of uBO is untouched). Exact text from the live list;
                 # when uBO changes them the exceptions stop matching and the cost returns — the
@@ -265,7 +265,7 @@
           # ---- DRM: complete out of the box ----------------------------
           # Netflix / Spotify / Disney+ need the Widevine CDM. Enabled=true
           # pre-consents EME so Firefox provisions the CDM on its own —
-          # no "enable DRM?" bar on a fresh Golem install. Unlocked so it
+          # no "enable DRM?" bar on a fresh Standard install. Unlocked so it
           # can still be turned off from settings.
           EncryptedMediaExtensions = {
             Enabled = true;
@@ -297,7 +297,7 @@
             FirefoxLabs = false;
             Locked = true;
           };
-          # A fresh Golem install opened Seam on "Welcome to Firefox — by continuing
+          # A fresh Standard install opened Seam on "Welcome to Firefox — by continuing
           # you agree to the Firefox Terms of Use" (2026-10-04, MacBook, new profile):
           # the terms-of-use modal is its own gate, none of the switches above cover
           # it. Seam sends Mozilla nothing (telemetry is off above), so there is
@@ -336,7 +336,7 @@
           rm -f "$out/bin/firefox" "$out/bin/seam"   # only `seam` on the PATH: a plain Firefox's `firefox` stays its own
           cat > "$out/bin/seam" <<'EOF'
           #!${final.runtimeShell}
-          # Seam — Golem's browser. Its own profile; --name sets the window class.
+          # Seam — Standard's browser. Its own profile; --name sets the window class.
           p="''${XDG_DATA_HOME:-$HOME/.local/share}/seam"
           mkdir -p "$p"
           # ONE-TIME REPAIR (2026-10-30): a profile whose uBlock Origin storage had gone stale
@@ -344,7 +344,7 @@
           # "Experiencing interruptions?", minutes to start (the 2013 MacBook Air, Max's lab
           # profile; a copy of it with uBO's storage reset played, every other piece of the
           # profile cleared alone did not). uBO's stored state goes once; the lists bundled in
-          # the pinned xpi load and update from there. Golem writes every uBO setting itself at
+          # the pinned xpi load and update from there. Standard writes every uBO setting itself at
           # each start (managed storage, My filters), so nothing of the owner's is lost.
           if [ ! -e "$p/golem-ubo-reset-2026-10-30" ]; then
             u=$(grep -oE '\\"uBlock0@raymondhill.net\\":\\"[0-9a-f-]+' "$p/prefs.js" 2>/dev/null | grep -oE '[0-9a-f-]{36}' | head -1)
@@ -366,7 +366,7 @@
           Version=1.5
           Name=Seam
           GenericName=Web Browser
-          Comment=Golem's browser
+          Comment=Standard's browser
           Exec=seam %U
           Icon=seam
           Terminal=false

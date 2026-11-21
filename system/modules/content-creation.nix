@@ -54,7 +54,7 @@ in
     ];
 
     # ── OBS Studio: the Virtual Camera ─────────────────────────────────────
-    # "Start Virtual Camera" needs a v4l2loopback device. Golem's desktop has
+    # "Start Virtual Camera" needs a v4l2loopback device. Standard's desktop has
     # the module loaded for the phone's camera (desktop/phone.nix,
     # /dev/video10), and OBS takes the FIRST loopback device it finds: without
     # one of its own it would feed the phone's ("Android WebCam" in every
@@ -64,6 +64,6 @@ in
     # options for the same kernel module (desktop/phone.nix writes the one
     # line, for both). The module reads its options when it loads: the new
     # device is there from the next start of the computer.
-    golem.loopbackCameras = lib.optional (has "obs-studio") { nr = 9; label = "OBS Virtual Camera"; };
+    standard.loopbackCameras = lib.optional (has "obs-studio") { nr = 9; label = "OBS Virtual Camera"; };
   };
 }

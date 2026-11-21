@@ -1,4 +1,4 @@
-# golem-say — one of Golem's own messages, in the owner's language.
+# golem-say — one of Standard's own messages, in the owner's language.
 #
 #   golem-say "Only {0} GB left. …" "$avail"
 #

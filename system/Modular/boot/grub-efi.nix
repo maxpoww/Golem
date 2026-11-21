@@ -1,6 +1,6 @@
 # boot/grub-efi — the UEFI bootloader. Chosen when the census says
 # firmware=uefi. Replaces boot/systemd-boot.nix (#92, Max 2026-09-15:
-# "i want Golem to look and feel the same no matter if it is booting on
+# "i want Standard to look and feel the same no matter if it is booting on
 # grub or Systemd") — systemd-boot has NO theming at all (font, colors,
 # geometry all compiled in), so one look everywhere means one menu
 # everywhere: GRUB, with the same theme and the same quiet patch as the
@@ -18,11 +18,11 @@
 { pkgs, lib, ... }:
 
 {
-  # The Golem grub (quiet + item_align), shared with grub-bios.nix so the
+  # The Standard grub (quiet + item_align), shared with grub-bios.nix so the
   # two firmware halves cannot drift apart. See #89, #92, #94b.
   imports = [ ./grub-patched.nix ];
 
-  boot.loader.timeout = 1;   # 1s menu then auto-boot "Start Golem" (was 3; Max 2026-09-25)
+  boot.loader.timeout = 1;   # 1s menu then auto-boot "Start Standard" (was 3; Max 2026-09-25)
 
   # #94 — OWN THE FALLBACK PATH, don't trust firmware NVRAM. The acer
   # (2026-09-15) accepted a named "Golem-boot" entry, put it first in

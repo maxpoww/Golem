@@ -37,13 +37,13 @@ baked (installed) side carries `plymouth-start` + `golem-plymouth-theme`.
   to **100%** — the 42-cell orange bar (steady, no flicker) with white filenames
   flying ("Copying etc-systemd-coredump-con" at 94%), then `systemctl reboot`.
 - **PASS — installed boot:** rebooted from vda → GRUB-EFI → **`<<< Welcome to
-  Golem 26.05… >>>` / `Golem login:`**. The full loop works on the official recut.
+  Standard 26.05… >>>` / `Standard login:`**. The full loop works on the official recut.
 - **BUG CAUGHT — the boot bar does NOT render on the installed system.** Black
   until login; mid-screen empty for the whole 5–24 s boot window. Root cause
   confirmed: the minimal installed **initrd has no GPU/DRM module** (ahci,
   ata_piix, hid_*… but no `bochs`/`i915`/`virtio_gpu`), so Plymouth has no display
   in the initrd and never paints — the DRM only loads in the main system, after
-  getty. This is exactly Max's earlier "no bar on installed Golem, blank until
+  getty. This is exactly Max's earlier "no bar on installed Standard, blank until
   login": the baked-plymouth fix (#116) was necessary but not sufficient. The
   installer MEDIUM showed the bar only because installation-cd ships a broad
   initrd module set. → finding #117.
@@ -51,7 +51,7 @@ baked (installed) side carries `plymouth-start` + `golem-plymouth-theme`.
   i915 amdgpu virtio_gpu ]` added; ISO `nqm2f3qav40q3cvv8hxq6zsr1rpramws`.
   Installed fresh from it, booted from vda → **the orange bar now PAINTS on the
   installed boot** (early window ~4–8 s, thick, dim track + accent fill), then
-  hands off to `Golem login:`. #117 CLOSED. The install flow re-passed
+  hands off to `Standard login:`. #117 CLOSED. The install flow re-passed
   identically. **This ISO is the round's final I2 recut** — ready for reflash +
   the roster.
 
@@ -85,12 +85,12 @@ tree — `git write-tree` of the staged index -> `git archive` -> `nix build
   `default.nix` — no comodore drops (the #102 leak, git-rm'd + gitignored).
 
 **UEFI GATE PASS (`-vga std`, headless, screendumped):**
-- **The menu reads like Golem** — `Start` / `Install` centred (item_align now
+- **The menu reads like Standard** — `Start` / `Install` centred (item_align now
   honoured by the patched medium grub), the selection bar hugging `Start`, a
   clean black background. Before this recut the medium's UEFI grub was stock
   NixOS (left-aligned, blue bar). #89/#95/#92's ISO side is now a fact on the
   medium, not just in source.
-- **Start boots clean** — no kernel spam (quiet), `<<< Golem installer —
+- **Start boots clean** — no kernel spam (quiet), `<<< Standard installer —
   minimal cut >>>`, autologin `nixos`, the census ran (tier1 for the 4 GB VM:
   zram zstd/prio-100, swappiness 180; virtio gpu, modesetting/fbdev; 6 GiB
   hibernation swap, resume by-label), SSH advertised key-only.
@@ -107,20 +107,20 @@ changes vs 8e is what it INSTALLS (patched grub on the installed system too,
 pciutils in the closure) and the seed's cleanliness — not the install flow.
 
 **INSTALL-TO-DISK, then driven anyway (2026-09-22, same session, `-vga std`):**
-drove the full guided TUI (English) to "Install Golem?" — it STOPPED before
+drove the full guided TUI (English) to "Install Standard?" — it STOPPED before
 partitioning. Root cause found: the product autostart runs golem-install as the
 unprivileged `nixos` user, so it dies before its logdir (**#103**). Re-ran the
 same answers file with **`sudo`** → the install completed: format → fs → seed →
 probe → **BAKED toplevel direct-copy, offline** (`…-nixos-system-Golem-26.05.
 20260829.c5c4a43`) → bootloader → "installation finished!" → 6/6. Booted the
-installed disk (removable EFI, #94) → clean quiet boot to `Golem login:` →
+installed disk (removable EFI, #94) → clean quiet boot to `Standard login:` →
 **login as `max` works**. So the recut installs correctly end-to-end when
 golem-install has root; #103 is the only defect and needs its fix + a re-cut.
 
 **#103 FIXED + RE-GATED (same session):** `iso.nix` loginShellInit now runs
 `sudo golem-setup-install` (Max's call). Rebuilt the ISO, booted "Install" →
 the autostart TUI came up as root, drove it (English) → ENTER on "Install
-Golem?" → the install ran to completion and **rebooted at 6/6 with NO manual
+Standard?" → the install ran to completion and **rebooted at 6/6 with NO manual
 sudo** (reboot is the done trigger; a failure shows "stopped" + a shell). Fresh
 target disk grew to 5 GB. The TUI-driven full product install now works.
 
@@ -144,7 +144,7 @@ rebuild.
 **PASS on the FLOOR (unbaked VBox+unknown-GPU, `-vga std`):** installed with
 `--password-hash <sha512> --lab-ssh <key> --hostname golembox`, **synced +
 unmounted before power-off (HOLE-E lesson)**, booted the disk alone →
-- **SSH key login as `max@Golem`** (shell zsh) ✓
+- **SSH key login as `max@Standard`** (shell zsh) ✓
 - **console password works**: `echo golemtest123 | sudo -S whoami` → `root`;
   wrong password rejected ✓
 - machine.nix on the installed system carries `hostName="golembox"` +
@@ -155,7 +155,7 @@ unmounted before power-off (HOLE-E lesson)**, booted the disk alone →
 loginable machine on first boot, offline, no rebuild.
 
 **CONVERGENCE TO IDEAL — ONLINE, PROVEN (offline is a non-goal):** on the
-exact-match install, `nixos-rebuild switch --flake …#golem-minimal` (online)
+exact-match install, `nixos-rebuild switch --flake …#standard-minimal` (online)
 built `nixos-system-golembox` → **gen-2** with the measured hardware-config
 (fstab by-uuid, ESP fsck + swap units) + real hostname + declarative creds. The
 flake eval works offline (inputs cached; version matches the bake), but the
@@ -180,7 +180,7 @@ debug test, double check … then we move on").
   tripwire kept. Zero regression — manifest hash identical, all 8 fixtures still
   exact-match.
 - **HOLE C (flake.nix):** the baked initrd carried only `ahci nvme sd_mod xhci`,
-  **no virtio_blk** → a virtio-blk machine hung on `/dev/disk/by-label/golem` →
+  **no virtio_blk** → a virtio-blk machine hung on `/dev/disk/by-label/standard` →
   systemd-initrd EMERGENCY (caught by actually watching the boot; the earlier
   opt-A gate only checked "GRUB starts"). Added a broad
   `boot.initrd.availableKernelModules` (virtio family + common controllers) to
@@ -199,7 +199,7 @@ labeled ESP/swap/golem.
 Install boot; install evals the SAME choose.nix the manifest baked from; all 8
 fixtures exact-match their class.
 
-**HOLE E — RESOLVED, was a HARNESS ARTIFACT (not a Golem bug):** the first boot
+**HOLE E — RESOLVED, was a HARNESS ARTIFACT (not a Standard bug):** the first boot
 of the direct-copied disk hit `grub rescue> normal.mod not found`. Chased it into
 the rescue prompt — `root`/`prefix` were CORRECT, but GRUB could only read a
 PARTIAL x86_64-efi dir (~15 of 250 modules); `fsck.fat -v` showed **corrupted LFN
@@ -207,7 +207,7 @@ entries** (fragments "outside a LFN sequence", boot-sector≠backup). Cause: the
 harness `quit`s QEMU right after the install with no guest sync, dropping
 unflushed FAT writes — the product flow REBOOTS after 6/6 (a clean sync). PROVEN
 by re-installing then `sync; umount -R /mnt` before power-off: `fsck.fat` clean
-(344 files, no errors) and the disk **booted to `Golem login:` on tty1 with sshd
+(344 files, no errors) and the disk **booted to `Standard login:` on tty1 with sshd
 answering (`Permission denied (publickey)`) = FULL MULTI-USER.**
 
 **⇒ NEVER-FAIL PROVEN END-TO-END:** an UNBAKED machine (VirtualBox + unknown GPU)
@@ -300,13 +300,13 @@ it breaks when built from a copy).
 (~4.5 GiB spare), boots, and carries every class offline.
 
 **INSTALL-GATE ATTEMPTED 2026-09-18 — FAILED, and CAUGHT A REAL GAP (the gate
-working):** with golem-install changed to build golem-minimal offline from the
-seed (`golem-target`→`golem-minimal`), a VM install to a blank 40 G disk
+working):** with golem-install changed to build standard-minimal offline from the
+seed (`standard-target`→`standard-minimal`), a VM install to a blank 40 G disk
 **died** — it fell into building `cmake`/`glib`/`elfutils`/`bash`/initrd FROM
 SOURCE, which `--offline` can't do. **Root cause:** the toplevel it built was
 `nixos-system-vmtest-26.05.19700101.dirty` but the baked matrix is
 `…20260829.c5c4a43` — DIFFERENT evaluations → different store paths → `--offline`
-can't reuse a single baked path. **The "rebuild golem-minimal from the seed at
+can't reuse a single baked path. **The "rebuild standard-minimal from the seed at
 install" design CANNOT reuse the bake** (a dirty path: seed never matches the
 flake-built bake). Fix is an architecture call (changes.md #99): **(A) install
 the BAKED toplevel directly** (`nixos-install --system <baked class>`, pure
@@ -343,7 +343,7 @@ NO fbcon/splash kernelParam (#65), the full 17-leaf database aboard.
   fresh `golem-i2-bios.qcow2`, hostname `vmi2b`.
 - **`--lab-wifi HOLA` (#64's fix) works end to end:** the prepare baked
   the profile into machine.nix
-  (`golem-lab`, autoconnect, `autoconnect-retries = 0`), golem-minimal
+  (`golem-lab`, autoconnect, `autoconnect-retries = 0`), standard-minimal
   evaluated with it (`ssid: HOLA`), and the INSTALLED system carries it
   — `nmcli con show` lists **golem-lab**. That is the property the dell
   needs: after reboot it joins on its own and I reach it over SSH.
@@ -356,34 +356,34 @@ NO fbcon/splash kernelParam (#65), the full 17-leaf database aboard.
   Everything the keyboard-less install needs is proven in the rig: BIOS
   path, baked lab wifi, visible console, healthy first boot.
 
-## Round I1 — stage 0, UEFI — 2026-09-10 — golem-minimal installed, booted, and SELF-REBUILT; caught + fixed #62
+## Round I1 — stage 0, UEFI — 2026-09-10 — standard-minimal installed, booted, and SELF-REBUILT; caught + fixed #62
 
 First modular install anywhere. **Mode: real-install + installed-boot +
 stage-climb (self-rebuild).** Fresh `golem-minimal-uefi.qcow2`, round-6
 stick, hostname `vmmin`.
 
 - **The seam, minimal variant:** answers → `--prepare-only` → pull facts
-  → **run the chooser** → build `golem-minimal` toplevel (**2.92 GiB**,
+  → **run the chooser** → build `standard-minimal` toplevel (**2.92 GiB**,
   vs the fat 18.9) → `nix copy` → `--skip-prepare --system` (systemd-boot
   written, header `hostname vmmin (from seed)`) → boot from disk.
 - **Chooser output (vmmin):** systemd-boot · intel-microcode · virtio ·
   zram-tier1 · hibernation · disk-policy · qemu-guest — 7 leaves, each
   with its why in modules.nix.
 - **First boot:** `is-system-running: running`, zero failed units, root
-  /dev/vda3, sshd+NetworkManager active, max's shell = zsh (Golem's),
+  /dev/vda3, sshd+NetworkManager active, max's shell = zsh (Standard's),
   **zram-tier1 exact** (zram 5.7G prio 100, swap 6G, swappiness 180,
   cache-pressure 50), resume wired, seed present. Correctly NO
   hyprland/waverunner — this is minimal.
 - **#62 — the self-rebuild proof did its job:** the first attempt found
   the installed seed couldn't reproduce itself (no modules.nix dropped;
-  golem-minimal never wired flakeDir/flakeAttr). Both fixed in source
+  standard-minimal never wired flakeDir/flakeAttr). Both fixed in source
   (changes.md #62); after the fix the machine **rebuilt itself
-  `#golem-minimal` from its own seed → generation 2, still running.**
+  `#standard-minimal` from its own seed → generation 2, still running.**
   Stage 0's defining requirement — climbs happen by rebuild — proven.
 - **Owed on the round-I1 recut:** the engine's LIVE modules.nix drop
   (this stick predates the Modular work; the drop was verified by
   running its exact chooser line, and the seed was hand-synced for the
-  rebuild proof — a harness artifact, not a Golem bug), and the
+  rebuild proof — a harness artifact, not a Standard bug), and the
   **BIOS stage-0 install** (this entry is UEFI; BIOS boot-path is
   already proven for the fat target).
 - **Verdict:** stage 0 is REAL on UEFI — choose → install → boot →
@@ -396,7 +396,7 @@ The round-I1 ISO (`jd9lgha3…-golem-installer.iso`, `result-roundI1`),
 cut with the #62 engine fix aboard. `nix flake update` first (the rule);
 verified in the built artifact: `golem-install` greps positive for
 `Modular/choose.nix`, the embedded seed carries the full `system/Modular`
-tree + the `golem-minimal` attr + waverunner `0696b72`.
+tree + the `standard-minimal` attr + waverunner `0696b72`.
 
 **THE NEW CAPABILITY, proven live on both firmwares:** a real
 `--prepare-only` **drops `hosts/target/modules.nix` into the seed by
@@ -407,10 +407,10 @@ self-sufficient by construction.
   intel-microcode · virtio · zram-tier1 · hibernation · disk-policy ·
   qemu-guest. Installed 2.92 GiB, first boot `running` / 0 failed /
   root vda3 / zsh / swappiness 180 / sshd+NM active. **Self-rebuild
-  `#golem-minimal` from the untouched seed → generation 2, running.**
+  `#standard-minimal` from the untouched seed → generation 2, running.**
 - **BIOS (`golem-i1-bios.qcow2`, vmi1b):** chooser correctly swapped in
   **grub-bios** (not systemd-boot) — the leaf split works. SeaBIOS →
-  GRUB (installed to the by-id alias) → Golem, first boot `running` /
+  GRUB (installed to the by-id alias) → Standard, first boot `running` /
   0 failed / root vda3 / zsh / swappiness 180. **Self-rebuild → gen 2,
   running.**
 - **Verdict:** **round-I1 ISO GATE PASSED, both firmwares.** Stage-0
@@ -428,7 +428,7 @@ through `echo b > /proc/sysrq-trigger` (a kernel trigger, no store access), sysr
 enabled on the medium. **GATE:** drove the install to the verdict, then
 `eject -f isocd` on the qemu monitor (= physically pulling the stick) — install-cli
 HELD at the verdict, no crash. ENTER → the machine rebooted, OVMF skipped the gone
-DVD-ROM (Boot0001) and booted the disk (Boot0002) → **`Golem login:`**. The USB-pull
+DVD-ROM (Boot0001) and booted the disk (Boot0002) → **`Standard login:`**. The USB-pull
 → ENTER → into-Golem flow works with the stick already out. #118 reboot CLOSED.
 
 ## 2026-09-24 — I3d — SILENT reboot (static helper) — GATE PASS
@@ -440,10 +440,10 @@ copied into /run (RAM) while the USB is in, exec'd at ENTER. reboot(2)'s only li
 ("Restarting system", KERN_EMERG) is suppressed by consoleLogLevel=0. **GATE:**
 drove to the verdict, `eject -f isocd` (pull the stick) — held, no crash — ENTER →
 the top-200 console band was BLACK across 8 rapid frames (no "sysrq:"/"Restarting"
-flash), and ~1 s later the INSTALLED disk's GRUB ("Start Golem") was on screen.
-Silent black → Golem. #118 reboot messages CLOSED.
+flash), and ~1 s later the INSTALLED disk's GRUB ("Start Standard") was on screen.
+Silent black → Standard. #118 reboot messages CLOSED.
 
-## 2026-09-24 — I3f — FIRST BIOS install to `Golem login:` — #120 confirmed, #122 FOUND + FIXED + GATED
+## 2026-09-24 — I3f — FIRST BIOS install to `Standard login:` — #120 confirmed, #122 FOUND + FIXED + GATED
 
 **Mode:** real-install + installed-boot, on a **SeaBIOS** VM (the gate had only ever
 run UEFI/OVMF — which is exactly why the BIOS-only bugs below slipped through).
@@ -464,7 +464,7 @@ golem path:<clean>`.
   Root cause: the baked toplevel's `bakedFakeDisk` declared an ESP `/boot` mount for
   BOTH firmwares; a BIOS disk has no ESP. See changes.md #122.
 - **FIX proven at config level:** rebuilt floor + qemu BIOS toplevels' baked
-  `/etc/fstab` → root by-label golem + envfs binds, **NO ESP** (UEFI floor still has
+  `/etc/fstab` → root by-label standard + envfs binds, **NO ESP** (UEFI floor still has
   `/boot ESP vfat`).
 - **PASS — real install (I3f, non-interactive):** `golem-install --disk /dev/sda
   --yes` from the installer's tty2 → `lsblk`: `sda1` bios-boot (no fs) + `sda2` swap
@@ -473,8 +473,8 @@ golem path:<clean>`.
   `local-fs.target.wants` **EMPTY** (no `boot.mount`). (verdict was `terminada`, not
   `sana`, only because `--yes` set no password → the account check fails; not a boot
   issue.)
-- **PASS — installed boot:** eject ISO → reset → GRUB "Start Golem" → Plymouth bar →
-  **`<<< Welcome to Golem 26.05.20260829.c5c4a43 (x86_64) - tty1 >>>` / `Golem
+- **PASS — installed boot:** eject ISO → reset → GRUB "Start Standard" → Plymouth bar →
+  **`<<< Welcome to Standard 26.05.20260829.c5c4a43 (x86_64) - tty1 >>>` / `Standard
   login:`**. No hang, no emergency. **First BIOS install anywhere to reach the login
   prompt in this era.** #122 CLOSED.
 - **STILL OPEN — #121** (medium's "No EFI environment detected." decompressor splash
@@ -494,7 +494,7 @@ device-wait "start job" text leaked to the console. Fix #124: systemd initrd + G
   **bar paints + fills** — but SSH showed disk `sda` at **3.7 s**, initrd 4.9 s (the
   force-load via systemd-modules-load still gated switch-root). Caught it before metal.
 - **I3j (systemd initrd + GPU via `availableKernelModules`):** installed clean;
-  reboot → **bar paints** (`card0 = bochs-drm`, udev-loaded) → `Golem login:`. SSH:
+  reboot → **bar paints** (`card0 = bochs-drm`, udev-loaded) → `Standard login:`. SSH:
   **disk `sda` at 1.05 s** (was 3.7 s), **initrd 2.0 s** (was 4.9 s), **total 5.8 s**;
   `modules-load.d` carries no GPU (udev-driven). Storage no longer waits behind the
   GPU — the ordering fix that kills the metal 48 s boot.

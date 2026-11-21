@@ -1,8 +1,8 @@
 # THE CHOOSER — the only brain in the Modular world (Installing spec).
 #
 # Pure nix, no nixpkgs: `import ./choose.nix { facts = {…}; }` where
-# facts is the golem.hardware attrset (a fixture's, or the census's:
-# `(import golem-hardware.nix { }).golem.hardware`). Returns:
+# facts is the standard.hardware attrset (a fixture's, or the census's:
+# `(import golem-hardware.nix { }).standard.hardware`). Returns:
 #
 #   pointers  [ { group; leaf; why; } … ]   the chosen leaves, in order
 #   skipped   [ { group; why; } … ]         groups honestly left empty

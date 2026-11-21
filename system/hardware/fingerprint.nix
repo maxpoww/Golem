@@ -6,7 +6,7 @@
 { config, lib, ... }:
 
 {
-  config = lib.mkIf config.golem.hardware.fingerprint {
+  config = lib.mkIf config.standard.hardware.fingerprint {
     services.fprintd.enable = lib.mkDefault true;
   };
 }

@@ -90,7 +90,7 @@ cut-50.md as contract, not garnish.
 - **V:** [tuck it away]
 - *Register note: this is the batch's smallest value, and the verdict (cut-50
   flag, re-verified in §4.1) is that it survives on charm carried by a REAL
-  first-party verb — the dock is Golem's own component (the launch rail backed by
+  first-party verb — the dock is Standard's own component (the launch rail backed by
   the usage-sorted entry list every A-block names), so tucking it is writing the
   dock's own opacity without stepping on a boundary. The hunts hold it as first
   to die if the tight rhythm is missing. No P (own component, live events).*
@@ -146,7 +146,7 @@ cut-50.md as contract, not garnish.
 - **T:** the session enters Sleep (logind sleep [cheap]) while the agent process is resident (process presence [live])
 - **S:** "I'm about to sleep and I still hold your clipboard history, do you want it cleared?"
 - **V:** [clear my clipboard history]
-- **P:** fires on ANY suspend (not a bedtime monitor, F4 doctrine 2); the verb names exactly what is cleared — Golem's own clipboard-history store at $XDG_DATA_HOME, never the user's files or browser (bounded-storage discipline). **Speaks only when the flush actually found data — an empty store is silence, not liturgy** (§2.5).
+- **P:** fires on ANY suspend (not a bedtime monitor, F4 doctrine 2); the verb names exactly what is cleared — Standard's own clipboard-history store at $XDG_DATA_HOME, never the user's files or browser (bounded-storage discipline). **Speaks only when the flush actually found data — an empty store is silence, not liturgy** (§2.5).
 
 ### health/ergonomics — 1
 
@@ -154,7 +154,7 @@ cut-50.md as contract, not garnish.
 - **T:** focus lands on a precision-class window and stays (window [live]; the class table the [cheap] derivation)
 - **S:** "You're in the pixel editor, do you want the pointer eased for it?"
 - **V:** [ease the pointer]
-- **P:** the task class is a window-class derivation — class only (F4 doctrine 4), the same derivation as the meeting/game/editor classes; the pointer write is Golem's own input setting. The precision-class table is named, not waved at (§4.3).
+- **P:** the task class is a window-class derivation — class only (F4 doctrine 4), the same derivation as the meeting/game/editor classes; the pointer write is Standard's own input setting. The precision-class table is named, not waved at (§4.3).
 
 ---
 
@@ -298,13 +298,13 @@ must never speak within an hour of anything else.
 
 The flag was "charm doing the value's work." Verification of the verb first: the
 the dock — the launch dock the OPTIONS constitution names
-as one of the three surfaces Golem is uniquely positioned to own ("the window,
+as one of the three surfaces Standard is uniquely positioned to own ("the window,
 the clock and the dock are the help"), backed by the usage-sorted entry list the
 batch-01 A-blocks already write to. Tucking it = a one-line write to the dock's
 own opacity, the same first-party surface A39/A21 already touch. That is a real
 hand, currently unshipped only in the trivial sense that opacity-write is a P6
 implementation detail. The sentence re-read in register: "Your video went
-fullscreen and my dock is still in front of it" — the A20 species (Golem noticing
+fullscreen and my dock is still in front of it" — the A20 species (Standard noticing
 its own help arriving at the wrong moment). **Verdict stands: kept.** The value is
 small and the hunts hold it as first to die.
 
@@ -326,7 +326,7 @@ guess." Named: the precision-class complement is the image-editor set (gimp,
 krita, inkscape, darktable), the CAD set (freecad, openscad, blender), and the
 pixel-tool set (aseprite, pixelorama) — the same class-derivation discipline that
 already supplies the meeting/game/editor classes elsewhere, and one a P6 block can
-enumerate literally. **Verdict stands: kept.** The pointer write is Golem's own
+enumerate literally. **Verdict stands: kept.** The pointer write is Standard's own
 input setting (the hyprland/wlroots sensitivity), and the trigger is window-class
 focus, never pointer noise — so the A26 pointer-discipline worry does not apply.
 Residual for the hunts: a user in gimp doing 1:1 pixel zoom-and-nudge is the
@@ -344,8 +344,8 @@ branch) share only the git/shell seam, opposite verbs, opposite moments.
 **system (3)** A05 (corner) / A06 (open-with) / A07 (dock) — no shared trigger.
 **search/launch (2)** A08/A09 resolved in §3.2. **power (2)** A10 (idle-clock
 hibernate) vs A11 (low-battery park) — different emergencies, different hands.
-**security (2)** A13 (strip metadata on the way out) vs A14 (clear Golem's own
-store at sleep) — different objects (the user's outgoing file vs Golem's store),
+**security (2)** A13 (strip metadata on the way out) vs A14 (clear Standard's own
+store at sleep) — different objects (the user's outgoing file vs Standard's store),
 different moments, both privacy-POSITIVE. **No duplicates in the register.**
 
 Cross-batch near-neighbours worth recording for the hunts: A06 (open-with

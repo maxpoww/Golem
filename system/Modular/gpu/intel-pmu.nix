@@ -4,7 +4,7 @@
 # has no sysfs busy counter, only a clock), and only system-wide: 0 is the
 # level that allows that (1 already refuses it; the kernel default is 2). 0
 # still refuses raw tracepoints. Without it the MacBook's gear had no GPU
-# column (found 2026-09-30 by the P1 diff: the dev box set this, Golem never
+# column (found 2026-09-30 by the P1 diff: the dev box set this, Standard never
 # did). AMD needs nothing (amdgpu's gpu_busy_percent). Imported by both Intel
 # leaves; imports dedupe by path, so it is defined once even if both land.
 { ... }:

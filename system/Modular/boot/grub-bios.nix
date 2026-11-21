@@ -7,11 +7,11 @@
 { pkgs, lib, ... }:
 
 {
-  # The Golem grub (quiet + item_align), shared with grub-efi.nix so the
+  # The Standard grub (quiet + item_align), shared with grub-efi.nix so the
   # two firmware halves cannot drift apart. See #89, #92, #94b.
   imports = [ ./grub-patched.nix ];
 
-  boot.loader.timeout = 1;   # 1s menu then auto-boot "Start Golem" (was 3; Max 2026-09-25)
+  boot.loader.timeout = 1;   # 1s menu then auto-boot "Start Standard" (was 3; Max 2026-09-25)
   boot.loader.grub = {
     enable = true;
     efiSupport = false;
@@ -35,7 +35,7 @@
     # Width HUGS the widest label in the whole tree. After #95's
     # rewording that is a recovery row, "Gen 15 - 2026-09-15" = 210px in
     # DejaVu Sans 20 (measured), + a space either side = a 222px bar in
-    # a 226px box, centred at 50%-113. The top level ("Golem" 67px,
+    # a 226px box, centred at 50%-113. The top level ("Standard" 67px,
     # "Recover" 82px) rides the same bar — one width for every row is
     # GRUB's rule as much as syslinux's. Lockstep with grub-efi.nix.
     theme = pkgs.callPackage ./grub-theme.nix {

@@ -1,4 +1,4 @@
-# What Golem audits, and what it decides
+# What Standard audits, and what it decides
 
 The census in one page. Facts come from `../system/hardware-detect.nix`;
 the decisions come from the modules in `../system/hardware/`, and every
@@ -8,7 +8,7 @@ one of them is asserted in the eval matrix
 MiniGolem runs all of this by itself at boot — `audit.nix` — and leaves
 the result in `/var/log/golem-audit/summary.txt`.
 
-## 1. What Golem measures (14 facts)
+## 1. What Standard measures (14 facts)
 
 | Fact | Read from |
 |---|---|

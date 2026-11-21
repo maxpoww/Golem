@@ -1,10 +1,10 @@
 # desktop/ups — the UPSTREAM LANE (ported from the dev box's /etc/nixos/ups.nix,
-# 2026-10-01: it had never shipped in Golem; Max: "test the ups workflow on both pcs").
+# 2026-10-01: it had never shipped in Standard; Max: "test the ups workflow on both pcs").
 #
-# The UPSTREAM LANE — the OPTION to run bleeding-edge upstream apps on Golem.
+# The UPSTREAM LANE — the OPTION to run bleeding-edge upstream apps on Standard.
 #
 # `ups` installs upstream apps into per-app rootless containers, DELIBERATELY
-# OUTSIDE Golem's declarative system. The Nix world stays reproducible and
+# OUTSIDE Standard's declarative system. The Nix world stays reproducible and
 # rollback-able; the containers ups spawns are the mutable, bleeding-edge part.
 # An app takes its REAL name (`ups add opencode` -> `opencode`), shares your real
 # home, and — if it has an icon — lands on the app-box automatically. It's an
@@ -66,7 +66,7 @@ in
     UPS_SETUP='sudo dnf install -y nodejs npm && sudo npm install -g opencode-ai'
     UPS_BINS="opencode"
     # opencode's own settings/auth/cache — safe for 'erase --purge' to remove
-    # (opencode has no stock Golem build, so nothing here is shared).
+    # (opencode has no stock Standard build, so nothing here is shared).
     UPS_DATA="~/.config/opencode ~/.local/share/opencode ~/.local/state/opencode ~/.cache/opencode"
   '';
 }

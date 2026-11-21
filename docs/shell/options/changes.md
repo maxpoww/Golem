@@ -11,7 +11,7 @@ at **#68**.
   note, a machine's file, a VM screenshot. The **change it implies**
   lands here: what / why / where (file:location) / size (small · medium ·
   needs-Max). Status rides the header tag. Newest number first.
-- Waverunner-side fixes ride the launcher → Golem lock → seed pipeline
+- Waverunner-side fixes ride the launcher → Standard lock → seed pipeline
   (#41). A fix is not real on a machine until the seed carries it.
 - An entry moves below the line when it is applied **and verified** in
   method §4's vocabulary — sensed → surfaced → triggered → effect
@@ -37,7 +37,7 @@ had no findings at all before 2026-09-12.
 
 ## Queued
 
-### 84. The cava pill recorded the MICROPHONE — `pw-record --target <sink>` silently falls back to the default source — [FOUND + FIXED on metal 2026-09-12 · the first thing in Golem to touch a live audio input, and it got it wrong]
+### 84. The cava pill recorded the MICROPHONE — `pw-record --target <sink>` silently falls back to the default source — [FOUND + FIXED on metal 2026-09-12 · the first thing in Standard to touch a live audio input, and it got it wrong]
 **What happened.** The spectrum capture was spawned as
 `pw-record --raw --target <sink-name> -`, which reads correctly and is
 wrong. For a **capture** stream PipeWire does not interpret a sink target
@@ -277,7 +277,7 @@ help comes *back* when the user struggles.
   (`daemon_tuning`), `crates/options-engine/src/mind/decide.rs:265–282`
   (`effective_skill`).
 - **size:** needs-Max to scope (it is the first persistent user model in
-  Golem), then medium.
+  Standard), then medium.
 
 ### 78. The 45 slices have been held to DoD 1–5 and never audited against 6–12 — [STATED by absence · catalog §4, modules.md]
 Population B was built against *sensed → pill → action performs*, which
@@ -308,7 +308,7 @@ and deliberately accepted.
 
 ### 76. Tempo and stillness have never been watched on slow metal — [STANDING · corrected 2026-09-12]
 *(This entry originally claimed no OPTION had ever been seen outside the
-golem-vm. That was wrong and is corrected here: the dev box runs it
+standard-vm. That was wrong and is corrected here: the dev box runs it
 daily, the ASUS has it installed, and `settle.rs` exists **because** of
 what Max watched on a 2013 MacBook Air. The real gap is narrower and
 worth keeping.)*

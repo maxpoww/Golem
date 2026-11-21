@@ -1,13 +1,13 @@
 # THIS COMPUTER — your file.
 #
-# Golem is the system. It is in ./golem (read-only: the exact Golem this
+# Standard is the system. It is in ./standard (read-only: the exact Standard this
 # computer runs) and it updates by itself. What is written HERE is this
-# computer: its name, its owner, and anything you want different. Golem
+# computer: its name, its owner, and anything you want different. Standard
 # never rewrites this file, and an update never touches it.
 #
 #   sudo nixos-rebuild switch     apply what you changed (or: rebuild-golem)
 #   ./modules/                    drop a .nix file there: it is part of the system
-#   ./golem/                      read Golem, copy from it (docs: ./golem/docs)
+#   ./standard/                      read Standard, copy from it (docs: ./standard/docs)
 #   man configuration.nix         every NixOS option
 #
 # No password or key belongs in this folder: it is copied, readable by
@@ -16,14 +16,14 @@
 
 {
   # ── Who and what (the installer's questions) ───────────────────────────
-  golem.owner = "tester";
-  networking.hostName = "golem-vm";
+  standard.owner = "tester";
+  networking.hostName = "standard-vm";
   users.users."tester".description = "Test Owner";
 
-  golem.locale.defaultLocale = "es_AR.UTF-8";
-  golem.locale.timeZone = "America/Argentina/Buenos_Aires";
+  standard.locale.defaultLocale = "es_AR.UTF-8";
+  standard.locale.timeZone = "America/Argentina/Buenos_Aires";
 
-  golem.keyboard = {
+  standard.keyboard = {
     layout = "latam";
     variant = "";
     options = "";
@@ -35,8 +35,8 @@
   # The dock's Modules page switches these on for you (machine/modules.list).
   # By hand it is the same switch:
   #
-  #   golem.modules.gaming.enable = true;              # the recommended set
-  #   golem.modules.development = {                    # or tool by tool
+  #   standard.modules.gaming.enable = true;              # the recommended set
+  #   standard.modules.development = {                    # or tool by tool
   #     enable = true;
   #     install = "chosen";
   #     docker.enable = true;

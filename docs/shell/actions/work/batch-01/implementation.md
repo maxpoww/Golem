@@ -35,7 +35,7 @@ distance is shallow. Three wait on a verb that does not exist yet: A29, A34, A37
 wait on named [cheap] work one level deeper inside a collector already running — a title
 event the parser currently drops, one more file read inside the `read_dir` that already
 answers `has_backlight`. Two, A26 and A33, wait on an absence rather than a gap, since
-Golem ships no idle manager and no locker at all; A35 left that same waiting room only by
+Standard ships no idle manager and no locker at all; A35 left that same waiting room only by
 re-specifying itself as four hours with no focus visit, which the focus stream answers
 alone.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# golem-mirror — the phone's screen on the desktop (scrcpy wrapped in Golem UX).
+# golem-mirror — the phone's screen on the desktop (scrcpy wrapped in Standard UX).
 #
 # Wireless by default: the phone's current Wi-Fi address is discovered from the
 # Golem/kdeconnect link (kdeconnect-cli -l), so nothing is hardcoded. Falls back
@@ -27,7 +27,7 @@ if [[ "${1:-}" == "--setup" ]]; then
     exit 0
 fi
 
-# The phone as the Golem link currently sees it: name and LAN address.
+# The phone as the Standard link currently sees it: name and LAN address.
 line=$(kdeconnect-cli -l 2>/dev/null | grep 'via LAN (paired and reachable)' | head -1 || true)
 ip=$(sed -n 's/.* on \([0-9.]*\) via LAN.*/\1/p' <<<"$line")
 name=$(sed -n 's/^- \(.*\): [0-9a-f]* on .*/\1/p' <<<"$line")
@@ -52,6 +52,6 @@ if [[ -z "$serial" ]]; then
 fi
 
 exec scrcpy -s "$serial" \
-    --window-title "Golem — ${name:-phone}" \
+    --window-title "Standard — ${name:-phone}" \
     --stay-awake \
     "$@"

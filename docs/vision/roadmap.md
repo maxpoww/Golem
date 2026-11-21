@@ -1,8 +1,8 @@
-# Golem OS — Roadmap (now → finished ISO → the soul)
+# Standard OS — Roadmap (now → finished ISO → the soul)
 
 > **Two arcs** (decided 2026-08-29): **Arc 1 — reach metal**: take what
 > exists, make it work *perfectly*, and get it onto an ISO that installs
-> Golem on other PCs. Feature freeze: no new OPTIONS surfaces, no module
+> Standard on other PCs. Feature freeze: no new OPTIONS surfaces, no module
 > growth — incompleteness is accepted, brokenness is not. **Arc 2 — grow
 > the soul**: after the ISO, wire the Brain, build out the modules, the
 > phone, the everything. Module ideas keep landing in `OPTIONS/modules.md`
@@ -10,7 +10,7 @@
 >
 > Section IDs (S1…S11, SH, W-A) are stable names; the ARC ORDER below is the
 > order of work. Each section has `todo/todo<id>.md`. Scope sources:
-> `Golem.md` · `features.md` · `apps.md` · `android.md` · `OPTIONS/modules.md`.
+> `StandardOS.md` · `features.md` · `apps.md` · `android.md` · `OPTIONS/modules.md`.
 
 ## ARC 1 — Reach metal: S1 ✔ → SH (running) + S2 ✔ → S7 → S9
 
@@ -28,20 +28,20 @@ homedir assumptions), graceful degradation when deps are missing, daily
 driving with notes. Freeze rule: fix, don't grow.
 **Exit:** a week of daily use with zero surprises; every known bug fixed or filed.
 
-### S7 — The Golem system flake
-ONE flake = a complete Golem PC: custom Hyprland, waverunner,
+### S7 — The Standard system flake
+ONE flake = a complete Standard PC: custom Hyprland, waverunner,
 options-notify, dictionaries, defaults, theming, users — *and the stopgap
 kit*: curated plain tools for what OPTIONS doesn't cover yet (network,
 audio, bluetooth GUIs) so an installed machine is livable today; each
 stopgap dies when its Arc-2 module ships. `nixos-rebuild build-vm` = the
 test loop.
-**Exit:** one command produces a bootable Golem VM a stranger could use, including getting online.
+**Exit:** one command produces a bootable Standard VM a stranger could use, including getting online.
 
 ### S9 — Installer & ISO
-Live ISO boots into real Golem; guided install (disk, user, wifi, done)
+Live ISO boots into real Standard; guided install (disk, user, wifi, done)
 instantiates the S7 flake. Test on the VM, then real metal, then a machine
 that isn't yours.
-**Exit — THE Arc-1 exit:** ISO on a USB stick → working Golem PC on another computer, no terminal, no Max in the room.
+**Exit — THE Arc-1 exit:** ISO on a USB stick → working Standard PC on another computer, no terminal, no Max in the room.
 
 *(S10-lite rides along: golem-os.com gets a download link + honest install
 notes when the ISO exists. The full release push stays in Arc 2.)*
@@ -76,14 +76,14 @@ Design doc (what the tour must be, where it attaches): `onboarding-design.md`.
 
 ### S10 — Website & release
 Manifesto ✔ → story, motion screencasts, generations/"roll back" headline,
-alpha release of **Golem 26 "Uprise"** proper.
+alpha release of **Standard 26 "Uprise"** proper.
 Alpha gate (versioning, known issues, feedback channel): `release-checklist.md`.
 
 ### S11 — Everyone-hardening *(cross-cutting, closes last)*
 i18n (Spanish first), keyboard-only, accessibility, non-expert testing.
 
-### W-A — Golem × Android *(parallel, any time after S2)*
-`android.md`: fork KDE Connect → Golem app; phone collector; P1→P4.
+### W-A — Standard × Android *(parallel, any time after S2)*
+`android.md`: fork KDE Connect → Standard app; phone collector; P1→P4.
 
 ---
 

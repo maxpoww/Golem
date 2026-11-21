@@ -1,6 +1,6 @@
 # The testing constitution — how the lab runs
 
-The method for raising Golem's install story on real hardware, agreed with
+The method for raising Standard's install story on real hardware, agreed with
 Max (2026-09-06). This file is the process; the laptop files are the
 records; [testing.md](testing.md) is the synthesis; [changes.md](changes.md)
 is the queue. Read this before running a test or writing a finding.
@@ -31,7 +31,7 @@ A round is one ISO taken across the whole lab:
      fix across all five hardware profiles before it is ever baked into an
      ISO — a bigger picture than fixing once at the end.
 3. **Findings go two places.** The raw finding is recorded in the laptop's
-   file (what THAT machine did). Any change the finding implies for Golem
+   file (what THAT machine did). Any change the finding implies for Standard
    is queued in [changes.md](changes.md) — never applied mid-round.
 4. **Close the round.** When the five are done, read all five files, write
    the *big picture* — what held everywhere, what only one machine
@@ -42,14 +42,14 @@ A round is one ISO taken across the whole lab:
 The discipline that makes this work: **no ISO change lands mid-round.** A
 bug found on laptop 2 is not fixed before laptop 3 runs — it is written
 down and the same ISO meets laptop 3, so laptop 3's result describes the
-same Golem. Fixing as you go would mean five machines each testing a
+same Standard. Fixing as you go would mean five machines each testing a
 slightly different distro, and nothing could be compared. (The cores +
 hostname fixes on 2026-09-06 predate this constitution; they are baked into
 the round-1 ISO below, and from here the queue is honored.)
 
 ## The test, per laptop
 
-What "the test" is (Max: "test is for general changes on Golem"): boot the
+What "the test" is (Max: "test is for general changes on Standard"): boot the
 stick and drive the whole install flow as a stranger would, writing
 nothing to any disk. Concretely:
 
@@ -98,7 +98,7 @@ green result on new hardware is what earns the next box on the scoreboard.
 - **The iron law.** Uncertain detection lands on the safe, open stack; a
   stranger's first boot must never be a black screen.
 - **Suspect the harness first.** When a census result looks wrong, the test
-  rig lying to the probe is more likely than Golem being wrong — it has
+  rig lying to the probe is more likely than Standard being wrong — it has
   happened repeatedly (headless `-vga none`, missing virtio channels, a
   stripped systemd PATH). Rule out the rig before blaming the distro.
 - **Metal earns what the VM and CI cannot.** Fixtures replay in

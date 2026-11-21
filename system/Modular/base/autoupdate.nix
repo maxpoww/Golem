@@ -1,7 +1,7 @@
-# base/autoupdate — Golem keeps itself current, stage 0's maintenance spine.
+# base/autoupdate — Standard keeps itself current, stage 0's maintenance spine.
 # The garbage side already lives in base/nix.nix (nix.gc daily, keep 15
 # generations, auto-optimise-store). This is the OTHER half Max named: an
-# installed Golem must not freeze at its install-date revision. Ported from
+# installed Standard must not freeze at its install-date revision. Ported from
 # the proven rice design (2026-09-07 / -09-19), adapted from channels to the
 # flake seed and from `switch` to `boot`.
 #
@@ -13,7 +13,7 @@
 #    (a channel bump restarting the uwsm skeleton) WITHOUT needing the
 #    X-RestartIfChanged session guard here — that guard is a desktop-stage
 #    concern; the minimal has no session to protect. `allowReboot` is never
-#    set: Golem stages, it does not reboot the owner's machine out from under
+#    set: Standard stages, it does not reboot the owner's machine out from under
 #    them. The new generation goes live on the next natural reboot.
 #
 # 2. TRUST THE UPSTREAM SEED, guard the LOCAL tree. The update source is the
@@ -34,11 +34,11 @@
 #    run that fires before Wi-Fi is back (wake-from-sleep DNS race) does not
 #    quietly rebuild against stale state — it waits, or gives up loudly.
 #
-# HONEST LIMITATION, today: an installed Golem's seed has no upstream remote
-# yet (it is a local checkout the installer dropped). Until Golem publishes an
+# HONEST LIMITATION, today: an installed Standard's seed has no upstream remote
+# yet (it is a local checkout the installer dropped). Until Standard publishes an
 # upstream repo/channel, this leaf is a correct, network-gated NO-OP — the
 # machinery is in place and the day the seed gains a remote, updates flow. Its
-# absence is the real gap, not this leaf. Guarded on golem.flakeDir like
+# absence is the real gap, not this leaf. Guarded on standard.flakeDir like
 # selfrebuild/seal: a machine with no checkout gets nothing.
 { config, pkgs, lib, ... }:
 
@@ -53,7 +53,7 @@ let
   # entry to check.
   bootMenu = config.boot.loader.grub.enable || config.boot.loader.systemd-boot.enable;
 in
-lib.mkIf (config.golem.flakeDir != null) {
+lib.mkIf (config.standard.flakeDir != null) {
   # golem-wait-online on the system PATH: this root service and any future
   # user-lane updater share ONE gate (same code, same retry), exactly as the
   # rice shares it between nixos-upgrade and `ups autoupdate`.
@@ -72,7 +72,7 @@ lib.mkIf (config.golem.flakeDir != null) {
     serviceConfig.Nice = 19;
     serviceConfig.IOSchedulingClass = "idle";
     serviceConfig.CPUWeight = 20;
-    serviceConfig.ExecStartPre = lib.optional (config.golem ? quietLogin) "${config.golem.quietLogin}/bin/golem-quiet-login";
+    serviceConfig.ExecStartPre = lib.optional (config.standard ? quietLogin) "${config.standard.quietLogin}/bin/golem-quiet-login";
     # Exit 75 = THE NETWORK, not the version: no connection after 15 min, or
     # GitHub could not be asked for the version's published pieces. Nothing
     # was built; the run comes back in an hour instead of tomorrow night
@@ -85,11 +85,11 @@ lib.mkIf (config.golem.flakeDir != null) {
     path = [ pkgs.git pkgs.openssh config.nix.package pkgs.coreutils pkgs.util-linux ];
     script = ''
       set -euo pipefail   # -e: a failed rebuild marks the service failed (visible), not silent
-      dir=${lib.escapeShellArg config.golem.flakeDir}
-      attr=${lib.escapeShellArg config.golem.flakeAttr}
-      owner=${lib.escapeShellArg config.golem.owner}
+      dir=${lib.escapeShellArg config.standard.flakeDir}
+      attr=${lib.escapeShellArg config.standard.flakeAttr}
+      owner=${lib.escapeShellArg config.standard.owner}
 
-      # What the owner's desktop reads to say "Golem could not update"
+      # What the owner's desktop reads to say "Standard could not update"
       # (desktop/update-notice.nix): when a run last worked, and when one last
       # failed. Nobody else could ever know (no telemetry); these files never
       # leave the machine. Waiting for the wave is a run that worked.
@@ -134,10 +134,10 @@ lib.mkIf (config.golem.flakeDir != null) {
 
       # A seed still in its installed form (a plain copy) becomes a checkout of
       # the upstream first (base/seed.nix; a no-op once it is one).
-      ${config.golem.seed.adopt}/bin/golem-seed-adopt || true
+      ${config.standard.seed.adopt}/bin/golem-seed-adopt || true
 
       cd "$dir" || { echo "golem-autoupdate: seed $dir is gone — nothing to update" >&2; exit 1; }
-      ${config.golem.gitHeal}/bin/golem-git-heal "$dir" || true
+      ${config.standard.gitHeal}/bin/golem-git-heal "$dir" || true
 
       # 2) is there a trusted upstream to pull from?
       # (Every git command here runs AS THE OWNER: root never runs git inside
@@ -148,12 +148,12 @@ lib.mkIf (config.golem.flakeDir != null) {
         exit 0
       fi
 
-      # Installs follow golem.upstream.branch: "stable", where the update lane
+      # Installs follow standard.upstream.branch: "stable", where the update lane
       # puts only versions it built, tested and cached (updates/README.md). A
       # seed cloned when installs followed main moves over once that branch
       # exists upstream; until the lane's first publish it doesn't, and the
       # seed stays where it is.
-      want=${lib.escapeShellArg config.golem.upstream.branch}
+      want=${lib.escapeShellArg config.standard.upstream.branch}
       cur=$(runuser -u "$owner" -- git -C "$dir" rev-parse --abbrev-ref '@{u}' 2>/dev/null || true)
       if [ "$cur" != "origin/$want" ] \
          && runuser -u "$owner" -- git -C "$dir" fetch --quiet origin "+refs/heads/$want:refs/remotes/origin/$want" 2>/dev/null; then
@@ -175,7 +175,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         mold=$(mktemp); mnew=$(mktemp)
         runuser -u "$owner" -- cat -- "$mf" > "$mold"   # read as the owner (18-Nov)
         sed '/users\.users\.[^ ]*\.hashedPassword = /d' "$mold" > "$mnew"
-        if ${config.golem.seal.adopt}/bin/golem-seal-adopt hosts/target/machine.nix "$mnew" "$mold"; then
+        if ${config.standard.seal.adopt}/bin/golem-seal-adopt hosts/target/machine.nix "$mnew" "$mold"; then
           runuser -u "$owner" -- ${ownerPut} "$mf" < "$mnew"   # written as the owner (18-Nov)
           runuser -u "$owner" -- git -C "$dir" add -f hosts/target/machine.nix || true
           migrated=1
@@ -206,16 +206,16 @@ lib.mkIf (config.golem.flakeDir != null) {
         fi
       fi
 
-      # The owner's edits to Golem's OWN files must not freeze the machine.
+      # The owner's edits to Standard's OWN files must not freeze the machine.
       # ~/Golem sits in their home (Files shows it); one edited file that
       # upstream later changes made `pull --ff-only` refuse, and the machine
       # never updated again — while this unit reported success (ASUS,
       # 2026-10-02). The machine's own layer is theirs and stays put:
       # hosts/target/ (installer + dock), seam/sources.json (set aside above),
       # the post-install answers. Anything else edited is copied to
-      # ~/Golem-local-edits/<when>/ and restored to Golem's version; the owner
+      # ~/Golem-local-edits/<when>/ and restored to Standard's version; the owner
       # is told where their copy went.
-      home=${lib.escapeShellArg config.users.users.${config.golem.owner}.home}
+      home=${lib.escapeShellArg config.users.users.${config.standard.owner}.home}
       edited=$(runuser -u "$owner" -- git -C "$dir" diff --name-only HEAD 2>/dev/null \
         | grep -vE '^(hosts/target/|seam/sources\.json$|system/postinstall-generated\.nix)' || true)
       if [ -n "$edited" ]; then
@@ -230,7 +230,7 @@ lib.mkIf (config.golem.flakeDir != null) {
             || runuser -u "$owner" -- git -C "$dir" reset -q HEAD -- "$f"
         done
         n=$(printf '%s\n' "$edited" | wc -l)
-        echo "golem-autoupdate: $n edited Golem file(s) set aside in $keep and restored, so the update can go on:"
+        echo "golem-autoupdate: $n edited Standard file(s) set aside in $keep and restored, so the update can go on:"
         printf '  %s\n' $edited
         # In the owner's language (root: their settings, named).
         say() { GOLEM_SETTINGS="$home/.config/golem/settings.json" ${golemSay}/bin/golem-say "$@"; }
@@ -273,7 +273,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       # installed from an older ISO, or back after weeks off, meets a
       # version the other machines have run for days, and waiting its whole
       # wave again only kept it behind (audit, 2026-10-29).
-      wave=$(${config.golem.update.waveCommand}/bin/golem-update-wave)
+      wave=$(${config.standard.update.waveCommand}/bin/golem-update-wave)
       since=/var/lib/golem/update-behind-since
       [ -d /var/lib/golem ] || install -d -m 700 /var/lib/golem
       pull=1
@@ -285,7 +285,7 @@ lib.mkIf (config.golem.flakeDir != null) {
       else
         [ -s "$since" ] || date +%s > "$since"
         from=$(cat "$since")
-        published=$(${config.golem.update.publishedCommand}/bin/golem-update-published "$upstream" || true)
+        published=$(${config.standard.update.publishedCommand}/bin/golem-update-published "$upstream" || true)
         if [[ "$published" =~ ^[0-9]+$ ]] && [ "$published" -lt "$from" ]; then from=$published; fi
         age=$(( $(date +%s) - from ))
         if [ "$age" -lt $(( wave * 86400 )) ] && [ ! -e /run/golem-update-now ]; then
@@ -362,16 +362,16 @@ lib.mkIf (config.golem.flakeDir != null) {
       #    golem-update-now (no password) and have root build its commit — the
       #    security study's road 2. A change nobody approved stays the
       #    owner's: rebuild-golem builds it with their password.
-      if ! ${config.golem.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
-         && ! ${config.golem.seal.heal}/bin/golem-seal-heal; then
-        echo "golem-autoupdate: $dir holds changes nobody approved — not building them as root. Approve them with rebuild-golem (it asks for the password), or put Golem's files back." >&2
+      if ! ${config.standard.seal.check}/bin/golem-seal-check >/dev/null 2>&1 \
+         && ! ${config.standard.seal.heal}/bin/golem-seal-heal; then
+        echo "golem-autoupdate: $dir holds changes nobody approved — not building them as root. Approve them with rebuild-golem (it asks for the password), or put Standard's files back." >&2
         exit 1
       fi
       # Then stage the new generation for the next reboot — built from root's
       # own copy of exactly what was just vouched for, never from ~/Golem
       # itself: a file swapped in after the check would otherwise be what
       # Nix read (golem-seal.nix, golem-seal-copy).
-      if ! src=$(${config.golem.seal.copy}/bin/golem-seal-copy); then
+      if ! src=$(${config.standard.seal.copy}/bin/golem-seal-copy); then
         echo "golem-autoupdate: root could not make its copy of the approved files — not building." >&2
         exit 1
       fi
@@ -381,14 +381,14 @@ lib.mkIf (config.golem.flakeDir != null) {
       # (updates/client.nix). Compiling blind cost the ASUS a night (19-Nov):
       # hours of compiling on a network that then failed the build anyway.
       rrc=0
-      GOLEM_REBUILD_NEED_CACHE=1 ${config.golem.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || rrc=$?
+      GOLEM_REBUILD_NEED_CACHE=1 ${config.standard.rebuild}/bin/golem-rebuild boot --flake "path:$src#$attr" || rrc=$?
       rm -rf "$src"
       if [ "$rrc" = 75 ]; then
         # Nothing was built. The source goes back like a failed build's, so
         # no other rebuild (a dock install) builds the new version without
         # its pieces meanwhile; the next run pulls it again.
         echo "golem-autoupdate: GitHub could not be reached for $after's published pieces — nothing compiled, trying again in an hour" >&2
-        ${config.golem.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
+        ${config.standard.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
         # "Update now" stays asked for the hour's retry (not its wave).
         if [ "$asked_now" = 1 ]; then touch /run/golem-update-now; fi
         exit 75
@@ -399,7 +399,7 @@ lib.mkIf (config.golem.flakeDir != null) {
         # what built the newest system (base/recover.nix). The next run tries
         # upstream again (a download that broke is not a broken version).
         echo "golem-autoupdate: $after does not build — putting the source back to what built this machine's newest system" >&2
-        ${config.golem.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
+        ${config.standard.recover}/bin/golem-recover /nix/var/nix/profiles/system || true
         exit 1
       fi
       # The wave's clock stops only once the new version is built: a build
@@ -426,7 +426,7 @@ lib.mkIf (config.golem.flakeDir != null) {
   };
 
   systemd.timers.golem-autoupdate = {
-    description = "Daily Golem self-update";
+    description = "Daily Standard self-update";
     wantedBy = [ "timers.target" ];
     timerConfig = {
       OnCalendar = "daily";

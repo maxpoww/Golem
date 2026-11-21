@@ -10,7 +10,7 @@
 # auto-pick ignores which connector is live (so the keys can hit a dead backlight
 # and look broken "out of the box").
 #
-# So Golem doesn't store a name — it FINDS the backlight tied to the connected
+# So Standard doesn't store a name — it FINDS the backlight tied to the connected
 # internal panel at press time and drives that. Adapts to the mux with zero config,
 # on any machine. The brightness keys call `golem-brightness` instead of
 # `brightnessctl -d <guess>`. Permissions come from the owner being in `video` +
@@ -93,14 +93,14 @@ ${pick}
   #     through the sleep): it waits and learns nothing;
   #   - the owner AWAY (the dock's two minutes without input,
   #     $XDG_RUNTIME_DIR/golem/away): nothing moves. Back, the screen is as
-  #     they left it and follows the room in front of them (Golem's UX law
+  #     they left it and follows the room in front of them (Standard's UX law
   #     §7; Max, 2026-10-21, back to a screen dimmed to "off" while away);
   #     and anything under ~2 lx is one dark, not halved again and again.
   #
   # ONLY WHERE THERE IS A SENSOR: the command and its service exist when the
-  # census says so (golem.hardware.lightSensor, set by golem-hw-detect at
+  # census says so (standard.hardware.lightSensor, set by golem-hw-detect at
   # install). A machine without one carries neither — nothing starts, looks
-  # and leaves at every login (Max, 2026-10-10: "Golem [has] to find out and
+  # and leaves at every login (Max, 2026-10-10: "Standard [has] to find out and
   # set up so [it] is not running on machines with no sensor").
   #
   # `golem-autobrightness off|on|status|reset`: off is a file
@@ -117,7 +117,7 @@ ${pick}
       manual="$state-manual"
       # There while the owner is away (the dock writes it: two minutes without
       # input; a film playing is someone there). Nothing moves meanwhile:
-      # Golem changes the screen in front of its owner, never behind them.
+      # Standard changes the screen in front of its owner, never behind them.
       away="''${XDG_RUNTIME_DIR:-/run/user/$UID}/golem/away"
 
       ${pick}
@@ -513,7 +513,7 @@ ${pick}
     '';
   };
   # `or false`: the fat profile imports this file without the census schema.
-  lightSensor = config.golem.hardware.lightSensor or false;
+  lightSensor = config.standard.hardware.lightSensor or false;
 in
 {
   environment.systemPackages = [ golem-brightness pkgs.brightnessctl ]

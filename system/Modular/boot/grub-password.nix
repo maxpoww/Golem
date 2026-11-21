@@ -4,7 +4,7 @@
 # Without one, anyone at the keyboard could press `e` at the menu, add
 # `init=/bin/sh` to the kernel line and have a root shell with no password
 # (the security study's GRUB road). Now:
-#  - every entry boots as before, no password: "Start Golem", each of the
+#  - every entry boots as before, no password: "Start Standard", each of the
 #    "Previous Versions" (and the submenu itself — GRUB guards a submenu like
 #    an entry), so a rollback from the menu stays one key;
 #  - editing an entry (`e`) or GRUB's command line (`c`) asks for the user
@@ -26,7 +26,7 @@
 
 let
   secrets = "/var/lib/golem/secrets";
-  # The grub Golem installs (patched by the overlay); null-safe, unlike
+  # The grub Standard installs (patched by the overlay); null-safe, unlike
   # system.build.grub on a "nodev" install.
   grub = pkgs.grub2;
   show = pkgs.writeShellScriptBin "golem-boot-password" ''

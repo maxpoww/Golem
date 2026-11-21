@@ -2,7 +2,7 @@
 #
 #   • tunings.nix: per-model filter graphs, loaded by WirePlumber into the
 #     speaker node itself (see that file for the rules). Matched at runtime on
-#     the sound card, so every Golem carries the data and only the matching
+#     the sound card, so every Standard carries the data and only the matching
 #     machine uses it; the graphs are builtin PipeWire filters, nothing is
 #     added to the closure.
 #   • tas2781.nix: TAS2781 amps reload their program at every sound start, so

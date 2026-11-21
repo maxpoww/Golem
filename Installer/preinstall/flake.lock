@@ -1,26 +1,9 @@
 {
   "nodes": {
-    "golem": {
-      "inputs": {
-        "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs",
-        "waverunner": "waverunner",
-        "waveview-src": "waveview-src"
-      },
-      "locked": {
-        "path": "../../",
-        "type": "path"
-      },
-      "original": {
-        "path": "../../",
-        "type": "path"
-      },
-      "parent": []
-    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
-          "golem",
+          "standard",
           "nixpkgs"
         ]
       },
@@ -42,7 +25,7 @@
     "home-manager_2": {
       "inputs": {
         "nixpkgs": [
-          "golem",
+          "standard",
           "waverunner",
           "nixpkgs"
         ]
@@ -64,7 +47,7 @@
     "nix-index-database": {
       "inputs": {
         "nixpkgs": [
-          "golem",
+          "standard",
           "waverunner",
           "nixpkgs"
         ]
@@ -101,41 +84,58 @@
     },
     "root": {
       "inputs": {
-        "golem": "golem",
         "home-manager": [
-          "golem",
+          "standard",
           "home-manager"
         ],
         "nixpkgs": [
-          "golem",
+          "standard",
           "nixpkgs"
         ],
+        "standard": "standard",
         "waverunner": [
-          "golem",
+          "standard",
           "waverunner"
         ],
         "waverunner-hm": [
-          "golem",
+          "standard",
           "waverunner",
           "home-manager"
         ],
         "waverunner-nid": [
-          "golem",
+          "standard",
           "waverunner",
           "nix-index-database"
         ],
         "waveview-src": [
-          "golem",
+          "standard",
           "waveview-src"
         ]
       }
+    },
+    "standard": {
+      "inputs": {
+        "home-manager": "home-manager",
+        "nixpkgs": "nixpkgs",
+        "waverunner": "waverunner",
+        "waveview-src": "waveview-src"
+      },
+      "locked": {
+        "path": "../../",
+        "type": "path"
+      },
+      "original": {
+        "path": "../../",
+        "type": "path"
+      },
+      "parent": []
     },
     "waverunner": {
       "inputs": {
         "home-manager": "home-manager_2",
         "nix-index-database": "nix-index-database",
         "nixpkgs": [
-          "golem",
+          "standard",
           "nixpkgs"
         ]
       },

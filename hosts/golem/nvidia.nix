@@ -1,13 +1,13 @@
 # Max's machine only: Lenovo Slim Pro 9i — nvidia prime offload.
 # The driver config itself now lives in system/hardware/gpu-nvidia.nix
-# (keyed on golem.hardware facts), so a stranger's nvidia box gets the
+# (keyed on standard.hardware facts), so a stranger's nvidia box gets the
 # same treatment. This host file just states the facts detection would
 # otherwise find: an Ada (RTX 4050 → turing+) dGPU alongside the Intel
 # iGPU, with these PRIME bus ids.
 { ... }:
 
 {
-  golem.hardware = {
+  standard.hardware = {
     gpu = "nvidia";
     nvidiaGen = "turing+";
     intelBusId = "PCI:0:2:0";

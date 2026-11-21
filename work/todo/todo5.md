@@ -6,7 +6,7 @@
       → `system/golem-apps.nix`, imported by `system/configuration.nix`.
       BUILD CHECK OWED: this session had no nix (harness allows Read/Edit/git
       only), so attribute names are knowledge-checked, not eval-checked —
-      run `nixos-rebuild build-vm --flake .#golem-vm` before trusting it.
+      run `nixos-rebuild build-vm --flake .#standard-vm` before trusting it.
 - [x] Theming pass: make libadwaita apps look at home (accent, fonts, corners)
       → `system/home/home.nix`: gtk module (DejaVu Sans 11, Papirus-Dark,
       prefer-dark for GTK3/4) + gtk4 CSS overriding accent to the desktop's

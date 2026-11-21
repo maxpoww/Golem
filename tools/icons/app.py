@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Golem Files' own icon (Max, 2026-10-15: "we should use only the folder with
-the folder symbol"): Golem's folder with a folder engraved on it. On the dock
+the folder symbol"): Standard's folder with a folder engraved on it. On the dock
 its launcher draws it itself and two folders come out from behind it on hover
 (waverunner's files_icon.rs). Written into the theme's apps/ in the theme's
 TONE (GOLEM_ICON_TONE): silver, or GRAPHITE for Golem-Dark — the dock's own
@@ -35,7 +35,7 @@ def mix(a, b, t):
 
 
 def folder(n, k):
-    """Golem's simple folder (52 x 45) in its silver, `k` of the way darker."""
+    """Standard's simple folder (52 x 45) in its silver, `k` of the way darker."""
     f0, f1 = mix("#eef0f3", "#9aa0aa", k), mix("#c2c6cd", "#7c828c", k)
     b0, b1 = mix("#b3b8c0", "#7d838d", k), mix("#8f949e", "#5e636c", k)
     return f'''<defs><linearGradient id="f{n}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{f0}"/><stop offset="1" stop-color="{f1}"/></linearGradient>
@@ -54,7 +54,7 @@ GLYPH = "M3.6 6.6a2 2 0 0 1 2-2h4.3l2 2.1h6.5a2 2 0 0 1 2 2v9.1a2 2 0 0 1-2 2H5.
 
 
 def main():
-    # Golem's folder where it stands (6, 9.5), a folder engraved on it: a
+    # Standard's folder where it stands (6, 9.5), a folder engraved on it: a
     # light edge under it, then the darker grey (the lab's "símbolo").
     gx, gy = 26 - 12 * 1.15, 26.5 - 12.2 * 1.15
     sym = "".join(

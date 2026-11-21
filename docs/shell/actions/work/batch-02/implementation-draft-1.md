@@ -64,7 +64,7 @@ a header transiently to know that metadata exists, never what it contains, and i
 sentence is gated on that read so the offer never lies. Nothing nameable sits at
 rest: a site, command, file or title is read live at the moment of speaking and
 dropped, per name-at-offer-time. The register obeys one rule several of its rows
-had to relearn: never learn from your own hand, so a launch performed by Golem
+had to relearn: never learn from your own hand, so a launch performed by Standard
 does not teach the launcher a ranking the user never made — the same lesson A17,
 A38 and A39 taught the first batch.
 

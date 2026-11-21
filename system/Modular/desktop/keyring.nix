@@ -30,7 +30,7 @@
 #     started a daemon with no password at the session's start, and a login
 #     keyring the lock screen then made in it was never on the bus — the
 #     default alias named a collection that did not exist, and an app storing
-#     a password hung. (Golem's session runs every XDG autostart entry;
+#     a password hung. (Standard's session runs every XDG autostart entry;
 #     /etc/xdg comes first in XDG_CONFIG_DIRS, so these win.)
 #   - the portal's Secret backend is not routed to it (desktop/portals): the
 #     portal service asked for it as the session started.

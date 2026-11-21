@@ -9,7 +9,7 @@
       (no mainstream OS matches it)
       *(the honest version of this claim is settled in
       `release-checklist.md` §3 — the atomicity is real, the button is not)*
-- [x] Alpha release checklist: versioning ("Golem 26 Uprise"), known
+- [x] Alpha release checklist: versioning ("Standard 26 Uprise"), known
       issues, feedback channel
       → `release-checklist.md`. Versioning: "26" is the nixpkgs train
       (26.05), "Uprise" the codename, and `system.stateVersion` is neither

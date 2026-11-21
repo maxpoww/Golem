@@ -1,15 +1,15 @@
 # updates/builder — the machine that runs the update lane: today the dev box,
 # later any NixOS server. Import this file in THAT machine's configuration
-# and set golem.lane.enable + golem.lane.user. Nothing here goes on installs
+# and set standard.lane.enable + standard.lane.user. Nothing here goes on installs
 # (they get updates/client.nix through system/Modular/composition.nix).
 #
 # It needs, once, on that machine (RUNBOOK.md, "A new build machine"):
 #   - the cache signing key at ~/.local/share/golem-lane/cache-key.sec (600),
-#   - `gh auth login` as the user, with push rights to Golem and golem-cache.
+#   - `gh auth login` as the user, with push rights to Standard and golem-cache.
 { config, lib, pkgs, ... }:
 
 let
-  cfg = config.golem.lane;
+  cfg = config.standard.lane;
 
   lane = pkgs.writeShellApplication {
     name = "golem-lane";
@@ -25,8 +25,8 @@ let
   };
 in
 {
-  options.golem.lane = {
-    enable = lib.mkEnableOption "Golem's update lane: build, test, cache and publish each Golem version";
+  options.standard.lane = {
+    enable = lib.mkEnableOption "Standard's update lane: build, test, cache and publish each Standard version";
     user = lib.mkOption {
       type = lib.types.str;
       description = "The maintainer account it runs as; its GitHub login pushes stable and the caches.";
@@ -42,7 +42,7 @@ in
     environment.systemPackages = [ lane ];
 
     systemd.services.golem-lane = {
-      description = "Golem update lane: build, test, cache and publish the next Golem version";
+      description = "Golem update lane: build, test, cache and publish the next Standard version";
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       restartIfChanged = false;   # a switch never waits for an hour-long build

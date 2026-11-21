@@ -7,7 +7,7 @@ Max's treasure. Intel GM45 whitebox · Pentium T4200 (2c/2t) · GMA 4500
 
 ## Round I2 coda — 2026-09-15 — the lid that lies (#90), the boot that wasn't (#91), and the quiet boot (#89) — gens 3→5 in one morning
 
-**gen 7 (2026-09-15, later):** the #95 menu — `Start Golem` / `Previous
+**gen 7 (2026-09-15, later):** the #95 menu — `Start Standard` / `Previous
 Versions`, centred in the 226px box — delivered and live here too, so the
 SAME menu now exists on a 2008 BIOS machine chainloading from an MBR and
 on the acer's UEFI GRUB. That is #92 proven on metal rather than argued:
@@ -17,13 +17,13 @@ over the dongle, zero drops.
 
 **Status in one line (gen 6):** booted and verified (`yvphx9fq…`, `running`,
 0 failed units, 0 suspends, console on `i915drmfb`), the lid quirk live,
-the boot fully silent AND flash-free from Golem's first MBR instruction
+the boot fully silent AND flash-free from Standard's first MBR instruction
 through the kernel handoff — Max: "the message is gone, clean boot." The
 one remaining cursor blink is the BIOS's own USB enumeration (dongle-
 dependent, Max-verified), before our code exists; accepted as the
 machine's firmware signature.
 
-### The lid that lies (#90) — Max: "it goes sleep after like 30s ish, and that is Golem"
+### The lid that lies (#90) — Max: "it goes sleep after like 30s ish, and that is Standard"
 It was. Caught in one of the 30 s wake windows and pinned awake by
 masking every sleep target; the evidence in one pull:
 `/proc/acpi/button/lid/LID/state` = **closed** with the lid open and Max
@@ -84,7 +84,7 @@ was doing nothing while every layer of verification said it worked (#87).
 BIOS boot order took the USB stick again, and the MEDIUM gave up on wifi
 after NM's default 4 retries. The retry-asymmetry inference recorded below
 was right, and **#63's prediction held** — see changes.md #63, now upgraded.
-Stick pulled → the installed Golem booted → `.129`, the same address the
+Stick pulled → the installed Standard booted → `.129`, the same address the
 I2 sweep used.
 
 ### First boot — the rule-6 audit (`tools/firstboot-audit.sh`)
@@ -125,7 +125,7 @@ the proposed fix: **changes.md #87**. The hp (Arrandale) is predicted to
 be identical; it was powered off, so that is unconfirmed.
 
 ### SELF-REBUILD — generation 2, and it demolishes an assumption
-`rebuild-golem` (`nixos-rebuild switch --flake /home/max/Golem#golem-minimal`)
+`rebuild-golem` (`nixos-rebuild switch --flake /home/max/Golem#standard-minimal`)
 on the **1931 MB** machine:
 
 - **07:02:28 → 07:05:25 — under 3 minutes. EXIT=0. → generation 2.**
@@ -136,7 +136,7 @@ on the **1931 MB** machine:
 **This contradicts the #16/#66 premise for the minimal path.** That floor
 says a sub-3300 MB machine "cannot EVALUATE the target config locally
 without thrashing" — and it is right, but it was measured against the
-**FAT `golem-target`**. `golem-minimal` evaluates on the lab's oldest and
+**FAT `standard-target`**. `standard-minimal` evaluates on the lab's oldest and
 smallest machine in three minutes using 60% of its RAM. So **rule 5's
 ladder holds even here**: stage 1 can arrive on the comodore by rebuild,
 not reinstall. The floor's message and scope should say *which* config it
@@ -226,11 +226,11 @@ confirmed against `ata-HGST_HTS541010A9E680_JB10001320T92B` before the
 first destructive verb; the stick (`sdb`) was correctly excluded (#20).
 
 ### A scope fact worth stating plainly
-`golem-install` bakes its seed source at BUILD time (`src="${golemSrc}"`).
+`golem-install` bakes its seed source at BUILD time (`src="${standardSrc}"`).
 Because the patched engine was built from today's tree, the seed it
 dropped is **today's source, not the frozen I2 cut** — same nixpkgs rev
 (`c5c4a43b`, verified identical on both sides), differing only by the
-in-flight **#68** boot work. So this install carries the Golem GRUB theme
+in-flight **#68** boot work. So this install carries the Standard GRUB theme
 and the bootctl-noise fix, `installed == seed` still holds (byte-identical
 `system/Modular` and `flake.nix`), and the ISO itself is untouched. Marked
 as a live-fix run, not a clean-image run — the acer's I2 entry is the
@@ -320,7 +320,7 @@ down in ~4 s. **It has not returned to the network since.** ~15 minutes of
 polling `.109` plus three full sweeps of `192.168.1.2–254`: only the dev
 box (.152) and one unrelated host (.190). No ARP entry for it at all.
 
-**What is NOT known:** whether the installed Golem boots. The install
+**What is NOT known:** whether the installed Standard boots. The install
 completing says nothing about that, and I will not record a pass I did not
 see. Both branches are live:
 - **it booted the medium again** (BIOS boot order still prefers the USB
@@ -344,14 +344,14 @@ diagnostic:
 | **installed system** (`machine.nix`, via `--lab-wifi`) | **0 = infinite** | keeps trying forever |
 | **the medium** (`iso.nix` `golem-lab`) | **absent → NM default 4** | gives up after 4 and stays silent |
 
-A healthy installed Golem with a working dongle would therefore have
+A healthy installed Standard with a working dongle would therefore have
 retried all night and turned up. It did not. A booted MEDIUM, by contrast,
 would go silent permanently after four attempts — **which is exactly the
 observed behaviour**.
 
 So the leading hypothesis is **branch 1: BIOS boot order took the USB
 stick again, and the medium gave up on wifi after 4 retries.** This is
-inference from the retry asymmetry, **not an observation** — "booted Golem
+inference from the retry asymmetry, **not an observation** — "booted Standard
 with a dead dongle" and "did not boot" are not excluded, and only the
 screen settles it. But it is the branch that predicts a 5 h 45 m silence
 without any new failure.
@@ -366,10 +366,10 @@ now has a successful prediction behind it rather than only a story.
 **For the morning, at the machine:**
 1. Look at the screen before touching anything — that is the only place
    #68's GRUB menu is true, and it also says instantly which of the three
-   branches happened (Golem GRUB menu / ISO boot menu / nothing).
+   branches happened (Standard GRUB menu / ISO boot menu / nothing).
 2. If it is on the ISO menu → BIOS boot order took the stick. Pull the
    stick and reboot; that is the real first boot.
-3. If it is at a `login:` → it booted Golem and only the radio is missing.
+3. If it is at a `login:` → it booted Standard and only the radio is missing.
    Log in, `nmcli device wifi connect HOLA`, and the audit can run from
    here. That branch is a finding worth its number.
 4. A cable into `enp4s0` makes any of this moot for reachability.

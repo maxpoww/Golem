@@ -1,15 +1,15 @@
-# golem-hw-decide — run the census on THIS machine and print what Golem
+# golem-hw-decide — run the census on THIS machine and print what Standard
 # decided from it, before a single byte is written to a disk.
 #
 #   golem-hw-decide                 # probe this machine, print the table
 #   golem-hw-decide --json          # same, machine-readable
 #   golem-hw-decide --facts FILE    # replay a committed fixture instead
 #
-# WHY THIS EXISTS (PLAN.md, Max 2026-09-03: "we need to know Golem will
+# WHY THIS EXISTS (PLAN.md, Max 2026-09-03: "we need to know Standard will
 # make the right choices"): the eval matrix proves the modules react to
 # facts correctly, but it runs in CI on fixtures. This runs on the metal,
 # against facts measured seconds earlier, through the SAME
-# lib.golem.mkTarget composition `nixos-install --flake …#golem-target`
+# lib.standard.mkTarget composition `nixos-install --flake …#standard-target`
 # builds. It is the install flow's brain with the disk writes removed.
 #
 # OFFLINE BY CONSTRUCTION. hosts/iso.nix:83-85 flagged the trap: carrying
@@ -19,7 +19,7 @@
 # --override-input, so nix never consults the lock's github URLs and never
 # needs a warm fetcher cache. `--offline` then makes any regression here
 # fail loudly instead of silently reaching for the network.
-{ pkgs, golemSrc, overrideArgs }:
+{ pkgs, standardSrc, overrideArgs }:
 
 pkgs.writeShellApplication {
   name = "golem-hw-decide";
@@ -27,7 +27,7 @@ pkgs.writeShellApplication {
   text = ''
     json=false
     facts=""
-    src="${golemSrc}"
+    src="${standardSrc}"
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --json)  json=true; shift ;;
@@ -68,7 +68,7 @@ pkgs.writeShellApplication {
     out="$work/decision.json"
     if ! nix eval --offline --no-write-lock-file --impure --json \
       ${overrideArgs} \
-      "path:$src#lib.golem.decide" --apply "f: f (import $facts)" \
+      "path:$src#lib.standard.decide" --apply "f: f (import $facts)" \
       > "$out" 2> "$work/eval.err"; then
       cat "$work/eval.err" >&2
       echo "golem-hw-decide: evaluation failed (facts: $facts)" >&2

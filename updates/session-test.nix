@@ -1,4 +1,4 @@
-# updates/session-test — the first minute of a Golem session, as a person
+# updates/session-test — the first minute of a Standard session, as a person
 # meets it, in the same VM the boot test uses (boot-test.nix).
 #
 # boot-test proves the desktop comes up. This goes on from there:
@@ -34,7 +34,7 @@ pkgs.testers.runNixOSTest {
 
   testScript = { nodes, ... }:
     let
-      owner = nodes.machine.golem.owner;
+      owner = nodes.machine.standard.owner;
       password = nodes.machine.users.users.${owner}.initialPassword;
     in ''
       hyprland = "pgrep -u ${owner} -f '/bin/Hyprland( |$)'"

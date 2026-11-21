@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────
-# Golem installer — TUI mockup. Nothing here detects or installs.
+# Standard installer — TUI mockup. Nothing here detects or installs.
 #
 # Built to the blueprint (Max, 2026-09-05) and to the browser mockup the
 # proportions were settled in: one main window, two titled tiles with the
@@ -101,14 +101,14 @@ UNFINISHED=(Device)
 HINT_PRIMARY=Install               # what the first SPACE reaches for
 # ── VOICE ────────────────────────────────────────────────────────────────
 # The guide line is the only place the installer speaks, so it carries the
-# whole tone. Golem is spoken ABOUT, never as "I" — the voice is its maker
+# whole tone. Standard is spoken ABOUT, never as "I" — the voice is its maker
 # describing what it did, which stays warm without the machine pretending
 # to be a person.
 #
-# WHO DOES WHAT. Golem does not build itself — it is built. So:
+# WHO DOES WHAT. Standard does not build itself — it is built. So:
 #   · GOLEM acts on the device. It reads it, installs, reboots. That is its
 #     whole job: making the person's life easier.
-#   · WE act on Golem. Unfinished features are OUR work, not its. "Golem is
+#   · WE act on Standard. Unfinished features are OUR work, not its. "Standard is
 #     still building this" is nonsense; "we are still working on it" is true.
 # Nothing is ever done "for you" — saying so out loud is flattery, and the
 # work speaks without being pointed at.
@@ -127,12 +127,12 @@ HINT_PRIMARY=Install               # what the first SPACE reaches for
 #     that quietly does nothing costs more trust than one that says so.
 #
 # The rest line is two words and stops. It is the first thing anyone ever
-# reads from Golem, and a short line gets read where a long one gets
+# reads from Standard, and a short line gets read where a long one gets
 # skipped. Nothing here teaches the ARROWS yet — see the note below.
 hint_text() {
   case "$FOCUS" in
     '')      printf 'Press SPACE.' ;;
-    Install) printf 'Press ENTER to install Golem on this device, or SPACE to continue.' ;;
+    Install) printf 'Press ENTER to install Standard on this device, or SPACE to continue.' ;;
     Reboot)  printf 'Press ENTER to reboot this device, or SPACE to continue.' ;;
     Device)  printf 'This feature is not finished — press SPACE to continue.' ;;
   esac
@@ -450,7 +450,7 @@ paint_pane() {  # array-name x y w h top title bar
          local room=$(( inner - ${#lab} ))
          (( room < 1 )) && room=1
          (( ${#val} > room )) && val="${val:0:room-1}…"
-         # An absence is dimmed. Scanning the Directions pane, what Golem
+         # An absence is dimmed. Scanning the Directions pane, what Standard
          # will NOT do should recede rather than compete with what it will
          # — and it is the same ramp, not a second colour, so nothing
          # about the screen gets louder.
@@ -471,7 +471,7 @@ compose_census() {
   draw_box "$MAIN_X" "$MAIN_Y" "$MAIN_W" "$MAIN_H" 'o'
 
   # The outer frame carries no title. The screen is already unmistakably
-  # Golem's, and a word on the top rule only competed with the two tile
+  # Standard's, and a word on the top rule only competed with the two tile
   # titles directly under it — three labels stacked in six rows.
 
   # ONE counter, TWO clamps. Both tiles read the same TOP but each stops at
@@ -763,7 +763,7 @@ ROT_SECONDS=4
 # ══ CANNED DATA ══════════════════════════════════════════════════════════
 
 # ── THE TWO LISTS ─────────────────────────────────────────────────────────
-# Evaluation is what the machine IS; Directions is what Golem WILL DO about
+# Evaluation is what the machine IS; Directions is what Standard WILL DO about
 # it. They carry the SAME sections in the SAME order — machine/golem, cpu,
 # memory, graphics, device, storage — so the two tiles are always talking
 # about the same subject at the same time.
@@ -903,7 +903,7 @@ pane_b() {
 # golem
 version|26.05.20260829.c5c4a43
 source|332ad45
-target|golem-target
+target|standard-target
 # cpu
 microcode|intel
 builds|1 job x 2 cores
@@ -931,7 +931,7 @@ EOF
 # golem
 version|26.05.20260829.c5c4a43
 source|332ad45
-target|golem-target
+target|standard-target
 # cpu
 microcode|intel
 builds|auto
@@ -960,7 +960,7 @@ EOF
 # golem
 version|26.05.20260829.c5c4a43
 source|332ad45
-target|golem-target
+target|standard-target
 # cpu
 microcode|intel
 builds|1 job x 2 cores
@@ -988,7 +988,7 @@ EOF
 # golem
 version|26.05.20260829.c5c4a43
 source|332ad45
-target|golem-target
+target|standard-target
 # cpu
 microcode|intel
 builds|1 job x 2 cores
@@ -1016,7 +1016,7 @@ EOF
 # golem
 version|26.05.20260829.c5c4a43
 source|332ad45
-target|golem-target
+target|standard-target
 # cpu
 microcode|none, vendor unknown
 builds|1 job x 2 cores

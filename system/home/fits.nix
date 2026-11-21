@@ -1,6 +1,6 @@
 # FITS — an app the owner installs works the moment it lands.
 #
-# Golem does not ship these apps; the owner installs them from the dock
+# Standard does not ship these apps; the owner installs them from the dock
 # (packages.list → hosts/target/apps.nix → home.packages). Some apps arrive
 # unable to do the one thing they are installed for until someone who already
 # knows the app has set it up. A fit is the small piece of first-run state
@@ -9,12 +9,12 @@
 # owner's: a fit never touches it again (the marker under
 # ~/.local/state/golem/fits says it has been done).
 #
-# Max, 2026-10-01: "obs is not gonna come installed on Golem. but it have to
+# Max, 2026-10-01: "obs is not gonna come installed on Standard. but it have to
 # work out of the box as soon as a user install it."
 #
 # ---- OBS Studio ------------------------------------------------------------
 # Its look is THE PALETTE's: user.ini names OBS's System theme, which draws
-# with Qt's colours (qt6ct, Golem's palette); its own Yami ignores them. The
+# with Qt's colours (qt6ct, Standard's palette); its own Yami ignores them. The
 # dock does the same for an OBS opened before this (waverunner palette.rs).
 # Stock OBS opens on an empty scene: a black preview, and Record writes a
 # black video (the ThinkPad's first recording, 2026-10-01). On Wayland a
@@ -134,8 +134,8 @@ in
     '';
   })
 
-  # ---- Shotcut and Krita: their own theme pickers, set to Golem's ----------
-  # Shotcut's "system" theme draws with Qt's palette (qt6ct: Golem's); Krita's
+  # ---- Shotcut and Krita: their own theme pickers, set to Standard's ----------
+  # Shotcut's "system" theme draws with Qt's palette (qt6ct: Standard's); Krita's
   # "Golem" colour scheme is the KDE scheme the dock writes. Set ONCE, where
   # the app has never been set up or has no theme of its own yet, never while
   # it runs (both write their settings as they quit). Checked in the rig,
@@ -155,7 +155,7 @@ in
       fit_done="''${XDG_STATE_HOME:-$HOME/.local/state}/golem/fits/krita"
       conf="''${XDG_CONFIG_HOME:-$HOME/.config}/kritarc"
       if [ ! -e "$fit_done" ] && ! ${pkgs.procps}/bin/pgrep -u "$(id -u)" -x krita >/dev/null; then
-        ${iniSet} "$conf" theme Theme Golem
+        ${iniSet} "$conf" theme Theme Standard
         $DRY_RUN_CMD install -Dm644 /dev/null "$fit_done"
       fi
     '';

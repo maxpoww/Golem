@@ -1,4 +1,4 @@
-# todo7 — S7 The Golem system flake
+# todo7 — S7 The Standard system flake
 
 <!-- Coarse on purpose — break down on entry. -->
 
@@ -16,23 +16,23 @@
       options-notify via its nixosModule; waverunner-apply REWRITTEN for the
       flake world (generates system/home/waverunner-packages.nix INSIDE the
       repo + git add — flakes can't see untracked files — and rebuilds with
-      --flake; gated on golem.flakeDir, off in the VM; autoUpgrade dropped:
+      --flake; gated on standard.flakeDir, off in the VM; autoUpgrade dropped:
       flake upgrade = input bump, story TBD).
 - [x] Compose: `golem-apps.nix` (from S5)
       *(UNPARKED 2026-09-01: this was never blocked on the composing — the
       file is written, imported by `system/configuration.nix:10` and tracked
       by git. It was blocked on the one thing a tick would assert: the eval.
       The last loop had no `nix` at all. This session confirmed `nix` works
-      and both `.#nixosConfigurations.golem` and `.golem-vm` evaluate green.
+      and both `.#nixosConfigurations.golem` and `.standard-vm` evaluate green.
       What is still owed is todo5's BUILD CHECK — run
-      `nixos-rebuild build-vm --flake .#golem-vm` and fix what falls out.
+      `nixos-rebuild build-vm --flake .#standard-vm` and fix what falls out.
       Likeliest failure is a missing attr among the newer GNOME apps
       (showtime, decibels, papers, snapshot); deleting the line is the fix.)*
       → DONE 2026-09-01 (Round 22): `nixos-rebuild build-vm --flake
-      .#golem-vm` exits 0, run-Golem-vm produced. Nothing fell out — every
+      .#standard-vm` exits 0, run-Golem-vm produced. Nothing fell out — every
       predicted-risky attr (showtime, decibels, papers, snapshot) exists in
       the pinned nixpkgs. No code change needed; the tick asserts the build.
-- [x] Golem defaults: theming, fonts, hyprland.lua, session startup
+- [x] Standard defaults: theming, fonts, hyprland.lua, session startup
       → home.nix/zsh/foot/nvim/yazi/webapp icons ported verbatim;
       hyprland.lua's three /home/max assumptions rewritten at build time
       (waveview .so from store path, waverunner via systemd, ctl from PATH).
@@ -52,7 +52,7 @@
       *(split out of the item above 2026-09-01 — a finding, not a decision.
       `hyprland.lua:322-323` binds the brightness keys to `brightnessctl`,
       but it arrives from `system/home/waverunner-packages.nix`, i.e. Max's
-      own launcher-installed list, which starts EMPTY on a fresh Golem (F11).
+      own launcher-installed list, which starts EMPTY on a fresh Standard (F11).
       So on a stranger's machine the brightness keys do nothing. Move it into
       configuration.nix's stopgap block. One line. Build-check it — that is
       the only reason it was left undone last loop.)*
@@ -80,7 +80,7 @@
 - [x] Ship chromium (webapp engine fallback — SH F2 resolves it at runtime,
       the flake must make it exist)
       → google-chrome ships via home.nix programs.chromium (unfree on), so
-      F2's first-choice browser exists on every Golem machine.
+      F2's first-choice browser exists on every Standard machine.
 - [x] Pin fonts: the UI font + the Nerd Font the glyphs need (SH F4 —
       renderer loads system fonts only; without them, tofu pills). Also set
       the fontconfig default sans to the chosen font (SH F7: the daemon
@@ -89,7 +89,7 @@
       accidental)
       → flake ships JetBrains Mono + its Nerd Font + dejavu_fonts, and pins
       fontconfig default sans to "DejaVu Sans" — today's accidental look
-      made deliberate, zero visual change. Choosing Golem's REAL UI font
+      made deliberate, zero visual change. Choosing Standard's REAL UI font
       stays open as a design call (Max + mockup, per project law).
 - [x] Ship `~/notification-fix` (Chrome ext: FB/Messenger/IG notifications
       on Wayland — no occlusion tracking) with the webapp profile via
@@ -117,16 +117,16 @@
       "get it into a repo"; the push is Max's); daemon appends
       `--load-extension=$WAVERUNNER_WEBAPP_EXTENSION` in `app_exec_with`
       (launcher `47b9793`, 246 tests green) + HM option `webappExtension`;
-      Golem wires the env via a systemd drop-in so it evals against the
+      Standard wires the env via a systemd drop-in so it evals against the
       PINNED waverunner too (switch to the option on the next input bump).
       build-vm green pinned AND --override-input; drop-in verified to carry
       the store path, store path verified to hold all three files.
 - [x] User/home layer (home-manager module wired in)
       → home-manager flake input (release-26.05, follows nixpkgs) as a
       NixOS module, useGlobalPkgs; home-manager.users.max = system/home/.
-- [x] `nixos-rebuild build-vm` target — one command → Golem VM (this becomes
+- [x] `nixos-rebuild build-vm` target — one command → Standard VM (this becomes
       the daily test loop for S8/S9)
-      → `nixos-rebuild build-vm --flake .#golem-vm && ./result/bin/run-Golem-vm`
+      → `nixos-rebuild build-vm --flake .#standard-vm && ./result/bin/run-Golem-vm`
       hosts/vm.nix: no nvidia, virtio-vga-gl, 4G/4 cores, greetd autologs
       max into Hyprland, initialPassword golem. BUILDS clean (2026-08-30);
       first graphical boot still needs eyes.
@@ -158,9 +158,9 @@
       build-time hints via a nix-index-database input = possible later.
       VERIFIED: fresh-disk cold boot loads 23661 packages (prebuilt) in
       ~2s, 0 OOM; the afternoon's 4G repro config re-run — 0 OOM, ONE
-      daemon start, desktop in ~1GB. 4G machines run Golem now.
+      daemon start, desktop in ~1GB. 4G machines run Standard now.
 - [?] VM loop friction: host Hyprland swallows Super before QEMU sees it,
-      so Golem binds can't be exercised in the VM from the host desktop.
+      so Standard binds can't be exercised in the VM from the host desktop.
       Idea: a host "VM mode" (submap that releases all binds + escape key).
 - [x] **F9 — "already in package list; treating as installed" is a lie
       while the rebuild runs.** The applier equates list-presence with
@@ -211,7 +211,7 @@
       user units on switch): pending installs must survive a daemon
       restart — persist pending-install state, or hand off gracefully.
       Bit us via the stale-checkout swap; will bite for real on every
-      Golem UPDATE that bumps waverunner. Launcher-repo.
+      Standard UPDATE that bumps waverunner. Launcher-repo.
       → BUILT (launcher `5704c3a`, Round 10): pending tiles (placement,
       ring clock, icon) + tile-less managed installs persist to
       `pending-installs.json`; on startup they restore in place and
@@ -225,7 +225,7 @@
       gets old.
 - [x] **F12 — perpetual animations burn the whole machine on a CPU
       renderer.** During an install, the "installing" tile animates every
-      frame; on llvmpipe (the VM — but also any GPU-less machine Golem
+      frame; on llvmpipe (the VM — but also any GPU-less machine Standard
       ever lands on) that's the daemon at 450% CPU for the length of a
       rebuild, starving every app (foot took 10s to open, 90s+ frozen).
       The daemon KNOWS its adapter (logs device_type: Cpu) — cap
@@ -282,7 +282,7 @@
   content script, Chrome doesn't, the disable-features hatch is dead
   too). Wired correctly for both anyway: extension vendored into the
   repo, daemon reads WAVERUNNER_WEBAPP_EXTENSION (launcher `47b9793`,
-  246 tests), HM option added, Golem sets the env via a systemd drop-in
+  246 tests), HM option added, Standard sets the env via a systemd drop-in
   that evals against the PINNED input; on Chrome the one-time manual
   "Load unpacked" of the store path remains, which weighs on the open
   browser decision (todo5 item 1). Every remaining [?] is either Max's
@@ -298,7 +298,7 @@
   `system/configuration.nix:10`, so both nixosConfigurations get it,
   and it is git-tracked as flakes require) — what is owed is the eval,
   the same BUILD CHECK todo5 recorded, one `nixos-rebuild build-vm
-  --flake .#golem-vm` away. The stopgap kit got the audit its own note
+  --flake .#standard-vm` away. The stopgap kit got the audit its own note
   asked for, and it has a verdict: bluetooth and audio ARE covered
   (blueman-manager + the applet as pairing agent; pavucontrol + the
   wpctl keys), network is NOT — nm-connection-editor cannot scan, and
@@ -544,7 +544,7 @@
   darkening, so on a light box "even darker text" reads as no change
   (rest sRGB 0.26 → hover 0.06 measured, still looked static). Every
   lightness-based option was exhausted. So the hint gained a channel
-  lightness can't reach: a slim ACCENT BAR (Golem's peach — the same
+  lightness can't reach: a slim ACCENT BAR (Standard's peach — the same
   colour as the compositor's active border and the notif unread cue)
   at the hovered row's left edge, with the ink strengthening kept on
   top. Explicitly NOT the rejected row wash: nothing behind the text
@@ -711,7 +711,7 @@
 - Round 16 (2026-08-31, Max: "lets do the rebuild now"): THE CUTOVER
   ROUND — and the pseudo policy's real bug. The switch had already
   landed (Super+Tab live in the compositor, store config carrying
-  everything), so verification could finally run: Golem pseudo
+  everything), so verification could finally run: Standard pseudo
   VERIFIED LIVE on Max's Android Studio window — tag applied, size
   2000x1222 → 1780x1026 (exactly 89%x84%), centered, and the corner
   crop shows rounded corners + the peach active border on a window
@@ -759,7 +759,7 @@
   by a crash: sendWaverunner captured a `const char*` in a detached
   thread — fine for the literals it used to carry, a dangling pointer
   the moment a payload temporary was passed; it takes std::string by
-  value now. Verified on screen: "Firefox — Golem docs (1240x1000)" →
+  value now. Verified on screen: "Firefox — Standard docs (1240x1000)" →
   size clears → real title back. launcher `8b0b4b1`, waveview
   `9020453`. Testing note: the live desktop kept interleaving (the
   real overview closed mid-test, and a stale daemon binary rejected
@@ -793,8 +793,8 @@
   Cursor verified pinned to the pixel through a hop. launcher
   `583b17f`. Super+Tab / Super+Shift+Tab bound to the same verbs, and
   Super+P rerouted through golemPseudoToggle (it was still calling the
-  raw toggle, bypassing the Golem pseudo policy) — both hyprland.lua
-  copies, Golem `d792544`.
+  raw toggle, bypassing the Standard pseudo policy) — both hyprland.lua
+  copies, Standard `d792544`.
   → v2, INTERACTION-AWARE (Max: cycling through 3 and 4 made them
   count as "used" and broke the 1-2 pair): the model is now HIS —
   interaction commits the cycle, not a timer. Toggle from a settled
@@ -891,7 +891,7 @@
   hovering either reveals the toggles — landed (fourth pass, Max's
   calls) as [name] [X] → [pseudo] [fullscreen] emerging rightward from
   behind the X. FLOAT IS CUT from the cluster (Max doesn't use it, no
-  Golem story for it: no titlebars to drag, pseudo covers "own size in
+  Standard story for it: no titlebars to drag, pseudo covers "own size in
   place", video PiP floats itself; hypr::float_active removed). The
   reveal was rebuilt as a symmetric metamorphosis like the bar's other
   elements (copy-link pill / bell peek): one eased progress per button
@@ -947,7 +947,7 @@
   host-side so the VM is hardware-free); /etc/nixos left untouched and
   live until Max cuts over (cutover = `rebuild-golem`, which the flake
   builds as `nixos-rebuild switch --flake $flakeDir#golem`). Both
-  nixosConfigurations eval clean; golem-vm BUILT first try (compiled
+  nixosConfigurations eval clean; standard-vm BUILT first try (compiled
   waverunner release binaries for the first time ever — the live session
   still runs debug builds from the checkout). Secrets scan of the plan
   docs before the public push: clean. NEXT: Max runs
@@ -989,7 +989,7 @@
   waveview}; identical revs/narHashes so the repin cost zero rebuilds;
   VM target verified building from the GitHub-only closure.
   `github:maxpoww/Golem` is now buildable by any machine with nix —
-  first time Golem exists independently of Max's laptop.
+  first time Standard exists independently of Max's laptop.
 - Round 9 (2026-08-31, Max: "droping the icons on page 1... land on
   page 2... when i drop it at the end of the grid"): THE END-OF-GRID
   DROP SAGA — three wrong theories, then evidence. (1) First fix
@@ -1057,7 +1057,7 @@
   Max: "they healed, and work now" after a daemon restart forced a
   rescan. The road there found SIX distribution bugs, each now fixed in
   the flake: no apply unit without a checkout (VM got the seeded
-  installed-machine checkout, golem.flakeAttr for self-rebuild), git +
+  installed-machine checkout, standard.flakeAttr for self-rebuild), git +
   nix/libgit2 ownership guards (declarative /etc/gitconfig
   safe.directory), grub assertion (grub re-defaults on when
   systemd-boot is forced off), live-switch topology mismatch (plain
@@ -1080,7 +1080,7 @@
   the eval (no flakes/store needed there), jq reshapes it to nix-search
   JSON, and the daemon's own binary converts (`build-index` mode) so
   filter/dedupe can never drift from the runtime path. 135/135 daemon
-  tests pass. Golem input bumped; VM disk wiped for a TRUE first boot.
+  tests pass. Standard input bumped; VM disk wiped for a TRUE first boot.
   Both proofs: 8G fresh-disk (prebuilt in ~2s, 0 OOM) and the 4G repro
   (0 OOM, 1 daemon start). The VM currently runs at 4G via QEMU_OPTS —
   vm.nix stays 8G for comfort.

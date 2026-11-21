@@ -19,7 +19,7 @@ The only machine that exercises what the five old laptops can't:
   it on demand`.
 - **panelDpi / scale decision** — no old laptop has a high-DPI panel; the
   census fact and the scale decision have never been seen on metal.
-- **Modern baseline** — 13th-gen, fast eval: the "Golem also works on new
+- **Modern baseline** — 13th-gen, fast eval: the "Standard also works on new
   metal" proof, and a lower bound for eval-time comparisons.
 
 ## Lab mechanics for THIS machine (different from the others)
@@ -31,7 +31,7 @@ The only machine that exercises what the five old laptops can't:
 - **Rehearsal only, indefinitely.** The NVMe holds the lab, the source,
   and the records. The disk-untouched check (lsblk UUIDs before/after) is
   MANDATORY here every single run, no exceptions, and a real install on
-  this box is out of scope until Golem is well past round 4.
+  this box is out of scope until Standard is well past round 4.
 - "Suspect the harness first" gets a twist: here the rig IS the subject.
   Anything odd → re-check from the reboot-restored dev system before
   believing it.
@@ -73,7 +73,7 @@ Lenovo's test, because the Lenovo is down (booted on the medium) during
 it. Steps for the Fedora-Claude:
 
 1. `cd ~/Golem && git pull` first (always).
-2. The Lenovo boots the **Golem round-3 stick** (14.4 GB, `p5ylp6q6…`).
+2. The Lenovo boots the **Standard round-3 stick** (14.4 GB, `p5ylp6q6…`).
    Sweep 192.168.1.0/24 for it; identify by DMI
    (`product_name` = Slim Pro 9 16IRP8) and confirm it's on the MEDIUM
    (`findmnt /iso` resolves) before trusting anything.
@@ -92,7 +92,7 @@ it. Steps for the Fedora-Claude:
 ### ⚠️ THE ONE RULE THAT CANNOT BE BROKEN
 
 This machine's NVMe (`nvme0n1`) **IS the lab** — it holds this repo, the
-Golem source, every record, and the dev-box Claude's whole world. A real
+Standard source, every record, and the dev-box Claude's whole world. A real
 `golem-install` here erases all of it. The stick bakes
 `GOLEM_REHEARSE=1`, so golem-setup only rehearses (writes nothing) — but:
 **never** run the engine without `--rehearse`; **verify `nvme0n1` is
@@ -199,10 +199,10 @@ dev-box Claude pulls the record over SSH/git and continues from there.
 ## Round 3 (machine 7 of the round — the dev box, last in) — 2026-09-08 — the healthy modern-nvidia path PROVEN ON METAL · NVMe first contact · a THIRD manifestation of #23
 
 - **ISO:** round-3 stick (14.4 GB, `GOLEM_INST`), `golem-setup`
-  `acpa26g0k9py…`. Identity checks all pass: `valid_host Golem` = 1
+  `acpa26g0k9py…`. Identity checks all pass: `valid_host Standard` = 1
   (hostname fix), `cores = 14` (sysfs fix, correct for the i9-13905H),
   `firmware = "uefi"` fact present, `GOLEM_REHEARSE='1'` + `GOLEM_LAB='1'`
-  baked into the wrapper. Same frozen round-3 Golem the other six met.
+  baked into the wrapper. Same frozen round-3 Standard the other six met.
 - **Driven from the Fedora ThinkPad** (192.168.1.167) over SSH, per the
   first-contact procedure above — NOT at the physical keyboard. The
   portable driver worked exactly as designed: the dev box was down on the
@@ -528,7 +528,7 @@ before-vs-after *within* a run, and that held.)
     — tested, working · driving this screen`, Wi-Fi `iwlwifi`, Bluetooth
     `btusb`, Touchpad `ELAN0001:00 04F3:3292 Touchpad · hid-multitouch`.
   - **Minor, new (R4-1):** Audio reads `Intel Corporation Device 51cf ·
-    sof-audio-pci-intel-tgl`. Upstream data, not a Golem bug: the stick's
+    sof-audio-pci-intel-tgl`. Upstream data, not a Standard bug: the stick's
     pciutils 3.15.0 `pci.ids` (2026.04.01) has no `8086:51cf` entry, so
     lspci itself says "Device 51cf" and the reveal passes it through. A
     stranger sees a hex id where every other row has a name. Queued.
@@ -821,7 +821,7 @@ the hold text with its own newline and move up). Queued as **R5-1**.
 - **Harness notes:** (1) tmux 3.6a `send-keys F1` over the `ssh -tt` pty
   arrived in the app as the literal text `F1` (it filtered the language
   list on "F1"); sending the raw bytes `-H 1b 4f 50` (`\eOP`) works and
-  is what the record above used. Not a Golem bug — the shipped key reader
+  is what the record above used. Not a Standard bug — the shipped key reader
   handles all three F1 forms. (2) `pgrep -f golem-setup-unwrapped` from a
   `bash -c` over ssh matches its own command line; filter it or trust
   `pgrep -a`. (3) `ls marker 2>&1 | grep -c owns` counts the error text

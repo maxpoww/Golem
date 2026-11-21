@@ -17,7 +17,7 @@ setup() {
   git -C "$t/repo" init -q; git -C "$t/repo" -c user.email=t@t -c user.name=t commit -q --allow-empty -m base
   echo '{ }' > "$t/repo/hosts/target/machine.nix"
 }
-lab='{ golem.lab.door = true; }'
+lab='{ standard.lab.door = true; }'
 
 # 1. The left system had lab.nix; the version gone back to did not: it comes back, staged, trusted.
 setup; echo "$lab" > "$t/left/etc/golem/machine/lab.nix"

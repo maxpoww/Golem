@@ -41,7 +41,7 @@ more than the count. Three wait on verbs tagged [new] — A02, A29, A37. The maj
 on named [cheap] work one level deeper inside a collector that already runs: a title event
 the parser currently drops, one more file inside a `read_dir` that already answers
 `has_backlight`. Two, A26 and A33, are dormant on an absence rather than a gap, because
-Golem ships no idle manager and no locker at all — and A35 escaped that same dormancy only
+Standard ships no idle manager and no locker at all — and A35 escaped that same dormancy only
 by re-specifying its trigger as four hours with no focus visit, off the focus stream alone.
 
 **3.** The surface is not a proposal; it has been running since 2026-09-07, and every block

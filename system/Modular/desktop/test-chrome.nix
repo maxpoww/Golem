@@ -9,14 +9,14 @@
 #
 # This leaf is DELIBERATELY excluded from desktop/default.nix (the real desktop
 # will run the OPTIONS bar, not auto-launch a browser). It is composed only into
-# the `golem-desktop-test` cut. Delete-worthy the day the real desktop lands.
+# the `standard-desktop-test` cut. Delete-worthy the day the real desktop lands.
 #
 # Drive it over SSH: Chrome exposes CDP on 127.0.0.1:9222 — `ssh -L 9222:localhost:9222`
 # then point a CDP client at it to load videos, read chrome://gpu, etc.
 { config, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
 in
 {
   home-manager.users.${owner} = { ... }: {

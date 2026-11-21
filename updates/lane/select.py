@@ -38,7 +38,7 @@ the derivation instead. The same MacBook update compiled the dock for 20
 minutes for that: waverunner-daemon refers (through waverunner-translate)
 to translation models, third-party downloads that were in no cache. So a
 download, a trivial config file or a source file a chosen path needs is
-uploaded with it (the downloads Golem pieces need are open-licence models
+uploaded with it (the downloads Standard pieces need are open-licence models
 and browser extensions). Only never-publish stays out; a chosen path that
 needs one is reported as `blocked`: every machine builds it.
 

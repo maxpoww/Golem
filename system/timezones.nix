@@ -13,7 +13,7 @@
 # must prove about it is that every zone named below is a zone that exists.
 #
 #   nix build .#checks.x86_64-linux.timezone-defaults
-#   nix eval  .#lib.golem.timezones.forLanguage --apply 'f: f "pt-BR"'
+#   nix eval  .#lib.standard.timezones.forLanguage --apply 'f: f "pt-BR"'
 #
 # THE DEFAULT IS A GUESS AND THE STEP EXISTS TO CONFIRM IT. Some languages
 # map cleanly — ja is Asia/Tokyo and nothing else. Others do not: English is
@@ -206,7 +206,7 @@ let
 
   # UTC rather than a neighbour's zone for an unmapped language: a clock
   # that is plainly wrong gets corrected, where a plausible-but-wrong one
-  # gets trusted. Same reasoning as golem.locale.timeZone's own default.
+  # gets trusted. Same reasoning as standard.locale.timeZone's own default.
   forLanguage = code: defaults.${code} or defaults.${lib.head (lib.splitString "-" code)} or "UTC";
 
   # `code|zone,zone,zone` — the surface reads this to order its list.

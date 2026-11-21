@@ -246,7 +246,7 @@ either side of that.
   would only ever confirm OpenGL, not the modern stack. Genuine limit of
   what this session could check.
 - **Full visual rehearsal, driven live over SSH/tmux (English, default
-  timezone/keyboard, TOSHIBA target, hostname Golem, user max):** the
+  timezone/keyboard, TOSHIBA target, hostname Standard, user max):** the
   confirm screen showed exactly Max's quoted line —
   `GPU 2   NVIDIA GeForce 610M/710M/810M — tested, didn't wake up` next
   to `GPU   Intel Haswell-ULT Graphics · i915 — tested, working · driving
@@ -275,7 +275,7 @@ a round-4 pass, this one didn't). So this run also serves as the first
 live check of every round-4 fix, alongside round 5's own items.
 
 - **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
-  `golem-setup` unwrapped has 1 `valid_host Golem` hit, 4
+  `golem-setup` unwrapped has 1 `valid_host Standard` hit, 4
   `cancel_install` hits, the `#34` trap pair at 3933–3934;
   `golem-postinstall-questions` present. Still "ENTER takes it" in the
   footer (expected — the wording fix is round-6 source, this stick is
@@ -311,7 +311,7 @@ live check of every round-4 fix, alongside round 5's own items.
     "title":"Your second GPU didn't wake up during setup",
     "options":[{"id":"hold","label":"Keep it available (uses a little more power)"},
                {"id":"off","label":"Turn it off (saves battery, GPU unavailable)"}],
-    "body":"Golem tested your second graphics card (nvidia) by putting\nit to sleep and waking it back up during setup, and it did not\nwake up cleanly. …"}]
+    "body":"Standard tested your second graphics card (nvidia) by putting\nit to sleep and waking it back up during setup, and it did not\nwake up cleanly. …"}]
   ```
   `jq length` → 1. Transcript: `note postinstall questions: 1 pending`.
   The evaluated toplevel's closure carries **`golem-dgpu-hold.service`**
@@ -395,7 +395,7 @@ on metal** (until tonight only the VM had done this, row 0):
    the retry; toplevel `--check-validity` OK in the target store).
 4. **`golem-install --skip-prepare --system <toplevel>`** → systemd-boot
    written, EFI entry created, `##golem 6/6 done`, exit 0.
-5. `systemctl reboot` → **the machine booted the installed Golem from
+5. `systemctl reboot` → **the machine booted the installed Standard from
    its own disk on the first try, stick still inserted** (the new EFI
    entry won the boot order). SSH up in ~116 s, hostname `asus`.
 
@@ -419,10 +419,10 @@ half is a home-manager **user** service on `graphical-session.target`
 **dmesg notes (installed system):** the 1 crit-level line is
 `MXM: GUID detected in BIOS` (informational, kernel mislabels it); 5 err
 = this firmware's known ACPI bugs + the single init-time PRIVRING fault
-+ spi-nor probe noise. Nothing new, nothing Golem's.
++ spi-nor probe noise. Nothing new, nothing Standard's.
 
 **Cosmetic finding (queued-worthy, small):** the `--skip-prepare` resume
-run's plan header printed `hostname Golem` (the default) because the
+run's plan header printed `hostname Standard` (the default) because the
 resumed invocation didn't get `--answers`; the installed machine.nix
 correctly says `asus` — display only, but the header lies about the run
 it resumes. → R5-2 candidate.
@@ -469,7 +469,7 @@ Morning session, Max at the physical keyboard, dev box watching over SSH.
 - **End state:** chip on the bus, `power/control=on`, never
   autosuspends, zero new faults — the hold design working, as Max's
   preference and as shipped default. Four system generations deep on an
-  installed Golem, every one made by the owner answering a question.
+  installed Standard, every one made by the owner answering a question.
 - **Verdict:** the #33 subsystem is now proven END TO END on real
   hardware in both directions — and the proving run caught the exact
   class of bug (a pipeline that reports success while changing nothing)

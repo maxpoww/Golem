@@ -22,7 +22,7 @@ is() { if [ "$2" = "$3" ]; then echo "ok   $1"; pass=$((pass + 1)); else echo "F
 suspends() { if [ -f "$W/suspends" ]; then wc -l < "$W/suspends" | tr -d ' '; else echo 0; fi; }
 reset() { rm -f "$W/suspends" "$W/state"/*; }
 
-# 1. nothing of Golem's is running: it suspends at once
+# 1. nothing of Standard's is running: it suspends at once
 reset; out=$("$script" 2>&1)
 is "nothing running: the suspend is asked for at once" "$(suspends)" 1
 

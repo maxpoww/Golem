@@ -102,14 +102,14 @@ load on **1931 MB**.
   be proven on the Dell (now 3.8 GB) or HP — both BIOS, neither starved.
 - **Verdict:** the two Comodore round-2 census fixes are confirmed on
   metal; the machine itself is below the install's RAM floor — a finding,
-  not a Golem bug.
+  not a Standard bug.
 
 ## Round 3 — 2026-09-07 — the RAM refusal works: findings: 1 in ~50 s on the box round 2 left comatose · 1 new census finding (#26)
 
 - **ISO:** round-3 `p5ylp6q6…`, SSH at 192.168.1.129.
 - **THE #16 PROOF — this machine's whole reason to run round 3:** all
   six screens walked normally, ENTER, and ~50 s later:
-  `FAIL ram: this machine has 1931 MB — installing Golem needs about
+  `FAIL ram: this machine has 1931 MB — installing Standard needs about
   4 GB of RAM` + `note eval SKIPPED: … cannot evaluate the target
   without thrashing`. Bar to 100% "Rehearsed", "1 finding(s)", every
   other check green (BIOS→GRUB, target≠medium, fit, facts match), the
@@ -141,7 +141,7 @@ load on **1931 MB**.
 
 - **ISO:** round-4 (`yz5nqhsv…`, pre-F1). BIOS, 1931 MB. Audit ok.
 - **#16 RAM refusal — clean, again:** all six screens walked, then
-  `FAIL ram: this machine has 1931 MB — installing Golem needs about
+  `FAIL ram: this machine has 1931 MB — installing Standard needs about
   4 GB of RAM` + `note eval SKIPPED`, `findings: 1`, machine responsive
   throughout (1384 MB free). The round's low-RAM guard holds.
 - **#26 census fixed:** `golem-hardware.nix` has NO gpu2 line — the GMA's

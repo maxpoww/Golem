@@ -1,6 +1,6 @@
 # The census, run by the machine itself, at boot.
 #
-# Max, 2026-09-04: "i press [start] — Golem audits the device, makes the
+# Max, 2026-09-04: "i press [start] — Standard audits the device, makes the
 # decisions, chooses the modules, and generates a summary that you audit
 # via ssh."
 #
@@ -13,7 +13,7 @@
 # only needed to come and collect it.
 #
 #   /var/log/golem-audit/
-#     summary.txt          the decision table — what Golem chose, and why
+#     summary.txt          the decision table — what Standard chose, and why
 #     decision.json        the same, machine-readable
 #     golem-hardware.nix   the facts the probe measured (the future fixture)
 #     evidence/            the raw dump: lspci, DMI, sysfs, lsmod, rfkill…
@@ -27,7 +27,7 @@
 # system (the entry only adds a kernel marker), and an audit is harmless
 # either way — so the answer is there whichever one gets pressed.
 # `golem.install` stays reserved for the disk flow, which is a separate
-# question from "what would Golem decide here".
+# question from "what would Standard decide here".
 { config, pkgs, lib, hw-decide, hw-detect, hw-evidence, ... }:
 
 {
@@ -98,10 +98,10 @@
       # it found. Full table to tty1; the getty helpLine points at it.
       # ASCII only: the kernel console font has no box-drawing glyphs and
       # renders them as replacement blocks (seen on the first run).
-      # The facts are indented FOUR spaces inside `golem.hardware = {`, so
+      # The facts are indented FOUR spaces inside `standard.hardware = {`, so
       # match "<indent>word = " — a two-space match catches only the
       # attrset's own opening line, which is how the first banner managed
-      # to print a completely empty `golem.hardware = { };`.
+      # to print a completely empty `standard.hardware = { };`.
       # The first three sections are cpu / ram / gpu by decide.nix's
       # ordering, which is exactly what someone standing in front of the
       # laptop wants; the rest is a `cat` away. Taking a slice rather than
@@ -122,7 +122,7 @@
          && ! grep -qsF golem.install /proc/cmdline; then
         {
           echo
-          echo "-------- Golem census: this machine --------"
+          echo "-------- Standard census: this machine --------"
           jq -r '
             def pad($n): . + (" " * ($n - length));
             .[0:3][]

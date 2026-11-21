@@ -1,4 +1,4 @@
-# Golem's languages — split into two lists because they cost very differently.
+# Standard's languages — split into two lists because they cost very differently.
 #
 #   all   → i18n.supportedLocales (base/locale.nix). This is ONE locale-archive
 #           derivation covering every language: cheap, built once, shared by every

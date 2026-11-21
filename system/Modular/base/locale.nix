@@ -1,4 +1,4 @@
-# base/locale — language and timezone, data-driven from golem.locale
+# base/locale — language and timezone, data-driven from standard.locale
 # (the installer's first two answers). LC_* deliberately unset: every
 # category follows defaultLocale — the split case (English interface,
 # local formats) is a preference for OPTIONS, not a setup question.
@@ -15,7 +15,7 @@
 { config, lib, ... }:
 
 let
-  loc = config.golem.locale.defaultLocale;      # e.g. pt_PT.UTF-8
+  loc = config.standard.locale.defaultLocale;      # e.g. pt_PT.UTF-8
   base = lib.removeSuffix ".UTF-8" loc;         # pt_PT
   lang = lib.head (lib.splitString "_" base);   # pt
 
@@ -40,5 +40,5 @@ in
   # stays {}, per the regression guard) — it is a session env var.
   environment.sessionVariables.LANGUAGE = lib.mkDefault "${base}:${lang}";
 
-  time.timeZone = lib.mkDefault config.golem.locale.timeZone;
+  time.timeZone = lib.mkDefault config.standard.locale.timeZone;
 }

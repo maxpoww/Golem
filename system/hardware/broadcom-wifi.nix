@@ -20,7 +20,7 @@
 { config, lib, ... }:
 
 {
-  config = lib.mkIf config.golem.hardware.broadcomWifi {
+  config = lib.mkIf config.standard.hardware.broadcomWifi {
     boot.extraModulePackages = [ config.boot.kernelPackages.broadcom_sta ];
     boot.kernelModules = [ "wl" ];
     # broadcom-sta is flagged INSECURE in nixpkgs (upstream is unmaintained),

@@ -48,14 +48,14 @@ tucks itself behind a fullscreen window before the sentence could exist. The
 round trip even re-reveals on exit (`main.rs:2756`). A07's trigger — "fullscreen
 playback starts while the dock is visible" — names a state the shipped engine
 prevents. (The top bar rides the same rail: `frame.rs:1145` conceals it in
-fullscreen.) A verb Golem genuinely owns, on a state Golem already handles =
+fullscreen.) A verb Standard genuinely owns, on a state Standard already handles =
 a sentence with no job. KILLED.
 
 **A14 — the clean sleep · KEEP.**
 The attack: "verify the speaks-only-when-data gate is mechanically expressible,
 else liturgy on every suspend." It is expressible, precisely: the thing that
 would be cleared is the daemon's own store (`clipboard-history.json`,
-`clipboard.rs:223`, a file Golem writes and rolls), so the gate is a count of
+`clipboard.rs:223`, a file Standard writes and rolls), so the gate is a count of
 that store's entries before the offer — non-empty speaks, empty is silence. A
 machine check, no prose needed. The trigger remains "the session enters Sleep":
 honestly [cheap], a logind PrepareForSleep listener — the same new-surface note
@@ -156,7 +156,7 @@ The process CLASS the trigger names — qemu/kvm — does not exist on this
 machine's lifecycle. There is no `virtualisation`/`libvirtd`/`virt-manager`
 host config anywhere in `system/`: the qemu matches are (i) `hardware-detect`
 Golem-as-guest detection, (ii) preinstall fixtures, and (iii) the `vm-guest`
-matrix. Golem's machines are guests, not hosts. The verb is equally absent:
+matrix. Standard's machines are guests, not hosts. The verb is equally absent:
 `virsh` is not in the distro, so even a hypothetical qemu guest has no [park
 them] actuator. Another sentence whose trigger and verb are both on machinery
 that is not here — the same species as A07 (a state the machine won't reach),
@@ -176,7 +176,7 @@ its three [new] verbs.
 **A15 — the steady hand · KEEP.** The precision-class table is named in F6
 §4.3, not waved at (image-editor / CAD / pixel-tool sets), and class derivation
 is the shipped discipline `mind/activity.rs` already supplies for the
-meeting/game/editor classes. The pointer write is Golem's own input setting.
+meeting/game/editor classes. The pointer write is Standard's own input setting.
 The §4.3 residual — the knob must serve the fine-moment, not the class — is
 carried: the class is the gate, the offer's timing is the moment, the standing
 form lives in the gear. KEPT.

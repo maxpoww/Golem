@@ -11,7 +11,7 @@
 { config, lib, ... }:
 
 {
-  # Golem's patched Hyprland (square-top titlebar seam, vfr-hold, swipe-one-
+  # Standard's patched Hyprland (square-top titlebar seam, vfr-hold, swipe-one-
   # empty, a gesture crash fix): see hyprland-overlay.nix. flake.nix builds
   # the waveview plugin against the SAME overlay, so their ABIs match.
   nixpkgs.overlays = [ (import ./hyprland-overlay.nix) ];
@@ -72,14 +72,14 @@
   # reads console.keyMap (base/console.nix), XWayland clients read
   # services.xserver.xkb (here), and Hyprland's native input reads NEITHER — it
   # has its own block in hyprland.lua. Setting only two leaves the session on us.
-  # From the installer's one keyboard answer (golem.keyboard).
+  # From the installer's one keyboard answer (standard.keyboard).
   services.xserver = {
     enable = true;
     xkb = {
-      layout  = lib.mkDefault config.golem.keyboard.layout;
-      variant = lib.mkDefault config.golem.keyboard.variant;
-      options = lib.mkDefault config.golem.keyboard.options;
-      model   = lib.mkDefault config.golem.keyboard.model;
+      layout  = lib.mkDefault config.standard.keyboard.layout;
+      variant = lib.mkDefault config.standard.keyboard.variant;
+      options = lib.mkDefault config.standard.keyboard.options;
+      model   = lib.mkDefault config.standard.keyboard.model;
     };
   };
 
@@ -88,5 +88,5 @@
   # at the desktop stage — extraGroups MERGES with base/users.nix's stage-0 set
   # (networkmanager/wheel/video/input); membership is picked up on a fresh login.
   hardware.uinput.enable = true;
-  users.users.${config.golem.owner}.extraGroups = [ "uinput" "adbusers" ];
+  users.users.${config.standard.owner}.extraGroups = [ "uinput" "adbusers" ];
 }

@@ -132,7 +132,7 @@ encryption on the Acer (UEFI). Rehearsal `status ok`, eval 18 s, checks all
 green. Transcript recorded the encrypted plan: `cryptsetup luksFormat` →
 `open` → `pvcreate`/`vgcreate`/`lvcreate swap`+`root` (ESP + one LUKS2
 container + LVM inside, per the design). `machine.nix` carried
-`boot.initrd.luks.devices.golem.device` (placeholder UUID in rehearsal, as
+`boot.initrd.luks.devices.standard.device` (placeholder UUID in rehearsal, as
 built). Keyfile kept (rehearsal opened nothing), then shredded.
 **`/dev/sda` still factory NTFS (2 partitions) — Windows intact.**
 
@@ -203,7 +203,7 @@ built). Keyfile kept (rehearsal opened nothing), then shredded.
 ## Round 5 (rehearsal check) — 2026-09-10 — #34, #31 and #33's empty array all PROVEN · 0 rehearsal findings · NEW: F1 leaks as filter text at the welcome screen
 
 - **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
-  1 `valid_host Golem` hit, 4 `cancel_install` hits,
+  1 `valid_host Standard` hit, 4 `cancel_install` hits,
   `golem-postinstall-questions` present. UEFI. Audit `ok` at boot.
 - **Boot/network — CORRECTED same evening:** the machine did NOT join
   on its own this boot. ath10k came up 19:31:08 but the association at

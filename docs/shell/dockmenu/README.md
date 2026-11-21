@@ -1,7 +1,7 @@
 # DockMenu — the dock/menubox as a distro-grade component
 
 > The permanent home for making waverunner's dock + apps/menu box
-> **bullet-proof for every Golem user**: perfect on a fresh install, and
+> **bullet-proof for every Standard user**: perfect on a fresh install, and
 > identical after 5 years of intense daily use. Created 2026-09-09 at
 > Max's direction, on the day the install pipeline got its #45–#48 fixes.
 
@@ -20,9 +20,9 @@
 
 ## The map (the two reference machines)
 
-| | dev box (`Golem`, local) | ASUS (`192.168.1.85`) |
+| | dev box (`Standard`, local) | ASUS (`192.168.1.85`) |
 |---|---|---|
-| role | **aging dataset** — Max's daily driver, months of real usage | **fresh-install dataset** — first real installed Golem, 2026-09-09 |
+| role | **aging dataset** — Max's daily driver, months of real usage | **fresh-install dataset** — first real installed Standard, 2026-09-09 |
 | hardware | Slim Pro 9i, i9-13905H, 32 GB, NVMe, high-DPI | X550LC, i5-4200U Haswell, 7.5 GB, 5400rpm HDD, 1366×768 |
 | renderer | Vulkan | GL fallback (the #40/#42 class lives here) |
 | snapshot | [machines/devbox.md](machines/devbox.md) | [machines/asus.md](machines/asus.md) |
@@ -60,7 +60,7 @@ races and GL bugs; the dev box catches aging.
 1. A problem observed on either machine → entry in FINDINGS.md (and
    changes.md if install-related).
 2. Root-cause at source in `~/launcher`; fix + test there.
-3. Deploy permanently via the seed pipeline (launcher push → Golem lock
+3. Deploy permanently via the seed pipeline (launcher push → Standard lock
    bump → prebuild on dev box → `nix copy` → seed lock → self-rebuild).
    The pipeline is documented in memory (`asus-deploy-loop`) and in
    FirstInstall.md #41.

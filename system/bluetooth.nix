@@ -2,10 +2,10 @@
 
 {
 # The whole stack rides the census: a machine whose detection confidently
-# says "no radio" (golem.hardware.hasBluetooth = false) drops bluez +
+# says "no radio" (standard.hardware.hasBluetooth = false) drops bluez +
 # blueman entirely; undetected machines default to true and keep this
 # always-on behavior (the conservatism rule, GolemInstall.md §4).
-config = lib.mkIf config.golem.hardware.hasBluetooth {
+config = lib.mkIf config.standard.hardware.hasBluetooth {
 
 services.blueman.enable        = true;
 
@@ -27,7 +27,7 @@ hardware.bluetooth = {
     # After a HIBERNATE (not a plain suspend) BlueZ comes back with its
     # trusted devices disconnected, and speakers and headphones stay silent
     # until reconnected by hand. The lid does suspend-then-hibernate on a
-    # Golem laptop, so this is every long lid-close. Waits for the adapter
+    # Standard laptop, so this is every long lid-close. Waits for the adapter
     # to power up, then reconnects each trusted device (4 tries). Ported
     # from the dev box on 2026-09-30 (found by the P1 diff: it only ever
     # lived there).

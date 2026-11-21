@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# refresh.sh — regenerate Golem's package index: every package the dock's
+# refresh.sh — regenerate Standard's package index: every package the dock's
 # Install section offers, and ONLY the ones that can actually install here.
 #
-# Why Golem carries its own (system/home/package-index.tsv):
-#  - The dock's own index lists everything nixpkgs has (~23,700). On Golem's
+# Why Standard carries its own (system/home/package-index.tsv):
+#  - The dock's own index lists everything nixpkgs has (~23,700). On Standard's
 #    pin, 617 of those can never install — macOS-only, end-of-life (old .NET,
 #    Electron), insecure or broken — and the dock offered every one of them
 #    (scan, 2026-10-01). Max: "it cant fail".
@@ -25,7 +25,7 @@ rev=$(python3 -c 'import json; print(json.load(open("flake.lock"))["nodes"]["nix
 echo "nixpkgs $rev"
 
 # 1. The dock's full index, built from the launcher pinned in flake.lock
-#    (its nixpkgs follows Golem's).
+#    (its nixpkgs follows Standard's).
 idx=$("${nixcmd[@]}" build --no-link --print-out-paths --impure --expr \
   "(builtins.getFlake \"$flake\").inputs.waverunner.packages.x86_64-linux.package-index")
 full="$idx/share/waverunner/nixpkgs-index.tsv"
@@ -58,7 +58,7 @@ xargs -P 48 -n 2 sh -c 'c=$(curl -s -o /dev/null -w "%{http_code}" -I "https://c
 echo "not in the binary cache: $(wc -l < "$work/uncached")"
 dry() {
   o=$(nix --extra-experimental-features 'nix-command flakes' build --dry-run --impure \
-        --expr "(builtins.getFlake \"$flake\").nixosConfigurations.golem-desktop-vm.pkgs.$1" 2>&1)
+        --expr "(builtins.getFlake \"$flake\").nixosConfigurations.standard-desktop-vm.pkgs.$1" 2>&1)
   n=$(printf '%s\n' "$o" | sed -n 's/.*these \([0-9]*\) derivations will be built.*/\1/p; s/.*this derivation will be built.*/1/p' | head -1)
   case "$o" in *restrict-message.drv*) echo "$1 manual-download" ;; esac
   if [ "${n:-0}" -gt "$MAX_BUILDS" ]; then echo "$1 builds-$n"; fi

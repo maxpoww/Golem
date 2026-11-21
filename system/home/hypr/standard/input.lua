@@ -1,9 +1,9 @@
-local keyboard = require("golem.lib").machine.keyboard
+local keyboard = require("standard.lib").machine.keyboard
 
 ---- INPUT ----
 hl.config({
     input = {
-        -- The installer's keyboard answer (golem.keyboard, machine.keyboard).
+        -- The installer's keyboard answer (standard.keyboard, machine.keyboard).
         -- Hyprland does not read services.xserver.xkb: this block decides what
         -- the owner types into. A Russian gets "ru,us" with a toggle here.
         kb_layout  = keyboard.layout,

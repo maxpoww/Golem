@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 # Seam — the per-user half (home-manager): the package, prefs, look, its own profile,
-# and "default browser". Imported by the Golem flake's home layer AND by the dev box's
+# and "default browser". Imported by the Standard flake's home layer AND by the dev box's
 # /etc/nixos/home.nix, so both run the same Seam. The system half (Mozilla build,
 # policies, chrome script, update lane) is ./default.nix. See ./README.md.
 
@@ -17,11 +17,11 @@ in
     (pkgs.writeShellScriptBin "seam-open" ''exec seam "$@"'')   # $BROWSER, see below
   ];
 
-  # The Golem look (sidebar auto-hide, new-tab = bar colour, separator fix), shipped with Golem.
+  # The Standard look (sidebar auto-hide, new-tab = bar colour, separator fix), shipped with Standard.
   home.file."${profile}/chrome/userChrome.css".source = ./userChrome.css;
   home.file."${profile}/chrome/userContent.css".source = ./userContent.css;
 
-  # Golem's default browser: links, xdg-open, "open in browser" everywhere.
+  # Standard's default browser: links, xdg-open, "open in browser" everywhere.
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
@@ -44,7 +44,7 @@ in
   # One-time move of a Beam-era profile (~/.mozilla/firefox/golem, 2026-09-27) into Seam's
   # own place, before home-manager links this generation's files into it; the old profile
   # is kept aside, and the profiles.ini Beam wrote is retired so a plain Firefox starts
-  # clean. A fresh Golem install has neither and just gets the directory.
+  # clean. A fresh Standard install has neither and just gets the directory.
   home.activation.seamProfile = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
     new="$HOME/${profile}"; old="$HOME/.mozilla/firefox/golem"
     if [ ! -e "$new" ] && [ -d "$old" ]; then
@@ -61,7 +61,7 @@ in
 
   # Prefs: scroll tuning (bisected), privacy, sidebar/vertical tabs, chrome-CSS loading.
   home.file."${profile}/user.js".text = ''
-    // Managed by Golem (seam/home.nix) — edits here are overwritten.
+    // Managed by Standard (seam/home.nix) — edits here are overwritten.
 
     // --- Feel: Chrome-style spring physics (off by default) ---
     user_pref("general.smoothScroll", true);
@@ -223,7 +223,7 @@ in
 
     // ================= THEME: FOLLOW THE SYSTEM =================
     // Max's call (2026-09-12): no forced dark, no toggle button — the
-    // browser tracks the system scheme, and light/dark is Golem's job
+    // browser tracks the system scheme, and light/dark is Standard's job
     // (the portal / OPTIONS side), not the browser's. The old forced-
     // dark pins were removed from prefs.js too — a pref deleted here
     // but left there would silently keep forcing dark.
@@ -338,7 +338,7 @@ in
     //     network but hands every lookup to one resolver. A trade, not an
     //     improvement; pick a provider deliberately or leave it.
 
-    // --- Golem UI: blank slate ---
+    // --- Standard UI: blank slate ---
     // Required before Firefox will load chrome/userChrome.css at all.
     user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
     // No shortcut tiles / sponsored content on a new tab — just blank.

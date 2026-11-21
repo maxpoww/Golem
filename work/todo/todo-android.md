@@ -1,4 +1,4 @@
-# todo-android — W-A Golem × Android (see android.md)
+# todo-android — W-A Standard × Android (see android.md)
 
 > Status 2026-08-31: built from scratch in Kotlin/Compose (NOT a kdeconnect fork —
 > deliberate change from the original plan). Speaks KDE Connect protocol v8, interops
@@ -8,7 +8,7 @@
 ## P1 — Presence ✅ DONE
 - [x] Read the kdeconnect protocol docs + mine implementations for details
 - [x] ~~Fork kdeconnect-android~~ → implemented the protocol from scratch instead
-- [x] Rebrand: name **Golem**, icon (stone head, amber eyes), adaptive + monochrome
+- [x] Rebrand: name **Standard**, icon (stone head, amber eyes), adaptive + monochrome
 - [?] Desktop: `collectors/phone.rs` in options-engine (discovery + pairing + TLS;
       through the Brain, no side channel) — NOT STARTED, kdeconnectd stands in for now
 - [x] Phone pill **data feed** complete: battery (verified) + cellular signal
@@ -57,12 +57,12 @@
 
 ## Near-term polish
 - [x] mDNS discovery (advertise + browse + resolve, unicast-identity nudge on find).
-      NOTE: the Golem PC runs **no mDNS responder** (avahi/systemd-resolved both
+      NOTE: the Standard PC runs **no mDNS responder** (avahi/systemd-resolved both
       inactive), so this path is phone-side-only until avahi is enabled on the host.
 - [x] Album art payloads (verified: phone's media-session art lands in kdeconnect's
       albumart cache). URL is keyed to the track — a per-player URL would be cached
       by the desktop and never refresh.
-- [x] Golem design language pass (amber-on-stone, matches the icon; dynamic color off)
+- [x] Standard design language pass (amber-on-stone, matches the icon; dynamic color off)
 - [x] Light theme verified by visual sweep (never viewed before): layout sound, but the
       brand amber failed contrast on pale surfaces (~3.4:1) — light mode now uses a
       darker amber (~5.4:1), and the touchpad gained an outline so it reads as a
@@ -78,7 +78,7 @@
 - [x] **gamepad (phone as an on-screen game controller)** — both halves built and the
       whole chain verified against the real phone: two sticks, D-pad, ABXY, LB/RB,
       LT/RT, Back/Start/Guide/L3/R3, presented to the desktop as a virtual Xbox 360
-      pad so SDL/Steam/Proton need no mapping. `golem.gamepad` is a Golem extension,
+      pad so SDL/Steam/Proton need no mapping. `golem.gamepad` is a Standard extension,
       not a `kdeconnect.` type. 18 new phone-side tests, all mutation-checked.
 - [?] **gamepad is BLOCKED on one NixOS line.** `/dev/uinput` here is `nobody:nogroup`
       mode 0600 with no udev rule, and the `input` group does not help — nothing can
@@ -114,7 +114,7 @@
 - [?] every feature reaches the desktop THROUGH the Brain — still kdeconnectd, not
       options-engine; `collectors/phone.rs` is unstarted
 - [?] phone battery cost negligible — ATTEMPTED, inconclusive. Over an 11-minute
-      simulated-battery window Golem never appeared in `dumpsys batterystats`
+      simulated-battery window Standard never appeared in `dumpsys batterystats`
       estimated-power rankings at all (whole-system app CPU was 3.59 mAh), which is
       suggestive but not proof. Android 14's batterystats gives no clean per-app
       figure at this timescale — needs a multi-hour run and Battery Historian.

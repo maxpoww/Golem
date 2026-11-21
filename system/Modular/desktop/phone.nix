@@ -4,7 +4,7 @@
 # scrcpy feeds the phone's camera into a loopback camera device, and the
 # relay hands that on to the apps. The device is a kernel module with one
 # line of options — it lived only in the fat system/configuration.nix and in
-# the dev box's own layer, so on every INSTALLED Golem the menu row did
+# the dev box's own layer, so on every INSTALLED Standard the menu row did
 # nothing at all ("no loopback camera device on this system"; found testing
 # the Acer with a Samsung, 2026-10-10).
 #
@@ -14,17 +14,17 @@
 # ONE LINE OF OPTIONS FOR EVERY LOOPBACK CAMERA (2026-11-19). The module
 # takes its devices from its one `options` line; a second line (what
 # programs.obs-studio.enableVirtualCamera would add) fights the first. So
-# whoever needs a loopback camera names it in golem.loopbackCameras and the
+# whoever needs a loopback camera names it in standard.loopbackCameras and the
 # line is written here, once, from all of them. With the phone's alone it is
 # the line it always was.
 { config, lib, ... }:
 
 let
-  cams = lib.sort (a: b: a.nr < b.nr) config.golem.loopbackCameras;
+  cams = lib.sort (a: b: a.nr < b.nr) config.standard.loopbackCameras;
   list = f: lib.concatMapStringsSep "," f cams;
 in
 {
-  options.golem.loopbackCameras = lib.mkOption {
+  options.standard.loopbackCameras = lib.mkOption {
     internal = true;
     default = [ ];
     description = ''
@@ -41,11 +41,11 @@ in
   };
 
   config = {
-    golem.loopbackCameras = [ { nr = 10; label = "Android WebCam"; } ];
+    standard.loopbackCameras = [ { nr = 10; label = "Android WebCam"; } ];
 
     assertions = [{
       assertion = lib.allUnique (map (c: c.nr) cams);
-      message = "golem.loopbackCameras: two loopback cameras ask for the same device number";
+      message = "standard.loopbackCameras: two loopback cameras ask for the same device number";
     }];
 
     boot.extraModulePackages = [ config.boot.kernelPackages.v4l2loopback ];

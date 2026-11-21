@@ -11,17 +11,17 @@
 # stage-0 minimal (no desktop) this simply holds; the ask arrives with
 # the desktop stage. Both services are declared unconditionally and
 # mkIf-gated at the LEAF (never an outer if/else picking whole attrsets)
-# — that shape avoids forcing `action` (and thus golem.postinstall.
+# — that shape avoids forcing `action` (and thus standard.postinstall.
 # answers, this module's own fixpoint) just to learn its config SHAPE, a
 # real infinite recursion caught live writing the original.
 { config, lib, ... }:
 
 let
-  cfg = config.golem.hardware;
+  cfg = config.standard.hardware;
   # Any answer other than "off" (incl. unrecognized) falls to "hold" —
   # safe and reversible. Never a default pass to "off" (PCI remove is
   # destructive-ish; it must be an explicit validated owner choice).
-  action = if (config.golem.postinstall.answers."gpu2-failing-action" or "hold") == "off"
+  action = if (config.standard.postinstall.answers."gpu2-failing-action" or "hold") == "off"
     then "off"
     else "hold";
   neverBootVga = script: ''

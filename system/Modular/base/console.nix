@@ -14,8 +14,8 @@
 {
   # console.font stays declarative when a keymap needs a special font — a
   # Latin keymap needs none, and the seeded vconsole.conf carries FONT itself.
-  console.font = lib.mkIf (config.golem.keyboard.consoleFont != null)
-    (lib.mkDefault config.golem.keyboard.consoleFont);
+  console.font = lib.mkIf (config.standard.keyboard.consoleFont != null)
+    (lib.mkDefault config.standard.keyboard.consoleFont);
 
   # Leave /etc/vconsole.conf to the installer's seed (see header). mkForce so it
   # wins over the console module's own `environment.etc."vconsole.conf"`.

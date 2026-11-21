@@ -1,28 +1,28 @@
-# Golem updates
+# Standard updates
 
-How a Golem machine stays current, from a commit on `main` to a rebuilt
+How a Standard machine stays current, from a commit on `main` to a rebuilt
 machine. What to DO in each situation is in [RUNBOOK.md](RUNBOOK.md).
 
 ## In one minute
 
 An update is new configuration files plus a rebuild. That never changes.
-This directory makes the rebuild **fast** (it downloads Golem's own pieces
+This directory makes the rebuild **fast** (it downloads Standard's own pieces
 instead of compiling them for an hour) and **safe** (nothing reaches a
-machine before it was built for every kind of Golem machine).
+machine before it was built for every kind of Standard machine).
 
 ```
  MAINTAINER          BUILD MACHINE — the lane, daily           EVERY GOLEM MACHINE — daily: its own moment of
                                                                the night, or minutes after it is turned on
  ──────────          ───────────────────────────────           ─────────────────────────────────────────────
  push to main  ──▶  1. take main (+ weekly NixOS fixes)   ──▶  1. a new version on stable? wait for my wave
-                    2. build every Golem system (the gate)      2. git pull: the new configuration files
+                    2. build every Standard system (the gate)      2. git pull: the new configuration files
                     3. upload its heavy pieces, signed          3. rebuild: DOWNLOAD the pieces (minutes)
                        (github.com/maxpoww/golem-cache)         4. live at the next reboot; a version that
                     4. move `stable` to it                         breaks the desktop rolls back by itself
 ```
 
 The heavy work happens once, on the build machine. A thousand machines only
-download, and nothing about any machine is ever sent anywhere: Golem has no
+download, and nothing about any machine is ever sent anywhere: Standard has no
 telemetry.
 
 ## The map
@@ -38,13 +38,13 @@ telemetry.
 | `client.nix` | On every install: the cache key, the per-version cache, the wave |
 | `../system/Modular/base/autoupdate.nix` | The daily update: own moment (or right after power-on), wave, `stable`, pull, rebuild `boot` |
 | `../system/golem-seal.nix` (`golem-rebuild`) | Hands every rebuild its version's cache (nightly update, first boot, dock installs, `rebuild-golem`) |
-| `../system/Modular/base/seed.nix` | `golem.upstream.branch = "stable"` |
+| `../system/Modular/base/seed.nix` | `standard.upstream.branch = "stable"` |
 | `../system/Modular/lab/lab-door.nix` | The lab is wave 0 |
 | `../system/Modular/effect-matrix.nix` | Asserts the client side (branch, key, timer, wave) |
 | `../tools/deploy/lab-pull.sh` | A lab deploy follows the machine's branch; `GOLEM_LAB_BRANCH=main` tries main early |
 | github.com/maxpoww/golem-cache | One release per published version |
 | Build machine: `~/.local/state/golem-lane/` | `status.json`, `logs/`, the lane's own clone `repo/`, the gate's gc root |
-| Build machine: `~/.local/share/golem-lane/cache-key.sec` | The signing key. Never in Golem's repo; backup in the private repo maxpoww/golem-keys |
+| Build machine: `~/.local/share/golem-lane/cache-key.sec` | The signing key. Never in Standard's repo; backup in the private repo maxpoww/golem-keys |
 
 ## Two branches
 
@@ -68,7 +68,7 @@ the publish needs it, and publishes nothing. `golem-lane run --now`
 publishes today (an urgent fix). A publish that fails is tried again the
 next day.
 
-1. **Prepare**: its own clean clone of Golem, at `origin/main` (or `--base`).
+1. **Prepare**: its own clean clone of Standard, at `origin/main` (or `--base`).
 2. **The NixOS release jump, when due** (see "NixOS releases" below):
    both inputs to the next release, the package index with them, then the
    gate. If it fails, the maintainer is told what broke and the run goes on
@@ -109,7 +109,7 @@ GitHub yet. The state of the last run: `golem-lane status`.
 ## The gate
 
 `update-gate` is the baked matrix (one full desktop per hardware class
-Golem knows: every lab fixture in both firmwares, plus the generic floor,
+Standard knows: every lab fixture in both firmwares, plus the generic floor,
 which is exactly what an install copies), plus the two synthetic nvidia
 desktops (open Turing+ driver and legacy pre-Turing driver).
 
@@ -117,8 +117,8 @@ desktops (open Turing+ driver and legacy pre-Turing driver).
   composes, and the kernel, out-of-tree drivers and initrd go together.
   The flake checks prove the semantic assertions (facts, chooser, effect,
   desktop matrices, keyboards, time zones).
-- **The boot test** (`boot-test.nix`, a flake check) boots Golem's desktop
-  stage in a VM (`golem-desktop-vm`: the composition and desktop every
+- **The boot test** (`boot-test.nix`, a flake check) boots Standard's desktop
+  stage in a VM (`standard-desktop-vm`: the composition and desktop every
   install runs) and waits for the owner's desktop to come up and stay up.
   It catches a kernel that panics, an initrd that cannot find its disk,
   a desktop that never starts. Added 2026-10-29: before it, nothing booted
@@ -143,7 +143,7 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
   MacBook update (2026-10-27):
   1. Every closure path cache.nixos.org lacks whose derivation nix would
      *substitute* (`allowSubstitutes`): nvidia, Seam, the dock, patched
-     Hyprland **with all its outputs**, the Golem scripts, the drivers. Not
+     Hyprland **with all its outputs**, the Standard scripts, the drivers. Not
      a size threshold: Hyprland's 20 KiB `man` output fell under the old
      64 KiB rule and the laptop started compiling Hyprland, because nix
      builds the whole derivation when one output it needs is in no cache.
@@ -153,7 +153,7 @@ broadcom-sta (kernel 7.2 removed `strncpy`). Only a build shows that.
      builds it. The dock compiled for 20 minutes because it refers (through
      waverunner-translate) to translation models, third-party downloads that
      were in no cache. So those downloads (open-licence models, browser
-     extensions), trivial config files and source files go in when a Golem
+     extensions), trivial config files and source files go in when a Standard
      piece needs them.
   Left out: per-machine pieces nothing else needs (a fixture's initrd,
   system-path, unit lists, toplevel: every machine builds its own), trivial
@@ -240,7 +240,7 @@ tells its owner when it cannot (audit, 2026-10-29):
   space drops under 5 GiB.
 - **The owner is told, and only then**:
   - "Golem has an update ready" when one has waited 2 days for a restart;
-  - "Golem could not update for N days" after 7 days without a run that
+  - "Standard could not update for N days" after 7 days without a run that
     worked, and a failure since. Each run marks when it worked or failed in
     `/var/lib/golem-notices/update-{ok,failed}`
     (`desktop/update-notice.nix`).
@@ -249,11 +249,11 @@ tells its owner when it cannot (audit, 2026-10-29):
 
 ## NixOS releases and the kernel
 
-- Golem follows a NixOS release branch (`nixos-YY.MM` + home-manager
+- Standard follows a NixOS release branch (`nixos-YY.MM` + home-manager
   `release-YY.MM`). The weekly bump brings that release's fixes, including
   the kernel's point releases.
 - **The kernel** is NixOS's default, `linuxPackages`: the newest LTS NixOS
-  has adopted. Golem never sets `boot.kernelPackages`. The FaceTime quirk
+  has adopted. Standard never sets `boot.kernelPackages`. The FaceTime quirk
   patches `linuxPackages` only, so a kernel-set change elsewhere would lose
   it silently (eval-proven 2026-10-27).
 - **A new LTS series** arrives with the May release, about five months after
@@ -264,12 +264,12 @@ tells its owner when it cannot (audit, 2026-10-29):
   30 June of the next year. 26.05 ends **2026-12-31**; 26.11 is expected at
   the end of November 2026.
 - **The jump happens by itself** (Max, 2026-10-29: NixOS makes the new
-  release, but moving to it is each system's owner's job, and for Golem
+  release, but moving to it is each system's owner's job, and for Standard
   that is the lane). NixOS creates `nixos-YY.MM` about two weeks before it
   announces the release. The lane jumps on the first weekly publish
   `RELEASE_WAIT_DAYS` (28) after it first saw that branch, so the release
   has had its first fixes, or at once when the current release ends within
-  14 days. The gate decides, boot test included; if Golem does not build or
+  14 days. The gate decides, boot test included; if Standard does not build or
   boot on it yet, that week's update goes out on the current release, the
   maintainer is told what broke, and the lane tries again the next week.
   The fix (renamed or removed options, in NixOS's release notes) lands on
@@ -287,4 +287,4 @@ The design does not change with the number of machines; these parts would:
   `client.nix` (the release URL) and one in the lane (the upload).
 - **More hardware classes**: from the lab and public hardware data, as new
   fixtures, never from users' machines.
-- **More waves**: `golem.update.waves`, or an early branch before `stable`.
+- **More waves**: `standard.update.waves`, or an early branch before `stable`.

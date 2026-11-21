@@ -6,7 +6,7 @@
 { config, lib, ... }:
 
 let
-  guest = config.golem.hardware.vmGuest;
+  guest = config.standard.hardware.vmGuest;
 in
 {
   config = lib.mkMerge [

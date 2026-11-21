@@ -1,4 +1,4 @@
-local M = require("golem.lib").machine
+local M = require("standard.lib").machine
 
 -- A lab machine keeps Hyprland's whole log (Modular/lab/lab-door.nix).
 if M.lab then

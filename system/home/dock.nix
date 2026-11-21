@@ -1,12 +1,12 @@
 # The dock (waverunner) in the owner's session: its service on an install,
 # the small tier for a weak machine, the package list its Install section
 # offers, and its configuration file.
-# (On the dev box — golem.home.devCheckout — the dock runs from its live
+# (On the dev box — standard.home.devCheckout — the dock runs from its live
 # checkout and is not a systemd unit: see ./hyprland.nix's facts.)
 { config, osConfig, pkgs, lib, ... }:
 
 let
-  dev = config.golem.home.devCheckout;
+  dev = config.standard.home.devCheckout;
   # VK_LOADER_DRIVERS_SELECT from the GPUs present (PCI vendor ids), then
   # exec the command. No GPU found or one we don't know: no selection.
   vulkanDrivers = pkgs.writeShellScript "golem-vulkan-drivers" ''
@@ -37,7 +37,7 @@ in
   systemd.user.services.waverunner = lib.mkIf (!dev) {
     Service.ManagedOOMPreference = "avoid";
     # Only the Vulkan drivers for the GPUs this machine has. The loader opens
-    # EVERY installed driver otherwise — 13 of them on a Golem, ~200 MB, and
+    # EVERY installed driver otherwise — 13 of them on a Standard, ~200 MB, and
     # lavapipe + radeon pull in LLVM (180 MB) — once per dock surface. On
     # the Acer's spinning disk that cost ~5 s before the first pixel (night
     # dogfood, 2026-10-03). An unknown GPU keeps the loader's full list.
@@ -52,9 +52,9 @@ in
   # first frame was 460 ms of icon uploads on GL). Picked here, at install
   # time, like the rest of the tier; the dev box keeps the full tiles.
   programs.waverunner.smallIcons =
-    let ram = osConfig.golem.hardware.ramMB or 0;
-    in (osConfig.golem.desktop.effects or "full") == "light" || (ram > 0 && ram < 6144);
-  # The Install section offers Golem's checked package list, never the
+    let ram = osConfig.standard.hardware.ramMB or 0;
+    in (osConfig.standard.desktop.effects or "full") == "light" || (ram > 0 && ram < 6144);
+  # The Install section offers Standard's checked package list, never the
   # launcher's raw one: only packages that can actually install on this
   # nixpkgs (617 of ~23,700 could not, 2026-10-01), and no laptop ever runs
   # the ~6.5 GB evaluation that builds it. tools/package-index/refresh.sh
@@ -68,7 +68,7 @@ in
     [theme]
     icon_theme = "Golem"
   ''
-  # Weak GPU (golem.desktop.effects = "light"): the compositor does not blur
+  # Weak GPU (standard.desktop.effects = "light"): the compositor does not blur
   # what is behind the shell, so the dock's glass (the dock, the apps card,
   # the box panels: all built from this one colour, 50% by default) showed
   # the raw page straight through its labels. Denser glass, still glass
@@ -77,7 +77,7 @@ in
   # Every OPEN box (the menubox, group boxes, OPTIONS boxes) goes denser: at 90% a
   # page's titles read straight through it with nothing blurring them (ASUS
   # X550LC, 2026-10-02; tried live at 98 and 95 %, Max: "95 it is").
-  + lib.optionalString ((osConfig.golem.desktop.effects or "full") == "light") ''
+  + lib.optionalString ((osConfig.standard.desktop.effects or "full") == "light") ''
     background = "#050709e6"
     open_opacity = 0.95
   ''

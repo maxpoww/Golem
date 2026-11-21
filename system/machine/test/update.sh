@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test/update.sh — THE UPDATE OF THE /etc/nixos LAYOUT, driven on a made-up
-# upstream: Golem checked out as root's copy, updated across versions with
+# upstream: Standard checked out as root's copy, updated across versions with
 # this machine's edits kept, the conflicting ones set aside, a build that
 # fails, a network that fails, the nightly wave and the held versions, and
 # going back. The commands are the machine's own (system/machine/layout.nix)
@@ -57,23 +57,23 @@ ug add -A; ug commit -qm c1; c1=$(ug rev-parse HEAD)
 git clone -q --bare "$UW" "$U"
 publish() { ug add -A; ug commit -qm "$1"; ug push -q "$U" stable; ug rev-parse HEAD; }
 
-# ── the machine: its folder, and Golem checked out in it ───────────────────
-printf '{ outputs = { self }: import ./golem/machine.nix ./.; }\n' > /etc/nixos/flake.nix
+# ── the machine: its folder, and Standard checked out in it ───────────────────
+printf '{ outputs = { self }: import ./standard/machine.nix ./.; }\n' > /etc/nixos/flake.nix
 echo '{ }' > /etc/nixos/configuration.nix
 mkdir -p /etc/nixos/machine; echo '{}' > /etc/nixos/machine/facts.json
 out=$(golem-machine-checkout --from "$U" --branch stable 2>&1); rc=$?
 is "checkout: made" "$rc" 0
-is "checkout: the files are there" "$(cat /etc/nixos/golem/b.txt 2>/dev/null)" "b v1"
-is "checkout: .golem-rev names the commit" "$(cat /etc/nixos/golem/.golem-rev)" "$c1"
-is "checkout: git's data is out of the folder (a .git FILE points at it)" "$(cat /etc/nixos/golem/.git)" "gitdir: /var/lib/golem/golem.git"
+is "checkout: the files are there" "$(cat /etc/nixos/standard/b.txt 2>/dev/null)" "b v1"
+is "checkout: .golem-rev names the commit" "$(cat /etc/nixos/standard/.golem-rev)" "$c1"
+is "checkout: git's data is out of the folder (a .git FILE points at it)" "$(cat /etc/nixos/standard/.git)" "gitdir: /var/lib/golem/golem.git"
 is "checkout: /var/lib/golem is root's alone" "$(stat -c %a /var/lib/golem)" 700
-is "checkout: plain git works in the folder" "$(git -C /etc/nixos/golem status --porcelain | wc -l)" 0
-is "checkout: origin is the upstream" "$(git -C /etc/nixos/golem remote get-url origin)" "$U"
+is "checkout: plain git works in the folder" "$(git -C /etc/nixos/standard status --porcelain | wc -l)" 0
+is "checkout: origin is the upstream" "$(git -C /etc/nixos/standard remote get-url origin)" "$U"
 out=$(golem-machine-checkout --from "$U" 2>&1); is "checkout: a second run refuses" "$?" 1
-G=/etc/nixos/golem
+G=/etc/nixos/standard
 tree() { (cd "$G" && find . -path ./.git -prune -o -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16); }
 st() { golem-status 2>&1; }
-has "status: nothing changed at first" "$(st)" "No file of Golem's was changed"
+has "status: nothing changed at first" "$(st)" "No file of Standard's was changed"
 
 # ── S1: upstream moves, nothing changed here ───────────────────────────────
 sed -i 's/^line3$/line3-upstream/' "$UW/a.txt"; echo "b v2" > "$UW/b.txt"; echo new > "$UW/new-upstream.txt"; rm "$UW/dir/c.txt"
@@ -83,9 +83,9 @@ out=$(golem-update 2>&1); rc=$?
 is "S1: the update succeeds" "$rc" 0
 has "S1: it says from where to where" "$out" "${c1:0:12} → ${c2:0:12}"
 has "S1: the build was asked for the next start, from a root-only copy" "$(cat /var/lib/golem-test/calls)" "boot --flake path:/var/lib/golem/update."
-is "S1: the copy it built held the new files" "$(cat /var/lib/golem-test/try/golem/b.txt)" "b v2"
+is "S1: the copy it built held the new files" "$(cat /var/lib/golem-test/try/standard/b.txt)" "b v2"
 is "S1: …and the machine's own files" "$(cat /var/lib/golem-test/try/configuration.nix)" "{ }"
-is "S1: …and the commit they are made of" "$(cat /var/lib/golem-test/try/golem/.golem-rev)" "$c2"
+is "S1: …and the commit they are made of" "$(cat /var/lib/golem-test/try/standard/.golem-rev)" "$c2"
 is "S1: the folder has the new version" "$(cat $G/b.txt; sed -n 3p $G/a.txt; cat $G/new-upstream.txt)" "b v2
 line3-upstream
 new"
@@ -108,12 +108,12 @@ is "S2: the same file holds this machine's line AND upstream's" "$(sed -n '1p;3p
 is "S2: the machine's own file is kept" "$(cat $G/mine.txt)" mine
 is "S2: what git ignores here is kept too" "$(cat $G/x.bak)" keep
 is "S2: a file deleted here stays deleted" "$([ -e $G/d.txt ] && echo there || echo gone)" gone
-is "S2: the copy that was built held exactly these files" "$(sed -n 1p /var/lib/golem-test/try/golem/a.txt) $(cat /var/lib/golem-test/try/golem/mine.txt)" "line1-local mine"
+is "S2: the copy that was built held exactly these files" "$(sed -n 1p /var/lib/golem-test/try/standard/a.txt) $(cat /var/lib/golem-test/try/standard/mine.txt)" "line1-local mine"
 is "S2: .golem-rev moved" "$(cat $G/.golem-rev)" "$c3"
 is "S2: nothing was set aside" "$([ -e /var/lib/golem/local-edits ] && echo some || echo none)" none
 has "S2: status still shows the machine's changes, against the new version" "$(st)" "${c3:0:12}"
 has "S2: …a.txt" "$(st)" "a.txt"
-snap="$W/sys-S2/etc/golem/machine"; mkdir -p "$snap"; cp -a "$G" "$snap/golem"; rm -f "$snap/golem/.git"; chmod -R a-w "$snap/golem"
+snap="$W/sys-S2/etc/golem/machine"; mkdir -p "$snap"; cp -a "$G" "$snap/standard"; rm -f "$snap/standard/.git"; chmod -R a-w "$snap/standard"
 treeS2=$(tree)
 
 # ── S3: the same lines changed here and upstream ───────────────────────────
@@ -121,7 +121,7 @@ echo "b local" > "$G/b.txt"; echo "d again" > "$G/d.txt"
 echo "b v3" > "$UW/b.txt"; rm "$UW/d.txt"; c4=$(publish c4)
 out=$(golem-update 2>&1); rc=$?
 is "S3: the update still succeeds (an edit never freezes the machine)" "$rc" 0
-is "S3: Golem's version wins on the file both changed" "$(cat $G/b.txt)" "b v3"
+is "S3: Standard's version wins on the file both changed" "$(cat $G/b.txt)" "b v3"
 aside=$(cat /var/lib/golem/local-edits/latest 2>/dev/null)
 is "S3: this machine's version is set aside, not lost" "$(cat "$aside/b.txt" 2>/dev/null)" "b local"
 is "S3: a file upstream removed and this machine rewrote: removed, and kept aside" "$([ -e $G/d.txt ] && echo there || echo gone) $(cat "$aside/d.txt" 2>/dev/null)" "gone d again"
@@ -165,7 +165,7 @@ echo $(( $(date +%s) - 3 * 86400 )) > /var/lib/golem/update-behind-since
 out=$(golem-update --nightly 2>&1); rc=$?
 is "S6: behind for longer than its wave: it updates" "$rc $(cat $G/.golem-rev)" "0 $c6"
 
-# ── S7: going back: Golem's files as a system was built from them ──────────
+# ── S7: going back: Standard's files as a system was built from them ──────────
 out=$(golem-recover "$W/sys-S2" 2>&1); rc=$?
 is "S7: recover succeeds" "$rc" 0
 is "S7: the folder is what that system was built from, edits included" "$(tree)" "$treeS2"
@@ -177,8 +177,8 @@ out=$(golem-recover "$W/nowhere" 2>&1); is "S7: a system that kept no copy: refu
 out=$(golem-update 2>&1); rc=$?
 is "S7: and from there it updates again, the old edits carried" "$rc $(cat $G/.golem-rev) $(cat $G/mine.txt)" "0 $c6 mine"
 
-# ── S8: the installer's case: Golem's files, with no history ───────────────
-rm -rf /etc/nixos/golem /var/lib/golem/golem.git /var/lib/golem/local-edits
+# ── S8: the installer's case: Standard's files, with no history ───────────────
+rm -rf /etc/nixos/standard /var/lib/golem/golem.git /var/lib/golem/local-edits
 plain="$W/plain-c3"; mkdir -p "$plain"; git --git-dir="$U" archive "$c3" | tar -x -C "$plain"
 echo "$c3" > "$plain/.golem-rev"; chmod -R a-w "$plain"
 out=$(golem-machine-checkout --tree "$plain" --url "$U" 2>&1)
@@ -196,7 +196,7 @@ has "S8: status compares now" "$(st)" "flake.nix"
 is "S8: nothing was set aside" "$([ -e /var/lib/golem/local-edits ] && echo some || echo none)" none
 
 # ── S9: files whose version upstream does not know ─────────────────────────
-rm -rf /etc/nixos/golem /var/lib/golem/golem.git /var/lib/golem/local-edits
+rm -rf /etc/nixos/standard /var/lib/golem/golem.git /var/lib/golem/local-edits
 plain9="$W/plain-x"; mkdir -p "$plain9"; git --git-dir="$U" archive "$c2" | tar -x -C "$plain9"
 echo "lab only" > "$plain9/lab.txt"; echo "b lab" > "$plain9/b.txt"
 out=$(golem-machine-checkout --tree "$plain9" --rev 1111111111111111111111111111111111111111 --url "$U" 2>&1)
@@ -225,17 +225,17 @@ git --git-dir="$U" update-ref refs/heads/stable "$c6"
 # ── S12: the browser's pin: the newer one stays, and it is nobody's edit ───
 mkdir -p "$UW/seam"; printf '{ "version": "150.0", "url": "u" }\n' > "$UW/seam/sources.json"; c7=$(publish c7)
 out=$(golem-update 2>&1)
-is "S12: the pin arrives with Golem" "$(grep -o '150.0' $G/seam/sources.json)" "150.0"
+is "S12: the pin arrives with Standard" "$(grep -o '150.0' $G/seam/sources.json)" "150.0"
 rm -rf /var/lib/golem/local-edits
 printf '{ "version": "151.0", "url": "lane" }\n' > "$G/seam/sources.json"        # Seam's own lane, on this machine
 printf '{ "version": "150.5", "url": "u2" }\n' > "$UW/seam/sources.json"; echo more > "$UW/new-upstream.txt"; c8=$(publish c8)
 out=$(golem-update 2>&1); rc=$?
-is "S12: Golem brings an OLDER browser than this machine has: the machine's stays" "$rc $(grep -o '15[0-9]\.[0-9]' $G/seam/sources.json) $(cat $G/new-upstream.txt)" "0 151.0 more"
+is "S12: Standard brings an OLDER browser than this machine has: the machine's stays" "$rc $(grep -o '15[0-9]\.[0-9]' $G/seam/sources.json) $(cat $G/new-upstream.txt)" "0 151.0 more"
 has "S12: it says so" "$out" "browser is newer (151.0)"
 is "S12: …and that is not an edit to set aside" "$([ -e /var/lib/golem/local-edits ] && echo some || echo none)" none
 printf '{ "version": "152.0", "url": "u3" }\n' > "$UW/seam/sources.json"; c9=$(publish c9)
 out=$(golem-update 2>&1); rc=$?
-is "S12: Golem brings a NEWER one: it is taken" "$rc $(grep -o '15[0-9]\.[0-9]' $G/seam/sources.json)" "0 152.0"
+is "S12: Standard brings a NEWER one: it is taken" "$rc $(grep -o '15[0-9]\.[0-9]' $G/seam/sources.json)" "0 152.0"
 is "S12: …with nothing set aside either" "$([ -e /var/lib/golem/local-edits ] && echo some || echo none)" none
 
 # ── S13: an update that is stopped in the middle (a shutdown) ──────────────
@@ -252,19 +252,19 @@ wait "$upid"; rc=$?
 rm -f /run/stub-sleep
 is "S13: stopped: it ends as a stopped program does" "$rc" 143
 is "S13: …and takes its try away (and the one a killed run had left)" "$(ls -d /var/lib/golem/update.* 2>/dev/null | wc -l)" 0
-is "S13: …with Golem's files as they were" "$(cat $G/.golem-rev) $(tree)" "$before $t0"
+is "S13: …with Standard's files as they were" "$(cat $G/.golem-rev) $(tree)" "$before $t0"
 out=$(golem-update 2>&1); rc=$?
 is "S13: the next run takes the version" "$rc $(cat $G/.golem-rev) $(cat $G/another.txt)" "0 $c10 more still"
 
-# ── S14: the first boot of a Golem the branch does not know ────────────────
-rm -rf /etc/nixos/golem /var/lib/golem/golem.git /var/lib/golem/local-edits
+# ── S14: the first boot of a Standard the branch does not know ────────────────
+rm -rf /etc/nixos/standard /var/lib/golem/golem.git /var/lib/golem/local-edits
 out=$(golem-machine-checkout --tree "$plain9" --rev 2222222222222222222222222222222222222222 --url "$U" 2>&1)
 t0=$(tree); : > /var/lib/golem-test/calls; rm -rf /var/lib/golem-test/try
 out=$(golem-update --converge 2>&1); rc=$?
 is "S14: --converge on an unknown version: this machine's system is built" "$rc $(grep -c 'boot --flake' /var/lib/golem-test/calls)" "0 1"
 has "S14: it says what it builds from" "$out" "from them as they are"
-is "S14: …the files as they are (the lab's own, not the branch's)" "$(cat /var/lib/golem-test/try/golem/b.txt) $(cat /var/lib/golem-test/try/golem/lab.txt)" "b lab lab only"
-is "S14: the system will say the version the files say" "$(cat /var/lib/golem-test/try/golem/.golem-rev)" "2222222222222222222222222222222222222222"
+is "S14: …the files as they are (the lab's own, not the branch's)" "$(cat /var/lib/golem-test/try/standard/b.txt) $(cat /var/lib/golem-test/try/standard/lab.txt)" "b lab lab only"
+is "S14: the system will say the version the files say" "$(cat /var/lib/golem-test/try/standard/.golem-rev)" "2222222222222222222222222222222222222222"
 is "S14: nothing of the folder moved, nothing set aside" "$(tree) $([ -e /var/lib/golem/local-edits ] && echo some || echo none)" "$t0 none"
 has "S14: status says why there is nothing to compare with" "$(st)" "does not know this version"
 out=$(golem-update 2>&1); rc=$?
@@ -276,6 +276,23 @@ out=$(golem-update 2>&1); rc=$?
 is "S15: no new version, and the leftover is gone" "$rc $(cat $G/.golem-rev) $(ls -d /var/lib/golem/update.* 2>/dev/null | wc -l)" "0 $c10 0"
 echo '{ "version": "153.0", "url": "lane" }' > "$G/seam/sources.json"
 has "S15: status names the browser's own update for what it is" "$(st)" "the browser updating itself"
+
+# ── S16: a machine of the layout from before the system's new name ─────────
+# (Its copy of the system in /etc/nixos/golem, git told so, flake.nix naming it.)
+mv -T /etc/nixos/standard /etc/nixos/golem
+git --git-dir=/var/lib/golem/golem.git config core.worktree /etc/nixos/golem
+printf '{ description = "This computer. Its own files are beside this one; Golem is in golem/."; outputs = { self }: import ./golem/machine.nix ./.; }\n' > /etc/nixos/flake.nix
+echo "kept" > /etc/nixos/golem/edited-before-the-move.txt
+out=$(golem-status 2>&1); rc=$?
+is "S16: the first of Golem's commands moves the folder to its new name" "$rc $([ -d /etc/nixos/standard ] && echo new) $([ -e /etc/nixos/golem ] && echo old-still-there || echo old-gone)" "0 new old-gone"
+has "S16: …and says so" "$out" "is /etc/nixos/standard now"
+is "S16: flake.nix names the new folder (and only that line changed)" "$(grep -c '\./standard/machine\.nix' /etc/nixos/flake.nix) $(grep -c 'golem/' /etc/nixos/flake.nix)" "1 0"
+is "S16: git knows where its files are now" "$(git --git-dir=/var/lib/golem/golem.git config core.worktree) $(git -C /etc/nixos/standard rev-parse --is-inside-work-tree 2>/dev/null)" "/etc/nixos/standard true"
+has "S16: an edit made before the move is still an edit after it" "$out" "edited-before-the-move.txt"
+out=$(golem-update 2>&1); rc=$?
+is "S16: and the update works from there" "$rc $(cat /etc/nixos/standard/.golem-rev)" "0 $c10"
+out=$(golem-status 2>&1)
+is "S16: a second command finds nothing to move" "$(grep -c 'is /etc/nixos/standard now' <<< "$out")" 0
 
 echo "== $pass passed, $fail failed"
 [ "$fail" = 0 ]

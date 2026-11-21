@@ -59,7 +59,7 @@ disk, all round.
 **What round 1 taught (the themes, → changes.md):**
 
 1. **BIOS is the norm, not the exception** — 3 of 5 old laptops boot
-   legacy. Golem needs a real position on BIOS boot, not just a refusal
+   legacy. Standard needs a real position on BIOS boot, not just a refusal
    (#8, needs-Max).
 2. **The minimal medium's missing firmware distorts two things** — the
    "N of M drivers" count reads pessimistically (the HP's demoralizing

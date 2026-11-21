@@ -1,8 +1,8 @@
-# Golem live ISO — the S7 flake on a USB stick (roadmap S9, todo9 item 1).
+# Standard live ISO — the S7 flake on a USB stick (roadmap S9, todo9 item 1).
 #
 #   nix build .#iso   →   result/iso/golem.iso
 #
-# The live session IS Golem, not a themed installer shell: same
+# The live session IS Standard, not a themed installer shell: same
 # system/configuration.nix, same home layer, same compositor, dock and
 # OPTIONS an installed machine gets. Everything below is only the seam
 # between that config and nixpkgs' installation-cd profile — every setting
@@ -11,10 +11,10 @@
 #
 # What this module deliberately is NOT: an installer. Which surface does the
 # guided install (calamares vs ours) is todo9 item 2, and the disk flow is
-# item 3. Until then the live session boots into Golem and `nixos-install`
+# item 3. Until then the live session boots into Standard and `nixos-install`
 # from the base profile is the (terminal) way out — the Arc-1 exit needs
 # item 2, not this file.
-{ config, lib, pkgs, golemSrc, modulesPath, ... }:
+{ config, lib, pkgs, standardSrc, modulesPath, ... }:
 
 {
   # installation-cd-base pulls in three profiles: iso-image (the squashfs +
@@ -52,29 +52,29 @@
   #    the same priority, so it yields here like the three above.
   boot.loader.timeout = lib.mkForce 10;
 
-  # 3. Garbage collection. Golem core runs a daily gc; the live store is a
+  # 3. Garbage collection. Standard core runs a daily gc; the live store is a
   #    read-only squashfs under a tmpfs overlay, where deleting a path from
   #    the lower layer cannot work. Nothing to reclaim, only a failing timer.
   nix.gc.automatic = lib.mkForce false;
 
   # ── The live session ──────────────────────────────────────────────────
 
-  # greetd (Golem core) autologins the owner (golem.owner, default `max`)
+  # greetd (Standard core) autologins the owner (standard.owner, default `max`)
   # into Hyprland — on the ISO that is the *live* user, not a person. The
   # name is ONE option now (release-checklist §2.2): the installer's rename
-  # job is setting golem.owner, together with seeding the flake checkout —
+  # job is setting standard.owner, together with seeding the flake checkout —
   # todo9 item 3, NOT this file.
   #
   # No password: a live medium that asks for one it never showed you is a
   # dead end, and installation-device already gives wheel passwordless sudo.
-  users.users.${config.golem.owner}.initialHashedPassword = "";
+  users.users.${config.standard.owner}.initialHashedPassword = "";
 
-  # No flake checkout on the live medium (golem.flakeDir stays null), so
+  # No flake checkout on the live medium (standard.flakeDir stays null), so
   # waverunner-apply and rebuild-golem are absent by design: a nixos-rebuild
   # into a tmpfs overlay would fill RAM and vanish on reboot. The visible
   # consequence, and it is the right one to know before a demo: dragging an
   # app into the Install section in the LIVE session does nothing. Installed
-  # Golem gets the checkout (hosts/vm.nix:21 is the shape).
+  # Standard gets the checkout (hosts/vm.nix:21 is the shape).
 
   # The source the installer will instantiate, carried on the medium itself
   # (/etc/golem/src → a store path in the ISO's own store). Item 3 will
@@ -83,17 +83,17 @@
   # yet an offline install — evaluating it still wants the flake inputs
   # (nixpkgs, waverunner, waveview) fetched, so the installer either
   # prefetches them into the image or installs a prebuilt toplevel.
-  environment.etc."golem/src".source = golemSrc;
+  environment.etc."golem/src".source = standardSrc;
 
   # ── Lean ──────────────────────────────────────────────────────────────
 
   # Only what the system needs to work (Max, 2026-09-01: "as debloated as
   # possible"). The full image was 6.33 GiB because the home layer carried
   # the owner's launcher-installed list (android-studio 3.3 GiB, obs' cef
-  # 2.0 GiB, three browsers) and a dev toolchain. golem.lean drops those and
+  # 2.0 GiB, three browsers) and a dev toolchain. standard.lean drops those and
   # the non-core CURATE apps; what remains is the shell, foot, the webapp
   # engine, Nautilus/text-editor/Loupe/Papers, the stopgap kit and firmware.
-  golem.lean = true;
+  standard.lean = true;
 
   # ── The image ─────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@
 
   # ── If it does not boot ───────────────────────────────────────────────
   #
-  # First suspect: Golem core runs a systemd initrd
+  # First suspect: Standard core runs a systemd initrd
   # (system/configuration.nix:54) while nixpkgs' own installer ISOs still
   # boot the scripted one, so the overlay-store mounts in iso-image.nix are
   # the least-travelled path in this whole config. Parity with the installed
@@ -119,7 +119,7 @@
   #     boot.initrd.systemd.enable = lib.mkForce false;
   #
   # Second suspect: a black screen with no message is the *expected* look of
-  # a failed session — Golem core boots quiet (loglevel=0, kernel.printk all
+  # a failed session — Standard core boots quiet (loglevel=0, kernel.printk all
   # zeroes, fbcon=map:1). tty2 still has a getty from installation-device;
   # Ctrl+Alt+F2 is the way in.
 }

@@ -49,7 +49,7 @@ rows in dormancy); A13 waits on a [new] EXIF actuator that is not ours to ship.
   silent until it ships.
 - **A14 — the confession.** *"I'm about to sleep and I still hold your clipboard
   history, do you want it cleared?"* Speaks only when data exists; the store is
-  Golem's own.
+  Standard's own.
 
 ## Honest caveats — batch 02
 
@@ -58,7 +58,7 @@ rows in dormancy); A13 waits on a [new] EXIF actuator that is not ours to ship.
    already runs; A13 waits on a [new] EXIF actuator (no stripper ships, the
    block says the action does not speak until it ships).
 2. **Two rows share one dormant seam.** A10 and A14 both wait on a single cheap
-   logind listener Golem does not ship; it is one seam, stated in both blocks,
+   logind listener Standard does not ship; it is one seam, stated in both blocks,
    not two pieces of work.
 3. **Nothing invented.** The register is closed at 12, no action was resurrected,
    and neither hunt padded the count back up.
@@ -71,7 +71,7 @@ no stage killed. The register is CLOSED at 34 blocks × 9 fields. **THE HONEST P
 AND IT IS STATED TWICE BECAUSE IT MUST NOT BE MISSED: 10 of 34 can speak on
 today's engine — 24 cannot.** Hunt #2 fixed the speak figure 13 → 11 (removing A01
 and A07), and P9 then removed A19 (no annotator or screenshots dir ships on a stock
-Golem), so **10 of 34, not 13, not 11, not 34.** The other twenty-four cannot: a
+Standard), so **10 of 34, not 13, not 11, not 34.** The other twenty-four cannot: a
 majority wait on named [cheap] work one level deeper inside a collector that
 already runs; three verbs A02/A29/A37 are [new] on detectors the tree already
 subscribes; and A26, A33 and A19 are dormant on ABSENCES (no idle manager, no
@@ -104,7 +104,7 @@ locker, no annotator) rather than on any missing deed.
 ## Five worth reading first
 
 - **A05 — the hand-back.** *"Your call is over, do you want to see what I held back?"*
-  The rule behind it: Golem owes a summary only of what Golem itself silenced.
+  The rule behind it: Standard owes a summary only of what Standard itself silenced.
 - **A15 — arrive plain.** *"You strip the formatting out of most things you paste, do
   you want them to arrive plain?"* Its trigger is the laundering round-trip (rich
   text copied, then the same content re-offered seconds later as plain), hash
@@ -121,7 +121,7 @@ locker, no annotator) rather than on any missing deed.
    the batch's honest state: three verbs (A02/A29/A37) are [new]; a majority wait on
    named [cheap] work one level deeper in a collector that already runs; A26 and
    A33 are dormant on the idle-manager ABSENCE; and A19 on the annotator absence —
-   no idle manager, no locker and no annotator ship on a stock Golem.
+   no idle manager, no locker and no annotator ship on a stock Standard.
 2. **A21 is blocked by the launcher's data model** — its ranking is a flat
    `{app-id: count}` read by one sort key, no query dimension, so "stop putting it
    first for this query" cannot be written today.

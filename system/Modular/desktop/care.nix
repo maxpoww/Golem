@@ -17,7 +17,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  owner = config.golem.owner;
+  owner = config.standard.owner;
   nix = config.nix.package;
 
   # Under the rebuild lock: a clean-up must not delete a version a running

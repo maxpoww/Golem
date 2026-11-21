@@ -8,7 +8,7 @@ install (ESP + ext4 "root" + swap) — not macOS; guarded the same way.
 Lab connectivity: a **Realtek USB WiFi dongle** (`rtw88_8821au`) — the
 internal Broadcom card is dark on the minimal medium (no `wl`), so the
 dongle bridges it onto HOLA. (One battery-death mid-test, unrelated to
-Golem.)
+Standard.)
 
 ---
 
@@ -46,7 +46,7 @@ Golem.)
   - Rehearsal `status ok`, 5/5 checks (eval 58 s → `nixos-system-mbp`),
     **Apple SSD NixOS install byte-identical before and after** — safe.
 
-- **FINDING (census, boss-fight) — an installed Golem here would have NO
+- **FINDING (census, boss-fight) — an installed Standard here would have NO
   internal Wi-Fi.** The Broadcom BCM4360 needs the unfree `broadcom-sta`
   (`wl`) module; `nixos-generate-config` never adds it, and the census has
   **no wifi-chipset fact**, so nothing tells the installed target to enable
@@ -164,7 +164,7 @@ golem-setup's keymap persistence noted as a minor UX call. See changes.md
   fail under pressure — the trap catches it, but a retry-on-transient
   around the bundle copy would be belt-and-suspenders (noted, not
   queued).
-- **Disk verified SAFE:** `blkid -L golem` empty (no golem fs ever
+- **Disk verified SAFE:** `blkid -L standard` empty (no golem fs ever
   created), /mnt unmounted, no swap active. sda2 ext4 LABEL "root" (the
   MacBook's own prior Linux) untouched.
 - **Verdict:** PASS — the boss fight's wl path survives round 3, the
@@ -174,7 +174,7 @@ golem-setup's keymap persistence noted as a minor UX call. See changes.md
 
 ### Round 3, follow-up — Max's physical run: the audit/installer race (2026-09-08)
 
-Max's photo (device "Golem"/user "g" — solving the transcript's
+Max's photo (device "Standard"/user "g" — solving the transcript's
 dual-owner mystery: that "g" run was HIS, not VM residue) shows two
 things, one root cause, plus a third separate one:
 - **"audit incomplete — the decisions could not be shown"** + a
@@ -228,7 +228,7 @@ Driven from the dev box, over the Realtek USB-ethernet dongle (internal
 BCM4360 still dark on the medium, as every round).
 
 - **ISO:** round-5 stick (`GOLEM_INST`, `/dev/sdb`). Markers confirmed:
-  `golem-setup` unwrapped has 1 `valid_host Golem` hit and 4
+  `golem-setup` unwrapped has 1 `valid_host Standard` hit and 4
   `cancel_install` hits with the `#34` trap pair (`trap cleanup EXIT` /
   `trap cancel_install INT TERM`) at 3933–3934; `golem-postinstall-questions`
   (`n4q18b3x…`) present on the medium. Apple EFI (UEFI). `GOLEM_REHEARSE='1'`
