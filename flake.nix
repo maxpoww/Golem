@@ -424,7 +424,7 @@
       };
 
       # The machine's folder as the installer writes it (/etc/nixos):
-      #   nix flake new -t github:maxpoww/Golem /etc/nixos
+      #   nix flake new -t github:maxpoww/StandardOS /etc/nixos
       templates.default = {
         path = ./system/machine/template;
         description = "A Standard machine's own folder (/etc/nixos): flake.nix, configuration.nix, modules/, machine/";

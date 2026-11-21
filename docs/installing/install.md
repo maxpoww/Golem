@@ -432,7 +432,7 @@ The first-boot step (`system/Modular/base/first-boot.nix`) runs once:
 2. It waits for the internet (`cache.nixos.org`), up to 15 minutes. Offline,
    it gives up and runs again at the next boot.
 3. `golem-seed-adopt` turns the copied source into a git checkout of
-   `https://github.com/maxpoww/Golem`, branch `stable`. It stays at the
+   `https://github.com/maxpoww/StandardOS`, branch `stable`. It stays at the
    revision the machine was installed from when GitHub has that commit;
    otherwise it takes the head of `stable`. It carries the machine's own files
    over, stages them, and hands the checkout to the owner. If GitHub cannot

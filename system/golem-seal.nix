@@ -45,7 +45,7 @@ let
   # Root's own mirror of upstream, fetched from the configured URL — never
   # from anything in the owner's .git — to tell upstream code from local edits.
   mirrorDir = "${manifestDir}/upstream.git";
-  upstreamUrl = lib.attrByPath [ "standard" "upstream" "url" ] "https://github.com/maxpoww/Golem" config;
+  upstreamUrl = lib.attrByPath [ "standard" "upstream" "url" ] "https://github.com/maxpoww/StandardOS" config;
   upstreamBranch = lib.attrByPath [ "standard" "upstream" "branch" ] "main" config;
 
   # The generated data channels (root-written from validated user data) —

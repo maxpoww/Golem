@@ -492,7 +492,7 @@ pkgs.writeShellApplication {
         rm -rf "$mnt/var/lib/golem/golem.git" "$mnt/etc/nixos/standard"
         # (The address and the branch are base/seed.nix's standard.upstream.)
         if bash "$src/system/machine/checkout.sh" --root "$mnt" --tree "$src" \
-             --url https://github.com/maxpoww/Golem --branch stable "''${revarg[@]}" >>"$logdir/folder.log" 2>&1; then
+             --url https://github.com/maxpoww/StandardOS --branch stable "''${revarg[@]}" >>"$logdir/folder.log" 2>&1; then
           check_ok "folder: Standard ''${rev:0:12} is root's own copy in /etc/nixos/standard"
         else
           check_fail "folder: could not put Standard in /etc/nixos/standard (folder.log has the trace)"

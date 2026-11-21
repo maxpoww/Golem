@@ -6,7 +6,7 @@ records to the repo — so the dev box (or any machine) can be tested
 without the machine that drives the lab being up. No ISO changes: the
 same round-3 stick works everywhere; the phone is the brain.
 
-The whole design in one line: **the repo (github.com/maxpoww/Golem) is
+The whole design in one line: **the repo (github.com/maxpoww/StandardOS) is
 the shared memory.** The phone pushes records; the dev-box Claude pulls
 them. See [phone-lab-driver.md](phone-lab-driver.md) for how the phone
 session actually runs a test once this setup is done.
@@ -35,7 +35,7 @@ Debian VM. Everything below runs inside it.
 
 3. **Clone the repo** (this carries the lab playbook + all records):
    ```sh
-   git clone https://github.com/maxpoww/Golem.git ~/Golem
+   git clone https://github.com/maxpoww/StandardOS.git ~/Golem
    ```
    Pushing needs a GitHub credential — set up a personal-access-token
    (HTTPS) or `gh auth login` once, so `git push` works unattended.

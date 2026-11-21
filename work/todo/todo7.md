@@ -5,7 +5,7 @@
 - [x] New repo (or `golem/` in the site repo?): the distro flake
       → Max's call 2026-08-30: the flake lives at the ROOT of ~/Golem (the
       plan repo doubles as the distribution) and pushes to the public
-      github.com/maxpoww/Golem. `github:maxpoww/Golem` is directly buildable.
+      github.com/maxpoww/StandardOS. `github:maxpoww/StandardOS` is directly buildable.
 - [x] Compose: custom Hyprland 0.55.4 (+ Lua API) as a flake input/output
       → via the pinned nixpkgs input (exact live channel rev 21ea275a), same
       programs.hyprland the machine runs today; repin deliberately on bumps.
@@ -941,7 +941,7 @@
 - Round 1 (2026-08-30, "lets keep going with the plan" — SH had nothing
   actionable left for Claude, all remaining boxes are Max's hands or the
   daily-driving clock): S7 OPENED. Max decided the flake pushes to the
-  empty public github.com/maxpoww/Golem; since local ~/Golem shares the
+  empty public github.com/maxpoww/StandardOS; since local ~/Golem shares the
   name and had no remote, the plan repo IS the distro repo — flake.nix at
   the root. Ported all of /etc/nixos into system/ + hosts/ (nvidia split
   host-side so the VM is hardware-free); /etc/nixos left untouched and
@@ -988,7 +988,7 @@
   main). Flake inputs repinned git+file → github:maxpoww/{launcher,
   waveview}; identical revs/narHashes so the repin cost zero rebuilds;
   VM target verified building from the GitHub-only closure.
-  `github:maxpoww/Golem` is now buildable by any machine with nix —
+  `github:maxpoww/StandardOS` is now buildable by any machine with nix —
   first time Standard exists independently of Max's laptop.
 - Round 9 (2026-08-31, Max: "droping the icons on page 1... land on
   page 2... when i drop it at the end of the grid"): THE END-OF-GRID

@@ -149,7 +149,7 @@ in
   options.standard.upstream = {
     url = lib.mkOption {
       type = lib.types.str;
-      default = "https://github.com/maxpoww/Golem";
+      default = "https://github.com/maxpoww/StandardOS";
       description = "Where an installed Standard pulls its updates from (a git URL); empty = never adopt.";
     };
     branch = lib.mkOption {

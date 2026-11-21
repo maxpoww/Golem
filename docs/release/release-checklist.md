@@ -153,7 +153,7 @@ machine is `standard-desktop`, built on the hardware measured at install
 
 | | Barrier to the tester | Trail | Cost to Max |
 |---|---|---|---|
-| GitHub Issues on `maxpoww/Golem` | needs an account | public, searchable | triage only |
+| GitHub Issues on `maxpoww/StandardOS` | needs an account | public, searchable | triage only |
 | Email | none | none: every report is private and answered again | inbox |
 | Matrix / Discord | account + app | chat: reports scroll away | constant |
 

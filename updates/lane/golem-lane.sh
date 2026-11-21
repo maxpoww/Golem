@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-REPO_URL=${GOLEM_LANE_REPO_URL:-https://github.com/maxpoww/Golem.git}
+REPO_URL=${GOLEM_LANE_REPO_URL:-https://github.com/maxpoww/StandardOS.git}
 CACHE_REPO=${GOLEM_LANE_CACHE_REPO:-maxpoww/golem-cache}
 KEY=${GOLEM_LANE_KEY:-$HOME/.local/share/golem-lane/cache-key.sec}
 STATE=${GOLEM_LANE_STATE:-$HOME/.local/state/golem-lane}
