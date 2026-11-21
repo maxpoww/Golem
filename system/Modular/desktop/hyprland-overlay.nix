@@ -338,7 +338,11 @@ final: prev: {
   #                   Acer, 2026-10-14, the bus killed on purpose). Now, while
   #                   the unit is still active, the wait starts over — asked
   #                   until the user manager answers, which it does not for
-  #                   up to 90 s while it brings the bus back.
+  #                   up to 90 s while it brings the bus back. Never when
+  #                   the session was ASKED to stop (2026-11-21): starting
+  #                   over is `systemctl --user start`, which cancelled the
+  #                   stop of a restart and started the desktop again, for
+  #                   the shutdown to kill it 90 s later.
   uwsm = prev.uwsm.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [ ./uwsm-patches/uwsm-rewait.patch ];
   });

@@ -1,6 +1,14 @@
 --- a/uwsm-libexec/signal-handler.sh
 +++ b/uwsm-libexec/signal-handler.sh
-@@ -41,9 +41,37 @@
+@@ -36,14 +36,49 @@
+ # shellcheck disable=SC2329
+ stop() {
+ 	trap '' TERM HUP INT
++	# Golem: asked to stop (a log-out, a restart, a power-off): the wait that
++	# breaks now is the session ending as asked, never one to wait on again.
++	STOPPING=1
+ 	printf_out '%s\n' "Received SIG${1}, stopping ${UNIT}..."
+ 	systemctl --user stop "${UNIT}" &
  	finish
  }
  
@@ -8,7 +16,11 @@
 +# bus dies, this systemctl loses its connection and returns 1 while the
 +# compositor runs on; ending the session then tore a working desktop down.
 +# Ask the user manager (it can take up to 90 s to answer while the bus comes
-+# back) and, while the unit is still up, wait on it again.
++# back) and, while the unit is still up, wait on it again — unless the
++# session was asked to stop (stop() above): waiting "again" is
++# `systemctl --user start`, which cancels the stop and starts the desktop
++# again in the middle of a restart, for the shutdown to kill 90 s later
++# (2026-11-21: a VM's first restart).
 +unit_state() {
 +	for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
 +		s=$(systemctl --user is-active "${UNIT}" 2>/dev/null)
@@ -21,7 +33,7 @@
  finish() {
  	wait "${STARTPID}"
  	RC=$?
-+	while [ "$RC" != 0 ]; do
++	while [ "$RC" != 0 ] && [ -z "${STOPPING:-}" ]; do
 +		case "$(unit_state)" in
 +		active | reloading | activating) ;;
 +		*) break ;;
